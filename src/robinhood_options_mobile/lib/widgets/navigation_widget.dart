@@ -98,6 +98,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   StreamSubscription<Uri>? linkStreamSubscription;
   Timer? refreshCredentialsTimer;
+  // Moved to AgenticTradingProvider: autoTradeTimer
 
   @override
   void initState() {
@@ -145,6 +146,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //     currentUserIndex >= 0 && currentUserIndex < brokerageUsers.length
   //         ? brokerageUsers[currentUserIndex]
   //         : brokerageUsers[0];
+
+  // Moved: _startAutoTradeTimer is now in AgenticTradingProvider
 
   @override
   Widget build(BuildContext context) {
@@ -217,8 +220,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               }
               // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                Provider.of<AgenticTradingProvider>(context, listen: false)
-                    .loadConfigFromUser(user?.agenticTradingConfig);
+                final agenticProvider =
+                    Provider.of<AgenticTradingProvider>(context, listen: false);
+                agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+
+                // Load automated buy trades from Firestore
+                agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+
+                // Start auto-trade timer via provider (prevents duplicate starts)
+                agenticProvider.startAutoTradeTimer(
+                  context: context,
+                  brokerageService: service,
+                  userDocRef: userDoc,
+                );
               });
 
               widget.analytics.setUserId(id: userInfo!.username);
@@ -453,9 +467,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             analytics: widget.analytics,
             observer: widget.observer,
             generativeService: _generativeService,
-            navigatorKey: navigatorKeys[1]),
+            navigatorKey: navigatorKeys[1],
+            userDocRef: userDoc),
         ListsWidget(userStore.currentUser!, service,
             user: user,
+            userDocRef: userDoc,
             analytics: widget.analytics,
             observer: widget.observer,
             generativeService: _generativeService,
@@ -474,6 +490,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         brokerageUser: userStore.currentUser!,
         analytics: widget.analytics,
         observer: widget.observer,
+        user: user,
+        userDocRef: userDoc,
       ),
       // Leaderboard tab
       if (auth.currentUser != null) ...[const LeaderboardWidget()],
@@ -963,15 +981,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 // },
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (BuildContext context) =>
-                                              UsersWidget(auth,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                  brokerageUser:
-                                                      userStore.currentUser!)));
+                                  _onPageChanged(5);
+                                  // Navigator.pop(context); // close the drawer
+                                  // Navigator.push(
+                                  //     context,
+                                  //     MaterialPageRoute(
+                                  //         builder: (BuildContext context) =>
+                                  //             UsersWidget(auth,
+                                  //                 analytics: widget.analytics,
+                                  //                 observer: widget.observer,
+                                  //                 brokerageUser:
+                                  //                     userStore.currentUser!)));
                                 }),
                             // const Divider(
                             //   height: 10,

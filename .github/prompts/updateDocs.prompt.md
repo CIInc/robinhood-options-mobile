@@ -1,14 +1,14 @@
 ---
 name: updateDocs
 description: Update markdown documentation based on recently closed or merged pull requests, or the latest commits if none specified.
-argument-hint: PR numbers or "latest" to use most recent closed PRs
+argument-hint: PR numbers or "latest" to use most recent closed PRs, or the new version number.
 ---
 
 Update all markdown documentation based on recently closed or merged pull requests. If no PRs are specified, use the latest commits since the previous version.
 
 ## Process:
 
-1. **Fetch PR Information**: Retrieve details from the specified pull requests including:
+1. **Fetch PR or Commit Information**: Retrieve details from the specified pull requests or commits including:
    - PR title and description
    - File changes and patches
    - Merge date and author

@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -20,7 +22,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class InstrumentOptionChainWidget extends StatefulWidget {
   const InstrumentOptionChainWidget(
-      this.user,
+      this.brokerageUser,
       this.service,
       //this.account,
       this.instrument,
@@ -28,16 +30,20 @@ class InstrumentOptionChainWidget extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
-      this.optionPosition});
+      this.optionPosition,
+      required this.user,
+      required this.userDocRef});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final Instrument instrument;
   final OptionAggregatePosition? optionPosition;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<InstrumentOptionChainWidget> createState() =>
@@ -79,7 +85,7 @@ class _InstrumentOptionChainWidgetState
   @override
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
-    var user = widget.user;
+    var user = widget.brokerageUser;
 
     try {
       futureOptionChain ??= widget.service.getOptionChains(user, instrument.id);
@@ -567,7 +573,7 @@ class _InstrumentOptionChainWidgetState
           // TODO: Optimize to batch calls for market data.
           if (optionInstrument.optionMarketData == null) {
             widget.service
-                .getOptionMarketData(widget.user, optionInstrument)
+                .getOptionMarketData(widget.brokerageUser, optionInstrument)
                 .then((value) => setState(() {
                       optionInstrument.optionMarketData = value;
                     }));
@@ -693,7 +699,7 @@ class _InstrumentOptionChainWidgetState
                               context,
                               MaterialPageRoute(
                                   builder: (context) => OptionInstrumentWidget(
-                                        widget.user,
+                                        widget.brokerageUser,
                                         widget.service,
                                         optionInstrument,
                                         optionPosition:
@@ -704,6 +710,8 @@ class _InstrumentOptionChainWidgetState
                                         observer: widget.observer,
                                         generativeService:
                                             widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
                                       )));
                         },
                       )

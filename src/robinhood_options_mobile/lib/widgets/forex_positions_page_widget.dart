@@ -11,7 +11,7 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class ForexPositionsPageWidget extends StatefulWidget {
   const ForexPositionsPageWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredPositions, {
@@ -22,7 +22,7 @@ class ForexPositionsPageWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   //final Account account;
   final List<ForexHolding> filteredPositions;
@@ -59,7 +59,7 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
                   : const Icon(Icons.login),
               onPressed: () {
                 showProfile(context, auth, _firestoreService, widget.analytics,
-                    widget.observer, widget.user);
+                    widget.observer, widget.brokerageUser);
               }),
           // IconButton(
           //     icon: Icon(Icons.more_vert),
@@ -96,7 +96,7 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
         ],
       ),
       ForexPositionsWidget(
-        widget.user,
+        widget.brokerageUser,
         widget.service,
         widget.filteredPositions,
         analytics: widget.analytics,

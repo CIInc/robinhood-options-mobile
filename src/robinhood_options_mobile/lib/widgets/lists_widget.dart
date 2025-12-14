@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -18,6 +19,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -36,7 +38,8 @@ class ListsWidget extends StatefulWidget {
       required this.observer,
       required this.generativeService,
       this.navigatorKey,
-      this.user});
+      required this.user,
+      required this.userDocRef});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -45,6 +48,7 @@ class ListsWidget extends StatefulWidget {
   final IBrokerageService service;
   final GenerativeService generativeService;
   final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<ListsWidget> createState() => _ListsWidgetState();
@@ -158,7 +162,7 @@ class _ListsWidgetState extends State<ListsWidget>
                 const Text('Lists', style: TextStyle(fontSize: 20.0)),
                 Text(
                   "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
-                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                  style: TextStyle(fontSize: 16.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 )
               ]),
           actions: [
@@ -264,10 +268,17 @@ class _ListsWidgetState extends State<ListsWidget>
               const Text('Lists', style: TextStyle(fontSize: 20.0)),
               Text(
                 "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
-                style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                style: TextStyle(
+                  fontSize: 16.0,
+                  // color: Theme.of(context).colorScheme.onSurfaceVariant
+                ),
               )
             ]),
         actions: [
+          AutoTradeStatusBadgeWidget(
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+          ),
           IconButton(
               icon: auth.currentUser != null
                   ? (auth.currentUser!.photoURL == null
@@ -845,7 +856,10 @@ class _ListsWidgetState extends State<ListsWidget>
                           watchLists[index].instrumentObj!.simpleName ??
                               watchLists[index].instrumentObj!.name,
                           style: TextStyle(
-                              fontSize: 12.0, color: Colors.grey.shade600),
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis),
                   ])),
@@ -860,6 +874,8 @@ class _ListsWidgetState extends State<ListsWidget>
                           analytics: widget.analytics,
                           observer: widget.observer,
                           generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
                         )));
           },
         ));

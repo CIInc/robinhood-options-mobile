@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -49,8 +50,8 @@ class HistoryPage extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
-      this.user,
-      this.userDoc,
+      required this.user,
+      required this.userDoc,
       this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -60,7 +61,7 @@ class HistoryPage extends StatefulWidget {
   final IBrokerageService service;
   final GenerativeService generativeService;
   final User? user;
-  final DocumentReference? userDoc;
+  final DocumentReference<User>? userDoc;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -518,6 +519,10 @@ class _HistoryPageState extends State<HistoryPage>
                                 fontSize: 16.0, color: Colors.white70)),
                       ]),
                   actions: [
+                    AutoTradeStatusBadgeWidget(
+                      user: widget.user,
+                      userDocRef: widget.userDoc,
+                    ),
                     IconButton(
                         icon: auth.currentUser != null
                             ? (auth.currentUser!.photoURL == null
@@ -895,6 +900,9 @@ class _HistoryPageState extends State<HistoryPage>
                                                               widget.observer,
                                                           generativeService: widget
                                                               .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
                                                         )));
                                           },
                                         ),
@@ -1132,6 +1140,9 @@ class _HistoryPageState extends State<HistoryPage>
                                                               widget.observer,
                                                           generativeService: widget
                                                               .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
                                                         )));
                                           },
                                         ),

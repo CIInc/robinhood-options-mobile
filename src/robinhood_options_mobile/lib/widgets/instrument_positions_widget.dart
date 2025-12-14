@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'dart:math' as math;
@@ -12,6 +13,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -25,7 +27,7 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredPositions, {
@@ -34,14 +36,18 @@ class InstrumentPositionsWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.user,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   final bool showList;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   //final Account account;
   final List<InstrumentPosition> filteredPositions;
 
@@ -82,9 +88,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   @override
   Widget build(BuildContext context) {
     var sortedFilteredPositions = widget.filteredPositions.sortedBy<num>((i) =>
-        widget.user.getDisplayValueInstrumentPosition(i,
-            displayValue: widget.user.sortOptions));
-    if (widget.user.sortDirection == SortDirection.desc) {
+        widget.brokerageUser.getDisplayValueInstrumentPosition(i,
+            displayValue: widget.brokerageUser.sortOptions));
+    if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedFilteredPositions = sortedFilteredPositions.reversed.toList();
     }
 
@@ -92,15 +98,16 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     var data = [];
     for (var position in sortedFilteredPositions) {
       if (position.instrumentObj != null) {
-        double? value = widget.user.getDisplayValueInstrumentPosition(position);
-        String? valueLabel = widget.user.getDisplayText(value);
+        double? value =
+            widget.brokerageUser.getDisplayValueInstrumentPosition(position);
+        String? valueLabel = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getDisplayValueInstrumentPosition(
-              position,
-              displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue,
+        if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+          secondaryValue = widget.brokerageUser
+              .getDisplayValueInstrumentPosition(position,
+                  displayValue: DisplayValue.totalCost);
+          secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
           // // Uncomment to enable secondary values for today and total return measures.
           // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
@@ -130,7 +137,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: BrokerageUser.displayValueText(widget.user.displayValue!),
+        id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
         data: data,
         // colorFn: (_, __) => shades[
         //     0], //charts.ColorUtil.fromDartColor(of(context).colorScheme.primary),
@@ -150,7 +157,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             color: charts.ColorUtil.fromDartColor(
                 Theme.of(context).textTheme.labelSmall!.color!))));
     var seriesData = charts.Series<dynamic, String>(
-      id: (widget.user.displayValue == DisplayValue.marketValue)
+      id: (widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? BrokerageUser.displayValueText(DisplayValue.totalCost)
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
@@ -168,8 +175,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     //     widget.user.displayValue != DisplayValue.todayReturn) {
     seriesData.setAttribute(charts.rendererIdKey, 'customLine');
     // }
-    if (widget.user.displayValue == DisplayValue.totalReturn ||
-        widget.user.displayValue == DisplayValue.todayReturn) {
+    if (widget.brokerageUser.displayValue == DisplayValue.totalReturn ||
+        widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
       seriesData.setAttribute(
           charts.measureAxisIdKey, 'secondaryMeasureAxisId');
     }
@@ -204,39 +211,41 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     //   }
     // }
     var extents = charts.NumericExtents.fromValues(sortedFilteredPositions
-        .map((e) => widget.user.getDisplayValueInstrumentPosition(e)));
+        .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e)));
     extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
         extents.max + (extents.width * 0.1));
 
-    var primaryMeasureAxis =
-        widget.user.displayValue == DisplayValue.todayReturnPercent ||
-                widget.user.displayValue == DisplayValue.totalReturnPercent
-            ? charts.PercentAxisSpec(
-                viewport: extents, // charts.NumericExtents(minimum, maximum),
-                renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)))
-            : charts.NumericAxisSpec(
-                //showAxisLine: true,
-                //renderSpec: charts.GridlineRendererSpec(),
-                renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-                //renderSpec: charts.NoneRenderSpec(),
-                tickFormatterSpec:
-                    charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-                        NumberFormat.compactSimpleCurrency()),
-                //tickProviderSpec:
-                //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
-                //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
-              );
-    if (widget.user.displayValue == DisplayValue.todayReturn ||
-        widget.user.displayValue == DisplayValue.totalReturn) {
-      var positionDisplayValues = sortedFilteredPositions.map((e) => widget.user
-          .getDisplayValueInstrumentPosition(e,
-              displayValue: widget.user.displayValue == DisplayValue.todayReturn
-                  ? DisplayValue.todayReturnPercent
-                  : (widget.user.displayValue == DisplayValue.totalReturn
-                      ? DisplayValue.totalReturnPercent
-                      : null)));
+    var primaryMeasureAxis = widget.brokerageUser.displayValue ==
+                DisplayValue.todayReturnPercent ||
+            widget.brokerageUser.displayValue == DisplayValue.totalReturnPercent
+        ? charts.PercentAxisSpec(
+            viewport: extents, // charts.NumericExtents(minimum, maximum),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)))
+        : charts.NumericAxisSpec(
+            //showAxisLine: true,
+            //renderSpec: charts.GridlineRendererSpec(),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            //renderSpec: charts.NoneRenderSpec(),
+            tickFormatterSpec:
+                charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                    NumberFormat.compactSimpleCurrency()),
+            //tickProviderSpec:
+            //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
+            //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
+          );
+    if (widget.brokerageUser.displayValue == DisplayValue.todayReturn ||
+        widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
+      var positionDisplayValues = sortedFilteredPositions.map((e) =>
+          widget.brokerageUser.getDisplayValueInstrumentPosition(e,
+              displayValue:
+                  widget.brokerageUser.displayValue == DisplayValue.todayReturn
+                      ? DisplayValue.todayReturnPercent
+                      : (widget.brokerageUser.displayValue ==
+                              DisplayValue.totalReturn
+                          ? DisplayValue.totalReturnPercent
+                          : null)));
       if (positionDisplayValues.isNotEmpty) {
         minimum = positionDisplayValues.reduce(math.min);
         if (minimum < 0) {
@@ -253,24 +262,27 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       }
     }
     var secondaryExtents = charts.NumericExtents.fromValues(
-        sortedFilteredPositions.map((e) => widget.user
+        sortedFilteredPositions.map((e) => widget.brokerageUser
             .getDisplayValueInstrumentPosition(e,
-                displayValue:
-                    widget.user.displayValue == DisplayValue.todayReturn
-                        ? DisplayValue.todayReturnPercent
-                        : (widget.user.displayValue == DisplayValue.totalReturn
-                            ? DisplayValue.totalReturnPercent
-                            : null))));
+                displayValue: widget.brokerageUser.displayValue ==
+                        DisplayValue.todayReturn
+                    ? DisplayValue.todayReturnPercent
+                    : (widget.brokerageUser.displayValue ==
+                            DisplayValue.totalReturn
+                        ? DisplayValue.totalReturnPercent
+                        : null))));
     secondaryExtents = charts.NumericExtents(
         secondaryExtents.min - (secondaryExtents.width * 0.1),
         secondaryExtents.max + (secondaryExtents.width * 0.1));
 
-    var secondaryMeasureAxis = widget.user.displayValue ==
+    var secondaryMeasureAxis = widget.brokerageUser.displayValue ==
                 DisplayValue.totalReturn ||
-            widget.user.displayValue == DisplayValue.todayReturn
+            widget.brokerageUser.displayValue == DisplayValue.todayReturn
         ? charts.PercentAxisSpec(
-            viewport: (widget.user.displayValue == DisplayValue.todayReturn ||
-                    widget.user.displayValue == DisplayValue.totalReturn)
+            viewport: (widget.brokerageUser.displayValue ==
+                        DisplayValue.todayReturn ||
+                    widget.brokerageUser.displayValue ==
+                        DisplayValue.totalReturn)
                 ? secondaryExtents // charts.NumericExtents(minimum, maximum)
                 : null,
             renderSpec: charts.SmallTickRendererSpec(
@@ -330,7 +342,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           context,
           MaterialPageRoute(
               builder: (context) => InstrumentWidget(
-                    widget.user,
+                    widget.brokerageUser,
                     widget.service,
                     position.instrumentObj!,
                     heroTag:
@@ -338,43 +350,47 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                     analytics: widget.analytics,
                     observer: widget.observer,
                     generativeService: widget.generativeService,
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
                   )));
     });
 
-    double? marketValue = widget.user.getDisplayValueInstrumentPositions(
-        sortedFilteredPositions,
-        displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.user
+    double? marketValue = widget.brokerageUser
+        .getDisplayValueInstrumentPositions(sortedFilteredPositions,
+            displayValue: DisplayValue.marketValue);
+    String? marketValueText = widget.brokerageUser
         .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = widget.user.getDisplayValueInstrumentPositions(
-        sortedFilteredPositions,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    double? totalReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPositions(sortedFilteredPositions,
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPositions(
-        sortedFilteredPositions,
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPositions(sortedFilteredPositions,
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueInstrumentPositions(
-        sortedFilteredPositions,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    double? todayReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPositions(sortedFilteredPositions,
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPositions(
-        sortedFilteredPositions,
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPositions(sortedFilteredPositions,
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
+    Icon todayIcon =
+        widget.brokerageUser.getDisplayIcon(todayReturn, size: 27.0);
+    Icon totalIcon =
+        widget.brokerageUser.getDisplayIcon(totalReturn, size: 27.0);
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
@@ -405,7 +421,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           trailing: InkWell(
             onTap: () {
               setState(() {
-                widget.user.displayValue = DisplayValue.marketValue;
+                widget.brokerageUser.displayValue = DisplayValue.marketValue;
               });
             },
             child: Padding(
@@ -507,7 +523,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                       // isScrollControlled: true,
                       //useRootNavigator: true,
                       //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
                               analytics: widget.analytics,
                               observer: widget.observer,
                               showOnlyPrimaryMeasure: true,
@@ -515,8 +531,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                             setState(() {});
                           }));
                 },
-                label: Text(
-                    BrokerageUser.displayValueText(widget.user.displayValue!)),
+                label: Text(BrokerageUser.displayValueText(
+                    widget.brokerageUser.displayValue!)),
                 icon: Icon(Icons.line_axis)),
             TextButton.icon(
                 // FilledButton.tonalIcon(
@@ -528,18 +544,19 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                       // isScrollControlled: true,
                       //useRootNavigator: true,
                       //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
                               analytics: widget.analytics,
                               observer: widget.observer,
                               showOnlySort: true, onSettingsChanged: (value) {
                             setState(() {});
                           }));
                 },
-                label: Text(
-                    BrokerageUser.displayValueText(widget.user.sortOptions!)),
-                icon: Icon(widget.user.sortDirection == SortDirection.desc
-                    ? Icons.south
-                    : Icons.north)
+                label: Text(BrokerageUser.displayValueText(
+                    widget.brokerageUser.sortOptions!)),
+                icon: Icon(
+                    widget.brokerageUser.sortDirection == SortDirection.desc
+                        ? Icons.south
+                        : Icons.north)
                 // Icon(Icons.sort)
                 ),
             // ListTile(
@@ -593,12 +610,14 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
         context,
         MaterialPageRoute(
             builder: (context) => InstrumentPositionsPageWidget(
-                  widget.user,
+                  widget.brokerageUser,
                   widget.service,
                   widget.filteredPositions,
                   analytics: widget.analytics,
                   observer: widget.observer,
                   generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
                 )));
   }
 
@@ -606,42 +625,44 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       BuildContext context, List<InstrumentPosition> positions, int index) {
     var instrument = positions[index].instrumentObj;
 
-    double value =
-        widget.user.getDisplayValueInstrumentPosition(positions[index]);
-    String trailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
+    double value = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(positions[index]);
+    String trailingText = widget.brokerageUser.getDisplayText(value);
+    Icon? icon = (widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+            widget.brokerageUser.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value, size: 31);
+        : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
-    double? totalReturn = widget.user.getDisplayValueInstrumentPosition(
-        positions[index],
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    double? totalReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(positions[index],
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPosition(
-        positions[index],
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(positions[index],
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueInstrumentPosition(
-        positions[index],
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    double? todayReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(positions[index],
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPosition(
-        positions[index],
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(positions[index],
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
+    Icon todayIcon =
+        widget.brokerageUser.getDisplayIcon(todayReturn, size: 27.0);
+    Icon totalIcon =
+        widget.brokerageUser.getDisplayIcon(totalReturn, size: 27.0);
 
     return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -722,7 +743,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 instrument!,
                                 heroTag:
@@ -730,6 +751,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
                               )));
                   // Refresh in case settings were updated.
                   // futureFromInstrument.then((value) => setState(() {}));
@@ -746,7 +769,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               //     ],
               //   ),
               // ),
-              if (widget.user.showPositionDetails) ...[
+              if (widget.brokerageUser.showPositionDetails) ...[
                 buildDetailScrollView(
                     todayIcon,
                     todayReturnText,
@@ -933,7 +956,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturn;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturn;
                   });
                 },
                 child: Padding(
@@ -950,7 +974,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturnPercent;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturnPercent;
                   });
                 },
                 child: Padding(
@@ -968,7 +993,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturn;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturn;
                   });
                 },
                 child: Padding(
@@ -985,7 +1011,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturnPercent;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturnPercent;
                   });
                 },
                 child: Padding(

@@ -23,6 +23,7 @@ import * as agenticTradingIntradayCron from "./agentic-trading-intraday-cron";
 import * as riskguardAgent from "./riskguard-agent";
 import * as copyTrading from "./copy-trading";
 import * as tradeSignalNotifications from "./trade-signal-notifications";
+import * as agenticTradingNotifications from "./agentic-trading-notifications";
 import * as cronDiagnosticsFuncs from "./cron-diagnostics";
 import * as signalDiagnosticsFuncs from "./signal-diagnostics";
 import * as leaderboard from "./leaderboard";
@@ -69,6 +70,8 @@ export const onTradeSignalCreated =
   tradeSignalNotifications.onTradeSignalCreated;
 export const onTradeSignalUpdated =
   tradeSignalNotifications.onTradeSignalUpdated;
+export const sendAgenticTradeNotification =
+  agenticTradingNotifications.sendAgenticTradeNotification;
 export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
 export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;
 export const calculateLeaderboard = leaderboard.calculateLeaderboard;

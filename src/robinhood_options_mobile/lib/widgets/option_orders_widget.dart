@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -5,13 +6,14 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 class OptionOrdersWidget extends StatefulWidget {
   const OptionOrdersWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.optionOrders,
@@ -20,16 +22,20 @@ class OptionOrdersWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.authUser,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
+  final User? authUser;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionOrdersWidget> createState() => _OptionOrdersWidgetState();
@@ -198,12 +204,14 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => OptionOrderWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 optionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
+                                user: widget.authUser,
+                                userDocRef: widget.userDocRef,
                               )));
                 },
               ),

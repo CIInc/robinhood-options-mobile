@@ -29,17 +29,20 @@ export async function getMarketData(symbol: string,
   /**
    * Checks if the cached chart data is stale based on the end of the current
    * trading period and interval type.
-   * @param {any} chart The chart data object to check.
+   * @param {any} cacheData The full cache document with chart and updated.
    * @param {string} interval The chart interval.
    * @return {boolean} True if the cache is stale, false otherwise.
    */
-  function isCacheStale(chart: any, interval: string): boolean {
+  function isCacheStale(cacheData: any, interval: string): boolean {
+    const chart = cacheData?.chart;
+    const updated = cacheData?.updated;
+
     if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
       return true;
     }
 
     // If no updated timestamp, treat as stale (legacy cache)
-    if (!chart.updated) {
+    if (!updated) {
       logger.info("⚠️ Cache missing 'updated' field - treating as stale");
       return true;
     }
@@ -50,7 +53,7 @@ export async function getMarketData(symbol: string,
 
     // For intraday intervals, cache is stale after a shorter period
     if (interval !== "1d") {
-      const cacheAge = now.getTime() - chart.updated;
+      const cacheAge = now.getTime() - updated;
       const maxCacheAge = interval === "15m" ? 15 * 60 * 1000 : // 15 minutes
         interval === "30m" ? 30 * 60 * 1000 : // 30 minutes
           60 * 60 * 1000; // 1 hour for 1h interval
@@ -77,8 +80,9 @@ export async function getMarketData(symbol: string,
   try {
     const doc = await db.doc(cacheKey).get();
     if (doc.exists) {
-      const chart = doc.data()?.chart;
-      const isCached = chart && !isCacheStale(chart, interval);
+      const cacheData = doc.data();
+      const chart = cacheData?.chart;
+      const isCached = chart && !isCacheStale(cacheData, interval);
 
       if (isCached && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
         const opes = chart.indicators.quote[0].open;
@@ -102,7 +106,7 @@ export async function getMarketData(symbol: string,
           count: closes.length,
           lastFivePrices: lastFew,
           currentPrice,
-          cacheAge: Date.now() - (chart.updated || 0),
+          cacheAge: Date.now() - (cacheData?.updated || 0),
         });
       } else {
         logger.info(`❌ CACHE MISS: Cached ${interval} data for ${symbol} ` +

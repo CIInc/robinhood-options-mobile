@@ -54,8 +54,6 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart'
-    hide formatCurrency;
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -74,7 +72,7 @@ class HomePage extends StatefulWidget {
   final GenerativeService generativeService;
 
   final User? user;
-  final DocumentReference? userDoc;
+  final DocumentReference<User>? userDoc;
   //final Account account;
   /*
   final drawerItems = [
@@ -95,8 +93,8 @@ class HomePage extends StatefulWidget {
     required this.generativeService,
     this.title,
     this.navigatorKey,
-    this.user,
-    this.userDoc,
+    required this.user,
+    required this.userDoc,
     //required this.onUserChanged,
     //required this.onAccountsChanged
   });
@@ -193,6 +191,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
 
   _HomePageState();
+
+  PortfolioHistoricals? _previousPortfolioHistoricals;
 
   // Badge helpers for portfolio historical chart change metrics
   Color _pnlColor(double? value) {
@@ -554,6 +554,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               analytics: widget.analytics,
               observer: widget.observer,
               user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
             ),
 
             if (welcomeWidget != null) ...[
@@ -724,196 +726,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               );
             }),
 
-            // AI Recommendations Promotional Card
-            if (widget.user != null)
-              Consumer<GenerativeProvider>(
-                builder: (context, generativeProvider, child) {
-                  final hasInvestmentProfile =
-                      widget.user!.investmentGoals != null ||
-                          widget.user!.timeHorizon != null ||
-                          widget.user!.riskTolerance != null ||
-                          widget.user!.totalPortfolioValue != null;
-
-                  // Check if user has ever generated recommendations
-                  final hasUsedRecommendations = generativeProvider
-                      .promptResponses
-                      .containsKey('portfolio-recommendations');
-
-                  // Hide card if user has already used the feature
-                  if (hasUsedRecommendations) {
-                    return const SliverToBoxAdapter(child: SizedBox.shrink());
-                  }
-
-                  final theme = Theme.of(context);
-                  final colorScheme = theme.colorScheme;
-
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        color: hasInvestmentProfile
-                            ? colorScheme.primaryContainer.withOpacity(0.90)
-                            : colorScheme.secondaryContainer.withOpacity(0.90),
-                        child: InkWell(
-                          onTap: hasInvestmentProfile
-                              ? null
-                              : () async {
-                                  // Navigate to Investment Profile Settings
-                                  final firestoreService =
-                                      Provider.of<FirestoreService>(context,
-                                          listen: false);
-                                  if (auth.currentUser != null) {
-                                    final userDoc = await firestoreService
-                                        .userCollection
-                                        .doc(auth.currentUser!.uid)
-                                        .get();
-                                    if (userDoc.exists && context.mounted) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              InvestmentProfileSettingsWidget(
-                                            user: userDoc.data()!,
-                                            firestoreService: firestoreService,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: hasInvestmentProfile
-                                ? Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(Icons.stars,
-                                          color: colorScheme.primary, size: 34),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Personalized AI Recommendations',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: colorScheme
-                                                    .onPrimaryContainer,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Tap "Recommendations" above to generate tailored insights based on your profile.',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: colorScheme
-                                                    .onPrimaryContainer
-                                                    .withOpacity(0.75),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.arrow_forward_ios,
-                                          color: colorScheme.primary, size: 16),
-                                    ],
-                                  )
-                                : Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(Icons.psychology_outlined,
-                                          color: colorScheme.secondary,
-                                          size: 34),
-                                      const SizedBox(width: 16),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: colorScheme.secondary
-                                              .withOpacity(0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          'NEW',
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                            color: colorScheme.secondary,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Unlock AI-Powered Recommendations',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: colorScheme
-                                                    .onSecondaryContainer,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Complete your investment profile to receive personalized portfolio guidance.',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: colorScheme
-                                                    .onSecondaryContainer
-                                                    .withOpacity(0.75),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.touch_app,
-                                                    size: 16,
-                                                    color:
-                                                        colorScheme.secondary),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  'Tap to configure profile',
-                                                  style: theme
-                                                      .textTheme.labelSmall
-                                                      ?.copyWith(
-                                                    color:
-                                                        colorScheme.secondary,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.arrow_forward_ios,
-                                          color: colorScheme.secondary,
-                                          size: 16),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
             // Consumer4<PortfolioStore, InstrumentPositionStore,
             //         OptionPositionStore, ForexHoldingStore>(
             //     builder: (context, portfolioStore, stockPositionStore,
@@ -981,19 +793,100 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             // }),
             if (widget.brokerageUser.source == BrokerageSource.robinhood ||
                 widget.brokerageUser.source == BrokerageSource.demo) ...[
-              Consumer<
-                  PortfolioHistoricalsStore
-                  // PortfolioStore,
-                  // InstrumentPositionStore,
-                  // OptionPositionStore,
-                  // ForexHoldingStore
-                  >(builder: (context,
-                  portfolioHistoricalsStore,
-                  // portfolioStore,
-                  // instrumentPositionStore,
-                  // optionPositionStore,
-                  // forexHoldingStore,
-                  child) {
+              Selector<PortfolioHistoricalsStore, PortfolioHistoricals?>(
+                  selector: (context, store) {
+                final baseData = store.items.firstWhereOrNull((element) =>
+                    element.span ==
+                    convertChartSpanFilter(chartDateSpanFilter));
+
+                // Append hour data if available for fresher updates on all date filters
+                if (baseData != null) {
+                  final hourData = store.items.firstWhereOrNull((element) =>
+                      element.span ==
+                      convertChartSpanFilter(ChartDateSpan.hour));
+
+                  if (hourData != null &&
+                      hourData.equityHistoricals.isNotEmpty) {
+                    // Find the latest timestamp in base data
+                    final baseMaxDate = baseData.equityHistoricals.isNotEmpty
+                        ? baseData.equityHistoricals
+                            .map((e) => e.beginsAt!)
+                            .reduce((a, b) => a.isAfter(b) ? a : b)
+                        : DateTime(2000);
+
+                    // Append hour data points that are newer than base data
+                    final newerHourData = hourData.equityHistoricals
+                        .where(
+                            (element) => element.beginsAt!.isAfter(baseMaxDate))
+                        .toList();
+
+                    if (newerHourData.isNotEmpty) {
+                      // Create a new merged PortfolioHistoricals
+                      final mergedData = PortfolioHistoricals(
+                        baseData.adjustedOpenEquity,
+                        baseData.adjustedPreviousCloseEquity,
+                        baseData.openEquity,
+                        baseData.previousCloseEquity,
+                        baseData.openTime,
+                        baseData.interval,
+                        baseData.span,
+                        baseData.bounds,
+                        baseData.totalReturn,
+                        [...baseData.equityHistoricals, ...newerHourData],
+                        baseData.useNewHp,
+                      );
+
+                      // Only disable animation if we had previous data and are appending
+                      if (_previousPortfolioHistoricals != null &&
+                          _previousPortfolioHistoricals!
+                                  .equityHistoricals.isNotEmpty) {
+                        animateChart = false;
+                      } else {
+                        animateChart = true;
+                      }
+
+                      _previousPortfolioHistoricals = mergedData;
+                      return mergedData;
+                    }
+                  }
+                }
+
+                // Check if this is truly new data or just a rebuild
+                if (baseData != null && _previousPortfolioHistoricals != null) {
+                  // If data length changed, it's new data - disable animation for smooth append
+                  if (baseData.equityHistoricals.length >
+                      _previousPortfolioHistoricals!.equityHistoricals.length) {
+                    animateChart = false;
+                  } else if (baseData.equityHistoricals.length ==
+                      _previousPortfolioHistoricals!.equityHistoricals.length) {
+                    // Same length - check if last timestamp changed
+                    final currentLast = baseData.equityHistoricals.isNotEmpty
+                        ? baseData.equityHistoricals.last.beginsAt
+                        : null;
+                    final previousLast = _previousPortfolioHistoricals!
+                            .equityHistoricals.isNotEmpty
+                        ? _previousPortfolioHistoricals!
+                            .equityHistoricals.last.beginsAt
+                        : null;
+                    if (currentLast != null &&
+                        previousLast != null &&
+                        currentLast.isAfter(previousLast)) {
+                      animateChart = false;
+                    } else {
+                      animateChart = true;
+                    }
+                  } else {
+                    // Data got shorter - full refresh
+                    animateChart = true;
+                  }
+                } else {
+                  // First load or no previous data
+                  animateChart = true;
+                }
+
+                _previousPortfolioHistoricals = baseData;
+                return baseData;
+              }, builder: (context, portfolioHistoricals, child) {
                 // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
                 /*
                 if (portfolioHistoricals != null) {
@@ -1001,15 +894,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       'data: ${portfolioHistoricals!.bounds} ${portfolioHistoricals!.span} chip: ${chartBoundsFilter.toString()} ${chartDateSpanFilter.toString()}');
                 }
                 */
-                portfolioHistoricals = portfolioHistoricalsStore.items
-                    .firstWhereOrNull((element) =>
-                            element.span ==
-                            convertChartSpanFilter(chartDateSpanFilter)
-                        //      &&
-                        // element.bounds ==
-                        //     convertChartBoundsFilter(chartBoundsFilter)
-                        //&& element.interval == element.interval
-                        );
                 if (portfolioHistoricals == null) {
                   // portfolioHistoricals = portfolioHistoricalsStore.items
                   //     .firstWhereOrNull((element) =>
@@ -1023,7 +907,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   //         );
 
                   // if (portfolioHistoricals == null) {
-                  return SliverToBoxAdapter(child: Container());
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 300,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Loading portfolio data...',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.7),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
                   // }
                 }
 
@@ -1047,9 +956,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 double changeInPeriod = 0;
                 double changePercentInPeriod = 0;
 
-                firstHistorical = portfolioHistoricals!.equityHistoricals.first;
-                lastHistorical = portfolioHistoricals!.equityHistoricals.last;
-                var allHistoricals = portfolioHistoricals!.equityHistoricals;
+                firstHistorical = portfolioHistoricals.equityHistoricals.first;
+                lastHistorical = portfolioHistoricals.equityHistoricals.last;
+                var allHistoricals = portfolioHistoricals.equityHistoricals;
                 // Update last historical from day span to deal with the issue that
                 // lastHistorical return different values at different increment spans.
                 // var hourHistoricals = portfolioHistoricalsStore.items
@@ -1218,8 +1127,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         model?.selectedDatum.first.datum); //?.first
                   },
                   symbolRenderer: TextSymbolRenderer(() {
-                    firstHistorical =
-                        portfolioHistoricals!.equityHistoricals[0];
+                    firstHistorical = portfolioHistoricals.equityHistoricals[0];
                     open = firstHistorical!.adjustedOpenEquity!;
                     if (provider.selection != null) {
                       changeInPeriod =
@@ -1540,7 +1448,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   child: ChoiceChip(
                                     //avatar: const Icon(Icons.history_outlined),
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Hour'),
+                                    label: const Text('1H'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.hour,
                                     onSelected: (bool value) {
@@ -1558,7 +1466,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
                                     //selectedColor: Theme.of(context).colorScheme.primaryContainer,
                                     //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
-                                    label: const Text('Day'),
+                                    label: const Text('1D'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.day,
                                     onSelected: (bool value) {
@@ -1574,7 +1482,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   child: ChoiceChip(
                                     //avatar: const Icon(Icons.history_outlined),
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Week'),
+                                    label: const Text('1W'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.week,
                                     onSelected: (bool value) {
@@ -1590,7 +1498,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   child: ChoiceChip(
                                     //avatar: const Icon(Icons.history_outlined),
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Month'),
+                                    label: const Text('1M'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.month,
                                     onSelected: (bool value) {
@@ -1606,7 +1514,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   child: ChoiceChip(
                                     //avatar: const Icon(Icons.history_outlined),
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('3 Months'),
+                                    label: const Text('3M'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.month_3,
                                     onSelected: (bool value) {
@@ -1638,7 +1546,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   child: ChoiceChip(
                                     //avatar: const Icon(Icons.history_outlined),
                                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Year'),
+                                    label: const Text('1Y'),
                                     selected: chartDateSpanFilter ==
                                         ChartDateSpan.year,
                                     onSelected: (bool value) {
@@ -2640,6 +2548,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 analytics: widget.analytics,
                 observer: widget.observer,
                 generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
               );
             }),
             Consumer<InstrumentPositionStore>(
@@ -2683,6 +2593,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 analytics: widget.analytics,
                 observer: widget.observer,
                 generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
               );
             }),
             Consumer<ForexHoldingStore>(
@@ -2794,14 +2706,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           debugPrint('getPortfolioHistoricals scheduled in $newRandom');
           Future.delayed(Duration(milliseconds: newRandom), () async {
             if (!mounted) return;
+            // Always fetch hour data for real-time updates
             await widget.service.getPortfolioPerformance(
                 widget.brokerageUser,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
                 chartBoundsFilter: chartBoundsFilter,
-                chartDateSpanFilter: chartDateSpanFilter == ChartDateSpan.day
-                    ? ChartDateSpan.hour
-                    : chartDateSpanFilter);
+                chartDateSpanFilter: ChartDateSpan.hour);
             // await widget.service.getPortfolioHistoricals(
             //     widget.brokerageUser,
             //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -34,7 +36,7 @@ final ItemPositionsListener itemPositionListener =
 
 class OptionPositionsWidget extends StatefulWidget {
   const OptionPositionsWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredOptionPositions, {
@@ -45,11 +47,13 @@ class OptionPositionsWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.user,
+    this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   final bool showList;
@@ -57,6 +61,8 @@ class OptionPositionsWidget extends StatefulWidget {
   final bool showFooter;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionPositionsWidget> createState() => _OptionPositionsWidgetState();
@@ -95,8 +101,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   Widget _neutralBadge(BuildContext context, String? text,
       {double fontSize = 12}) {
     final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-    final bg =
-        Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.18);
+    final bg = Theme.of(context)
+        .colorScheme
+        .surfaceContainerHighest
+        .withValues(alpha: 0.18);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -126,18 +134,18 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     }
 
     List<dynamic> sortedGroupedOptionAggregatePositions =
-        groupedOptionAggregatePositions.values.sortedBy<num>((i) => widget.user
-            .getDisplayValueOptionAggregatePosition(i,
-                displayValue: widget.user.sortOptions)!);
-    if (widget.user.sortDirection == SortDirection.desc) {
+        groupedOptionAggregatePositions.values.sortedBy<num>((i) =>
+            widget.brokerageUser.getDisplayValueOptionAggregatePosition(i,
+                displayValue: widget.brokerageUser.sortOptions)!);
+    if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedGroupedOptionAggregatePositions =
           sortedGroupedOptionAggregatePositions.reversed.toList();
     }
 
-    double? marketValue = widget.user.getDisplayValueOptionAggregatePosition(
-        widget.filteredOptionPositions,
-        displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.user
+    double? marketValue = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(widget.filteredOptionPositions,
+            displayValue: DisplayValue.marketValue);
+    String? marketValueText = widget.brokerageUser
         .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
     double? deltaAvg,
@@ -148,7 +156,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ivAvg,
         chanceAvg,
         openInterestAvg;
-    if (widget.user.showPositionDetails &&
+    if (widget.brokerageUser.showPositionDetails &&
         groupedOptionAggregatePositions.length == 1) {
       var results = _calculateGreekAggregates(widget.filteredOptionPositions);
       deltaAvg = results[0];
@@ -168,14 +176,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     double minimum = 0, maximum = 0;
     if (groupedOptionAggregatePositions.length == 1) {
       for (var op in groupedOptionAggregatePositions.values.first) {
-        double? value = widget.user.getDisplayValue(op);
-        String? trailingText = widget.user.getDisplayText(value);
+        double? value = widget.brokerageUser.getDisplayValue(op);
+        String? trailingText = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user
+        if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+          secondaryValue = widget.brokerageUser
               .getDisplayValue(op, displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue,
+          secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
           // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
           //   secondaryValue = widget.user.getDisplayValue(position,
@@ -200,7 +208,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         }
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
-          id: BrokerageUser.displayValueText(widget.user.displayValue!),
+          id: BrokerageUser.displayValueText(
+              widget.brokerageUser.displayValue!),
           colorFn: (_, __) => charts.ColorUtil.fromDartColor(
               Theme.of(context).colorScheme.primary),
           data: data,
@@ -221,7 +230,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       List<OptionAggregatePosition> oaps =
           groupedOptionAggregatePositions.values.first;
       Iterable<double> positionDisplayValues =
-          oaps.map((e) => widget.user.getDisplayValue(e));
+          oaps.map((e) => widget.brokerageUser.getDisplayValue(e));
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -236,19 +245,19 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       }
     } else if (groupedOptionAggregatePositions.length > 1) {
       for (var position in sortedGroupedOptionAggregatePositions) {
-        double? value =
-            widget.user.getDisplayValueOptionAggregatePosition(position);
+        double? value = widget.brokerageUser
+            .getDisplayValueOptionAggregatePosition(position);
         String? trailingText;
         double? secondaryValue;
         String? secondaryLabel;
         if (value != null) {
-          trailingText = widget.user.getDisplayText(value);
+          trailingText = widget.brokerageUser.getDisplayText(value);
         }
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getDisplayValueOptionAggregatePosition(
-              position,
-              displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue!,
+        if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+          secondaryValue = widget.brokerageUser
+              .getDisplayValueOptionAggregatePosition(position,
+                  displayValue: DisplayValue.totalCost);
+          secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue!,
               displayValue: DisplayValue.totalCost);
           // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
           //   secondaryValue = widget.user.getAggregateDisplayValue(position,
@@ -274,7 +283,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
           2);
       barChartSeriesList.add(charts.Series<dynamic, String>(
-          id: BrokerageUser.displayValueText(widget.user.displayValue!),
+          id: BrokerageUser.displayValueText(
+              widget.brokerageUser.displayValue!),
           data: data,
           // colorFn: (_, __) => shades[
           //     0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
@@ -295,7 +305,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               color: charts.ColorUtil.fromDartColor(
                   Theme.of(context).textTheme.labelSmall!.color!))));
       var seriesData = charts.Series<dynamic, String>(
-        id: (widget.user.displayValue == DisplayValue.marketValue)
+        id: (widget.brokerageUser.displayValue == DisplayValue.marketValue)
             ? BrokerageUser.displayValueText(DisplayValue.totalCost)
             : '',
         //charts.MaterialPalette.blue.shadeDefault,
@@ -319,7 +329,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       }
 
       var positionDisplayValues = groupedOptionAggregatePositions.values.map(
-          (e) => widget.user.getDisplayValueOptionAggregatePosition(e) ?? 0);
+          (e) =>
+              widget.brokerageUser.getDisplayValueOptionAggregatePosition(e) ??
+              0);
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -357,8 +369,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
       //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
     );
-    if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-        widget.user.displayValue == DisplayValue.totalReturnPercent) {
+    if (widget.brokerageUser.displayValue == DisplayValue.todayReturnPercent ||
+        widget.brokerageUser.displayValue == DisplayValue.totalReturnPercent) {
       primaryMeasureAxis = charts.PercentAxisSpec(
           viewport: charts.NumericExtents(minimum, maximum),
           renderSpec: charts.GridlineRendererSpec(
@@ -402,13 +414,15 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             context,
             MaterialPageRoute(
                 builder: (context) => OptionInstrumentWidget(
-                      widget.user,
+                      widget.brokerageUser,
                       widget.service,
                       op.optionInstrument!,
                       optionPosition: op,
                       analytics: widget.analytics,
                       observer: widget.observer,
                       generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
                     )));
       } else {
         var op = widget.filteredOptionPositions
@@ -418,10 +432,15 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
-                      widget.user, widget.service, op.instrumentObj!,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService)));
+                        widget.brokerageUser,
+                        widget.service,
+                        op.instrumentObj!,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                      )));
         } else {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -473,7 +492,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       // widget.user.displayValue == DisplayValue.marketValue ? null :
                       () {
                     setState(() {
-                      widget.user.displayValue = DisplayValue.marketValue;
+                      widget.brokerageUser.displayValue =
+                          DisplayValue.marketValue;
                     });
                     // var userStore =
                     //     Provider.of<BrokerageUserStore>(context, listen: false);
@@ -565,7 +585,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         // isScrollControlled: true,
                         //useRootNavigator: true,
                         //constraints: const BoxConstraints(maxHeight: 200),
-                        builder: (_) => MoreMenuBottomSheet(widget.user,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 showOnlyPrimaryMeasure: true,
@@ -574,7 +595,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                             }));
                   },
                   label: Text(BrokerageUser.displayValueText(
-                      widget.user.displayValue!)),
+                      widget.brokerageUser.displayValue!)),
                   icon: Icon(Icons.line_axis)),
               TextButton.icon(
                   // FilledButton.tonalIcon(
@@ -586,18 +607,20 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         // isScrollControlled: true,
                         //useRootNavigator: true,
                         //constraints: const BoxConstraints(maxHeight: 200),
-                        builder: (_) => MoreMenuBottomSheet(widget.user,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 showOnlySort: true, onSettingsChanged: (value) {
                               setState(() {});
                             }));
                   },
-                  label: Text(
-                      BrokerageUser.displayValueText(widget.user.sortOptions!)),
-                  icon: Icon(widget.user.sortDirection == SortDirection.desc
-                      ? Icons.south
-                      : Icons.north)
+                  label: Text(BrokerageUser.displayValueText(
+                      widget.brokerageUser.sortOptions!)),
+                  icon: Icon(
+                      widget.brokerageUser.sortDirection == SortDirection.desc
+                          ? Icons.south
+                          : Icons.north)
                   // Icon(Icons.sort)
                   ),
               // ListTile(
@@ -611,7 +634,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           ),
         )),
         if (widget.showList) ...[
-          widget.user.optionsView == OptionsView.list
+          widget.brokerageUser.optionsView == OptionsView.list
               ? SliverList(
                   // delegate: SliverChildListDelegate(widgets),
                   delegate: SliverChildBuilderDelegate(
@@ -671,12 +694,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         pageContext,
         MaterialPageRoute(
             builder: (context) => OptionPositionsPageWidget(
-                  widget.user,
+                  widget.brokerageUser,
                   widget.service,
                   widget.filteredOptionPositions,
                   analytics: widget.analytics,
                   observer: widget.observer,
                   generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
                 )));
   }
 
@@ -788,13 +813,13 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = widget.user.getDisplayValue(op);
-    String opTrailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.showPositionDetails ||
-            widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
+    double value = widget.brokerageUser.getDisplayValue(op);
+    String opTrailingText = widget.brokerageUser.getDisplayText(value);
+    Icon? icon = (widget.brokerageUser.showPositionDetails ||
+            widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+            widget.brokerageUser.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value, size: 31);
+        : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
     return Card(
         child: Column(
@@ -856,7 +881,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
-                          widget.user,
+                          widget.brokerageUser,
                           widget.service,
                           op.optionInstrument!,
                           optionPosition: op,
@@ -864,10 +889,12 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                           analytics: widget.analytics,
                           observer: widget.observer,
                           generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
                         )));
           },
         ),
-        if (widget.user.showPositionDetails) ...[
+        if (widget.brokerageUser.showPositionDetails) ...[
           _buildDetailScrollRow(
               [op],
               op.optionInstrument!.optionMarketData!.delta!,
@@ -908,29 +935,29 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         displayValue: DisplayValue.marketValue);
         */
 
-    double? totalReturn = widget.user.getDisplayValueOptionAggregatePosition(
-        ops,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    double? totalReturn = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user
+    double? totalReturnPercent = widget.brokerageUser
         .getDisplayValueOptionAggregatePosition(ops,
             displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueOptionAggregatePosition(
-        ops,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    double? todayReturn = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user
+    double? todayReturnPercent = widget.brokerageUser
         .getDisplayValueOptionAggregatePosition(ops,
             displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
@@ -938,7 +965,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       InkWell(
         onTap: () {
           setState(() {
-            widget.user.displayValue = DisplayValue.todayReturn;
+            widget.brokerageUser.displayValue = DisplayValue.todayReturn;
           });
         },
         child: Padding(
@@ -953,7 +980,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       InkWell(
         onTap: () {
           setState(() {
-            widget.user.displayValue = DisplayValue.todayReturnPercent;
+            widget.brokerageUser.displayValue = DisplayValue.todayReturnPercent;
           });
         },
         child: Padding(
@@ -968,7 +995,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       InkWell(
         onTap: () {
           setState(() {
-            widget.user.displayValue = DisplayValue.totalReturn;
+            widget.brokerageUser.displayValue = DisplayValue.totalReturn;
           });
         },
         child: Padding(
@@ -983,7 +1010,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       InkWell(
         onTap: () {
           setState(() {
-            widget.user.displayValue = DisplayValue.totalReturnPercent;
+            widget.brokerageUser.displayValue = DisplayValue.totalReturnPercent;
           });
         },
         child: Padding(
@@ -1114,16 +1141,17 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     List<Widget> cards = [];
 
-    double? value = widget.user.getDisplayValueOptionAggregatePosition(ops);
+    double? value =
+        widget.brokerageUser.getDisplayValueOptionAggregatePosition(ops);
     String? trailingText;
     Icon? icon;
     if (value != null) {
-      trailingText = widget.user.getDisplayText(value);
-      icon = (widget.user.showPositionDetails ||
-              widget.user.displayValue == DisplayValue.lastPrice ||
-              widget.user.displayValue == DisplayValue.marketValue)
+      trailingText = widget.brokerageUser.getDisplayText(value);
+      icon = (widget.brokerageUser.showPositionDetails ||
+              widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+              widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value, size: 31);
+          : widget.brokerageUser.getDisplayIcon(value, size: 31);
     }
 
     double? deltaAvg,
@@ -1134,7 +1162,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ivAvg,
         chanceAvg,
         openInterestAvg;
-    if (widget.user.showPositionDetails) {
+    if (widget.brokerageUser.showPositionDetails) {
       var results = _calculateGreekAggregates(ops);
       deltaAvg = results[0];
       gammaAvg = results[1];
@@ -1213,18 +1241,20 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => InstrumentWidget(
-                          widget.user,
+                          widget.brokerageUser,
                           widget.service,
                           ops.first.instrumentObj!,
                           analytics: widget.analytics,
                           observer: widget.observer,
                           generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
                         )));
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
           },
         ),
-        if (widget.user.showPositionDetails && ops.length > 1) ...[
+        if (widget.brokerageUser.showPositionDetails && ops.length > 1) ...[
           _buildDetailScrollRow(
               ops,
               deltaAvg,
@@ -1252,13 +1282,13 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       */
     }
     for (OptionAggregatePosition op in ops) {
-      double value = widget.user.getDisplayValue(op);
-      String trailingText = widget.user.getDisplayText(value);
-      Icon? icon = (widget.user.showPositionDetails ||
-              widget.user.displayValue == DisplayValue.lastPrice ||
-              widget.user.displayValue == DisplayValue.marketValue)
+      double value = widget.brokerageUser.getDisplayValue(op);
+      String trailingText = widget.brokerageUser.getDisplayText(value);
+      Icon? icon = (widget.brokerageUser.showPositionDetails ||
+              widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+              widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value, size: 31);
+          : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
       cards.add(
           //Card(child:
@@ -1324,17 +1354,19 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => OptionInstrumentWidget(
-                            widget.user,
+                            widget.brokerageUser,
                             widget.service,
                             op.optionInstrument!,
                             optionPosition: op,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             },
           ),
-          if (widget.user.showPositionDetails &&
+          if (widget.brokerageUser.showPositionDetails &&
               op.optionInstrument != null &&
               op.optionInstrument!.optionMarketData != null) ...[
             _buildDetailScrollRow(

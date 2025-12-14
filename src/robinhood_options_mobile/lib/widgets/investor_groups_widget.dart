@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
@@ -14,6 +16,8 @@ class InvestorGroupsWidget extends StatelessWidget {
   final BrokerageUser brokerageUser;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   const InvestorGroupsWidget({
     super.key,
@@ -21,6 +25,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     required this.brokerageUser,
     required this.analytics,
     required this.observer,
+    this.user,
+    this.userDocRef,
   });
 
   @override
@@ -105,16 +111,24 @@ class InvestorGroupsWidget extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.groups_outlined, size: 64),
+                  Icon(Icons.groups_outlined,
+                      size: 64,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.6)),
                   const SizedBox(height: 16),
-                  const Text('Sign in to join investor groups'),
+                  const Text('Sign in to join investor groups',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.login),
                     onPressed: () {
                       showProfile(context, auth, firestoreService, analytics,
                           observer, brokerageUser);
                     },
-                    child: const Text('Sign In'),
+                    label: const Text('Sign In'),
                   ),
                 ],
               ),
@@ -142,12 +156,23 @@ class InvestorGroupsWidget extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.groups_outlined, size: 64),
+                      Icon(Icons.groups_outlined,
+                          size: 64,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.6)),
                       const SizedBox(height: 16),
-                      const Text('You haven\'t joined any groups yet'),
+                      const Text('You haven\'t joined any groups yet',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
-                      const Text('Create a group or discover public groups',
-                          style: TextStyle(color: Colors.grey)),
+                      Text('Create a group or discover public groups',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -160,21 +185,39 @@ class InvestorGroupsWidget extends StatelessWidget {
         return CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.all(8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final group = groups[index].data();
                     return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         leading: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()
                                 : 'G',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
-                        title: Text(group.name),
+                        title: Text(group.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 16)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -236,16 +279,24 @@ class InvestorGroupsWidget extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.mail_outline, size: 64),
+                  Icon(Icons.mail_outline,
+                      size: 64,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.6)),
                   const SizedBox(height: 16),
-                  const Text('Sign in to view invitations'),
+                  const Text('Sign in to view invitations',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.login),
                     onPressed: () {
                       showProfile(context, auth, firestoreService, analytics,
                           observer, brokerageUser);
                     },
-                    child: const Text('Sign In'),
+                    label: const Text('Sign In'),
                   ),
                 ],
               ),
@@ -273,13 +324,24 @@ class InvestorGroupsWidget extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.mail_outline, size: 64),
+                      Icon(Icons.mail_outline,
+                          size: 64,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.6)),
                       const SizedBox(height: 16),
-                      const Text('No pending invitations'),
+                      const Text('No pending invitations',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                           'You\'ll see invitations here when group admins invite you',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -292,22 +354,40 @@ class InvestorGroupsWidget extends StatelessWidget {
         return CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.all(8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final group = groups[index].data();
 
                     return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         leading: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()
                                 : 'G',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
-                        title: Text(group.name),
+                        title: Text(group.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 16)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -434,12 +514,23 @@ class InvestorGroupsWidget extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.public, size: 64),
+                      Icon(Icons.public,
+                          size: 64,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.6)),
                       const SizedBox(height: 16),
-                      const Text('No public groups available'),
+                      const Text('No public groups available',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
-                      const Text('Create the first public group!',
-                          style: TextStyle(color: Colors.grey)),
+                      Text('Create the first public group!',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -452,7 +543,8 @@ class InvestorGroupsWidget extends StatelessWidget {
         return CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.all(8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -461,15 +553,32 @@ class InvestorGroupsWidget extends StatelessWidget {
                         group.isMember(auth.currentUser!.uid);
 
                     return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
                         leading: CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()
                                 : 'G',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
-                        title: Text(group.name),
+                        title: Text(group.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 16)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

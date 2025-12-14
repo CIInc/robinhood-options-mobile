@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -19,7 +21,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 class PositionOrderWidget extends StatefulWidget {
   const PositionOrderWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.positionOrder, {
@@ -27,15 +29,19 @@ class PositionOrderWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.user,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final InstrumentOrder positionOrder;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<PositionOrderWidget> createState() => _PositionOrderWidgetState();
@@ -66,8 +72,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     if (instruments.isNotEmpty) {
       futureInstrument = Future.value(instruments.first);
     } else {
-      futureInstrument = widget.service.getInstrument(
-          widget.user, instrumentStore, widget.positionOrder.instrument);
+      futureInstrument = widget.service.getInstrument(widget.brokerageUser,
+          instrumentStore, widget.positionOrder.instrument);
     }
 
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
@@ -77,8 +83,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         builder: (context, AsyncSnapshot<Instrument> snapshot) {
           if (snapshot.hasData) {
             widget.positionOrder.instrumentObj = snapshot.data!;
-            futureQuote = widget.service.getQuote(widget.user, quoteStore,
-                widget.positionOrder.instrumentObj!.symbol);
+            futureQuote = widget.service.getQuote(widget.brokerageUser,
+                quoteStore, widget.positionOrder.instrumentObj!.symbol);
             return FutureBuilder(
                 future: futureQuote,
                 builder: (context, AsyncSnapshot<Quote> quoteSnapshot) {
@@ -154,7 +160,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
       ),
       if (positionOrder.instrumentObj != null) ...[
         SliverToBoxAdapter(
-          child: _buildOverview(widget.user, positionOrder.instrumentObj!),
+          child: _buildOverview(
+              widget.brokerageUser, positionOrder.instrumentObj!),
         ),
       ],
       SliverToBoxAdapter(
@@ -306,8 +313,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
               FilledButton(
                   child: const Text('CANCEL'),
                   onPressed: () async {
-                    var response = await widget.service
-                        .cancelOrder(widget.user, positionOrder.cancel!);
+                    var response = await widget.service.cancelOrder(
+                        widget.brokerageUser, positionOrder.cancel!);
                     // debugPrint(jsonEncode(response.body));
 
                     if (mounted) {
@@ -425,6 +432,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                               analytics: widget.analytics,
                               observer: widget.observer,
                               generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
                             )));
               },
             ),

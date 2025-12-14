@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -40,7 +42,7 @@ import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 class OptionInstrumentWidget extends StatefulWidget {
   const OptionInstrumentWidget(
-      this.user,
+      this.brokerageUser,
       this.service,
       //this.account,
       this.optionInstrument,
@@ -49,17 +51,21 @@ class OptionInstrumentWidget extends StatefulWidget {
       required this.observer,
       required this.generativeService,
       this.optionPosition,
-      this.heroTag});
+      this.heroTag,
+      required this.user,
+      required this.userDocRef});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
   final String? heroTag;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionInstrumentWidget> createState() => _OptionInstrumentWidgetState();
@@ -109,8 +115,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     if (optionOrders.isNotEmpty) {
       futureOptionOrders = Future.value(optionOrders);
     } else {
-      futureOptionOrders = widget.service.getOptionOrders(
-          widget.user, optionOrderStore, widget.optionInstrument.chainId);
+      futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
+          optionOrderStore, widget.optionInstrument.chainId);
     }
 
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
@@ -119,12 +125,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
-      futureQuote ??= widget.service.getQuote(
-          widget.user, quoteStore, widget.optionInstrument.chainSymbol);
+      futureQuote ??= widget.service.getQuote(widget.brokerageUser, quoteStore,
+          widget.optionInstrument.chainSymbol);
     }
 
     futureHistoricals ??= widget.service.getOptionHistoricals(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<OptionHistoricalsStore>(context, listen: false),
         [widget.optionInstrument.id],
         chartBoundsFilter: chartBoundsFilter,
@@ -137,7 +143,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             if (quoteSnapshot.hasData) {
               var quote = quoteSnapshot.data!;
               futureInstrument ??= widget.service.getInstrument(
-                  widget.user,
+                  widget.brokerageUser,
                   Provider.of<InstrumentStore>(context, listen: false),
                   quote.instrument);
 
@@ -303,7 +309,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 child: Align(
                     alignment: Alignment.center,
                     child: buildOverview(
-                        widget.user, optionInstrument, instrument,
+                        widget.brokerageUser, optionInstrument, instrument,
                         optionPosition: optionPosition))),
             SliverToBoxAdapter(
                 child: SizedBox(
@@ -1476,13 +1482,15 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               height: 25.0,
             )),
             OptionOrdersWidget(
-              widget.user,
+              widget.brokerageUser,
               widget.service,
               optionInstrumentOrders,
               const ["confirmed", "filled"],
               analytics: widget.analytics,
               observer: widget.observer,
               generativeService: widget.generativeService,
+              authUser: widget.user,
+              userDocRef: widget.userDocRef,
             )
           ],
           const SliverToBoxAdapter(
@@ -2005,7 +2013,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     _firestoreService,
                     widget.analytics,
                     widget.observer,
-                    widget.user);
+                    widget.brokerageUser);
                 if (response != null) {
                   setState(() {});
                 }
@@ -2020,9 +2028,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
       (timer) async {
-        if (widget.user.refreshEnabled) {
+        if (widget.brokerageUser.refreshEnabled) {
           await widget.service.getOptionHistoricals(
-              widget.user,
+              widget.brokerageUser,
               Provider.of<OptionHistoricalsStore>(context, listen: false),
               [widget.optionInstrument.id],
               chartBoundsFilter: chartBoundsFilter,
@@ -2056,8 +2064,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<void> _pullRefresh() async {
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
-    var quote = await widget.service
-        .getQuote(widget.user, quoteStore, widget.optionInstrument.chainSymbol);
+    var quote = await widget.service.getQuote(
+        widget.brokerageUser, quoteStore, widget.optionInstrument.chainSymbol);
 
     setState(() {
       futureQuote = null;
@@ -2164,6 +2172,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               analytics: widget.analytics,
                               observer: widget.observer,
                               generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
                             )));
               },
             ),

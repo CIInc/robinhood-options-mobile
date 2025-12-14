@@ -4,6 +4,169 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.0] - 2025-12-13
+
+### Added
+- **Paper Trading Mode:** Risk-free strategy testing with simulated trade execution
+  - Toggle in Auto-Trade Configuration section
+  - Simulates order responses without calling broker API
+  - Tracks paper trades identically to real trades with all analytics
+  - Visual PAPER badges throughout UI
+  - Filter performance by paper vs real trades
+  - Perfect for validating strategies before risking capital
+
+- **Advanced Performance Analytics Dashboard:** 9 comprehensive analytics cards in Performance Widget
+  - **Performance Overview:** Total trades, success rate, win/loss counts
+  - **Profit & Loss:** Total P&L, average per trade, breakdown
+  - **Trade Breakdown:** Entry/exit counts by type (Buy, Take Profit, Stop Loss, Trailing Stop)
+  - **Best & Worst Trades:** Highlights with P&L details
+  - **Advanced Analytics (4 metrics):**
+    - Sharpe Ratio: Risk-adjusted returns (Good >1, Fair 0-1, Poor <0)
+    - Average Hold Time: Position duration in hours and minutes
+    - Profit Factor: Gross profit / Gross loss ratio (Profitable >1)
+    - Expectancy: Expected profit per trade in dollars
+  - **Risk Metrics:**
+    - Longest Win Streak: Best consecutive winning trades
+    - Longest Loss Streak: Worst consecutive losing trades
+    - Max Drawdown: Peak to trough decline in equity
+  - **Performance by Time of Day:** Win rates across market hours (Morning/Afternoon/Late Day)
+  - **Performance by Indicator Combo:** Tracks which indicator combinations perform best
+  - **Performance by Symbol:** Stock-specific win rates (top 10)
+
+- **Indicator Combination Tracking:** Stores active indicators with each automated trade
+  - Snapshot of enabled indicators preserved in trade records
+  - Win/loss tracking for each unique indicator combination
+  - Top 8 combinations displayed with win rates
+  - Helps identify optimal indicator configurations
+  - Abbreviated indicator names (Price, RSI, Market, MACD, BB, Stoch, ATR, OBV)
+
+- **Trailing Stop Loss:** Dynamic stop loss that adjusts with profits
+  - Automatically raises stop loss as position becomes profitable
+  - Locks in gains while allowing further upside
+  - Configurable trailing distance (default 3%)
+  - Tracks highest price (peak) for each automated trade
+  - Exits when price drops specified % from peak
+  - Separate tracking from fixed stop loss
+
+### Changed
+- **Moved Paper Trading Mode** from Automated Trading section to Auto-Trade Configuration section for better logical grouping
+- **Enhanced Trade Records** to include `enabledIndicators` snapshot and `paperMode` flag
+- **Improved Performance Widget** with filter chips to view All/Paper/Real trades separately
+- **Enhanced Trade Cards** with PAPER badges for simulated trades
+- **Updated AgenticTradingConfig** model with `paperTradingMode` field
+
+### Performance
+- **Comprehensive Analytics:** Real-time calculation of 20+ trading performance metrics
+- **Streak Tracking:** Monitors consecutive wins and losses for behavioral insights
+- **Drawdown Monitoring:** Tracks maximum equity decline for risk assessment
+- **Hold Time Analysis:** Calculates average position duration
+- **Time-Based Performance:** Win rates by market hours (morning/afternoon/late day)
+- **Indicator Effectiveness:** Win rates by active indicator combinations
+
+### Technical Details
+- **Files Changed:** 
+  - `lib/model/agentic_trading_config.dart` - Added paperTradingMode field
+  - `lib/model/agentic_trading_provider.dart` - Added paper trade simulation, indicator snapshots, trailing stop, advanced metrics
+  - `lib/widgets/agentic_trading_settings_widget.dart` - Added Paper Trading Mode toggle in config section
+  - `lib/widgets/agentic_trading_performance_widget.dart` - Added 9 analytics cards with filters and comprehensive metrics
+- **New Methods:**
+  - `_simulatePaperOrder()` - Generates realistic simulated order responses
+  - `_filterHistory()` - Filters trades by paper/real mode
+  - `_buildFilterChips()` - UI for trade mode filtering
+  - `_buildAdvancedAnalyticsCard()` - 4-metric grid (Sharpe, Hold Time, Profit Factor, Expectancy)
+  - `_buildRiskMetricsCard()` - Streaks and drawdown display
+  - `_buildTimeOfDayCard()` - Win rates by market hours
+  - `_buildIndicatorComboCard()` - Performance by indicator combinations
+  - `_buildMetricBox()` - Reusable metric display component
+- **Config Fields Added:**
+  - `paperTradingMode: bool` (default: false)
+  - `trailingStopEnabled: bool` (default: false) 
+  - `trailingStopPercent: double` (default: 3.0)
+- **Trade Record Fields Added:**
+  - `enabledIndicators: List<String>` - Active indicators at execution time
+  - `paperMode: bool` - Tracks if trade was simulated
+  - `highestPrice: double` - Peak price for trailing stop tracking
+- **Statistics Tracked:**
+  - `profitFactor`, `expectancy`, `longestWinStreak`, `longestLossStreak`, `maxDrawdown`
+  - `avgHoldTimeMinutes`, `timeOfDayStats`, `indicatorComboStats`
+
+## [0.17.6] - 2025-12-06
+
+### Changed
+- **UI Improvements and Fixes:** Enhanced visual consistency across the application by updating widget styles to use theme colors, improving button designs, dropdown borders, and layout structures for better user experience and accessibility.
+
+### Technical Details
+- **Files Changed:** 31 widget files updated with theme-consistent styling and UI improvements:
+  - `lib/enums.dart`
+  - `lib/widgets/agentic_trading_settings_widget.dart`
+  - `lib/widgets/chart_time_series_widget.dart`
+  - `lib/widgets/forex_instrument_widget.dart`
+  - `lib/widgets/forex_positions_page_widget.dart`
+  - `lib/widgets/forex_positions_widget.dart`
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/home_widget.dart`
+  - `lib/widgets/income_transactions_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/investor_group_create_widget.dart`
+  - `lib/widgets/investor_groups_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/login_widget.dart`
+  - `lib/widgets/more_menu_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/search_widget.dart`
+  - `lib/widgets/trade_instrument_widget.dart`
+  - `lib/widgets/user_info_widget.dart`
+  - `lib/widgets/user_widget.dart`
+  - `lib/widgets/users_widget.dart`
+
+## [0.17.5] - 2025-12-05
+
+### Added
+- **User Document Reference Threading:** Enhanced widget parameter passing to include `DocumentReference<User>?` (Firestore user document reference) alongside authentication user context. Enables better integration with user-specific settings and features throughout the navigation hierarchy.
+- **Indicator Toggle Enhancements:** Improved indicator toggle functionality in agentic trading with dynamic settings display, providing more intuitive control over trade signal indicators.
+
+### Changed
+- **Widget User Parameter Refactoring:** Refactored user handling across 14+ navigation widgets to properly use `brokerageUser` for brokerage operations and `userDocRef` for Firestore user document references. Improves code clarity and type safety:
+  - `instrument_positions_widget.dart` and related position widgets
+  - `option_positions_widget.dart` and option chain widgets
+  - `option_order_widget.dart` and order tracking widgets
+  - `instrument_widget.dart` and navigation chain
+  - `history_widget.dart` and other entry points
+- **Code Readability:** Improved code readability in multiple widgets by replacing `forEach` loops with standard `for` loops, enhancing maintainability and consistency.
+- **Cache Handling:** Updated cache handling logic in market data functions for improved clarity and consistency.
+
+### Fixed
+- **Whitespace Cleanup:** Cleaned up unnecessary whitespace in `handleAlphaTask` function for improved code formatting.
+
+### Technical Details
+- **Files Changed:** 14+ widget files updated with improved user context parameter handling:
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+- **Navigation Integration:** User document references now properly threaded from `SearchWidget` and `NavigationStatefulWidget` entry points through all navigation chains.
+- **Type Safety Improvements:** Consistent use of `DocumentReference<User>?` across widgets for proper Firebase Firestore type handling.
+
 ## [0.17.4] - 2025-11-30
 
 ### Added

@@ -48,6 +48,11 @@ service cloud.firestore {
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
         allow delete: if request.auth.token.role == 'admin';
       }
+      match /automated_buy_trades/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
     }
     match /instrument/{instrumentid} {
       allow read: if true;

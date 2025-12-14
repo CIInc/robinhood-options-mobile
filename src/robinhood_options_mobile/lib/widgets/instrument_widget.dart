@@ -29,6 +29,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -56,12 +57,17 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
-      this.user,
+      this.brokerageUser,
       this.service,
       //this.account,
       this.instrument,
@@ -69,13 +75,17 @@ class InstrumentWidget extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
+      required this.user,
+      required this.userDocRef,
       this.heroTag});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   //final Account account;
   final Instrument instrument;
   final String? heroTag;
@@ -135,7 +145,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
-    Provider.of<AgenticTradingProvider>(context, listen: false)
+    Provider.of<TradeSignalsProvider>(context, listen: false)
         .fetchTradeSignal(widget.instrument.symbol);
   }
 
@@ -201,7 +211,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
-    var user = widget.user;
+    var user = widget.brokerageUser;
 
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
@@ -212,7 +222,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureOptionOrders = Future.value(optionOrders);
     } else if (widget.instrument.tradeableChainId != null) {
       futureOptionOrders ??= widget.service.getOptionOrders(
-          widget.user, optionOrderStore, widget.instrument.tradeableChainId!);
+          widget.brokerageUser,
+          optionOrderStore,
+          widget.instrument.tradeableChainId!);
     } else {
       futureOptionOrders = Future.value([]);
     }
@@ -226,7 +238,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureInstrumentOrders = Future.value(positionOrders);
     } else {
       futureInstrumentOrders ??= widget.service.getInstrumentOrders(
-          widget.user, stockPositionOrderStore, [widget.instrument.url]);
+          widget.brokerageUser,
+          stockPositionOrderStore,
+          [widget.instrument.url]);
     }
 
     if (widget.instrument.logoUrl == null &&
@@ -265,7 +279,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         widget.service.getRatingsOverview(user, instrument.id);
 
     futureOptionEvents ??= widget.service
-        .getOptionEventsByInstrumentUrl(widget.user, instrument.url);
+        .getOptionEventsByInstrumentUrl(widget.brokerageUser, instrument.url);
 
     futureEarnings ??= widget.service.getEarnings(user, instrument.id);
 
@@ -401,9 +415,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
       (timer) async {
-        if (widget.user.refreshEnabled) {
+        if (widget.brokerageUser.refreshEnabled) {
           await widget.service.getInstrumentHistoricals(
-              widget.user,
+              widget.brokerageUser,
               Provider.of<InstrumentHistoricalsStore>(context, listen: false),
               widget.instrument.symbol,
               chartBoundsFilter: chartBoundsFilter,
@@ -411,7 +425,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           if (!mounted) return;
           await widget.service.refreshQuote(
-              widget.user,
+              widget.brokerageUser,
               Provider.of<QuoteStore>(context, listen: false),
               widget.instrument.symbol);
 
@@ -530,6 +544,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ));
                 }),
                 actions: [
+                  AutoTradeStatusBadgeWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                  ),
                   IconButton(
                       icon: auth.currentUser != null
                           ? (auth.currentUser!.photoURL == null
@@ -548,7 +566,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             _firestoreService,
                             widget.analytics,
                             widget.observer,
-                            widget.user);
+                            widget.brokerageUser);
                         if (response != null) {
                           setState(() {});
                         }
@@ -1252,16 +1270,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: SizedBox(
                       height: 8.0,
                     )),
-                    OptionPositionsWidget(
-                      widget.user,
-                      widget.service,
-                      filteredOptionPositions,
-                      showFooter: false,
-                      showGroupHeader: false,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                    )
+                    OptionPositionsWidget(widget.brokerageUser, widget.service,
+                        filteredOptionPositions,
+                        showFooter: false,
+                        showGroupHeader: false,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef)
                   ]
                 ]));
           }),
@@ -1374,13 +1391,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       height: 8.0,
                     )),
                     OptionOrdersWidget(
-                      widget.user,
+                      widget.brokerageUser,
                       widget.service,
                       instrument.optionOrders!,
                       const ["confirmed", "filled"],
                       analytics: widget.analytics,
                       observer: widget.observer,
                       generativeService: widget.generativeService,
+                      authUser: widget.user,
+                      userDocRef: widget.userDocRef,
                     )
                   ]));
             }
@@ -1450,12 +1469,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentOptionChainWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
                               )));
                 },
               ),
@@ -1467,7 +1488,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => TradeInstrumentWidget(
-                            widget.user,
+                            widget.brokerageUser,
                             widget.service,
                             instrument: instrument,
                             positionType: "Buy",
@@ -1510,27 +1531,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       {double iconSize = 23.0}) {
     List<Widget> tiles = [];
 
-    double? totalReturn = widget.user.getDisplayValueInstrumentPosition(ops,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    double? totalReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(ops,
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPosition(
-        ops,
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(ops,
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueInstrumentPosition(ops,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    double? todayReturn = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(ops,
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPosition(
-        ops,
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueInstrumentPosition(ops,
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
@@ -1565,7 +1588,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _pnlBadge(
-                widget.user.getDisplayText(ops.totalCost,
+                widget.brokerageUser.getDisplayText(ops.totalCost,
                     displayValue: DisplayValue.totalCost),
                 null,
                 valueFontSize,
@@ -1576,7 +1599,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _pnlBadge(
-                widget.user.getDisplayText(ops.averageBuyPrice!,
+                widget.brokerageUser.getDisplayText(ops.averageBuyPrice!,
                     displayValue: DisplayValue.lastPrice),
                 null,
                 valueFontSize,
@@ -1629,11 +1652,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     //     displayValue: DisplayValue.totalReturnPercent);
 
     double? todayReturn = ops.quoteObj?.changeToday;
-    String? todayReturnText = widget.user
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = ops.quoteObj?.changePercentToday;
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
@@ -1655,7 +1678,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _pnlBadge(
-                widget.user.getDisplayText(ops.quoteObj!.bidPrice!,
+                widget.brokerageUser.getDisplayText(ops.quoteObj!.bidPrice!,
                     displayValue: DisplayValue.lastPrice),
                 null,
                 valueFontSize,
@@ -1667,7 +1690,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _pnlBadge(
-                widget.user.getDisplayText(ops.quoteObj!.askPrice!,
+                widget.brokerageUser.getDisplayText(ops.quoteObj!.askPrice!,
                     displayValue: DisplayValue.lastPrice),
                 null,
                 valueFontSize,
@@ -1679,7 +1702,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _pnlBadge(
-                widget.user.getDisplayText(ops.quoteObj!.adjustedPreviousClose!,
+                widget.brokerageUser.getDisplayText(
+                    ops.quoteObj!.adjustedPreviousClose!,
                     displayValue: DisplayValue.lastPrice),
                 null,
                 valueFontSize,
@@ -2473,7 +2497,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       IncomeTransactionsWidget(
-          widget.user,
+          widget.brokerageUser,
           widget.service,
           Provider.of<DividendStore>(context, listen: false),
           Provider.of<InstrumentPositionStore>(context, listen: false),
@@ -2678,7 +2702,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 onTap: () async {
                   var similarInstruments = await widget.service
                       .getInstrumentsByIds(
-                          widget.user,
+                          widget.brokerageUser,
                           Provider.of<InstrumentStore>(context, listen: false),
                           [similar[index]["instrument_id"]]);
                   if (similar[index]["logo_url"] != null &&
@@ -2696,12 +2720,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => InstrumentWidget(
-                                  widget.user,
+                                  widget.brokerageUser,
                                   widget.service,
                                   similarInstruments[0],
                                   analytics: widget.analytics,
                                   observer: widget.observer,
                                   generativeService: widget.generativeService,
+                                  user: widget.user,
+                                  userDocRef: widget.userDocRef,
                                 )));
                   }
                 },
@@ -2769,13 +2795,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => ListWidget(
-                                widget.user,
-                                widget.service,
-                                instrument.listsObj![index]["id"].toString(),
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                generativeService: widget.generativeService,
-                              )));
+                              widget.brokerageUser,
+                              widget.service,
+                              instrument.listsObj![index]["id"].toString(),
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef)));
                 },
               ),
             ],
@@ -2970,12 +2997,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => PositionOrderWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 positionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
                               )));
                 },
               ),
@@ -3527,6 +3556,39 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       );
                     },
                   ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.settings,
+                      size: 20,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Agentic Trading Settings',
+                    onPressed: () async {
+                      if (widget.user == null || widget.userDocRef == null) {
+                        return;
+                      }
+
+                      final result = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AgenticTradingSettingsWidget(
+                            user: widget.user!,
+                            userDocRef: widget.userDocRef!,
+                          ),
+                        ),
+                      );
+                      // Refresh signal when returning from settings
+                      if (result == true && mounted) {
+                        final provider = Provider.of<TradeSignalsProvider>(
+                            context,
+                            listen: false);
+                        provider.fetchTradeSignal(widget.instrument.symbol,
+                            interval: provider.selectedInterval);
+                      }
+                    },
+                  ),
                 ],
               ),
               // const SizedBox(height: 12),
@@ -3722,7 +3784,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildDocSection(String key) {
-    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final docInfo = TradeSignalsProvider.indicatorDocumentation(key);
     final title = docInfo['title'] ?? '';
     final documentation = docInfo['documentation'] ?? '';
 
@@ -3760,9 +3822,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
           ),
           // Market status indicator
-          Consumer<AgenticTradingProvider>(
+          Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
-              final isMarketOpen = provider.isMarketOpen;
+              final isMarketOpen = MarketHours.isMarketOpen();
               final selectedInterval = provider.selectedInterval;
               final intervalLabel = selectedInterval == '1d'
                   ? 'Daily'
@@ -3819,7 +3881,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           // Interval selector
-          Consumer<AgenticTradingProvider>(
+          Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -3852,9 +3914,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           const SizedBox(height: 8),
-          Consumer2<AgenticTradingProvider, AccountStore>(
-            builder: (context, agenticTradingProvider, accountStore, child) {
-              final signal = agenticTradingProvider.tradeSignal;
+          Consumer3<TradeSignalsProvider, AccountStore, AgenticTradingProvider>(
+            builder: (context, tradeSignalsProvider, accountStore,
+                agenticTradingProvider, child) {
+              final signal = tradeSignalsProvider.tradeSignal;
               if (signal == null || signal.isEmpty) {
                 return Card(
                   child: Padding(
@@ -3888,11 +3951,79 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               }
               final timestamp = DateTime.fromMillisecondsSinceEpoch(
                   signal['timestamp'] as int);
-              final signalType = signal['signal'] ?? 'HOLD';
+              var signalType = signal['signal'] ?? 'HOLD';
+              String? recalculatedReason;
               final signalInterval = signal['interval'] ?? '1d';
               final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
+
+              // Recalculate overall signal based on enabled indicators
+              if (multiIndicator != null) {
+                final indicators =
+                    multiIndicator['indicators'] as Map<String, dynamic>?;
+                if (indicators != null) {
+                  final enabledIndicators =
+                      agenticTradingProvider.config['enabledIndicators']
+                              as Map<String, dynamic>? ??
+                          {};
+                  final enabledCount =
+                      enabledIndicators.values.where((v) => v == true).length;
+
+                  if (enabledCount > 0) {
+                    final enabledSignals = <String>[];
+                    for (final key in [
+                      'priceMovement',
+                      'momentum',
+                      'marketDirection',
+                      'volume',
+                      'macd',
+                      'bollingerBands',
+                      'stochastic',
+                      'atr',
+                      'obv'
+                    ]) {
+                      if (enabledIndicators[key] == true) {
+                        final indicator =
+                            indicators[key] as Map<String, dynamic>?;
+                        final sig = indicator?['signal'] as String?;
+                        if (sig != null) {
+                          enabledSignals.add(sig);
+                        }
+                      }
+                    }
+
+                    if (enabledSignals.isNotEmpty) {
+                      final allBuy = enabledSignals.every((s) => s == 'BUY');
+                      final allSell = enabledSignals.every((s) => s == 'SELL');
+                      final buyCount =
+                          enabledSignals.where((s) => s == 'BUY').length;
+                      final sellCount =
+                          enabledSignals.where((s) => s == 'SELL').length;
+                      final holdCount =
+                          enabledSignals.where((s) => s == 'HOLD').length;
+
+                      if (allBuy) {
+                        signalType = 'BUY';
+                        recalculatedReason =
+                            'All $enabledCount enabled indicators are GREEN - Strong BUY signal';
+                      } else if (allSell) {
+                        signalType = 'SELL';
+                        recalculatedReason =
+                            'All $enabledCount enabled indicators are RED - Strong SELL signal';
+                      } else {
+                        signalType = 'HOLD';
+                        recalculatedReason =
+                            'Mixed signals ($enabledCount enabled) - BUY: $buyCount, SELL: $sellCount, HOLD: $holdCount. Need all $enabledCount indicators aligned for action.';
+                      }
+                    }
+                  } else {
+                    signalType = 'HOLD';
+                    recalculatedReason =
+                        'No indicators enabled - cannot generate signal';
+                  }
+                }
+              }
 
               // Determine signal color and icon
               Color signalColor;
@@ -4028,7 +4159,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  signal['reason'] ?? 'No reason provided',
+                                  recalculatedReason ??
+                                      signal['reason'] ??
+                                      'No reason provided',
                                   style: const TextStyle(fontSize: 14),
                                 ),
                               ],
@@ -4498,11 +4631,14 @@ class _RiskGuardButtonState extends State<_RiskGuardButton> {
 
       final portfolioState = widget.buildPortfolioState();
 
-      final provider =
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
-      final result = await provider.assessTradeRisk(
+      final result = await tradeSignalsProvider.assessTradeRisk(
         proposal: proposal,
         portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
       );
 
       // Update assessment in the signal and refresh UI
@@ -4670,9 +4806,6 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
     });
 
     try {
-      final provider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-
       final portfolioState = widget.buildPortfolioState();
       final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
           widget.instrument.quoteObj?.lastTradePrice;
@@ -4682,17 +4815,23 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
       }
 
       // Generate new signal via initiateTradeProposal
-      await provider.initiateTradeProposal(
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      await tradeSignalsProvider.initiateTradeProposal(
         symbol: widget.instrument.symbol,
         currentPrice: price,
         portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
       );
 
       // Wait briefly to ensure Firestore write has completed
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Refresh the signal from Firestore
-      await provider.fetchTradeSignal(widget.instrument.symbol);
+      await Provider.of<TradeSignalsProvider>(context, listen: false)
+          .fetchTradeSignal(widget.instrument.symbol);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

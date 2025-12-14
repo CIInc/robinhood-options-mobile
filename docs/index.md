@@ -78,6 +78,11 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - Risk parameters and portfolio integration
 - Trade signal history and results tracking
 - Optional filtering parameters: signal type, date range, symbols, limit
+- **Automated Trading:** Full auto-trade capabilities with risk controls (see [Agentic Trading](agentic-trading.md))
+  - Daily trade limits and cooldown periods
+  - Emergency stop functionality
+  - Position size and portfolio concentration limits
+  - Real-time status monitoring and trade history
 
 ### Technical Details
 - Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
@@ -87,7 +92,9 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - Composite Firestore indexes for optimized queries
 - State synchronization between single signal and signal list
 
-For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
+For detailed technical documentation:
+- [Multi-Indicator Trading System](multi-indicator-trading.md) - Signal generation and analysis
+- [Agentic Trading](agentic-trading.md) - Autonomous trade execution and risk management
 
 ## Futures Positions Feature
 

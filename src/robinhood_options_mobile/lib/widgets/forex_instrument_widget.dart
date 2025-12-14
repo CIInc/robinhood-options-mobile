@@ -23,7 +23,7 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 class ForexInstrumentWidget extends StatefulWidget {
   const ForexInstrumentWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.holding, {
@@ -34,7 +34,7 @@ class ForexInstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   //final Account account;
   final ForexHolding holding;
@@ -85,7 +85,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>
           element['asset_currency']['id'] == widget.holding.currencyId);
       futureQuote ??=
-          widget.service.getForexQuote(widget.user, forexPair['id']);
+          widget.service.getForexQuote(widget.brokerageUser, forexPair['id']);
     } else {
       futureQuote ??= Future.value(widget.holding.quoteObj);
     }
@@ -98,7 +98,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           widget.holding.quoteObj = snapshot.data! as ForexQuote;
 
           futureHistoricals ??= widget.service.getForexHistoricals(
-              widget.user, widget.holding.quoteObj!.id,
+              widget.brokerageUser, widget.holding.quoteObj!.id,
               chartBoundsFilter: chartBoundsFilter,
               chartDateSpanFilter: chartDateSpanFilter);
 
@@ -656,14 +656,14 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
       (timer) async {
-        if (widget.user.refreshEnabled) {
+        if (widget.brokerageUser.refreshEnabled) {
           if (widget.holding.historicalsObj != null) {
             setState(() {
               widget.holding.historicalsObj = null;
               futureHistoricals = null;
             });
           }
-          await widget.service.refreshNummusHoldings(widget.user,
+          await widget.service.refreshNummusHoldings(widget.brokerageUser,
               Provider.of<ForexHoldingStore>(context, listen: false));
 
           /*

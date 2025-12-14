@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -5,8 +6,8 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -15,7 +16,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 class OptionOrderWidget extends StatefulWidget {
   const OptionOrderWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.optionOrder, {
@@ -23,15 +24,19 @@ class OptionOrderWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.user,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final OptionOrder optionOrder;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionOrderWidget> createState() => _OptionOrderWidgetState();
@@ -63,8 +68,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
-      futureQuote = widget.service
-          .getQuote(widget.user, quoteStore, widget.optionOrder.chainSymbol);
+      futureQuote = widget.service.getQuote(
+          widget.brokerageUser, quoteStore, widget.optionOrder.chainSymbol);
     }
 
     return Scaffold(
@@ -74,7 +79,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
               futureInstrument = widget.service.getInstrument(
-                  widget.user, instrumentStore, snapshot.data!.instrument);
+                  widget.brokerageUser,
+                  instrumentStore,
+                  snapshot.data!.instrument);
               return FutureBuilder(
                   future: futureInstrument,
                   builder:
@@ -171,7 +178,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           child: Align(alignment: Alignment.center, child: buildOverview())),
           */
       SliverToBoxAdapter(
-        child: _buildOverview(widget.user, instrument),
+        child: _buildOverview(widget.brokerageUser, instrument),
       ),
       SliverToBoxAdapter(
           child: Card(
@@ -457,6 +464,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                               analytics: widget.analytics,
                               observer: widget.observer,
                               generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
                             )));
               },
             ),

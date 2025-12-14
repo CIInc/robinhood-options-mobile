@@ -4,7 +4,19 @@ enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
 
-enum ChartDateSpan { hour, day, week, month, month_3, ytd, year, year_5, all }
+enum ChartDateSpan {
+  hour,
+  day,
+  week,
+  month,
+  month_3,
+  ytd,
+  year,
+  year_2,
+  year_3,
+  year_5,
+  all
+}
 
 enum Bounds { regular, t24_7, trading }
 
@@ -69,6 +81,12 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
     case ChartDateSpan.year:
       span = "year";
       break;
+    case ChartDateSpan.year_2: // Does not exist in Robinhood API
+      span = "2year";
+      break;
+    case ChartDateSpan.year_3: // Does not exist in Robinhood API
+      span = "3year";
+      break;
     case ChartDateSpan.year_5:
       span = "5year";
       break;
@@ -114,6 +132,14 @@ List<String> convertChartSpanFilterWithInterval(
     case ChartDateSpan.year:
       interval = "day";
       span = "year";
+      break;
+    case ChartDateSpan.year_2: // Does not exist in Robinhood API
+      interval = "week";
+      span = "2year";
+      break;
+    case ChartDateSpan.year_3: // Does not exist in Robinhood API
+      interval = "week";
+      span = "3year";
       break;
     case ChartDateSpan.year_5:
       interval = "week";

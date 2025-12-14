@@ -9,7 +9,7 @@ class InitialWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(slivers: [
-      const SliverAppBar(
+      SliverAppBar(
         floating: true,
         snap: true,
         pinned: false,
@@ -24,7 +24,9 @@ class InitialWidget extends StatelessWidget {
               Text(Constants.appTitle, style: TextStyle(fontSize: 20.0)),
               Text(
                 "",
-                style: TextStyle(fontSize: 16.0, color: Colors.white70),
+                style: TextStyle(
+                    fontSize: 16.0,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               )
             ]),
         actions: [],
