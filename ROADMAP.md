@@ -551,6 +551,7 @@ Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing
 - [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
 - [ ] **Schwab API Integration**: Native Schwab brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
 - [ ] **Fidelity API Integration**: Native Fidelity brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
+- [ ] **Interactive Brokers Integration**: Native Interactive Brokers API support ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)) - **Large** (4-6 weeks)
 - [ ] **Multi-Brokerage**: Trade across multiple brokerage accounts - **Large** (3-4 weeks)
 - [ ] **Crypto Trading**: Crypto trading integration ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)) - **Large** (4-5 weeks)
 - [ ] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): - **Large** (4-5 weeks)
