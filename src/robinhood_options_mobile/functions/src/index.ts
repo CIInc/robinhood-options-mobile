@@ -26,6 +26,7 @@ import * as tradeSignalNotifications from "./trade-signal-notifications";
 import * as agenticTradingNotifications from "./agentic-trading-notifications";
 import * as cronDiagnosticsFuncs from "./cron-diagnostics";
 import * as signalDiagnosticsFuncs from "./signal-diagnostics";
+import * as leaderboard from "./leaderboard";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -73,3 +74,8 @@ export const sendAgenticTradeNotification =
   agenticTradingNotifications.sendAgenticTradeNotification;
 export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
 export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;
+export const calculateLeaderboard = leaderboard.calculateLeaderboard;
+export const calculateLeaderboardManual =
+  leaderboard.calculateLeaderboardManual;
+export const updatePortfolioPublicStatus =
+  leaderboard.updatePortfolioPublicStatus;

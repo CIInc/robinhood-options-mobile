@@ -1,14 +1,18 @@
 //import 'dart:collection';
 import 'package:collection/collection.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 class PortfolioHistoricalsStore extends ChangeNotifier {
   /// Internal, private state of the store.
   final List<PortfolioHistoricals> _items = [];
   EquityHistorical? selection;
+  double? _lastPortfolioValue;
+  final FirestoreService _firestoreService = FirestoreService();
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<PortfolioHistoricals> get items =>
@@ -24,6 +28,7 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
         element.interval == item.interval);
     if (index == -1) {
       _items.add(item);
+      _updatePortfolioValueIfChanged(item);
       notifyListeners();
     } else {
       var current = _items[index];
@@ -40,6 +45,7 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
         //_items.clear();
         //_items.add(item);
         _items[index] = item;
+        _updatePortfolioValueIfChanged(item);
         notifyListeners();
       } else {
         debugPrint('No updates for PortfolioHistoricals.');
@@ -47,11 +53,12 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
     }
   }
 
-  void add(PortfolioHistoricals item) {
-    _items.add(item);
-    // This call tells the widgets that are listening to this model to rebuild.
-    notifyListeners();
-  }
+  // void add(PortfolioHistoricals item) {
+  //   _items.add(item);
+  //   _updatePortfolioValueIfChanged(item);
+  //   // This call tells the widgets that are listening to this model to rebuild.
+  //   notifyListeners();
+  // }
 
   void removeAll() {
     _items.clear();
@@ -59,24 +66,56 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool update(PortfolioHistoricals item) {
-    var index = _items.indexWhere((element) =>
-        element.span == item.span && element.bounds == item.bounds);
-    if (index == -1) {
-      return false;
-    }
-    _items[index] = item;
-    notifyListeners();
-    return true;
-  }
+  // bool update(PortfolioHistoricals item) {
+  //   var index = _items.indexWhere((element) =>
+  //       element.span == item.span && element.bounds == item.bounds);
+  //   if (index == -1) {
+  //     return false;
+  //   }
+  //   _items[index] = item;
+  //   notifyListeners();
+  //   return true;
+  // }
 
-  void addOrUpdate(PortfolioHistoricals item) {
-    if (!update(item)) {
-      add(item);
-    }
-  }
+  // void addOrUpdate(PortfolioHistoricals item) {
+  //   if (!update(item)) {
+  //     add(item);
+  //   }
+  // }
 
   void notify() {
     notifyListeners();
+  }
+
+  /// Update portfolioValue in Firebase if it has changed
+  void _updatePortfolioValueIfChanged(PortfolioHistoricals item) {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Get the latest historical value (prefer adjustedCloseEquity)
+      if (item.equityHistoricals.isNotEmpty) {
+        final lastHistorical = item.equityHistoricals.last;
+        final portfolioValue =
+            lastHistorical.adjustedCloseEquity ?? lastHistorical.closeEquity;
+
+        // Only update if value has changed and is valid
+        if (portfolioValue != null &&
+            portfolioValue > 0 &&
+            portfolioValue != _lastPortfolioValue) {
+          _lastPortfolioValue = portfolioValue;
+          _firestoreService.updatePortfolioValue(user.uid, portfolioValue);
+          debugPrint('Updated portfolioValue in Firebase: $portfolioValue');
+
+          // Save the latest historical data point for leaderboard calculations
+          if (lastHistorical.beginsAt != null) {
+            _firestoreService.savePortfolioHistorical(
+                user.uid, lastHistorical.beginsAt!, portfolioValue);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in _updatePortfolioValueIfChanged: $e');
+    }
   }
 }

@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/logo_provider.dart';
 import 'package:robinhood_options_mobile/model/investor_group_store.dart';
+import 'package:robinhood_options_mobile/model/leaderboard_store.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
@@ -235,6 +236,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => InvestorGroupStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => LeaderboardStore(),
             ),
           ],
           child: MaterialApp(
