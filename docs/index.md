@@ -174,7 +174,6 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 - **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
 - **Direct Portfolio Access:** Tap member in private group detail view to navigate to SharedPortfolioWidget
 - **Navigation:** Access via drawer menu under "Investor Groups"
-- **User Model:** Utilizes existing `sharedGroups` field for membership tracking
 - **Real-Time Updates:** StreamBuilder for Firestore user documents ensures live portfolio data
 
 ### Security

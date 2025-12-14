@@ -637,47 +637,6 @@ class FirestoreService {
     batch.commit();
   }
 
-  /// Share Methods
-
-  /// Set sharing options for a user's portfolio
-  Future<void> setPortfolioSharing(
-    String uid, {
-    List<String>? sharedWithUserIds,
-    List<String>? sharedGroups,
-    bool? isPublic,
-  }) async {
-    final userDoc = userCollection.doc(uid);
-    Map<String, dynamic> data = {};
-    if (sharedWithUserIds != null) data['sharedWith'] = sharedWithUserIds;
-    if (sharedGroups != null) data['sharedGroups'] = sharedGroups;
-    if (isPublic != null) data['isPublic'] = isPublic;
-    data['dateUpdated'] = DateTime.now();
-    await userDoc.update(data);
-  }
-
-  /// Get portfolios shared with the current user
-  Stream<QuerySnapshot<User>> getPortfoliosSharedWithUser(
-      String currentUserId) {
-    return userCollection
-        .where('sharedWith', arrayContains: currentUserId)
-        .snapshots();
-    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
-  }
-
-  /// Get portfolios shared with a group
-  Stream<QuerySnapshot<User>> getPortfoliosSharedWithGroup(String groupId) {
-    return userCollection
-        .where('sharedGroups', arrayContains: groupId)
-        .snapshots();
-    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
-  }
-
-  /// Get all public portfolios
-  Stream<QuerySnapshot<User>> getPublicPortfolios() {
-    return userCollection.where('isPublic', isEqualTo: true).snapshots();
-    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
-  }
-
   /// Dividend Methods
 
   // Future<DocumentReference<Map<String, dynamic>>> addDividend(
@@ -888,12 +847,6 @@ class FirestoreService {
         'dateUpdated': DateTime.now(),
       });
 
-      // Also update user's sharedGroups
-      await userCollection.doc(userId).update({
-        'sharedGroups': FieldValue.arrayUnion([groupId]),
-        'dateUpdated': DateTime.now(),
-      });
-
       debugPrint("User $userId joined group $groupId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to join investor group: ${e.message}');
@@ -906,12 +859,6 @@ class FirestoreService {
     try {
       await investorGroupCollection.doc(groupId).update({
         'members': FieldValue.arrayRemove([userId]),
-        'dateUpdated': DateTime.now(),
-      });
-
-      // Also update user's sharedGroups
-      await userCollection.doc(userId).update({
-        'sharedGroups': FieldValue.arrayRemove([groupId]),
         'dateUpdated': DateTime.now(),
       });
 
@@ -974,12 +921,6 @@ class FirestoreService {
         'dateUpdated': DateTime.now(),
       });
 
-      // Also update user's sharedGroups
-      await userCollection.doc(userId).update({
-        'sharedGroups': FieldValue.arrayUnion([groupId]),
-        'dateUpdated': DateTime.now(),
-      });
-
       debugPrint("User $userId accepted invitation to group $groupId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to accept group invitation: ${e.message}');
@@ -1008,12 +949,6 @@ class FirestoreService {
         'members': FieldValue.arrayRemove([userId]),
         'admins': FieldValue.arrayRemove(
             [userId]), // Also remove from admins if present
-        'dateUpdated': DateTime.now(),
-      });
-
-      // Also update user's sharedGroups
-      await userCollection.doc(userId).update({
-        'sharedGroups': FieldValue.arrayRemove([groupId]),
         'dateUpdated': DateTime.now(),
       });
 
