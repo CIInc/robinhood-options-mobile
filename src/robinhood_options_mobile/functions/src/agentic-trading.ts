@@ -24,6 +24,7 @@ export async function getMarketData(symbol: string,
   let lows: any[] = [];
   let closes: any[] = [];
   let volumes: any[] = [];
+  let timestamps: any[] = [];
   let currentPrice: number | null = null;
 
   /**
@@ -90,11 +91,13 @@ export async function getMarketData(symbol: string,
         const los = chart.indicators.quote[0].low;
         const clos = chart.indicators.quote[0].close;
         const vols = chart.indicators.quote[0].volume || [];
+        const tss = chart.timestamp || [];
         opens = opes.filter((p: any) => p !== null);
         highs = higs.filter((p: any) => p !== null);
         lows = los.filter((p: any) => p !== null);
         closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
+        timestamps = tss.filter((t: any) => t !== null);
         if (chart && typeof chart?.meta?.regularMarketPrice === "number") {
           currentPrice = chart.meta.regularMarketPrice;
         } else if (Array.isArray(closes) && closes.length > 0) {
@@ -159,11 +162,13 @@ export async function getMarketData(symbol: string,
         const los = result.indicators.quote[0].low;
         const clos = result.indicators.quote[0].close;
         const vols = result.indicators.quote[0].volume || [];
+        const tss = result.timestamp || [];
         opens = opes.filter((p: any) => p !== null);
         highs = higs.filter((p: any) => p !== null);
         lows = los.filter((p: any) => p !== null);
         closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
+        timestamps = tss.filter((t: any) => t !== null);
         logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} ${interval} ` +
           `prices and ${volumes.length} volumes for ${symbol} from ` +
           `Yahoo Finance ${url}`);
@@ -194,6 +199,7 @@ export async function getMarketData(symbol: string,
     lows,
     closes,
     volumes,
+    timestamps,
     currentPrice,
   };
 }

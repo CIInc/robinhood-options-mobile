@@ -53,7 +53,7 @@ void main() {
         (WidgetTester tester) async {
       // Mock the user document reference - we'll use a null value since we're just testing the widget
       testUserDocRef = FirebaseFirestore.instance
-          .collection('users')
+          .collection('user')
           .doc('test_user_123') as DocumentReference<User>;
 
       await tester.pumpWidget(
@@ -83,7 +83,7 @@ void main() {
     testWidgets('Auto-save should trigger when take profit is changed',
         (WidgetTester tester) async {
       testUserDocRef = FirebaseFirestore.instance
-          .collection('users')
+          .collection('user')
           .doc('test_user_123') as DocumentReference<User>;
 
       await tester.pumpWidget(
@@ -110,7 +110,7 @@ void main() {
     testWidgets('Auto-save should trigger when stop loss is changed',
         (WidgetTester tester) async {
       testUserDocRef = FirebaseFirestore.instance
-          .collection('users')
+          .collection('user')
           .doc('test_user_123') as DocumentReference<User>;
 
       await tester.pumpWidget(

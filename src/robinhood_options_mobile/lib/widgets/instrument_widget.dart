@@ -61,6 +61,7 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -1730,10 +1731,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             "Quote",
             style: TextStyle(fontSize: 19.0),
           ),
-          subtitle: Text(
-              instrument.quoteObj!.lastExtendedHoursTradePrice != null
-                  ? 'Extended hours'
-                  : ''),
+          subtitle: instrument.quoteObj!.lastExtendedHoursTradePrice != null
+              ? Text('Extended hours')
+              : null,
           trailing: Text(
               formatCurrency.format(
                   instrument.quoteObj!.lastExtendedHoursTradePrice ??
@@ -3556,39 +3556,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       );
                     },
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.settings,
-                      size: 20,
-                      color:
-                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: 'Agentic Trading Settings',
-                    onPressed: () async {
-                      if (widget.user == null || widget.userDocRef == null) {
-                        return;
-                      }
-
-                      final result = await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AgenticTradingSettingsWidget(
-                            user: widget.user!,
-                            userDocRef: widget.userDocRef!,
-                          ),
-                        ),
-                      );
-                      // Refresh signal when returning from settings
-                      if (result == true && mounted) {
-                        final provider = Provider.of<TradeSignalsProvider>(
-                            context,
-                            listen: false);
-                        provider.fetchTradeSignal(widget.instrument.symbol,
-                            interval: provider.selectedInterval);
-                      }
-                    },
-                  ),
                 ],
               ),
               // const SizedBox(height: 12),
@@ -3815,13 +3782,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return SliverToBoxAdapter(
       child: Column(
         children: [
-          const ListTile(
-            title: Text(
-              "Trade Signal",
-              style: TextStyle(fontSize: 19.0),
-            ),
-          ),
-          // Market status indicator
           Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
               final isMarketOpen = MarketHours.isMarketOpen();
@@ -3830,85 +3790,147 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ? 'Daily'
                   : selectedInterval == '1h'
                       ? 'Hourly'
-                      : selectedInterval == '30m'
-                          ? '30-min'
-                          : selectedInterval == '15m'
-                              ? '15-min'
-                              : selectedInterval;
+                      : selectedInterval == '15m'
+                          ? '15-min'
+                          : selectedInterval;
 
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
-                  decoration: BoxDecoration(
-                    color: isMarketOpen
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isMarketOpen
-                          ? Colors.green.shade300
-                          : Colors.blue.shade300,
-                      width: 1,
+              return ListTile(
+                title: const Text(
+                  "Trade Signal",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.history_outlined,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Run Backtest',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BacktestingWidget(
+                              userDocRef: widget.userDocRef,
+                              prefilledSymbol: widget.instrument.symbol,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        Icons.settings,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Automated Trading',
+                      onPressed: () async {
+                        if (widget.user == null || widget.userDocRef == null) {
+                          return;
+                        }
+                        final result = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AgenticTradingSettingsWidget(
+                              user: widget.user!,
+                              userDocRef: widget.userDocRef!,
+                            ),
+                          ),
+                        );
+                        if (result == true && mounted) {
+                          provider.fetchTradeSignal(widget.instrument.symbol,
+                              interval: provider.selectedInterval);
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      icon: Icon(
                         isMarketOpen ? Icons.access_time : Icons.calendar_today,
-                        size: 18,
+                        size: 20,
                         color: isMarketOpen
                             ? Colors.green.shade700
                             : Colors.blue.shade700,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${isMarketOpen ? 'Market Open' : 'After Hours'} • Showing $intervalLabel Signals',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isMarketOpen
-                              ? Colors.green.shade700
-                              : Colors.blue.shade700,
+                      tooltip:
+                          '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          enabled: false,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Text(
+                              isMarketOpen ? 'Market Open' : 'After Hours',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isMarketOpen
+                                    ? Colors.green.shade700
+                                    : Colors.blue.shade700,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          // Interval selector
-          Consumer<TradeSignalsProvider>(
-            builder: (context, provider, child) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: '15m',
-                      label: Text('15m'),
-                      icon: Icon(Icons.access_time, size: 16),
-                    ),
-                    ButtonSegment(
-                      value: '1h',
-                      label: Text('1h'),
-                      icon: Icon(Icons.schedule, size: 16),
-                    ),
-                    ButtonSegment(
-                      value: '1d',
-                      label: Text('Daily'),
-                      icon: Icon(Icons.calendar_today, size: 16),
+                        const PopupMenuDivider(),
+                        PopupMenuItem<String>(
+                          value: '15m',
+                          child: Row(
+                            children: [
+                              const Text('15-min'),
+                              if (selectedInterval == '15m') ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check,
+                                    size: 18, color: Colors.green.shade700),
+                              ],
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: '1h',
+                          child: Row(
+                            children: [
+                              const Text('Hourly'),
+                              if (selectedInterval == '1h') ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check,
+                                    size: 18, color: Colors.green.shade700),
+                              ],
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: '1d',
+                          child: Row(
+                            children: [
+                              const Text('Daily'),
+                              if (selectedInterval == '1d') ...[
+                                const SizedBox(width: 8),
+                                Icon(Icons.check,
+                                    size: 18, color: Colors.green.shade700),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        provider.setSelectedInterval(value);
+                        provider.fetchTradeSignal(symbol, interval: value);
+                      },
                     ),
                   ],
-                  selected: {provider.selectedInterval},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    provider.setSelectedInterval(newSelection.first);
-                    provider.fetchTradeSignal(symbol,
-                        interval: newSelection.first);
-                  },
                 ),
               );
             },

@@ -57,6 +57,8 @@ import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dar
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 /*
 class DrawerItem {
@@ -204,7 +206,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Widget _pnlBadge(String text, double? value, double fontSize,
       {bool neutral = false}) {
-    var color = neutral ? Colors.grey : _pnlColor(value);
+    var color = neutral
+        ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+        : _pnlColor(value);
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -839,7 +843,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       // Only disable animation if we had previous data and are appending
                       if (_previousPortfolioHistoricals != null &&
                           _previousPortfolioHistoricals!
-                                  .equityHistoricals.isNotEmpty) {
+                              .equityHistoricals.isNotEmpty) {
                         animateChart = false;
                       } else {
                         animateChart = true;
@@ -2127,6 +2131,91 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ],
               ));
             }),
+            SliverToBoxAdapter(
+              child:
+                  // Promote Automated Trading & Backtesting
+                  Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.auto_graph,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Automated Trading & Backtesting',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Let the system trade for you or simulate strategies on historical data.',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.settings),
+                              label: const Text('Auto-Trading'),
+                              onPressed: (widget.user == null ||
+                                      widget.userDoc == null)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              AgenticTradingSettingsWidget(
+                                            user: widget.user!,
+                                            userDocRef: widget.userDoc!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                            ),
+                            // const SizedBox(width: 8),
+                            Expanded(child: Container()),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.history_outlined),
+                              label: const Text('Run Backtest'),
+                              onPressed: (widget.user == null ||
+                                      widget.userDoc == null)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BacktestingWidget(
+                                            userDocRef: widget.userDoc,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             if (widget.brokerageUser.source == BrokerageSource.robinhood ||
                 widget.brokerageUser.source == BrokerageSource.demo) ...[
               Consumer2<DividendStore, InterestStore>(
@@ -2217,45 +2306,53 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var seriesOpensp500 = quotesp500['open'][0];
                     // var seriesOpennasdaq = quotenasdaq['open'][0];
                     var seriesDatasp500 =
-                        (sp500['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (sp500['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          sp500PreviousClose -
-                                      1
-                                })
-                            .toList();
+                      (sp500['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (sp500['chart']['result'][0]
+                          ['indicators']['adjclose'][0]['adjclose']
+                        as List)[index];
+                      final close = (numerator as num?)?.toDouble();
+                      return {
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / sp500PreviousClose) - 1.0,
+                      };
+                    }).toList();
                     seriesDatasp500
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatanasdaq =
-                        (nasdaq['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (nasdaq['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          nasdaqPreviousClose -
-                                      1
-                                })
-                            .toList();
+                      (nasdaq['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (nasdaq['chart']['result'][0]
+                          ['indicators']['adjclose'][0]['adjclose']
+                        as List)[index];
+                      final close = (numerator as num?)?.toDouble();
+                      return {
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / nasdaqPreviousClose) - 1.0,
+                      };
+                    }).toList();
                     seriesDatanasdaq
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatadow =
-                        (dow['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (dow['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          dowPreviousClose -
-                                      1
-                                })
-                            .toList();
+                      (dow['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (dow['chart']['result'][0]['indicators']
+                        ['adjclose'][0]['adjclose'] as List)[index];
+                      final close = (numerator as num?)?.toDouble();
+                      return {
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / dowPreviousClose) - 1.0,
+                      };
+                    }).toList();
                     seriesDatadow
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesOpenportfolio = portfolioHistoricals
@@ -2279,12 +2376,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var portfoliodiffnasdaq =
                     //     (seriesDataportfolio.last['value'] as double) -
                     //         seriesDatanasdaq.last['value'];
-                    var extents = charts.NumericExtents.fromValues(
-                        (seriesDatasp500 +
-                                seriesDatanasdaq +
-                                seriesDatadow +
-                                seriesDataportfolio)
-                            .map((e) => e['value']));
+                    final allValues = <double>[
+                      ...seriesDatasp500.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatanasdaq.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatadow.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDataportfolio.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                    ];
+                    var extents = charts.NumericExtents.fromValues(allValues);
                     extents = charts.NumericExtents(
                         extents.min - (extents.width * 0.1),
                         extents.max + (extents.width * 0.1));
