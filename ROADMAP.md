@@ -8,15 +8,15 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
 
 ### Quick Stats
-- **Completed Features**: 7 major categories (45+ items)
-- **Planned Enhancements**: 17 categories (155+ items)
+- **Completed Features**: 8 major categories (50+ items)
+- **Planned Enhancements**: 16 categories (150+ items)
 - **Open GitHub Issues**: 12 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**
-- 🔥 **In Progress**: Plaid/Schwab/Fidelity Integrations
-- 🎯 **Upcoming**: Backtesting, Strategy Templates, Partial Exits, Advanced Risk Controls
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**
+- 🔥 **In Progress**: Copy Trading Auto-Execute, Advanced Risk Controls
+- 🎯 **Upcoming**: Strategy Templates, Partial Exits, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
 
@@ -30,16 +30,24 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Indicator Combination Analysis
 - Performance filtering (paper vs real)
 
-### v0.19.0 (Q1 2026 - Late January)
-**Backtesting & Strategy Optimization**
-- Backtesting Interface (test strategies on historical data)
+### v0.19.0 ✅ (Released Dec 15, 2025)
+**Backtesting & Strategy Validation**
+- ✅ Backtesting Interface (test strategies on historical data)
+- ✅ 3-tab backtesting UI (Run, History, Templates)
+- ✅ Interactive equity curve with trade markers
+- ✅ Strategy Templates (save and reuse configurations)
+- ✅ Performance metrics (Sharpe, drawdown, profit factor)
+- ✅ Multiple time intervals (15m, 1h, 1d)
+- ✅ Export and share backtest results
+
+### v0.19.1 (Late December 2025)
+**Copy Trading & Risk Controls Phase 1**
 - Trade Approval Workflow (review before execution)
-- Strategy Templates (pre-built strategies)
 - Signal Optimization (ML-powered improvements)
 - Custom Indicators (create your own indicators)
 - UI improvements & bug fixes
 
-### v0.20.0 (Q1-Q2 2026 - Late February)
+### v0.20.0 (Q1 2026 - Early January)
 **Copy Trading Enhancement & Risk Controls**
 - Auto-Execute for Copy Trading
 - Advanced Risk Controls (sector limits, correlation checks)
@@ -48,7 +56,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Copy Trade Performance Dashboard
 - Approval workflow for automated copying
 
-### v0.21.0 (Q2 2026 - Mid March)
+### v0.21.0 (Q1 2026 - Late January)
+**Strategy Optimization & Custom Indicators**
+- Signal Optimization (ML-powered improvements)
+- Custom Indicators (create your own indicators)
+- Strategy Templates library expansion
+- Trade Approval Workflow
+- Advanced backtesting filters
+
+### v0.22.0 (Q2 2026 - Mid February)
 **Schwab API Integration - Phase 1**
 - Portfolio & position streaming from Schwab
 - Market data & quotes integration
@@ -57,7 +73,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Firestore sync for Schwab positions
 - Order history from Schwab
 
-### v0.22.0 (Q2 2026 - Late April)
+### v0.23.0 (Q2 2026 - Late March)
 **Schwab API Integration - Phase 2 & Futures**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -66,7 +82,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.23.0 (Q2 2026 - Late May)
+### v0.24.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Multi-leg options (spreads, complex strategies)
@@ -75,7 +91,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.24.0 (Q2-Q3 2026 - June)
+### v0.25.0 (Q2-Q3 2026 - Late May)
 **Crypto & Forex Trading**
 - Crypto asset class support
 - Forex trading (currency pairs)
@@ -84,7 +100,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
 
-### v0.25.0 (Q3 2026 - July)
+### v0.26.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
 - Generative AI Assistant (natural language queries)
 - AI-powered portfolio insights
@@ -93,7 +109,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Risk exposure heatmaps
 - Dividend projection & tracking
 
-### v0.26.0 (Q3 2026 - August)
+### v0.27.0 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)
@@ -102,7 +118,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Group settings & administration
 - Real-time member notifications
 
-### v0.27.0 (Q3 2026 - September)
+### v0.28.0 (Q3 2026 - Late August)
 **Real-Time Alerts & Monitoring**
 - Custom price/volume/volatility alerts
 - Rich push notifications with data
@@ -112,7 +128,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Options expiration alerts
 - Unusual activity detection
 
-### v0.28.0 (Q4 2026 - October)
+### v0.29.0 (Q3 2026 - Late September)
 **Social Platform Foundation**
 - Follow portfolios
 - Portfolio comparison tools
@@ -122,7 +138,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Achievement badges
 - Social feed
 
-### v0.29.0 (Q4 2026 - November)
+### v0.30.0 (Q4 2026 - Late October)
 **Security & Compliance**
 - Biometric authentication (FaceID/TouchID)
 - Two-factor authentication (2FA)
@@ -132,7 +148,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Security audit implementation
 - Regulatory documentation
 
-### v0.30.0 (Q4 2026 - December)
+### v0.31.0 (Q4 2026 - Late November)
 **Mobile Experience & Polish**
 - Deep linking support
 - Home screen widgets
@@ -142,7 +158,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Dark mode enhancements
 - Performance optimizations
 
-### v0.31.0 (2027 Q1)
+### v0.32.0 (Q4 2026 - Late December)
 **Advanced Social & Community**
 - Group analytics & insights
 - Advanced search & filtering
@@ -151,7 +167,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Influencer following features
 - Community marketplace
 
-### v0.32.0 (2027 Q1)
+### v0.33.0 (2027 Q1)
 **Compliance & Regulatory**
 - Full SEC/FINRA compliance
 - Regulatory reporting (Form 3, etc.)
@@ -161,21 +177,21 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-jurisdiction support
 
 ### Version Statistics
-- **Current**: v0.18.0 (Released Dec 13, 2025)
+- **Current**: v0.19.0 (Released Dec 15, 2025)
 - **Planned Releases**: 14+ versions through 2027
 - **Features Per Release**: 5-8 per minor version
 - **Release Cadence**: Monthly in 2026, bi-weekly starting 2027
 - **Major Features**: Trading, Brokerages, Analytics, Social, Security
 
 ### Feature Maturity by Version
-| Feature | v0.18 | v0.19 | v0.20 | v0.21 | v0.22 | v0.23 | v0.24 | v0.25+ |
+| Feature | v0.19 | v0.20 | v0.21 | v0.22 | v0.23 | v0.24 | v0.25 | v0.26+ |
 |---------|-------|-------|-------|-------|-------|-------|-------|--------|
 | Agentic Trading | ✅ Complete | Stable | Stable | Stable | Stable | Stable | Stable | Mature |
-| Copy Trading | ✅ Manual | Manual | Auto ✅ | Auto | Auto | Auto | Auto | Mature |
-| Backtesting | — | ✅ Launch | Stable | Stable | Stable | Stable | Stable | Mature |
-| Multi-Brokerage | Robinhood | Robinhood | Schwab+RH | Schwab+RH | Schwab+RH | 3 Brokers | 3+ Assets | Mature |
-| Analytics | ✅ Advanced | Advanced | Advanced | Advanced | Advanced | AI+Advanced | AI+Advanced | Mature |
-| Futures | — | — | ✅ Launch | Stable | Stable | Stable | Stable | Mature |
+| Copy Trading | ✅ Manual | Auto ✅ | Auto | Auto | Auto | Auto | Auto | Mature |
+| Backtesting | ✅ Complete | Stable | Enhanced | Enhanced | Stable | Stable | Stable | Mature |
+| Multi-Brokerage | Robinhood | Robinhood | Robinhood | Schwab+RH ✅ | Schwab+RH | 3 Brokers | 3+ Assets | Mature |
+| Analytics | ✅ Advanced | Advanced | Advanced | Advanced | Advanced | Advanced | AI+Adv | Mature |
+| Futures | Enriched | Enriched | Trading ✅ | Trading | Trading | Stable | Stable | Mature |
 | Crypto/Forex | — | — | — | — | — | ✅ Launch | Stable | Mature |
 | AI Assistant | — | — | — | — | — | — | ✅ Launch | Mature |
 | Social | — | — | — | — | — | — | — | ✅ Launch |
@@ -270,7 +286,7 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - **Copy Trading Auto-Execute** ← Requires: Copy Trading Manual (✅), WebSocket/Real-time Updates
 
 **Priority 2 Dependencies:**
-- **Schwab/Fidelity/Plaid APIs** ← Requires: OAuth 2.0 Infrastructure, Multi-Brokerage Architecture
+- **Schwab/Fidelity/Plaid/Interactive Brokers APIs** ← Requires: OAuth 2.0 Infrastructure, Multi-Brokerage Architecture
 - **Multi-Brokerage Support** ← Requires: Account Aggregation, Data Normalization Layer
 - **Crypto Trading** ← Requires: Multi-Brokerage Foundation, Asset Type Abstraction
 - **Forex Trading** ← Requires: Multi-Brokerage Foundation, FX-Specific Price Data
@@ -317,7 +333,7 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 **High Risk 🔴**
 
 1. **Brokerage API Rate Limits & Complexity** (Impacts: Q2 2026 - Priority 2)
-   - **Challenge**: Each brokerage (Schwab, Fidelity, Plaid) has different API designs, rate limits, and data models
+   - **Challenge**: Each brokerage (Schwab, Fidelity, Plaid, Interactive Brokers) has different API designs, rate limits, and data models
    - **Mitigation**: Build abstraction layer early, create adapter pattern for brokerage integration
    - **Timeline Impact**: Could add 2-3 weeks to integration schedule per brokerage
    - **Mitigation Owner**: Backend Engineering Team
@@ -458,6 +474,21 @@ Understanding dependencies helps with sprint planning and resource allocation. B
     - [x] Dynamic stop loss adjustment as profit increases
     - [x] Peak price tracking for each trade
     - [x] Configurable trailing distance
+
+### Backtesting
+- [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):
+    - [x] 3-tab interface (Run, History, Templates)
+    - [x] Historical data testing (5 days to 5 years)
+    - [x] Multiple time intervals (15m, 1h, 1d)
+    - [x] All 9 technical indicators supported
+    - [x] Advanced risk parameters (TP, SL, Trailing Stop)
+    - [x] Comprehensive performance metrics (Sharpe, drawdown, profit factor)
+    - [x] Interactive equity curve with trade markers
+    - [x] 4-tab result page (Overview, Trades, Equity, Details)
+    - [x] Template system to save/reuse configurations
+    - [x] Export and share backtest results
+    - [x] Real-time Firestore integration
+    - [x] User backtest history (last 50 runs)
 ### Copy Trading
 - [x] Manual order execution for copied trades
 - [x] Push notifications for copyable trades
@@ -499,14 +530,15 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **Revenue Impact:** Medium (foundational for premium features)
 
 #### Advanced Agentic Trading ([Tracking: #112](https://github.com/CIInc/robinhood-options-mobile/issues/112))
-- [ ] **Backtesting Interface**: Backtest strategies with historical data ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)) - **Large** (4-6 weeks)
+- [x] **Backtesting Interface**: Backtest strategies with historical data ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)) - ✅ **Completed v0.19.0**
+- [x] **Strategy Templates**: Save and reuse backtest configurations - ✅ **Completed v0.19.0**
 - [ ] **Trade Approval Workflow**: Review-before-execute mode for semi-automatic trading - **Medium** (2-3 weeks)
 - [ ] **Advanced Risk Controls**: Sector limits, correlation checks, volatility filters, drawdown protection - **Large** (4-5 weeks)
 - [ ] **Partial Position Exits**: Take profit in stages (e.g., 50% at +5%, 50% at +10%) - **Medium** (2-3 weeks)
 - [ ] **Time-Based Exits**: Auto-close positions after X hours/days - **Small** (1-2 weeks)
 - [ ] **Signal Optimization**: Machine learning-based signal optimization - **Large** (5-8 weeks)
 - [ ] **Custom Indicators**: Custom indicator creation - **Large** (4-6 weeks)
-- [ ] **Strategy Templates**: Pre-built strategy templates and presets - **Medium** (2-4 weeks)
+- [ ] **Enhanced Strategy Templates**: Pre-built strategy library expansion - **Medium** (2-4 weeks)
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
 
 #### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
@@ -535,7 +567,7 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **Target:** Expand to multiple brokerages and asset classes (stocks, crypto, forex)
 
 **Why This Priority Matters:**
-Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing ~70% of market. Schwab/Fidelity/Plaid integration opens enterprise users and wealth management firms. Multi-asset support (crypto/forex) addresses trending asset classes and younger users. This is also the highest engineering effort—starting early ensures Q2 delivery. Strategic importance: **Market Expansion & Revenue Growth**
+Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing ~70% of market. Schwab/Fidelity/Plaid/Interactive Brokers integration opens enterprise users and wealth management firms. Multi-asset support (crypto/forex) addresses trending asset classes and younger users. This is also the highest engineering effort—starting early ensures Q2 delivery. Strategic importance: **Market Expansion & Revenue Growth**
 
 **Business Impact:**
 - Schwab integration: 5M+ potential users
