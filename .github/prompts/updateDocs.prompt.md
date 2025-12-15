@@ -33,11 +33,13 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Use clear, descriptive bullet points
    - Group related changes together
 
-4. **Update Feature Documentation**:
+4. **Update documentation files**:
    - Add or update sections describing new features
    - Document new configuration options or settings
    - Include code examples where applicable
    - Update technical details sections
+   - Add diagrams or screenshots if relevant
+   - Add future enhancements or TODOs if applicable
 
 5. **Update Main README.md**:
    - Add mentions of new major features to the features list

@@ -4,6 +4,59 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.19.0] - 2025-12-15
+
+### Added
+- **Backtesting Interface:** Comprehensive strategy testing on historical data
+  - 3-tab interface: Run (configure & execute), History (view past results), Templates (save/reuse)
+  - Support for multiple time intervals: Daily (1d), Hourly (1h), 15-minute (15m)
+  - Date range selection (5 days to 5 years) for historical data access
+  - Configure all 9 technical indicators with same parameters as live trading
+  - Advanced risk parameters: Take Profit %, Stop Loss %, Trailing Stop %
+  - Comprehensive performance metrics:
+    - Returns: Total return in dollars and percentage, final capital
+    - Trade Statistics: Total trades, winning/losing trades, win rate percentage
+    - Risk Metrics: Sharpe ratio (risk-adjusted returns), maximum drawdown, profit factor
+    - Trade Analysis: Average win/loss, largest win/loss, average hold time
+  - Visual Results Page with 4 tabs:
+    - Overview: Key metrics cards (total return, win rate, Sharpe ratio, profit factor, max drawdown)
+    - Trades: Complete trade-by-trade breakdown with entry/exit details and reasons
+    - Equity: Interactive equity curve chart with trade markers and statistics list
+    - Details: Configuration, enabled indicators, performance by indicator, additional stats
+  - Interactive equity curve visualization with clickable trade markers
+  - Trade marker system (BUY in blue, SELL in orange) overlaid on equity curve
+  - Template system to save and reuse backtest configurations
+  - Performance comparison features to analyze multiple backtest runs
+  - Export results as JSON for external analysis
+  - Share backtest results via system share sheet
+  - Quick access buttons in Home widget and Instrument trade signal view
+  - Seamless integration with live trading indicator configuration
+  - User backtest history persisted in Firestore (last 50 runs)
+  - Real-time Firestore updates for templates and history
+
+### Changed
+- Improved spacing in Agentic Trading Settings (reduced SizedBox heights from 24 to 16/8)
+- Reordered Notification Settings section to appear after Technical Indicators in settings
+- Enhanced home widget with prominent "Automated Trading & Backtesting" promotion card
+- Added "Run Backtest" button to Instrument widget trade signal view
+- Added "Backtest" menu item to User Settings for quick access
+- Moved Agentic Trading settings button to Trade Signal title trailing area in Instrument view
+- Reorganized Trade Signal interval selector from segmented button to popup menu with status chip
+- Fixed null-safe type casting in home_widget market data calculations
+- Improved null handling in home widget index mapping operations
+
+### Technical
+- New Firebase Function: `runBacktest` for backend backtest execution
+- New Dart models: `BacktestConfig`, `BacktestTrade`, `BacktestResult`, `BacktestTemplate`
+- New Provider: `BacktestingProvider` for state management and Firestore integration
+- New Widget: `BacktestingWidget` with 3-tab interface and result page
+- Firestore collections: `backtest_history` and `backtest_templates` per user
+- Firestore security rules: Added read/write permissions for backtest collections
+- Timestamp tracking added to market data for accurate historical bar indexing
+- Bar-by-bar historical simulation with indicator evaluation
+- Equity curve tracking and performance metric calculations
+- Performance by indicator analysis (signal counts and win rates)
+
 ## [0.18.0] - 2025-12-13
 
 ### Added
