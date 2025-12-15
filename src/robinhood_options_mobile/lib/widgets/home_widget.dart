@@ -57,6 +57,8 @@ import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dar
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 /*
 class DrawerItem {
@@ -204,7 +206,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Widget _pnlBadge(String text, double? value, double fontSize,
       {bool neutral = false}) {
-    var color = neutral ? Colors.grey : _pnlColor(value);
+    var color = neutral
+        ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+        : _pnlColor(value);
     return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -839,7 +843,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       // Only disable animation if we had previous data and are appending
                       if (_previousPortfolioHistoricals != null &&
                           _previousPortfolioHistoricals!
-                                  .equityHistoricals.isNotEmpty) {
+                              .equityHistoricals.isNotEmpty) {
                         animateChart = false;
                       } else {
                         animateChart = true;
@@ -2127,6 +2131,91 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ],
               ));
             }),
+            SliverToBoxAdapter(
+              child:
+                  // Promote Automated Trading & Backtesting
+                  Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.auto_graph,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Automated Trading & Backtesting',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Let the system trade for you or simulate strategies on historical data.',
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.settings),
+                              label: const Text('Auto-Trading'),
+                              onPressed: (widget.user == null ||
+                                      widget.userDoc == null)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              AgenticTradingSettingsWidget(
+                                            user: widget.user!,
+                                            userDocRef: widget.userDoc!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                            ),
+                            // const SizedBox(width: 8),
+                            Expanded(child: Container()),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.history_outlined),
+                              label: const Text('Run Backtest'),
+                              onPressed: (widget.user == null ||
+                                      widget.userDoc == null)
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BacktestingWidget(
+                                            userDocRef: widget.userDoc,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             if (widget.brokerageUser.source == BrokerageSource.robinhood ||
                 widget.brokerageUser.source == BrokerageSource.demo) ...[
               Consumer2<DividendStore, InterestStore>(

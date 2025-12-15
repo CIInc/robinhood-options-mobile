@@ -13,8 +13,9 @@ import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 /// Main backtesting interface widget
 class BacktestingWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
+  final String? prefilledSymbol;
 
-  const BacktestingWidget({super.key, this.userDocRef});
+  const BacktestingWidget({super.key, this.userDocRef, this.prefilledSymbol});
 
   @override
   State<BacktestingWidget> createState() => _BacktestingWidgetState();
@@ -64,6 +65,7 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
             key: _runTabKey,
             userDocRef: widget.userDocRef,
             tabController: _tabController,
+            prefilledSymbol: widget.prefilledSymbol,
           ),
           const _BacktestHistoryTab(),
           _BacktestTemplatesTab(
@@ -80,8 +82,10 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
 class _BacktestRunTab extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final TabController? tabController;
+  final String? prefilledSymbol;
 
-  const _BacktestRunTab({super.key, this.userDocRef, this.tabController});
+  const _BacktestRunTab(
+      {super.key, this.userDocRef, this.tabController, this.prefilledSymbol});
 
   @override
   State<_BacktestRunTab> createState() => _BacktestRunTabState();
@@ -89,7 +93,7 @@ class _BacktestRunTab extends StatefulWidget {
 
 class _BacktestRunTabState extends State<_BacktestRunTab> {
   final _formKey = GlobalKey<FormState>();
-  final _symbolController = TextEditingController(text: 'AAPL');
+  late final TextEditingController _symbolController;
   final _initialCapitalController = TextEditingController(text: '10000');
   final _tradeQuantityController = TextEditingController(text: '1');
   final _takeProfitController = TextEditingController(text: '10');
@@ -115,6 +119,14 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     'atr': true,
     'obv': true,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _symbolController = TextEditingController(
+      text: widget.prefilledSymbol ?? 'AAPL',
+    );
+  }
 
   @override
   void dispose() {
