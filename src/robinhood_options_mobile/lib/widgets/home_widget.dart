@@ -2307,44 +2307,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var seriesOpennasdaq = quotenasdaq['open'][0];
                     var seriesDatasp500 =
                         (sp500['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (sp500['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          sp500PreviousClose -
-                                      1
-                                })
-                            .toList();
+                            .mapIndexed((index, e) {
+                      var numerator = (sp500['chart']['result'][0]['indicators']
+                          ['adjclose'][0]['adjclose'] as List)[index];
+                      return {
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': numerator ?? 0 / sp500PreviousClose - 1
+                      };
+                    }).toList();
                     seriesDatasp500
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatanasdaq =
                         (nasdaq['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (nasdaq['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          nasdaqPreviousClose -
-                                      1
-                                })
-                            .toList();
+                            .mapIndexed((index, e) {
+                      var numerator = (nasdaq['chart']['result'][0]
+                              ['indicators']['adjclose'][0]['adjclose']
+                          as List)[index];
+                      return {
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': numerator ?? 0 / nasdaqPreviousClose - 1
+                      };
+                    }).toList();
                     seriesDatanasdaq
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatadow =
                         (dow['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (dow['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          dowPreviousClose -
-                                      1
-                                })
-                            .toList();
+                            .mapIndexed((index, e) {
+                      var numerator = (dow['chart']['result'][0]['indicators']
+                          ['adjclose'][0]['adjclose'] as List)[index];
+                      return {
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': numerator ?? 0 / dowPreviousClose - 1
+                      };
+                    }).toList();
                     seriesDatadow
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesOpenportfolio = portfolioHistoricals
