@@ -2306,41 +2306,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var seriesOpensp500 = quotesp500['open'][0];
                     // var seriesOpennasdaq = quotenasdaq['open'][0];
                     var seriesDatasp500 =
-                        (sp500['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      var numerator = (sp500['chart']['result'][0]['indicators']
-                          ['adjclose'][0]['adjclose'] as List)[index];
+                      (sp500['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (sp500['chart']['result'][0]
+                          ['indicators']['adjclose'][0]['adjclose']
+                        as List)[index];
+                      final close = (numerator as num?)?.toDouble();
                       return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': numerator ?? 0 / sp500PreviousClose - 1
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / sp500PreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatasp500
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatanasdaq =
-                        (nasdaq['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      var numerator = (nasdaq['chart']['result'][0]
-                              ['indicators']['adjclose'][0]['adjclose']
-                          as List)[index];
+                      (nasdaq['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (nasdaq['chart']['result'][0]
+                          ['indicators']['adjclose'][0]['adjclose']
+                        as List)[index];
+                      final close = (numerator as num?)?.toDouble();
                       return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': numerator ?? 0 / nasdaqPreviousClose - 1
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / nasdaqPreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatanasdaq
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatadow =
-                        (dow['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      var numerator = (dow['chart']['result'][0]['indicators']
-                          ['adjclose'][0]['adjclose'] as List)[index];
+                      (dow['chart']['result'][0]['timestamp'] as List)
+                        .mapIndexed((index, e) {
+                      final numerator = (dow['chart']['result'][0]['indicators']
+                        ['adjclose'][0]['adjclose'] as List)[index];
+                      final close = (numerator as num?)?.toDouble();
                       return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': numerator ?? 0 / dowPreviousClose - 1
+                      'date': DateTime.fromMillisecondsSinceEpoch(
+                        (e + enddiffsp500) * 1000),
+                      'value': close == null
+                        ? 0.0
+                        : (close / dowPreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatadow
@@ -2366,12 +2376,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var portfoliodiffnasdaq =
                     //     (seriesDataportfolio.last['value'] as double) -
                     //         seriesDatanasdaq.last['value'];
-                    var extents = charts.NumericExtents.fromValues(
-                        (seriesDatasp500 +
-                                seriesDatanasdaq +
-                                seriesDatadow +
-                                seriesDataportfolio)
-                            .map((e) => e['value']));
+                    final allValues = <double>[
+                      ...seriesDatasp500.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatanasdaq.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatadow.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDataportfolio.map((e) =>
+                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                    ];
+                    var extents = charts.NumericExtents.fromValues(allValues);
                     extents = charts.NumericExtents(
                         extents.min - (extents.width * 0.1),
                         extents.max + (extents.width * 0.1));
