@@ -3353,61 +3353,41 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget headerTitle(Instrument instrument, QuoteStore store) {
     var quoteObj = store.items
         .firstWhereOrNull((element) => element.symbol == instrument.symbol);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
-          //runAlignment: WrapAlignment.end,
-          //alignment: WrapAlignment.end,
-          spacing: 20,
-          //runSpacing: 5,
-          children: [
-            Row(children: [
-              Text(
-                  instrument
-                      .symbol, // ${optionPosition.strategy.split('_').first}
-                  //style: const TextStyle(fontSize: 20.0)
-                  style: const TextStyle(fontSize: 17.0)),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(
-                      instrument.simpleName ??
-                          instrument
-                              .name, // ${optionPosition.strategy.split('_').first}
-                      //style: const TextStyle(fontSize: 20.0)
-                      style: const TextStyle(fontSize: 17.0))),
-            ]),
-            /*
-            Wrap(
-                crossAxisAlignment: WrapCrossAlignment.end,
-                //runAlignment: WrapAlignment.end,
-                //alignment: WrapAlignment.end,
-                spacing: 10,
-                //runSpacing: 5,
-                children: [
-                  Text(
-                      instrument
-                          .symbol, // ${optionPosition.strategy.split('_').first}
-                      //style: const TextStyle(fontSize: 20.0)
-                      style: const TextStyle(fontSize: 17.0)),
-                  Text(
-                      instrument.simpleName ??
-                          instrument
-                              .name, // ${optionPosition.strategy.split('_').first}
-                      //style: const TextStyle(fontSize: 20.0)
-                      style: const TextStyle(fontSize: 17.0)),
-                ]),
-                */
-            if (quoteObj != null) ...[
-              Wrap(spacing: 10, children: [
+    quoteObj ??= instrument.quoteObj;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(instrument.symbol,
+                  style: const TextStyle(
+                      fontSize: 16.0, fontWeight: FontWeight.bold)),
+              if (instrument.simpleName != null || instrument.name != "")
                 Text(
-                    formatCurrency.format(
-                        quoteObj.lastExtendedHoursTradePrice ??
-                            quoteObj.lastTradePrice),
-                    //style: const TextStyle(fontSize: 15.0)
-                    style: const TextStyle(
-                        fontSize: 16.0)), // , color: Colors.white70
-                Wrap(children: [
+                  instrument.simpleName ?? instrument.name,
+                  style: const TextStyle(fontSize: 12.0),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+            ],
+          ),
+        ),
+        if (quoteObj != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                formatCurrency.format(quoteObj.lastExtendedHoursTradePrice ??
+                    quoteObj.lastTradePrice),
+                style: const TextStyle(
+                    fontSize: 16.0, fontWeight: FontWeight.bold),
+              ),
+              Row(
+                children: [
                   Icon(
                       quoteObj.changeToday > 0
                           ? Icons.trending_up
@@ -3419,24 +3399,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           : (quoteObj.changeToday < 0
                               ? Colors.red
                               : Colors.grey)),
-                      size: 20.0),
-                  Container(
-                    width: 2,
+                      size: 14.0),
+                  const SizedBox(width: 2),
+                  Text(
+                    formatPercentage.format(quoteObj.changePercentToday),
+                    style: TextStyle(
+                        fontSize: 12.0,
+                        color: (quoteObj.changeToday > 0
+                            ? Colors.lightGreenAccent
+                            : (quoteObj.changeToday < 0
+                                ? Colors.red
+                                : Colors.grey))),
                   ),
-                  Text(formatPercentage.format(quoteObj.changePercentToday),
-                      //style: const TextStyle(fontSize: 15.0)
-                      style: const TextStyle(
-                          fontSize: 16.0)), // , color: Colors.white70
-                ]),
-                Text(
-                    "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
-                    //style: const TextStyle(fontSize: 12.0),
-                    style: const TextStyle(
-                        fontSize: 16.0), // , color: Colors.white70
-                    textAlign: TextAlign.right)
-              ])
+                ],
+              ),
             ],
-          ]),
+          ),
+      ],
     );
   }
 

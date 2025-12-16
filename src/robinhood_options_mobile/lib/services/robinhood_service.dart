@@ -2305,7 +2305,16 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       BrokerageUser user, Instrument instrumentObj) async {
     var url =
         "$robinHoodSearchEndpoint/instruments/${instrumentObj.id}/etp-details/"; // ?ids=${Uri.encodeComponent(instruments.join(","))}
-    var resultJson = await getJson(user, url);
+    dynamic resultJson;
+    try {
+      resultJson = await getJson(user, url);
+    } on Exception catch (e) {
+      // Format
+      debugPrint('No ETP defails found. Error: $e');
+      return Future.value();
+    }
+    // var resultJson = await getJson(user, url);
+
     return resultJson;
   }
 

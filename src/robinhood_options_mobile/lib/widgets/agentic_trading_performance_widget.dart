@@ -1979,8 +1979,9 @@ class _AgenticTradingPerformanceWidgetState
         final bWins = b.value['wins']!;
         final aRate = aTotal > 0 ? aWins / aTotal : 0.0;
         final bRate = bTotal > 0 ? bWins / bTotal : 0.0;
-        if (aRate != bRate)
+        if (aRate != bRate) {
           return bRate.compareTo(aRate); // Higher win rate first
+        }
         return bTotal.compareTo(aTotal); // Then by volume
       });
 

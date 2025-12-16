@@ -841,7 +841,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
   List<_TradeMarker> _buildTradeMarkers(List<EquityPoint> chartData) {
     if (chartData.isEmpty) return [];
 
-    double _equityAt(DateTime ts) {
+    double equityAt(DateTime ts) {
       // Find the last equity point at or before the trade timestamp
       EquityPoint? candidate;
       for (final point in chartData) {
@@ -855,7 +855,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
         .map(
           (trade) => _TradeMarker(
             timestamp: trade.timestamp,
-            equity: _equityAt(trade.timestamp),
+            equity: equityAt(trade.timestamp),
             color: trade.action == 'BUY'
                 ? charts.ColorUtil.fromDartColor(Colors.blue)
                 : charts.ColorUtil.fromDartColor(Colors.orange),

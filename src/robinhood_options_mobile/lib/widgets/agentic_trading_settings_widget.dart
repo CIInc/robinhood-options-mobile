@@ -778,7 +778,7 @@ class _AgenticTradingSettingsWidgetState
                                 });
                                 _saveSettings();
                               },
-                              activeColor: Colors.blue,
+                              activeThumbColor: Colors.blue,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
                                 vertical: 4.0,
