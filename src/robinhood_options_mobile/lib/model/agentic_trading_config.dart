@@ -65,6 +65,9 @@ class AgenticTradingConfig {
               'stochastic': true,
               'atr': true,
               'obv': true,
+              'vwap': true,
+              'adx': true,
+              'williamsR': true,
             };
 
   AgenticTradingConfig.fromJson(Map<String, dynamic> json)
@@ -110,6 +113,9 @@ class AgenticTradingConfig {
                 'stochastic': true,
                 'atr': true,
                 'obv': true,
+                'vwap': true,
+                'adx': true,
+                'williamsR': true,
               };
 
   Map<String, dynamic> toJson() {

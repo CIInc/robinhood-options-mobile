@@ -7,6 +7,7 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -101,6 +102,7 @@ class _SearchWidgetState extends State<SearchWidget>
   String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
   List<String> selectedIndicators =
       []; // Selected indicators from multiIndicatorResult.indicators
+  int? minSignalStrength; // null = no filter, 0-100
   DateTime? tradeSignalStartDate;
   DateTime? tradeSignalEndDate;
   int tradeSignalLimit = 50; // Default limit
@@ -2327,11 +2329,12 @@ class _SearchWidgetState extends State<SearchWidget>
     final symbol = signal['symbol'] ?? 'N/A';
     final overallSignalType = signal['signal'] ?? 'HOLD';
 
-    // Extract individual indicator signals from multiIndicatorResult
+    // Extract individual indicator signals and signal strength from multiIndicatorResult
     final multiIndicatorResult =
         signal['multiIndicatorResult'] as Map<String, dynamic>?;
     final indicatorsMap =
         multiIndicatorResult?['indicators'] as Map<String, dynamic>?;
+    final signalStrength = multiIndicatorResult?['signalStrength'] as int?;
 
     Map<String, String> indicatorSignals = {};
     if (indicatorsMap != null) {
@@ -2345,6 +2348,9 @@ class _SearchWidgetState extends State<SearchWidget>
         'stochastic',
         'atr',
         'obv',
+        'vwap',
+        'adx',
+        'williamsR',
       ];
 
       for (final indicator in indicatorNames) {
@@ -2463,13 +2469,54 @@ class _SearchWidgetState extends State<SearchWidget>
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text(_formatSignalTimestamp(timestamp),
-                          style: TextStyle(
-                              fontSize: 12.0,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          overflow: TextOverflow.ellipsis),
+                      // Timestamp and Signal Strength row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(_formatSignalTimestamp(timestamp),
+                                style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                          if (signalStrength != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _getSignalStrengthColor(signalStrength)
+                                    .withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.speed,
+                                    size: 12,
+                                    color:
+                                        _getSignalStrengthColor(signalStrength),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '$signalStrength',
+                                    style: TextStyle(
+                                      fontSize: 11.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: _getSignalStrengthColor(
+                                          signalStrength),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                       // Individual indicator signal tags
                       if (indicatorSignals.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -2492,16 +2539,30 @@ class _SearchWidgetState extends State<SearchWidget>
                             }
 
                             // Short names for display
-                            final displayName = indicatorName == 'priceMovement'
-                                ? 'Price'
-                                : indicatorName == 'marketDirection'
-                                    ? 'Market'
-                                    : indicatorName == 'bollingerBands'
-                                        ? 'BB'
-                                        : indicatorName == 'stochastic'
-                                            ? 'Stoch'
-                                            : indicatorName[0].toUpperCase() +
-                                                indicatorName.substring(1);
+                            String displayName;
+                            switch (indicatorName) {
+                              case 'priceMovement':
+                                displayName = 'Price';
+                                break;
+                              case 'marketDirection':
+                                displayName = 'Market';
+                                break;
+                              case 'bollingerBands':
+                                displayName = 'BB';
+                                break;
+                              case 'stochastic':
+                                displayName = 'Stoch';
+                                break;
+                              case 'williamsR':
+                                displayName = 'W%R';
+                                break;
+                              case 'momentum':
+                                displayName = 'RSI';
+                                break;
+                              default:
+                                displayName = indicatorName
+                                    .capitalize(); // .toUpperCase()
+                            }
 
                             // Disable styling for indicators not in settings
                             final opacity = isIndicatorEnabled ? 1.0 : 0.4;
@@ -2511,7 +2572,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
                             return Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                  horizontal: 5, vertical: 2),
                               decoration: BoxDecoration(
                                 color:
                                     finalTagColor.withOpacity(0.15 * opacity),
@@ -2848,6 +2909,7 @@ class _SearchWidgetState extends State<SearchWidget>
     tradeSignalsProvider.fetchAllTradeSignals(
       signalType: tradeSignalFilter,
       indicators: selectedIndicators.isEmpty ? null : selectedIndicators,
+      minSignalStrength: minSignalStrength,
       startDate: tradeSignalStartDate,
       endDate: tradeSignalEndDate,
       limit: tradeSignalLimit,
@@ -2865,7 +2927,30 @@ class _SearchWidgetState extends State<SearchWidget>
       'stochastic',
       'atr',
       'obv',
+      'vwap',
+      'adx',
+      'williamsR',
     ];
+
+    // Label mapping for indicators
+    String getIndicatorLabel(String indicator) {
+      switch (indicator) {
+        case 'priceMovement':
+          return 'Price';
+        case 'momentum':
+          return 'RSI';
+        case 'marketDirection':
+          return 'Market';
+        case 'bollingerBands':
+          return 'BB';
+        case 'stochastic':
+          return 'Stoch';
+        case 'williamsR':
+          return 'W%R';
+        default:
+          return indicator.toUpperCase();
+      }
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -2967,6 +3052,87 @@ class _SearchWidgetState extends State<SearchWidget>
                   : FontWeight.w500,
             ),
           ),
+          // Signal Strength Filters
+          const SizedBox(width: 8),
+          Text('•',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.speed,
+                    size: 14,
+                    color: minSignalStrength == 67
+                        ? Colors.green.shade700
+                        : Theme.of(context).colorScheme.onSurface),
+                const SizedBox(width: 4),
+                const Text('≥67'),
+              ],
+            ),
+            selected: minSignalStrength == 67,
+            onSelected: (selected) {
+              setState(() {
+                minSignalStrength = selected ? 67 : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.green.withOpacity(0.15),
+            side: BorderSide(
+              color: minSignalStrength == 67
+                  ? Colors.green.shade400
+                  : Colors.grey.shade300,
+              width: minSignalStrength == 67 ? 1.5 : 1,
+            ),
+            labelStyle: TextStyle(
+              color: minSignalStrength == 67
+                  ? Colors.green.shade700
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight:
+                  minSignalStrength == 67 ? FontWeight.w600 : FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 4),
+          FilterChip(
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.speed,
+                    size: 14,
+                    color: minSignalStrength == 50
+                        ? Colors.orange.shade700
+                        : Theme.of(context).colorScheme.onSurface),
+                const SizedBox(width: 4),
+                const Text('≥50'),
+              ],
+            ),
+            selected: minSignalStrength == 50,
+            onSelected: (selected) {
+              setState(() {
+                minSignalStrength = selected ? 50 : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.orange.withOpacity(0.15),
+            side: BorderSide(
+              color: minSignalStrength == 50
+                  ? Colors.orange.shade400
+                  : Colors.grey.shade300,
+              width: minSignalStrength == 50 ? 1.5 : 1,
+            ),
+            labelStyle: TextStyle(
+              color: minSignalStrength == 50
+                  ? Colors.orange.shade700
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight:
+                  minSignalStrength == 50 ? FontWeight.w600 : FontWeight.w500,
+              fontSize: 12,
+            ),
+          ),
           // const SizedBox(width: 8),
           // IconButton(
           //   icon: const Icon(Icons.refresh),
@@ -2981,13 +3147,7 @@ class _SearchWidgetState extends State<SearchWidget>
           const SizedBox(width: 8),
           // Indicator chips
           ...indicatorOptions.map((indicator) {
-            final indicatorLabel = indicator == 'priceMovement'
-                ? 'Price'
-                : indicator == 'marketDirection'
-                    ? 'Market'
-                    : indicator == 'bollingerBands'
-                        ? 'Bollinger'
-                        : indicator[0].toUpperCase() + indicator.substring(1);
+            final indicatorLabel = getIndicatorLabel(indicator);
 
             return Padding(
               padding: const EdgeInsets.only(right: 4),
@@ -3050,6 +3210,18 @@ class _SearchWidgetState extends State<SearchWidget>
     } else {
       // For older signals, show the date
       return formatDate.format(timestamp);
+    }
+  }
+
+  /// Returns color based on signal strength value (0-100).
+  /// 0-33: Red (bearish), 34-66: Grey (neutral), 67-100: Green (bullish)
+  Color _getSignalStrengthColor(int strength) {
+    if (strength >= 67) {
+      return Colors.green;
+    } else if (strength <= 33) {
+      return Colors.red;
+    } else {
+      return Colors.grey;
     }
   }
 }

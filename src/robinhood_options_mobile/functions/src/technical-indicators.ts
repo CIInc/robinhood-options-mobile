@@ -24,9 +24,13 @@ export interface MultiIndicatorResult {
     stochastic: IndicatorResult;
     atr: IndicatorResult;
     obv: IndicatorResult;
+    vwap: IndicatorResult;
+    adx: IndicatorResult;
+    williamsR: IndicatorResult;
   };
   overallSignal: "BUY" | "SELL" | "HOLD";
   reason: string;
+  signalStrength: number; // 0-100 score based on indicator alignment
 }
 
 /**
@@ -174,7 +178,10 @@ export function computeBollingerBands(
 
   const slice = prices.slice(prices.length - period);
   const squaredDiffs = slice.map((p) => Math.pow(p - middle, 2));
-  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+  // Use sample standard deviation (N-1) for Bollinger Bands
+  const varianceDenom = period > 1 ? (period - 1) : period;
+  const varianceSum = squaredDiffs.reduce((a, b) => a + b, 0);
+  const variance = varianceSum / varianceDenom;
   const standardDeviation = Math.sqrt(variance);
 
   const upper = middle + stdDev * standardDeviation;
@@ -297,7 +304,8 @@ export function computeOBV(
     return null;
   }
 
-  const obv: number[] = [volumes[0]];
+  // Start OBV from 0 to avoid scale bias on first bar
+  const obv: number[] = [0];
 
   for (let i = 1; i < closes.length; i++) {
     if (closes[i] > closes[i - 1]) {
@@ -310,6 +318,203 @@ export function computeOBV(
   }
 
   return obv;
+}
+
+/**
+ * Compute Volume Weighted Average Price (VWAP)
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @return {number|null} The computed VWAP or null if insufficient data.
+ */
+export function computeVWAP(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  volumes: number[]
+): number | null {
+  if (!highs || !lows || !closes || !volumes ||
+    highs.length < 1 || lows.length < 1 ||
+    closes.length < 1 || volumes.length < 1 ||
+    highs.length !== lows.length ||
+    lows.length !== closes.length ||
+    closes.length !== volumes.length) {
+    return null;
+  }
+
+  let cumulativeTPV = 0; // Typical Price * Volume
+  let cumulativeVolume = 0;
+
+  for (let i = 0; i < closes.length; i++) {
+    const typicalPrice = (highs[i] + lows[i] + closes[i]) / 3;
+    cumulativeTPV += typicalPrice * volumes[i];
+    cumulativeVolume += volumes[i];
+  }
+
+  if (cumulativeVolume === 0) return null;
+
+  return cumulativeTPV / cumulativeVolume;
+}
+
+/**
+ * Compute ADX (Average Directional Index)
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for ADX calculation (default 14).
+ * @return {{adx: number, plusDI: number, minusDI: number}|null}
+ */
+export function computeADX(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): { adx: number; plusDI: number; minusDI: number } | null {
+  if (!highs || !lows || !closes ||
+    highs.length < period * 2 ||
+    lows.length < period * 2 ||
+    closes.length < period * 2) {
+    return null;
+  }
+
+  const plusDM: number[] = [];
+  const minusDM: number[] = [];
+  const tr: number[] = [];
+
+  // Calculate +DM, -DM, and TR
+  for (let i = 1; i < highs.length; i++) {
+    const highDiff = highs[i] - highs[i - 1];
+    const lowDiff = lows[i - 1] - lows[i];
+
+    if (highDiff > lowDiff && highDiff > 0) {
+      plusDM.push(highDiff);
+    } else {
+      plusDM.push(0);
+    }
+
+    if (lowDiff > highDiff && lowDiff > 0) {
+      minusDM.push(lowDiff);
+    } else {
+      minusDM.push(0);
+    }
+
+    const trueRange = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+    tr.push(trueRange);
+  }
+
+  if (plusDM.length < period || minusDM.length < period || tr.length < period) {
+    return null;
+  }
+
+  // Calculate smoothed values using Wilder's smoothing
+  const smoothedPlusDM: number[] = [];
+  const smoothedMinusDM: number[] = [];
+  const smoothedTR: number[] = [];
+
+  // Initial smoothed values (sum of first 'period' values)
+  let sumPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0);
+  let sumMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0);
+  let sumTR = tr.slice(0, period).reduce((a, b) => a + b, 0);
+
+  smoothedPlusDM.push(sumPlusDM);
+  smoothedMinusDM.push(sumMinusDM);
+  smoothedTR.push(sumTR);
+
+  // Wilder's smoothing for subsequent values
+  for (let i = period; i < plusDM.length; i++) {
+    sumPlusDM = sumPlusDM - (sumPlusDM / period) + plusDM[i];
+    sumMinusDM = sumMinusDM - (sumMinusDM / period) + minusDM[i];
+    sumTR = sumTR - (sumTR / period) + tr[i];
+
+    smoothedPlusDM.push(sumPlusDM);
+    smoothedMinusDM.push(sumMinusDM);
+    smoothedTR.push(sumTR);
+  }
+
+  // Calculate +DI and -DI
+  const plusDI: number[] = [];
+  const minusDI: number[] = [];
+  const dx: number[] = [];
+
+  for (let i = 0; i < smoothedTR.length; i++) {
+    if (smoothedTR[i] === 0) {
+      plusDI.push(0);
+      minusDI.push(0);
+      dx.push(0);
+      continue;
+    }
+
+    const pdi = (smoothedPlusDM[i] / smoothedTR[i]) * 100;
+    const mdi = (smoothedMinusDM[i] / smoothedTR[i]) * 100;
+    plusDI.push(pdi);
+    minusDI.push(mdi);
+
+    const diSum = pdi + mdi;
+    if (diSum === 0) {
+      dx.push(0);
+    } else {
+      dx.push((Math.abs(pdi - mdi) / diSum) * 100);
+    }
+  }
+
+  if (dx.length < period) return null;
+
+  // Calculate ADX (smoothed average of DX)
+  let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dx.length; i++) {
+    adx = ((adx * (period - 1)) + dx[i]) / period;
+  }
+
+  const lastPlusDI = plusDI[plusDI.length - 1];
+  const lastMinusDI = minusDI[minusDI.length - 1];
+
+  return {
+    adx,
+    plusDI: lastPlusDI,
+    minusDI: lastMinusDI,
+  };
+}
+
+/**
+ * Compute Williams %R
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for calculation (default 14).
+ * @return {number|null} The computed Williams %R or null if insufficient data.
+ */
+export function computeWilliamsR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): number | null {
+  if (!highs || !lows || !closes ||
+    highs.length < period ||
+    lows.length < period ||
+    closes.length < period) {
+    return null;
+  }
+
+  const recentHighs = highs.slice(-period);
+  const recentLows = lows.slice(-period);
+  const currentClose = closes[closes.length - 1];
+
+  const highestHigh = Math.max(...recentHighs);
+  const lowestLow = Math.min(...recentLows);
+
+  if (highestHigh === lowestLow) return null;
+
+  // Williams %R: (Highest High - Close) / (Highest High - Lowest Low) * -100
+  const range = highestHigh - lowestLow;
+  const williamsR = ((highestHigh - currentClose) / range) * -100;
+
+  return williamsR;
 }
 
 /**
@@ -358,12 +563,13 @@ export function detectChartPattern(
     const n = recentPrices.length;
     const xSum = (n * (n - 1)) / 2;
     const xMean = xSum / n;
+    const yMean = recentPrices.reduce((a, b) => a + b, 0) / n;
     let num = 0;
     let den = 0;
     for (let i = 0; i < n; i++) {
       const x = i;
       const y = recentPrices[i];
-      num += (x - xMean) * (y - currentPrice);
+      num += (x - xMean) * (y - yMean);
       den += (x - xMean) * (x - xMean);
     }
     return den === 0 ? 0 : num / den;
@@ -548,8 +754,13 @@ export function detectChartPattern(
 
   // 5. Cup & Handle (retain previous simplified logic)
   const handleSlice = recentPrices.slice(-10, -5);
-  const handleLow = Math.min(...handleSlice);
-  const recovering = currentPrice > handleLow * 1.05 && ma5 > ma10;
+  const handleValid = handleSlice.length > 0;
+  const handleLow = handleValid ?
+    Math.min(...handleSlice) :
+    Number.POSITIVE_INFINITY;
+  const recovering = handleValid &&
+    currentPrice > handleLow * 1.05 &&
+    ma5 > ma10;
   if (recovering) {
     patterns.push({
       key: "cup_handle",
@@ -631,7 +842,7 @@ export function detectChartPattern(
 }
 
 /**
- * Evaluate momentum using RSI and other momentum indicators
+ * Evaluate momentum using RSI with divergence detection
  * @param {number[]} prices - Array of historical prices.
  * @param {number} rsiPeriod - RSI calculation period (default 14).
  * @return {IndicatorResult} The momentum evaluation result.
@@ -665,6 +876,79 @@ export function evaluateMomentum(
   const overboughtThreshold = 70;
   const neutralLower = 40;
   const neutralUpper = 60;
+
+  // Calculate RSI values for divergence detection (need at least 10 periods)
+  let divergenceType: "bullish" | "bearish" | "none" = "none";
+  let rsiTrend = 0;
+  let priceTrend = 0;
+
+  if (prices.length >= 20) {
+    // Calculate RSI trend over last 10 periods
+    const rsiValues: number[] = [];
+    for (let i = prices.length - 10; i <= prices.length; i++) {
+      const rsiVal = computeRSI(prices.slice(0, i), rsiPeriod);
+      if (rsiVal !== null) rsiValues.push(rsiVal);
+    }
+
+    if (rsiValues.length >= 5) {
+      const recentRsi = rsiValues.slice(-3);
+      const olderRsi = rsiValues.slice(0, 3);
+      const recentRsiSum = recentRsi.reduce((a, b) => a + b, 0);
+      const recentRsiAvg = recentRsiSum / recentRsi.length;
+      const olderRsiSum = olderRsi.reduce((a, b) => a + b, 0);
+      const olderRsiAvg = olderRsiSum / olderRsi.length;
+      rsiTrend = recentRsiAvg - olderRsiAvg;
+    }
+
+    // Calculate price trend over last 10 periods
+    const recentPrices = prices.slice(-5);
+    const olderPrices = prices.slice(-10, -5);
+    const recentPriceSum = recentPrices.reduce((a, b) => a + b, 0);
+    const recentPriceAvg = recentPriceSum / recentPrices.length;
+    const olderPriceSum = olderPrices.reduce((a, b) => a + b, 0);
+    const olderPriceAvg = olderPriceSum / olderPrices.length;
+    priceTrend = ((recentPriceAvg - olderPriceAvg) / olderPriceAvg) * 100;
+
+    // Bullish divergence: Price making lower lows, RSI making higher lows
+    if (priceTrend < -1 && rsiTrend > 3 && rsi < 50) {
+      divergenceType = "bullish";
+    }
+    // Bearish divergence: Price making higher highs, RSI making lower highs
+    if (priceTrend > 1 && rsiTrend < -3 && rsi > 50) {
+      divergenceType = "bearish";
+    }
+  }
+
+  // Prioritize divergence signals
+  if (divergenceType === "bullish") {
+    return {
+      value: rsi,
+      signal: "BUY",
+      reason: "RSI bullish divergence " +
+        `(RSI ${rsi.toFixed(1)} rising while price falling)`,
+      metadata: {
+        rsi,
+        interpretation: "bullish_divergence",
+        rsiTrend: rsiTrend.toFixed(2),
+        priceTrend: priceTrend.toFixed(2),
+      },
+    };
+  }
+
+  if (divergenceType === "bearish") {
+    return {
+      value: rsi,
+      signal: "SELL",
+      reason: "RSI bearish divergence " +
+        `(RSI ${rsi.toFixed(1)} falling while price rising)`,
+      metadata: {
+        rsi,
+        interpretation: "bearish_divergence",
+        rsiTrend: rsiTrend.toFixed(2),
+        priceTrend: priceTrend.toFixed(2),
+      },
+    };
+  }
 
   if (rsi < oversoldThreshold) {
     return {
@@ -1346,8 +1630,11 @@ export function evaluateOBV(
 
   const recentAvg = recentOBV.reduce((a, b) => a + b, 0) / recentOBV.length;
   const olderAvg = olderOBV.reduce((a, b) => a + b, 0) / olderOBV.length;
-
-  const obvTrend = ((recentAvg - olderAvg) / Math.abs(olderAvg)) * 100;
+  // Guard against division by zero when olderAvg is ~0
+  const denom = Math.abs(olderAvg);
+  const obvTrend = denom > 1e-9 ?
+    ((recentAvg - olderAvg) / denom) * 100 :
+    0;
 
   const currentPrice = closes[closes.length - 1];
   const priceChange = closes.length >= 10 ?
@@ -1422,7 +1709,327 @@ export function evaluateOBV(
 }
 
 /**
- * Evaluate all 9 indicators and determine if all are "green" meeting criteria
+ * Evaluate VWAP (Volume Weighted Average Price)
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @return {IndicatorResult} The VWAP evaluation result.
+ */
+export function evaluateVWAP(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  volumes: number[]
+): IndicatorResult {
+  if (!highs || !lows || !closes || !volumes ||
+    closes.length < 20 || volumes.length < 20) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for VWAP (need 20+ periods)",
+    };
+  }
+
+  const vwap = computeVWAP(highs, lows, closes, volumes);
+  if (vwap === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute VWAP",
+    };
+  }
+
+  const currentPrice = closes[closes.length - 1];
+  const deviation = ((currentPrice - vwap) / vwap) * 100;
+
+  // Calculate VWAP bands (1 and 2 standard deviations)
+  const typicalPrices: number[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    typicalPrices.push((highs[i] + lows[i] + closes[i]) / 3);
+  }
+  const squaredDiffs = typicalPrices.map((tp) => Math.pow(tp - vwap, 2));
+  const varianceSum = squaredDiffs.reduce((a, b) => a + b, 0);
+  const variance = varianceSum / (typicalPrices.length - 1);
+  const stdDev = Math.sqrt(variance);
+
+  const upperBand1 = vwap + stdDev;
+  const lowerBand1 = vwap - stdDev;
+  const upperBand2 = vwap + 2 * stdDev;
+  const lowerBand2 = vwap - 2 * stdDev;
+
+  // Price significantly below VWAP (potential buy)
+  if (currentPrice <= lowerBand2) {
+    return {
+      value: vwap,
+      signal: "BUY",
+      reason: `Price below VWAP -2σ (${deviation.toFixed(2)}% below VWAP)`,
+      metadata: {
+        vwap, currentPrice, deviation,
+        upperBand1, lowerBand1, upperBand2, lowerBand2,
+        interpretation: "oversold_vwap",
+      },
+    };
+  }
+
+  if (currentPrice <= lowerBand1 && currentPrice > lowerBand2) {
+    return {
+      value: vwap,
+      signal: "BUY",
+      reason: `Price below VWAP -1σ (${deviation.toFixed(2)}% below VWAP)`,
+      metadata: {
+        vwap, currentPrice, deviation,
+        upperBand1, lowerBand1, upperBand2, lowerBand2,
+        interpretation: "below_vwap",
+      },
+    };
+  }
+
+  // Price significantly above VWAP (potential sell)
+  if (currentPrice >= upperBand2) {
+    return {
+      value: vwap,
+      signal: "SELL",
+      reason: `Price above VWAP +2σ (${deviation.toFixed(2)}% above VWAP)`,
+      metadata: {
+        vwap, currentPrice, deviation,
+        upperBand1, lowerBand1, upperBand2, lowerBand2,
+        interpretation: "overbought_vwap",
+      },
+    };
+  }
+
+  if (currentPrice >= upperBand1 && currentPrice < upperBand2) {
+    return {
+      value: vwap,
+      signal: "SELL",
+      reason: `Price above VWAP +1σ (${deviation.toFixed(2)}% above VWAP)`,
+      metadata: {
+        vwap, currentPrice, deviation,
+        upperBand1, lowerBand1, upperBand2, lowerBand2,
+        interpretation: "above_vwap",
+      },
+    };
+  }
+
+  return {
+    value: vwap,
+    signal: "HOLD",
+    reason: `Price near VWAP (${deviation.toFixed(2)}% deviation)`,
+    metadata: {
+      vwap, currentPrice, deviation,
+      upperBand1, lowerBand1, upperBand2, lowerBand2,
+    },
+  };
+}
+
+/**
+ * Evaluate ADX (Average Directional Index)
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for calculation (default 14).
+ * @return {IndicatorResult} The ADX evaluation result.
+ */
+export function evaluateADX(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): IndicatorResult {
+  if (!highs || !lows || !closes || closes.length < period * 2) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for ADX (need ${period * 2} periods)`,
+    };
+  }
+
+  const adxResult = computeADX(highs, lows, closes, period);
+  if (!adxResult) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute ADX",
+    };
+  }
+
+  const { adx, plusDI, minusDI } = adxResult;
+
+  // Strong trend with bullish direction (+DI > -DI and ADX > 25)
+  if (adx > 25 && plusDI > minusDI) {
+    const strength = adx > 40 ? "very strong" : "strong";
+    const adxStr = adx.toFixed(1);
+    const pdiStr = plusDI.toFixed(1);
+    const mdiStr = minusDI.toFixed(1);
+    return {
+      value: adx,
+      signal: "BUY",
+      reason: `${strength} bullish trend ` +
+        `(ADX: ${adxStr}, +DI: ${pdiStr} > -DI: ${mdiStr})`,
+      metadata: {
+        adx, plusDI, minusDI,
+        trendStrength: strength,
+        interpretation: "bullish_trend",
+      },
+    };
+  }
+
+  // Strong trend with bearish direction (-DI > +DI and ADX > 25)
+  if (adx > 25 && minusDI > plusDI) {
+    const strength = adx > 40 ? "very strong" : "strong";
+    const adxStr = adx.toFixed(1);
+    const pdiStr = plusDI.toFixed(1);
+    const mdiStr = minusDI.toFixed(1);
+    return {
+      value: adx,
+      signal: "SELL",
+      reason: `${strength} bearish trend ` +
+        `(ADX: ${adxStr}, -DI: ${mdiStr} > +DI: ${pdiStr})`,
+      metadata: {
+        adx, plusDI, minusDI,
+        trendStrength: strength,
+        interpretation: "bearish_trend",
+      },
+    };
+  }
+
+  // Weak trend (ADX < 20) - potential reversal or range-bound
+  if (adx < 20) {
+    return {
+      value: adx,
+      signal: "HOLD",
+      reason: `Weak/no trend (ADX: ${adx.toFixed(1)}) - range-bound market`,
+      metadata: {
+        adx, plusDI, minusDI,
+        trendStrength: "weak",
+        interpretation: "range_bound",
+      },
+    };
+  }
+
+  return {
+    value: adx,
+    signal: "HOLD",
+    reason: `Moderate trend (ADX: ${adx.toFixed(1)})`,
+    metadata: { adx, plusDI, minusDI, trendStrength: "moderate" },
+  };
+}
+
+/**
+ * Evaluate Williams %R
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for calculation (default 14).
+ * @return {IndicatorResult} The Williams %R evaluation result.
+ */
+export function evaluateWilliamsR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): IndicatorResult {
+  if (!highs || !lows || !closes || closes.length < period) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for Williams %R (need ${period} periods)`,
+    };
+  }
+
+  const williamsR = computeWilliamsR(highs, lows, closes, period);
+  if (williamsR === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute Williams %R",
+    };
+  }
+
+  // Calculate previous Williams %R for momentum detection
+  let prevWilliamsR: number | null = null;
+  if (closes.length > period) {
+    prevWilliamsR = computeWilliamsR(
+      highs.slice(0, -1),
+      lows.slice(0, -1),
+      closes.slice(0, -1),
+      period
+    );
+  }
+
+  const oversoldThreshold = -80;
+  const overboughtThreshold = -20;
+
+  // Oversold with upward momentum (potential buy)
+  if (williamsR <= oversoldThreshold) {
+    const risingFromOversold = prevWilliamsR !== null &&
+      williamsR > prevWilliamsR && prevWilliamsR <= oversoldThreshold;
+
+    if (risingFromOversold) {
+      return {
+        value: williamsR,
+        signal: "BUY",
+        reason: `Williams %R rising from oversold (${williamsR.toFixed(1)} ↑)`,
+        metadata: {
+          williamsR, prevWilliamsR,
+          interpretation: "oversold_reversal",
+        },
+      };
+    }
+
+    return {
+      value: williamsR,
+      signal: "BUY",
+      reason: "Williams %R oversold " +
+        `(${williamsR.toFixed(1)} ≤ ${oversoldThreshold})`,
+      metadata: {
+        williamsR,
+        interpretation: "oversold",
+      },
+    };
+  }
+
+  // Overbought with downward momentum (potential sell)
+  if (williamsR >= overboughtThreshold) {
+    const fallingFromOverbought = prevWilliamsR !== null &&
+      williamsR < prevWilliamsR && prevWilliamsR >= overboughtThreshold;
+
+    if (fallingFromOverbought) {
+      return {
+        value: williamsR,
+        signal: "SELL",
+        reason: "Williams %R falling from overbought " +
+          `(${williamsR.toFixed(1)} ↓)`,
+        metadata: {
+          williamsR, prevWilliamsR,
+          interpretation: "overbought_reversal",
+        },
+      };
+    }
+
+    return {
+      value: williamsR,
+      signal: "SELL",
+      reason: "Williams %R overbought " +
+        `(${williamsR.toFixed(1)} ≥ ${overboughtThreshold})`,
+      metadata: {
+        williamsR,
+        interpretation: "overbought",
+      },
+    };
+  }
+
+  return {
+    value: williamsR,
+    signal: "HOLD",
+    reason: `Williams %R neutral (${williamsR.toFixed(1)})`,
+    metadata: { williamsR },
+  };
+}
+
+/**
+ * Evaluate all 12 indicators and determine if all are "green" meeting criteria
  * @param {object} symbolData - Symbol OHLCV data.
  * @param {object} marketData - Market index price and volume data.
  * @param {object} config - Configuration for indicator parameters.
@@ -1449,10 +2056,14 @@ export function evaluateAllIndicators(
     config,
   });
 
+  const highs = symbolData.highs || symbolData.closes;
+  const lows = symbolData.lows || symbolData.closes;
+  const volumes = symbolData.volumes || [];
+
   // 1. Price Movement (chart patterns)
   const priceMovement = detectChartPattern(
     symbolData.closes,
-    symbolData.volumes
+    volumes
   );
 
   // 2. Momentum (RSI)
@@ -1470,7 +2081,7 @@ export function evaluateAllIndicators(
 
   // 4. Volume
   const volume = evaluateVolume(
-    symbolData.volumes || [],
+    volumes,
     symbolData.closes
   );
 
@@ -1482,22 +2093,44 @@ export function evaluateAllIndicators(
 
   // 7. Stochastic
   const stochastic = evaluateStochastic(
-    symbolData.highs || symbolData.closes,
-    symbolData.lows || symbolData.closes,
+    highs,
+    lows,
     symbolData.closes
   );
 
   // 8. ATR (volatility)
   const atr = evaluateATR(
-    symbolData.highs || symbolData.closes,
-    symbolData.lows || symbolData.closes,
+    highs,
+    lows,
     symbolData.closes
   );
 
   // 9. OBV
   const obv = evaluateOBV(
     symbolData.closes,
-    symbolData.volumes || []
+    volumes
+  );
+
+  // 10. VWAP (Volume Weighted Average Price)
+  const vwap = evaluateVWAP(
+    highs,
+    lows,
+    symbolData.closes,
+    volumes
+  );
+
+  // 11. ADX (Average Directional Index)
+  const adx = evaluateADX(
+    highs,
+    lows,
+    symbolData.closes
+  );
+
+  // 12. Williams %R
+  const williamsR = evaluateWilliamsR(
+    highs,
+    lows,
+    symbolData.closes
   );
 
   const indicators = {
@@ -1510,42 +2143,56 @@ export function evaluateAllIndicators(
     stochastic,
     atr,
     obv,
+    vwap,
+    adx,
+    williamsR,
   };
 
-  // Check if all 9 indicators are "green" (BUY signal)
-  const allGreen = Object.values(indicators).every(
-    (ind) => ind.signal === "BUY"
+  // Calculate signal strength (0-100)
+  const vals = Object.values(indicators);
+  const buyCount = vals.filter((i) => i.signal === "BUY").length;
+  const sellCount = vals.filter((i) => i.signal === "SELL").length;
+  const holdCount = vals.filter((i) => i.signal === "HOLD").length;
+  const totalIndicators = vals.length;
+
+  // Signal strength calculation:
+  // - BUY signals contribute positively
+  // - SELL signals contribute negatively
+  // - HOLD signals are neutral
+  // Scale from 0 (all SELL) to 100 (all BUY)
+  const signalStrength = Math.round(
+    ((buyCount - sellCount + totalIndicators) / (2 * totalIndicators)) * 100
   );
 
-  // Check if all 9 indicators are "red" (SELL signal)
-  const allRed = Object.values(indicators).every(
-    (ind) => ind.signal === "SELL"
-  );
+  // Check if all 12 indicators are "green" (BUY signal)
+  const allGreen = vals.every((ind) => ind.signal === "BUY");
+
+  // Check if all 12 indicators are "red" (SELL signal)
+  const allRed = vals.every((ind) => ind.signal === "SELL");
 
   let overallSignal: "BUY" | "SELL" | "HOLD";
   let reason: string;
 
   if (allGreen) {
     overallSignal = "BUY";
-    reason = "All 9 indicators are GREEN - Strong BUY signal";
+    reason = `All ${totalIndicators} indicators are GREEN - ` +
+      `Strong BUY signal (strength: ${signalStrength})`;
   } else if (allRed) {
     overallSignal = "SELL";
-    reason = "All 9 indicators are RED - Strong SELL signal";
+    reason = `All ${totalIndicators} indicators are RED - ` +
+      `Strong SELL signal (strength: ${signalStrength})`;
   } else {
     overallSignal = "HOLD";
-    const vals = Object.values(indicators);
-    const buyCount = vals.filter((i) => i.signal === "BUY").length;
-    const sellCount = vals.filter((i) => i.signal === "SELL").length;
-    const holdCount = vals.filter((i) => i.signal === "HOLD").length;
-
     reason = `Mixed signals - BUY: ${buyCount}, ` +
       `SELL: ${sellCount}, HOLD: ${holdCount}. ` +
-      "Need all 9 indicators aligned for action.";
+      `Signal strength: ${signalStrength}/100. ` +
+      `Need all ${totalIndicators} indicators aligned for action.`;
   }
 
   logger.info("Multi-indicator evaluation complete", {
     allGreen,
     overallSignal,
+    signalStrength,
     indicators: {
       priceMovement: priceMovement.signal,
       momentum: momentum.signal,
@@ -1556,6 +2203,9 @@ export function evaluateAllIndicators(
       stochastic: stochastic.signal,
       atr: atr.signal,
       obv: obv.signal,
+      vwap: vwap.signal,
+      adx: adx.signal,
+      williamsR: williamsR.signal,
     },
   });
 
@@ -1564,5 +2214,6 @@ export function evaluateAllIndicators(
     indicators,
     overallSignal,
     reason,
+    signalStrength,
   };
 }

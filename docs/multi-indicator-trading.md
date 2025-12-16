@@ -2,11 +2,11 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates **9 technical indicators** to generate trade signals. **All 9 indicators must be "green" (BUY signal) to trigger an automatic trade.**
+The multi-indicator automatic trading system correlates **12 technical indicators** to generate trade signals. **All 12 indicators must be "green" (BUY signal) to trigger an automatic trade.**
 
-This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators.
+This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. The system also calculates a **Signal Strength score (0-100)** that quantifies the overall alignment of indicators.
 
-## The 9 Technical Indicators
+## The 12 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 
@@ -31,8 +31,9 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Double Top/Bottom similarity tolerance ~1%
 - Head & Shoulders shoulder symmetry tolerance ~2%
 - Triangles require flat highs/lows plus rising/falling opposing side
-- Cup & Handle recovery >5% from handle low with short-term momentum
+- Cup & Handle recovery >5% from handle low with short-term momentum; **edge-case guard** when handle window < 5 bars
 - Flags require prior impulsive move (>6%) followed by tight consolidation (<1.5% range)
+- **Improved (v2)**: Linear regression slope now properly mean-centered on price (uses `yMean`) instead of anchoring to last price for accurate trend calculation
 
 **Metadata Returned:**
 ```json
@@ -62,13 +63,13 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 
 ### 2. Momentum (RSI - Relative Strength Index)
 
-**Purpose:** Measures the momentum and identifies overbought/oversold conditions.
+**Purpose:** Measures the momentum and identifies overbought/oversold conditions, with divergence detection for early reversal signals.
 
 **Implementation:** `evaluateMomentum()` and `computeRSI()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: RSI < 30 (oversold) or 60 < RSI ≤ 70 (strong bullish momentum)
-- **SELL**: RSI > 70 (overbought) or 30 ≤ RSI < 40 (bearish momentum)
+- **BUY**: RSI < 30 (oversold), 60 < RSI ≤ 70 (strong bullish momentum), or **bullish divergence** (RSI rising while price falling)
+- **SELL**: RSI > 70 (overbought), 30 ≤ RSI < 40 (bearish momentum), or **bearish divergence** (RSI falling while price rising)
 - **HOLD**: 40 ≤ RSI ≤ 60 (neutral zone)
 
 **Configuration:**
@@ -80,6 +81,10 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Oversold threshold: 30
 - Overbought threshold: 70
 - Neutral range: 40-60
+- **Divergence Detection (v3)**: Compares RSI trend vs price trend over 10 periods
+  - Bullish divergence: Price declining >1% while RSI rising >3 points
+  - Bearish divergence: Price rising >1% while RSI falling >3 points
+- Divergence signals take priority over standard threshold signals
 
 ### 3. Market Direction (Moving Average Crossovers)
 
@@ -161,6 +166,8 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Upper Band = Middle + (2 × Standard Deviation)
 - Lower Band = Middle - (2 × Standard Deviation)
 - Position calculated as percentage between lower and upper bands
+- **Improved (v2)**: Uses sample standard deviation (N−1) instead of population (N) for more accurate band width, matching industry-standard BB implementations
+- Variance denominator = `period > 1 ? (period - 1) : period`
 
 ### 7. Stochastic Oscillator
 
@@ -222,11 +229,135 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Strong trend threshold: ±10%
 
 **Technical Details:**
+- OBV starts at 0 (not first volume) to avoid first-bar scale bias
 - OBV increases by volume on up days
 - OBV decreases by volume on down days
 - OBV unchanged when price unchanged
 - Compares recent 10-period OBV average vs previous 10-period average
 - Detects divergences by comparing OBV trend with price change
+- **Improved (v2)**: Division-by-zero guard when older average ≈ 0; returns `obvTrend = 0` if denominator < 1e-9 to prevent spurious infinite signals
+
+### 10. VWAP (Volume Weighted Average Price)
+
+**Purpose:** Identifies fair value price levels based on volume distribution. Institutional traders use VWAP as a benchmark for trade execution quality.
+
+**Implementation:** `evaluateVWAP()` and `computeVWAP()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price at or below VWAP -2σ (strong oversold), or VWAP -1σ to -2σ (moderately oversold)
+- **SELL**: Price at or above VWAP +2σ (strong overbought), or VWAP +1σ to +2σ (moderately overbought)
+- **HOLD**: Price within ±1σ of VWAP (fair value zone)
+
+**Configuration:**
+- Uses intraday typical price: (High + Low + Close) / 3
+- Standard deviation bands: 1σ and 2σ
+
+**Technical Details:**
+- VWAP = Σ(Typical Price × Volume) / Σ(Volume)
+- Typical Price = (High + Low + Close) / 3
+- Standard deviation calculated from typical prices
+- Price deviation expressed as percentage from VWAP
+
+**Metadata Returned:**
+```json
+{
+  "vwap": 152.35,
+  "currentPrice": 151.20,
+  "deviation": -0.75,
+  "upperBand1": 153.50,
+  "lowerBand1": 151.20,
+  "upperBand2": 154.65,
+  "lowerBand2": 150.05,
+  "interpretation": "below_vwap"
+}
+```
+
+### 11. ADX (Average Directional Index)
+
+**Purpose:** Measures trend strength regardless of direction. High ADX indicates a strong trend (up or down), while low ADX indicates a weak or range-bound market.
+
+**Implementation:** `evaluateADX()` and `computeADX()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: ADX > 25 with +DI > -DI (strong bullish trend)
+- **SELL**: ADX > 25 with -DI > +DI (strong bearish trend)
+- **HOLD**: ADX < 20 (weak/no trend, range-bound) or ADX 20-25 (moderate, unclear direction)
+
+**Configuration:**
+- Period: 14 (default)
+- Strong trend threshold: ADX > 25
+- Very strong trend threshold: ADX > 40
+- Weak trend threshold: ADX < 20
+
+**Technical Details:**
+- Uses Wilder's smoothing method for +DM, -DM, and TR
+- +DI = Smoothed +DM / Smoothed TR × 100
+- -DI = Smoothed -DM / Smoothed TR × 100
+- DX = |+DI - -DI| / (+DI + -DI) × 100
+- ADX = Smoothed average of DX values
+
+**Metadata Returned:**
+```json
+{
+  "adx": 32.5,
+  "plusDI": 28.3,
+  "minusDI": 15.7,
+  "trendStrength": "strong",
+  "interpretation": "bullish_trend"
+}
+```
+
+### 12. Williams %R
+
+**Purpose:** Momentum oscillator that identifies overbought/oversold levels and potential reversals. Similar to Stochastic but inverted scale (-100 to 0).
+
+**Implementation:** `evaluateWilliamsR()` and `computeWilliamsR()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: %R ≤ -80 (oversold), or rising from oversold with upward momentum
+- **SELL**: %R ≥ -20 (overbought), or falling from overbought with downward momentum
+- **HOLD**: -80 < %R < -20 (neutral zone)
+
+**Configuration:**
+- Period: 14 (default)
+- Oversold threshold: -80
+- Overbought threshold: -20
+
+**Technical Details:**
+- Williams %R = (Highest High - Close) / (Highest High - Lowest Low) × -100
+- Range: -100 (most oversold) to 0 (most overbought)
+- Momentum detection: Compares current vs previous %R for reversal confirmation
+- Reversal signals (rising from oversold, falling from overbought) are stronger than static threshold signals
+
+**Metadata Returned:**
+```json
+{
+  "williamsR": -85.2,
+  "prevWilliamsR": -92.1,
+  "interpretation": "oversold_reversal"
+}
+```
+
+## Signal Strength Score
+
+**Purpose:** Quantifies overall indicator alignment on a 0-100 scale.
+
+**Calculation:**
+```
+signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicators)) × 100
+```
+
+**Interpretation:**
+- **100**: All 12 indicators are BUY (perfect bullish alignment)
+- **75-99**: Strong bullish bias, most indicators aligned
+- **50**: Neutral (equal BUY and SELL signals, or all HOLD)
+- **25-49**: Strong bearish bias
+- **0**: All 12 indicators are SELL (perfect bearish alignment)
+
+**Use Cases:**
+- Filter signals by strength threshold (e.g., only act on strength > 75)
+- Gauge confidence in trade setup
+- Track signal strength trends over time
 
 ## How It Works
 
@@ -238,13 +369,13 @@ This system provides a comprehensive multi-factor analysis approach combining pr
    - Minimum 30-60 periods of data required
 
 2. **Indicator Evaluation**
-   - Each of the 9 indicators is evaluated independently
+   - Each of the 12 indicators is evaluated independently
    - Each returns: `{ signal: "BUY"|"SELL"|"HOLD", reason: string, value: number }`
 
 3. **Multi-Indicator Correlation**
    - Function: `evaluateAllIndicators()` in `technical-indicators.ts`
-   - Checks if ALL 9 indicators signal BUY
-   - Returns `allGreen: true` only when all 9 are BUY
+   - Checks if ALL 12 indicators signal BUY
+   - Returns `allGreen: true` only when all 12 are BUY
 
 4. **Trade Decision**
    - Alpha agent (`alpha-agent.ts`) calls multi-indicator evaluation
@@ -266,23 +397,23 @@ alpha-agent.ts (handleAlphaTask)
          ↓
 technical-indicators.ts (evaluateAllIndicators)
          ↓
-    ┌────┴────┬────────┬───────────┬──────────┬──────┐
-    ↓         ↓        ↓           ↓          ↓      ↓
-  Price   Momentum  Market     Volume     MACD   Bollinger
-Movement    (RSI)  Direction                      Bands
-    ↓         ↓        ↓           ↓          ↓      ↓
-    └────┬────┴────────┴───────────┴──────────┴──────┘
+    ┌────┴────┬────────┬───────────┬──────────┬───────────┐
+    ↓         ↓        ↓           ↓          ↓           ↓
+  Price   Momentum  Market     Volume     MACD      Bollinger
+Movement  (RSI+Div) Direction                        Bands
+    ↓         ↓        ↓           ↓          ↓           ↓
+    └────┬────┴────────┴───────────┴──────────┴───────────┘
          ↓
-    ┌────┴────┬─────────┬────────┐
-    ↓         ↓         ↓        ↓
-Stochastic  ATR       OBV    (9 total)
-    ↓         ↓         ↓        ↓
-    └────┬────┴─────────┴────────┘
+    ┌────┴────┬─────────┬────────┬────────┬────────┐
+    ↓         ↓         ↓        ↓        ↓        ↓
+Stochastic  ATR       OBV      VWAP     ADX   Williams%R
+    ↓         ↓         ↓        ↓        ↓        ↓
+    └────┬────┴─────────┴────────┴────────┴────────┘
          ↓
-   All 9 Green?
+   All 12 Green? + Signal Strength Score
          ↓
     Yes → Trade Proposal → RiskGuard → Execute
-    No  → HOLD
+    No  → HOLD (with strength score for analytics)
 ```
 
 ## Configuration
@@ -529,7 +660,7 @@ Document structure:
   "symbol": "AAPL",
   "interval": "1h",
   "signal": "BUY" | "SELL" | "HOLD",
-  "reason": "All 9 indicators are GREEN - Strong BUY signal",
+  "reason": "All 12 indicators are GREEN - Strong BUY signal",
   "multiIndicatorResult": {
     "allGreen": true,
     "overallSignal": "BUY",
@@ -658,7 +789,7 @@ The Agentic Trading Settings screen displays:
   - ✓ Green arrow up = BUY signal
   - ✓ Red arrow down = SELL signal
   - ✓ Gray horizontal line = HOLD signal
-- Overall signal status with highlighting when all 9 are green
+- Overall signal status with highlighting when all 12 are green
 
 #### Search Tab - Trade Signals Section
 
@@ -753,7 +884,7 @@ firebase deploy --only functions:agenticTradingIntradayCronJob,functions:agentic
 3. Configure parameters (optional)
 4. Tap "Initiate Test Trade Proposal"
 5. Review indicator status display
-6. Check if all 9 indicators are green
+6. Check if all 12 indicators are green
 
 ### Testing Individual Indicators
 
@@ -771,7 +902,7 @@ You can test individual indicators by:
 - RSI < 30 (oversold)
 - SPY 10-day MA crosses above 30-day MA
 - Volume spike with price increase
-- **Expected Result:** All 9 indicators BUY → Trade executed
+- **Expected Result:** All 12 indicators BUY → Trade executed
 
 **Scenario 2: Mixed Signals**
 - Price in consolidation
@@ -785,7 +916,7 @@ You can test individual indicators by:
 - RSI > 70 (overbought)
 - SPY 10-day MA crosses below 30-day MA
 - Volume spike with price decrease
-- **Expected Result:** All 9 indicators SELL → Potential short (if enabled)
+- **Expected Result:** All 12 indicators SELL → Potential short (if enabled)
 
 ## Best Practices
 
@@ -816,7 +947,7 @@ The multi-indicator system works best when combined with:
 ### Monitoring
 
 Regularly review:
-- Signal frequency (how often all 9 align)
+- Signal frequency (how often all 12 align)
 - False positive rate
 - Trade win/loss ratio
 - Indicator individual performance
@@ -827,7 +958,7 @@ Regularly review:
 
 **Check:**
 1. Is agentic trading enabled in settings?
-2. Are all 9 indicators rarely aligning?
+2. Are all 12 indicators rarely aligning?
 3. Review Firestore `signals_{SYMBOL}` for indicator status
 4. Check Firebase Functions logs for errors
 5. Verify market data is being fetched (Yahoo Finance API working)
@@ -868,9 +999,14 @@ Potential improvements:
    - ✅ Stochastic Oscillator - **IMPLEMENTED**
    - ✅ ATR (Average True Range) - **IMPLEMENTED**
    - ✅ OBV (On-Balance Volume) - **IMPLEMENTED**
-   - ADX (Average Directional Index)
+   - ✅ VWAP (Volume Weighted Average Price) - **IMPLEMENTED v3**
+   - ✅ ADX (Average Directional Index) - **IMPLEMENTED v3**
+   - ✅ Williams %R - **IMPLEMENTED v3**
+   - ✅ RSI Divergence Detection - **IMPLEMENTED v3**
    - Ichimoku Cloud
    - Fibonacci Retracements
+   - Parabolic SAR
+   - Chaikin Money Flow
 
 2. **Machine Learning:**
    - Pattern recognition using historical data
@@ -898,6 +1034,91 @@ Potential improvements:
 - **RSI:** Classic Relative Strength Index by J. Welles Wilder
 - **Moving Averages:** Technical analysis fundamentals
 - **Volume Analysis:** Price-volume relationship principles
+
+## Recent Improvements (v2)
+
+The technical indicators module has been improved for accuracy, robustness, and edge-case handling:
+
+### Bollinger Bands Precision
+- **Change**: Now uses sample standard deviation (N−1) instead of population (N)
+- **Benefit**: Produces band widths matching industry-standard implementations (TradingView, etc.)
+- **Impact**: More accurate volatility measurement and overbought/oversold threshold detection
+- **Formula**: `variance = sum(squared_diffs) / (period - 1)` when period > 1
+
+### OBV Robustness
+- **Change 1**: OBV initialization now starts at 0 instead of first volume value
+  - **Benefit**: Eliminates first-bar scale bias that could skew trend calculations
+  - **Impact**: More consistent divergence detection across all symbols regardless of volume scale
+- **Change 2**: Division-by-zero guard added for trend calculation
+  - **Benefit**: Prevents infinite/NaN values when older OBV average ≈ 0
+  - **Guard**: Returns `obvTrend = 0` if denominator < 1e-9
+  - **Impact**: Handles near-zero volume periods gracefully
+
+### Pattern Detection Accuracy
+- **Chart Pattern - Cup & Handle**: Edge-case guard prevents errors with insufficient lookback bars
+  - **Guard**: Validates handle window length > 0 before computing minimum
+  - **Benefit**: Graceful handling of early-bar scenarios or short price histories
+  
+- **Price Movement - Linear Regression**: Slope calculation now properly mean-centered
+  - **Change**: Uses mean-centered Y values (`yMean`) instead of anchoring to last price
+  - **Formula**: `slope = sum((x - xMean) * (y - yMean)) / sum((x - xMean)²)`
+  - **Benefit**: Mathematically correct trend estimation independent of ending price level
+  - **Impact**: More reliable slope for market context in pattern metadata
+
+### Code Quality
+- All changes lint-compliant and pass TypeScript strict mode
+- Builds successfully with no errors
+- Backward-compatible API (no breaking changes)
+
+## Recent Improvements (v3)
+
+### New Indicators Added
+
+#### VWAP (Volume Weighted Average Price)
+- **Purpose**: Identifies fair value based on volume-weighted price distribution
+- **Signals**: Uses ±1σ and ±2σ bands from VWAP
+- **Benefit**: Institutional-grade price level analysis for better entry/exit points
+- **Formula**: VWAP = Σ(Typical Price × Volume) / Σ(Volume)
+
+#### ADX (Average Directional Index)
+- **Purpose**: Measures trend strength regardless of direction
+- **Signals**: ADX > 25 with +DI/-DI crossovers for directional trades
+- **Benefit**: Filters out range-bound markets, focuses on trending opportunities
+- **Implementation**: Full Wilder's smoothing with +DI, -DI, and DX calculation
+
+#### Williams %R
+- **Purpose**: Momentum oscillator with overbought/oversold detection
+- **Signals**: %R ≤ -80 (oversold buy), %R ≥ -20 (overbought sell)
+- **Benefit**: Faster reversal signals with momentum confirmation
+- **Enhancement**: Detects rising/falling momentum from extreme zones
+
+### Enhanced RSI with Divergence Detection
+- **Change**: RSI now detects bullish and bearish divergences
+- **Bullish Divergence**: RSI rising while price falling (early buy signal)
+- **Bearish Divergence**: RSI falling while price rising (early sell signal)
+- **Impact**: Earlier reversal detection before price confirms the move
+- **Threshold**: Price trend >1%, RSI trend >3 points in opposite directions
+
+### Signal Strength Scoring System
+- **New Feature**: 0-100 score quantifying indicator alignment
+- **Formula**: `((buyCount - sellCount + total) / (2 × total)) × 100`
+- **Use Cases**:
+  - Filter trades by minimum strength threshold
+  - Gauge confidence in setups
+  - Track signal quality over time
+- **Output**: Added `signalStrength` field to `MultiIndicatorResult`
+
+### System Expansion
+- **Indicators**: Expanded from 9 to 12 indicators
+- **Interface**: Updated `MultiIndicatorResult` with new indicator fields
+- **Logging**: Enhanced logging includes all 12 indicator signals
+- **Backward Compatibility**: API remains compatible, existing integrations work unchanged
+
+### Code Quality
+- All new functions include comprehensive JSDoc documentation
+- Proper null handling and edge-case guards
+- Consistent metadata output format across all indicators
+- TypeScript strict mode compliant
 
 ## Support
 

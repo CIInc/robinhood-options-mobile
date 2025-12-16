@@ -11,7 +11,7 @@ Comprehensive backtesting interface for testing trading strategies on historical
 - Market index data for correlation analysis (SPY/QQQ)
 
 ### Strategy Builder
-- Configure all 9 technical indicators independently
+- Configure all 12 technical indicators independently
 - Match live trading configuration exactly
 - Advanced parameter tuning:
   - RSI period
@@ -90,7 +90,7 @@ Comprehensive backtesting interface for testing trading strategies on historical
    - **Capital**: Initial investment amount
    - **Trade Quantity**: Shares per trade
    - **Risk Management**: TP/SL percentages
-3. Enable desired indicators (default: all 9 enabled)
+5. Enable desired indicators (default: all 12 enabled)
 4. Optionally configure advanced settings
 5. Click "Run Backtest"
 
@@ -241,7 +241,7 @@ users/{userId}/backtest_templates/{templateId}
 - **Long-term (> 1 year)**: Use 1d intervals with extended data
 
 ### Indicator Selection
-- Start with all 9 indicators enabled
+- Start with all 12 indicators enabled
 - Incrementally disable indicators to test sensitivity
 - Compare results to find optimal indicator combinations
 - Document findings in template descriptions

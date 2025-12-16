@@ -24,7 +24,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
    - Fetches signals from Firestore with real-time listeners
-   - Provides indicator documentation for all 9 indicators
+   - Provides indicator documentation for all 12 indicators
    - Used across InstrumentWidget, SearchWidget for consistent signal display
    - Separates signal management from execution logic
 

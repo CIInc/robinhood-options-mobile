@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
-import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
+import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -63,6 +63,9 @@ class _AgenticTradingSettingsWidgetState
           'stochastic': true,
           'atr': true,
           'obv': true,
+          'vwap': true,
+          'adx': true,
+          'williamsR': true,
         };
     _smaPeriodFastController = TextEditingController(
         text: config['smaPeriodFast']?.toString() ?? '10');
@@ -183,44 +186,9 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildDocSection(String key) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final docInfo = TradeSignalsProvider.indicatorDocumentation(key);
-    final title = docInfo['title'] ?? '';
-    final documentation = docInfo['documentation'] ?? '';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colorScheme.outline.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            documentation,
-            style: TextStyle(
-              fontSize: 13,
-              color: colorScheme.onSurface.withOpacity(0.8),
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+    return IndicatorDocumentationWidget(
+      indicatorKey: key,
+      showContainer: true,
     );
   }
 
@@ -1368,6 +1336,9 @@ class _AgenticTradingSettingsWidgetState
                                       _buildDocSection('stochastic'),
                                       _buildDocSection('atr'),
                                       _buildDocSection('obv'),
+                                      _buildDocSection('vwap'),
+                                      _buildDocSection('adx'),
+                                      _buildDocSection('williamsR'),
                                     ],
                                   ),
                                 ),
@@ -1550,6 +1521,21 @@ class _AgenticTradingSettingsWidgetState
                     'obv',
                     'OBV',
                     'On-Balance Volume - volume flow indicator',
+                  ),
+                  _buildIndicatorToggle(
+                    'vwap',
+                    'VWAP',
+                    'Volume Weighted Average Price - institutional price level',
+                  ),
+                  _buildIndicatorToggle(
+                    'adx',
+                    'ADX',
+                    'Average Directional Index - trend strength measurement',
+                  ),
+                  _buildIndicatorToggle(
+                    'williamsR',
+                    'Williams %R',
+                    'Momentum oscillator - overbought/oversold conditions',
                   ),
                   // const SizedBox(height: 8),
                   // SizedBox(

@@ -7,86 +7,291 @@ import 'package:robinhood_options_mobile/utils/market_hours.dart';
 
 class TradeSignalsProvider with ChangeNotifier {
   /// Returns documentation for a given indicator key.
-  /// Returns a Map with 'title' and 'documentation' keys.
+  /// Returns a Map with 'title', 'description', and 'technicalDetails' keys.
   static Map<String, String> indicatorDocumentation(String key) {
     switch (key) {
       case 'priceMovement':
         return {
           'title': 'Price Movement',
-          'documentation':
+          'description':
               'Analyzes recent price trends and chart patterns to identify bullish or bearish momentum. '
                   'Uses moving averages and price action to determine if the stock is in an uptrend (BUY), '
-                  'downtrend (SELL), or sideways movement (HOLD).'
+                  'downtrend (SELL), or sideways movement (HOLD).',
+          'technicalDetails': '**Multi-pattern technical analysis** detecting 7 chart patterns:\n'
+              '\n'
+              '- **Breakout/Breakdown**: Price crosses `20-period MA` by ±2% with volume confirmation (1.3x avg)\n'
+              '- **Double Top/Bottom**: Two similar peaks/troughs within 1% tolerance\n'
+              '- **Head & Shoulders**: 3 peaks with middle highest, shoulders ±2% tolerance\n'
+              '- **Triangles**: Ascending (flat highs, rising lows) or Descending (falling highs, flat lows)\n'
+              '- **Cup & Handle**: Recovery from 10-bar handle, 5% above low, `MA5 > MA10`\n'
+              '- **Bull/Bear Flags**: Sharp move (6%+) followed by tight consolidation (<1.5%)\n'
+              '\n'
+              '**Parameters**: 30-60 bar lookback with `MA5`, `MA10`, `MA20`.\n'
+              '**Trigger**: Pattern confidence ≥60%'
         };
       case 'momentum':
         return {
           'title': 'Momentum (RSI)',
-          'documentation':
+          'description':
               'Relative Strength Index (RSI) measures the speed and magnitude of price changes. '
                   'Values above 70 indicate overbought conditions (potential SELL), while values below 30 '
-                  'indicate oversold conditions (potential BUY). RSI between 30-70 suggests neutral momentum.'
+                  'indicate oversold conditions (potential BUY). RSI between 30-70 suggests neutral momentum.',
+          'technicalDetails':
+              '**Formula**: `RSI = 100 - (100 / (1 + RS))` where `RS = Avg Gain / Avg Loss`\n'
+                  '\n'
+                  '**Parameters**:\n'
+                  '- Period: `14 bars` (smoothed using Wilder\'s method)\n'
+                  '\n'
+                  '**Thresholds**:\n'
+                  '- **Oversold**: `RSI < 30` → BUY signal\n'
+                  '- **Overbought**: `RSI > 70` → SELL signal\n'
+                  '- **Bullish momentum**: `RSI 60-70` → BUY\n'
+                  '- **Bearish momentum**: `RSI 30-40` → SELL\n'
+                  '\n'
+                  '**Divergence Detection** (requires 20+ bars):\n'
+                  '- **Bullish**: Price falling (-1%) but RSI rising (+3) when `RSI < 50`\n'
+                  '- **Bearish**: Price rising (+1%) but RSI falling (-3) when `RSI > 50`\n'
+                  '\n'
+                  '_Note: Divergence signals override standard thresholds._'
         };
       case 'marketDirection':
         return {
           'title': 'Market Direction',
-          'documentation':
+          'description':
               'Evaluates the overall market trend using moving averages on major indices (SPY/QQQ). '
                   'When the market index is trending up (fast MA > slow MA), stocks tend to perform better (BUY). '
-                  'When the market is trending down, it suggests caution (SELL/HOLD).'
+                  'When the market is trending down, it suggests caution (SELL/HOLD).',
+          'technicalDetails': '**Moving Averages**:\n'
+              '- Fast MA: `10-period SMA`\n'
+              '- Slow MA: `30-period SMA`\n'
+              '\n'
+              '**Trend Strength**: `((Fast MA - Slow MA) / Slow MA) × 100`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Bullish Crossover**: Fast MA crosses above Slow MA → BUY\n'
+              '- **Bearish Crossover**: Fast MA crosses below Slow MA → SELL\n'
+              '- **Strong Uptrend**: Trend strength > +2% → BUY\n'
+              '- **Strong Downtrend**: Trend strength < -2% → SELL\n'
+              '- **Neutral**: -2% ≤ Trend strength ≤ +2% → HOLD\n'
+              '\n'
+              '_Market correlation helps confirm individual stock signals._'
         };
       case 'volume':
         return {
           'title': 'Volume',
-          'documentation':
+          'description':
               'Confirms price movements with trading volume. Strong price moves with high volume are more '
                   'reliable. BUY signals require increasing volume on up days, SELL signals require volume on down days. '
-                  'Low volume suggests weak conviction and generates HOLD signals.'
+                  'Low volume suggests weak conviction and generates HOLD signals.',
+          'technicalDetails': '**Formula**: `Volume Ratio = Current Volume / 20-period Avg Volume`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Accumulation** (BUY): Volume ratio `> 1.5` with price increase `> 0.5%`\n'
+              '- **Distribution** (SELL): Volume ratio `> 1.5` with price decrease `> 0.5%`\n'
+              '- **Low Volume** (HOLD): Volume ratio `< 0.7` indicates weak conviction\n'
+              '- **Confirmed Trend**: Normal volume (0.9-1.5x) with price change `> 1%` → BUY\n'
+              '- **Neutral**: Volume ratio 0.7-1.5x without strong price movement\n'
+              '\n'
+              '_High volume confirms trend strength; low volume suggests wait for confirmation._'
         };
       case 'macd':
         return {
           'title': 'MACD',
-          'documentation':
+          'description':
               'Moving Average Convergence Divergence (MACD) shows the relationship between two moving averages. '
                   'When the MACD line crosses above the signal line, it generates a BUY signal. When MACD crosses below the signal line, '
-                  'it generates a SELL signal. The histogram shows the strength of the trend.'
+                  'it generates a SELL signal. The histogram shows the strength of the trend.',
+          'technicalDetails': '**Components**:\n'
+              '- Fast EMA: `12-period`\n'
+              '- Slow EMA: `26-period`\n'
+              '- Signal Line: `9-period EMA` of MACD\n'
+              '\n'
+              '**Formulas**:\n'
+              '- `MACD Line = Fast EMA - Slow EMA`\n'
+              '- `Histogram = MACD Line - Signal Line`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Bullish Crossover**: Histogram crosses above `0` → BUY\n'
+              '- **Bearish Crossover**: Histogram crosses below `0` → SELL\n'
+              '- **Bullish Momentum**: Histogram `> 0` → BUY\n'
+              '- **Bearish Momentum**: Histogram `< 0` → SELL\n'
+              '\n'
+              '_Minimum 35 periods (26 + 9) required. Histogram magnitude indicates momentum strength._'
         };
       case 'bollingerBands':
         return {
           'title': 'Bollinger Bands',
-          'documentation':
+          'description':
               'Volatility indicator using standard deviations around a moving average. Price near the lower band '
                   'suggests oversold conditions (potential BUY), while price near the upper band suggests overbought (potential SELL). '
-                  'Price in the middle suggests neutral conditions. Band width indicates volatility levels.'
+                  'Price in the middle suggests neutral conditions. Band width indicates volatility levels.',
+          'technicalDetails': '**Band Calculation**:\n'
+              '- Middle Band: `20-period SMA`\n'
+              '- Upper Band: `Middle + (2 × StdDev)`\n'
+              '- Lower Band: `Middle - (2 × StdDev)`\n'
+              '- StdDev: Sample standard deviation (N-1 denominator)\n'
+              '\n'
+              '**Position Formula**: `(Price - Lower) / (Upper - Lower) × 100`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Oversold**: Price ≤ Lower Band (±0.5%) → BUY\n'
+              '- **Overbought**: Price ≥ Upper Band (±0.5%) → SELL\n'
+              '- **Lower Region**: Position `< 30%` → BUY\n'
+              '- **Upper Region**: Position `> 70%` → SELL\n'
+              '- **Neutral**: `30% ≤ Position ≤ 70%` → HOLD\n'
+              '\n'
+              '_Band width indicates volatility: narrow = low vol, wide = high vol._'
         };
       case 'stochastic':
         return {
           'title': 'Stochastic',
-          'documentation':
+          'description':
               'Stochastic Oscillator compares the closing price to its price range over a period. Values above 80 indicate '
                   'overbought conditions (potential SELL), below 20 indicates oversold (potential BUY). Crossovers of %K and %D '
-                  'lines provide additional signals. Works best in ranging markets.'
+                  'lines provide additional signals. Works best in ranging markets.',
+          'technicalDetails': '**Parameters**:\n'
+              '- %K Period: `14 bars`\n'
+              '- %D Period: `3 bars` (SMA of %K)\n'
+              '\n'
+              '**Formulas**:\n'
+              '- `%K = ((Close - Lowest Low) / (Highest High - Lowest Low)) × 100`\n'
+              '- `%D = 3-period SMA of %K values`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Oversold**: `%K < 20` and `%D < 20` → BUY\n'
+              '- **Overbought**: `%K > 80` and `%D > 80` → SELL\n'
+              '- **Bullish Crossover**: %K crosses above %D in oversold region → BUY\n'
+              '- **Bearish Crossover**: %K crosses below %D in overbought region → SELL\n'
+              '- **Neutral**: `20 ≤ %K ≤ 80` → HOLD\n'
+              '\n'
+              '_Best used in ranging/sideways markets. Fast-reacting momentum oscillator._'
         };
       case 'atr':
         return {
           'title': 'ATR (Volatility)',
-          'documentation':
+          'description':
               'Average True Range (ATR) measures market volatility. High ATR indicates large price swings and increased risk. '
                   'Rising ATR suggests strong trending conditions, while falling ATR indicates consolidation. Used to set stop-loss '
-                  'levels and position sizing based on current market conditions.'
+                  'levels and position sizing based on current market conditions.',
+          'technicalDetails': '**Parameters**: `14 bars` (Wilder\'s smoothing)\n'
+              '\n'
+              '**Formulas**:\n'
+              '- `True Range = max(High - Low, |High - Prev Close|, |Low - Prev Close|)`\n'
+              '- `ATR = 14-period smoothed average of True Range`\n'
+              '- `ATR % = (ATR / Current Price) × 100`\n'
+              '- `ATR Ratio = Current ATR / Historical Avg ATR`\n'
+              '\n'
+              '**Interpretation**:\n'
+              '- **High Volatility**: ATR ratio `> 1.5` → HOLD (caution, wide swings)\n'
+              '- **Low Volatility**: ATR ratio `< 0.6` → BUY (breakout setup, tight ranges)\n'
+              '- **Normal**: `0.6 ≤ ATR ratio ≤ 1.5` → HOLD\n'
+              '\n'
+              '_Used for stop-loss placement (2-3× ATR) and position sizing. Not directional._'
         };
       case 'obv':
         return {
           'title': 'OBV (On-Balance Volume)',
-          'documentation':
+          'description':
               'On-Balance Volume (OBV) tracks cumulative volume flow. Rising OBV confirms uptrends (BUY), falling OBV confirms '
                   'downtrends (SELL). Divergences between OBV and price can signal potential reversals. Volume precedes price, making '
-                  'OBV a leading indicator for trend confirmation.'
+                  'OBV a leading indicator for trend confirmation.',
+          'technicalDetails': '**Calculation**:\n'
+              '- If `close > prev close`: `OBV += volume`\n'
+              '- If `close < prev close`: `OBV -= volume`\n'
+              '\n'
+              '**Trend Analysis**:\n'
+              '- OBV Trend: Compare recent 10-bar avg vs previous 10-bar avg\n'
+              '- Price Trend: Compare recent 10-bar price avg vs previous 10-bar avg\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Bullish Divergence**: OBV trend `> +5%` while price trend `< 0%` → BUY (strong)\n'
+              '- **Bearish Divergence**: OBV trend `< -5%` while price trend `> 0%` → SELL (strong)\n'
+              '- **Confirmed Uptrend**: OBV trend `> +10%` with price rising → BUY\n'
+              '- **Confirmed Downtrend**: OBV trend `< -10%` with price falling → SELL\n'
+              '- **Neutral**: `-5% ≤ OBV trend ≤ +5%` → HOLD\n'
+              '\n'
+              '_Leading indicator: volume changes often precede price movements._'
+        };
+      case 'vwap':
+        return {
+          'title': 'VWAP (Volume Weighted Average Price)',
+          'description':
+              'VWAP represents the average price weighted by volume throughout the trading session. Price below VWAP suggests '
+                  'undervaluation (potential BUY), while price above VWAP indicates overvaluation (potential SELL). Institutional '
+                  'traders use VWAP as a benchmark for execution quality. Bands at ±1σ and ±2σ provide support/resistance levels.',
+          'technicalDetails': '**Formulas**:\n'
+              '- `Typical Price = (High + Low + Close) / 3`\n'
+              '- `VWAP = Σ(Typical Price × Volume) / Σ(Volume)`\n'
+              '- Standard Deviation: Sample StdDev of typical prices from VWAP\n'
+              '\n'
+              '**Bands**:\n'
+              '- Upper Band 1σ: `VWAP + 1 StdDev`\n'
+              '- Lower Band 1σ: `VWAP - 1 StdDev`\n'
+              '- Upper Band 2σ: `VWAP + 2 StdDev`\n'
+              '- Lower Band 2σ: `VWAP - 2 StdDev`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Below -2σ**: Oversold → BUY (strong)\n'
+              '- **Below -1σ**: Undervalued → BUY\n'
+              '- **Above +1σ**: Overvalued → SELL\n'
+              '- **Above +2σ**: Overbought → SELL (strong)\n'
+              '\n'
+              '_Institutional benchmark for execution quality. Resets each trading session._'
+        };
+      case 'adx':
+        return {
+          'title': 'ADX (Average Directional Index)',
+          'description':
+              'ADX measures trend strength regardless of direction. Values above 25 indicate a strong trend, above 40 indicates '
+                  'a very strong trend, while below 20 suggests a weak or ranging market. Combined with +DI and -DI to determine '
+                  'trend direction: +DI > -DI suggests bullish trend (BUY), -DI > +DI suggests bearish trend (SELL).',
+          'technicalDetails': '**Parameters**: `14 bars` (requires 28+ bars total)\n'
+              '\n'
+              '**Formulas**:\n'
+              '- `+DM = Current High - Previous High` (if > 0 and > -DM)\n'
+              '- `-DM = Previous Low - Current Low` (if > 0 and > +DM)\n'
+              '- `True Range = max(High - Low, |High - Prev Close|, |Low - Prev Close|)`\n'
+              '- `+DI = (Smoothed +DM / Smoothed TR) × 100`\n'
+              '- `-DI = (Smoothed -DM / Smoothed TR) × 100`\n'
+              '- `DX = (|+DI - -DI| / (+DI + -DI)) × 100`\n'
+              '- `ADX = 14-period smoothed average of DX` (Wilder\'s smoothing)\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Bullish**: `ADX > 25` and `+DI > -DI` → BUY (strong if `ADX > 40`)\n'
+              '- **Bearish**: `ADX > 25` and `-DI > +DI` → SELL (strong if `ADX > 40`)\n'
+              '- **Weak/Ranging**: `ADX < 20` → HOLD\n'
+              '\n'
+              '_Non-directional trend strength: ADX only shows strength, DI shows direction._'
+        };
+      case 'williamsR':
+        return {
+          'title': 'Williams %R',
+          'description':
+              'Williams %R is a momentum oscillator ranging from -100 to 0. Values below -80 indicate oversold conditions '
+                  '(potential BUY), while values above -20 indicate overbought conditions (potential SELL). Similar to Stochastic '
+                  'but inverted. Rising from oversold or falling from overbought regions provides stronger reversal signals.',
+          'technicalDetails':
+              '**Formula**: `((Highest High - Close) / (Highest High - Lowest Low)) × -100`\n'
+                  '\n'
+                  '**Parameters**:\n'
+                  '- Period: `14 bars` for highest/lowest calculation\n'
+                  '- Range: `-100` (oversold) to `0` (overbought)\n'
+                  '\n'
+                  '**Signals**:\n'
+                  '- **Oversold**: `%R ≤ -80` → BUY\n'
+                  '- **Oversold Reversal**: %R rising from `≤ -80` → BUY (stronger signal)\n'
+                  '- **Overbought**: `%R ≥ -20` → SELL\n'
+                  '- **Overbought Reversal**: %R falling from `≥ -20` → SELL (stronger signal)\n'
+                  '- **Neutral**: `-80 < %R < -20` → HOLD\n'
+                  '\n'
+                  '_Similar to Stochastic but inverted scale. Fast-reacting oscillator for momentum shifts._'
         };
       default:
         return {
           'title': 'Technical Indicator',
-          'documentation':
-              'Technical indicator used to analyze market conditions and generate trading signals.'
+          'description':
+              'Technical indicator used to analyze market conditions and generate trading signals.',
+          'technicalDetails': ''
         };
     }
   }
@@ -193,6 +398,7 @@ class TradeSignalsProvider with ChangeNotifier {
   Future<void> fetchAllTradeSignals({
     String? signalType,
     List<String>? indicators,
+    int? minSignalStrength,
     DateTime? startDate,
     DateTime? endDate,
     List<String>? symbols,
@@ -212,6 +418,7 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint('🚀 Setting up new trade signals subscription with filters:');
     debugPrint('   Signal type: $signalType');
     debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
+    debugPrint('   Min signal strength: $minSignalStrength');
     debugPrint('   Start date: $startDate');
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
@@ -233,6 +440,10 @@ class TradeSignalsProvider with ChangeNotifier {
                 isEqualTo: signalType);
           }
         }
+      }
+      if (minSignalStrength != null) {
+        query = query.where('multiIndicatorResult.signalStrength',
+            isGreaterThanOrEqualTo: minSignalStrength);
       }
 
       query = query.where('interval', isEqualTo: effectiveInterval);

@@ -47,6 +47,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
@@ -1283,7 +1284,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ]
                 ]));
           }),
-          if (instrument.tradeableChainId != null) ...[
+          if (instrument.tradeable) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,
@@ -1483,20 +1484,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
             ],
             const SizedBox(width: 8),
-            FilledButton(
-              child: const Text('TRADE'),
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => TradeInstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            instrument: instrument,
-                            positionType: "Buy",
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                          ))),
-            ),
+            if (instrument.tradeable) ...[
+              FilledButton(
+                child: const Text('TRADE'),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeInstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              instrument: instrument,
+                              positionType: "Buy",
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            ))),
+              ),
+            ],
             const SizedBox(width: 4),
           ],
         ),
@@ -3460,7 +3463,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'bollingerBands',
             'stochastic',
             'atr',
-            'obv'
+            'obv',
+            'vwap',
+            'adx',
+            'williamsR',
           ]) {
             if (enabledIndicators[key] == true) {
               final indicator = indicators[key] as Map<String, dynamic>?;
@@ -3477,6 +3483,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           displayAllGreen = false;
           displayAllRed = false;
         }
+
+        // Extract signal strength
+        final signalStrength = multiIndicator['signalStrength'] as int?;
 
         final Color borderColor = displayAllGreen
             ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
@@ -3543,6 +3552,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 _buildDocSection('stochastic'),
                                 _buildDocSection('atr'),
                                 _buildDocSection('obv'),
+                                _buildDocSection('vwap'),
+                                _buildDocSection('adx'),
+                                _buildDocSection('williamsR'),
                               ],
                             ),
                           ),
@@ -3606,9 +3618,129 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       'obv',
                       indicators['obv'] as Map<String, dynamic>?,
                       enabledIndicators['obv'] == true),
+                  _buildIndicatorRow(
+                      'VWAP',
+                      'vwap',
+                      indicators['vwap'] as Map<String, dynamic>?,
+                      enabledIndicators['vwap'] == true),
+                  _buildIndicatorRow(
+                      'ADX (Trend Strength)',
+                      'adx',
+                      indicators['adx'] as Map<String, dynamic>?,
+                      enabledIndicators['adx'] == true),
+                  _buildIndicatorRow(
+                      'Williams %R',
+                      'williamsR',
+                      indicators['williamsR'] as Map<String, dynamic>?,
+                      enabledIndicators['williamsR'] == true),
                 ],
               ),
               const SizedBox(height: 12),
+              // Signal Strength gauge
+              if (signalStrength != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.grey.shade800.withOpacity(0.5)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Signal Strength',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getSignalStrengthColor(signalStrength)
+                                  .withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.speed,
+                                  size: 16,
+                                  color:
+                                      _getSignalStrengthColor(signalStrength),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$signalStrength/100',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color:
+                                        _getSignalStrengthColor(signalStrength),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: signalStrength / 100,
+                          minHeight: 8,
+                          backgroundColor: isDark
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade300,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _getSignalStrengthColor(signalStrength),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Bearish',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.red.shade400,
+                            ),
+                          ),
+                          Text(
+                            'Neutral',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          Text(
+                            'Bullish',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12.0),
@@ -3751,30 +3883,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildDocSection(String key) {
-    final docInfo = TradeSignalsProvider.indicatorDocumentation(key);
-    final title = docInfo['title'] ?? '';
-    final documentation = docInfo['documentation'] ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            documentation,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
-      ),
+    return IndicatorDocumentationWidget(
+      indicatorKey: key,
+      showContainer: false,
     );
+  }
+
+  /// Returns color based on signal strength value (0-100).
+  /// 0-33: Red (bearish), 34-66: Grey (neutral), 67-100: Green (bullish)
+  Color _getSignalStrengthColor(int strength) {
+    if (strength >= 67) {
+      return Colors.green;
+    } else if (strength <= 33) {
+      return Colors.red;
+    } else {
+      return Colors.grey;
+    }
   }
 
   Widget _buildAgenticTradeSignals(Instrument instrument) {
@@ -3936,9 +4060,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           const SizedBox(height: 8),
-          Consumer3<TradeSignalsProvider, AccountStore, AgenticTradingProvider>(
-            builder: (context, tradeSignalsProvider, accountStore,
-                agenticTradingProvider, child) {
+          Consumer2<TradeSignalsProvider, AccountStore>(
+            builder: (context, tradeSignalsProvider, accountStore, child) {
               final signal = tradeSignalsProvider.tradeSignal;
               if (signal == null || signal.isEmpty) {
                 return Card(
@@ -3974,78 +4097,84 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final timestamp = DateTime.fromMillisecondsSinceEpoch(
                   signal['timestamp'] as int);
               var signalType = signal['signal'] ?? 'HOLD';
-              String? recalculatedReason;
+              // String? recalculatedReason;
               final signalInterval = signal['interval'] ?? '1d';
               final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
 
-              // Recalculate overall signal based on enabled indicators
-              if (multiIndicator != null) {
-                final indicators =
-                    multiIndicator['indicators'] as Map<String, dynamic>?;
-                if (indicators != null) {
-                  final enabledIndicators =
-                      agenticTradingProvider.config['enabledIndicators']
-                              as Map<String, dynamic>? ??
-                          {};
-                  final enabledCount =
-                      enabledIndicators.values.where((v) => v == true).length;
+              // // Recalculate overall signal based on enabled indicators
+              // if (multiIndicator != null) {
+              //   final indicators =
+              //       multiIndicator['indicators'] as Map<String, dynamic>?;
+              //   if (indicators != null) {
+              //     final agenticTradingProvider =
+              //         Provider.of<AgenticTradingProvider>(context,
+              //             listen: false);
+              //     final enabledIndicators =
+              //         agenticTradingProvider.config['enabledIndicators']
+              //                 as Map<String, dynamic>? ??
+              //             {};
+              //     final enabledCount =
+              //         enabledIndicators.values.where((v) => v == true).length;
 
-                  if (enabledCount > 0) {
-                    final enabledSignals = <String>[];
-                    for (final key in [
-                      'priceMovement',
-                      'momentum',
-                      'marketDirection',
-                      'volume',
-                      'macd',
-                      'bollingerBands',
-                      'stochastic',
-                      'atr',
-                      'obv'
-                    ]) {
-                      if (enabledIndicators[key] == true) {
-                        final indicator =
-                            indicators[key] as Map<String, dynamic>?;
-                        final sig = indicator?['signal'] as String?;
-                        if (sig != null) {
-                          enabledSignals.add(sig);
-                        }
-                      }
-                    }
+              //     if (enabledCount > 0) {
+              //       final enabledSignals = <String>[];
+              //       for (final key in [
+              //         'priceMovement',
+              //         'momentum',
+              //         'marketDirection',
+              //         'volume',
+              //         'macd',
+              //         'bollingerBands',
+              //         'stochastic',
+              //         'atr',
+              //         'obv',
+              //         'vwap',
+              //         'adx',
+              //         'williamsR',
+              //       ]) {
+              //         if (enabledIndicators[key] == true) {
+              //           final indicator =
+              //               indicators[key] as Map<String, dynamic>?;
+              //           final sig = indicator?['signal'] as String?;
+              //           if (sig != null) {
+              //             enabledSignals.add(sig);
+              //           }
+              //         }
+              //       }
 
-                    if (enabledSignals.isNotEmpty) {
-                      final allBuy = enabledSignals.every((s) => s == 'BUY');
-                      final allSell = enabledSignals.every((s) => s == 'SELL');
-                      final buyCount =
-                          enabledSignals.where((s) => s == 'BUY').length;
-                      final sellCount =
-                          enabledSignals.where((s) => s == 'SELL').length;
-                      final holdCount =
-                          enabledSignals.where((s) => s == 'HOLD').length;
+              //       if (enabledSignals.isNotEmpty) {
+              //         final allBuy = enabledSignals.every((s) => s == 'BUY');
+              //         final allSell = enabledSignals.every((s) => s == 'SELL');
+              //         final buyCount =
+              //             enabledSignals.where((s) => s == 'BUY').length;
+              //         final sellCount =
+              //             enabledSignals.where((s) => s == 'SELL').length;
+              //         final holdCount =
+              //             enabledSignals.where((s) => s == 'HOLD').length;
 
-                      if (allBuy) {
-                        signalType = 'BUY';
-                        recalculatedReason =
-                            'All $enabledCount enabled indicators are GREEN - Strong BUY signal';
-                      } else if (allSell) {
-                        signalType = 'SELL';
-                        recalculatedReason =
-                            'All $enabledCount enabled indicators are RED - Strong SELL signal';
-                      } else {
-                        signalType = 'HOLD';
-                        recalculatedReason =
-                            'Mixed signals ($enabledCount enabled) - BUY: $buyCount, SELL: $sellCount, HOLD: $holdCount. Need all $enabledCount indicators aligned for action.';
-                      }
-                    }
-                  } else {
-                    signalType = 'HOLD';
-                    recalculatedReason =
-                        'No indicators enabled - cannot generate signal';
-                  }
-                }
-              }
+              //         if (allBuy) {
+              //           signalType = 'BUY';
+              //           recalculatedReason =
+              //               'All $enabledCount enabled indicators are GREEN - Strong BUY signal';
+              //         } else if (allSell) {
+              //           signalType = 'SELL';
+              //           recalculatedReason =
+              //               'All $enabledCount enabled indicators are RED - Strong SELL signal';
+              //         } else {
+              //           signalType = 'HOLD';
+              //           recalculatedReason =
+              //               'Mixed signals ($enabledCount enabled) - BUY: $buyCount, SELL: $sellCount, HOLD: $holdCount. Need all $enabledCount indicators aligned for action.';
+              //         }
+              //       }
+              //     } else {
+              //       signalType = 'HOLD';
+              //       recalculatedReason =
+              //           'No indicators enabled - cannot generate signal';
+              //     }
+              //   }
+              // }
 
               // Determine signal color and icon
               Color signalColor;
@@ -4181,9 +4310,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  recalculatedReason ??
-                                      signal['reason'] ??
-                                      'No reason provided',
+                                  // recalculatedReason ??
+                                  signal['reason'] ?? 'No reason provided',
                                   style: const TextStyle(fontSize: 14),
                                 ),
                               ],

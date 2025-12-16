@@ -47,6 +47,9 @@ class BacktestConfig {
               'stochastic': true,
               'atr': true,
               'obv': true,
+              'vwap': true,
+              'adx': true,
+              'williamsR': true,
             };
 
   Map<String, dynamic> toJson() => {

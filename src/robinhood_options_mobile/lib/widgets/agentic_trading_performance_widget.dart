@@ -1996,6 +1996,9 @@ class _AgenticTradingPerformanceWidgetState
         'stochastic': 'Stoch',
         'atr': 'ATR',
         'obv': 'OBV',
+        'vwap': 'VWAP',
+        'adx': 'ADX',
+        'williamsR': 'W%R',
       };
       return labels[key] ?? key;
     }
