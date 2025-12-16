@@ -8,13 +8,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
 
 ### Quick Stats
-- **Completed Features**: 8 major categories (50+ items)
-- **Planned Enhancements**: 16 categories (150+ items)
+- **Completed Features**: 9 major categories (60+ items)
+- **Planned Enhancements**: 15 categories (140+ items)
 - **Open GitHub Issues**: 12 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**
 - 🔥 **In Progress**: Copy Trading Auto-Execute, Advanced Risk Controls
 - 🎯 **Upcoming**: Strategy Templates, Partial Exits, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -40,14 +40,22 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Multiple time intervals (15m, 1h, 1d)
 - ✅ Export and share backtest results
 
-### v0.19.1 (Late December 2025)
+### v0.20.0 ✅ (Released Dec 16, 2025)
+**Advanced Signal Filtering & 12-Indicator System**
+- ✅ Advanced Trade Signal Filtering (Strength, 4-Way Filters)
+- ✅ Dedicated Search Widgets (Screener, Presets)
+- ✅ 12-Indicator System (Added VWAP, ADX, Williams %R)
+- ✅ In-App Indicator Documentation
+- ✅ Server-Side Filtering Performance Improvements
+
+### v0.21.0 (Late December 2025)
 **Copy Trading & Risk Controls Phase 1**
 - Trade Approval Workflow (review before execution)
 - Signal Optimization (ML-powered improvements)
 - Custom Indicators (create your own indicators)
 - UI improvements & bug fixes
 
-### v0.20.0 (Q1 2026 - Early January)
+### v0.22.0 (Q1 2026 - Early January)
 **Copy Trading Enhancement & Risk Controls**
 - Auto-Execute for Copy Trading
 - Advanced Risk Controls (sector limits, correlation checks)
@@ -56,7 +64,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Copy Trade Performance Dashboard
 - Approval workflow for automated copying
 
-### v0.21.0 (Q1 2026 - Late January)
+### v0.23.0 (Q1 2026 - Late January)
 **Strategy Optimization & Custom Indicators**
 - Signal Optimization (ML-powered improvements)
 - Custom Indicators (create your own indicators)
@@ -64,7 +72,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Trade Approval Workflow
 - Advanced backtesting filters
 
-### v0.22.0 (Q2 2026 - Mid February)
+### v0.24.0 (Q2 2026 - Mid February)
 **Schwab API Integration - Phase 1**
 - Portfolio & position streaming from Schwab
 - Market data & quotes integration
@@ -73,7 +81,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Firestore sync for Schwab positions
 - Order history from Schwab
 
-### v0.23.0 (Q2 2026 - Late March)
+### v0.25.0 (Q2 2026 - Late March)
 **Schwab API Integration - Phase 2 & Futures**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -82,7 +90,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.24.0 (Q2 2026 - Late April)
+### v0.26.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Multi-leg options (spreads, complex strategies)
@@ -91,7 +99,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.25.0 (Q2-Q3 2026 - Late May)
+### v0.27.0 (Q2-Q3 2026 - Late May)
 **Crypto & Forex Trading**
 - Crypto asset class support
 - Forex trading (currency pairs)
@@ -100,7 +108,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
 
-### v0.26.0 (Q3 2026 - Mid June)
+### v0.28.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
 - Generative AI Assistant (natural language queries)
 - AI-powered portfolio insights
@@ -109,7 +117,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Risk exposure heatmaps
 - Dividend projection & tracking
 
-### v0.27.0 (Q3 2026 - Late July)
+### v0.29.0 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)
@@ -118,7 +126,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Group settings & administration
 - Real-time member notifications
 
-### v0.28.0 (Q3 2026 - Late August)
+### v0.30.0 (Q3 2026 - Late August)
 **Real-Time Alerts & Monitoring**
 - Custom price/volume/volatility alerts
 - Rich push notifications with data
@@ -128,7 +136,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Options expiration alerts
 - Unusual activity detection
 
-### v0.29.0 (Q3 2026 - Late September)
+### v0.31.0 (Q3 2026 - Late September)
 **Social Platform Foundation**
 - Follow portfolios
 - Portfolio comparison tools
@@ -138,7 +146,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Achievement badges
 - Social feed
 
-### v0.30.0 (Q4 2026 - Late October)
+### v0.32.0 (Q4 2026 - Late October)
 **Security & Compliance**
 - Biometric authentication (FaceID/TouchID)
 - Two-factor authentication (2FA)
@@ -148,7 +156,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Security audit implementation
 - Regulatory documentation
 
-### v0.31.0 (Q4 2026 - Late November)
+### v0.33.0 (Q4 2026 - Late November)
 **Mobile Experience & Polish**
 - Deep linking support
 - Home screen widgets
@@ -158,7 +166,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Dark mode enhancements
 - Performance optimizations
 
-### v0.32.0 (Q4 2026 - Late December)
+### v0.34.0 (Q4 2026 - Late December)
 **Advanced Social & Community**
 - Group analytics & insights
 - Advanced search & filtering
@@ -167,7 +175,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Influencer following features
 - Community marketplace
 
-### v0.33.0 (2027 Q1)
+### v0.35.0 (2027 Q1)
 **Compliance & Regulatory**
 - Full SEC/FINRA compliance
 - Regulatory reporting (Form 3, etc.)
@@ -177,7 +185,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-jurisdiction support
 
 ### Version Statistics
-- **Current**: v0.19.0 (Released Dec 15, 2025)
+- **Current**: v0.20.0 (Released Dec 16, 2025)
 - **Planned Releases**: 14+ versions through 2027
 - **Features Per Release**: 5-8 per minor version
 - **Release Cadence**: Monthly in 2026, bi-weekly starting 2027
@@ -186,14 +194,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### Feature Maturity by Version
 | Feature | v0.19 | v0.20 | v0.21 | v0.22 | v0.23 | v0.24 | v0.25 | v0.26+ |
 |---------|-------|-------|-------|-------|-------|-------|-------|--------|
-| Agentic Trading | ✅ Complete | Stable | Stable | Stable | Stable | Stable | Stable | Mature |
-| Copy Trading | ✅ Manual | Auto ✅ | Auto | Auto | Auto | Auto | Auto | Mature |
-| Backtesting | ✅ Complete | Stable | Enhanced | Enhanced | Stable | Stable | Stable | Mature |
-| Multi-Brokerage | Robinhood | Robinhood | Robinhood | Schwab+RH ✅ | Schwab+RH | 3 Brokers | 3+ Assets | Mature |
-| Analytics | ✅ Advanced | Advanced | Advanced | Advanced | Advanced | Advanced | AI+Adv | Mature |
-| Futures | Enriched | Enriched | Trading ✅ | Trading | Trading | Stable | Stable | Mature |
-| Crypto/Forex | — | — | — | — | — | ✅ Launch | Stable | Mature |
-| AI Assistant | — | — | — | — | — | — | ✅ Launch | Mature |
+| Agentic Trading | ✅ Complete | ✅ Enhanced | Stable | Stable | Stable | Stable | Stable | Mature |
+| Copy Trading | ✅ Manual | ✅ Manual | Approval | Auto | Auto | Auto | Auto | Mature |
+| Backtesting | ✅ Complete | ✅ Stable | Enhanced | Enhanced | Stable | Stable | Stable | Mature |
+| Multi-Brokerage | Robinhood | Robinhood | Robinhood | Robinhood | Schwab+RH | Schwab+RH | 3 Brokers | Mature |
+| Analytics | ✅ Advanced | ✅ Filtered | Advanced | Advanced | Advanced | Advanced | AI+Adv | Mature |
+| Futures | Enriched | Enriched | Enriched | Trading | Trading | Trading | Stable | Mature |
+| Crypto/Forex | — | — | — | — | — | — | ✅ Launch | Mature |
+| AI Assistant | — | — | — | — | — | — | — | ✅ Launch |
 | Social | — | — | — | — | — | — | — | ✅ Launch |
 
 
@@ -205,9 +213,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Risk Management**: Advanced Risk Controls, Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
 
 ### Strategy Development & Optimization
-- **Signal Analysis**: Multi-indicator System (✅), Custom Indicators, Signal Optimization, Backtesting Interface
-- **Strategy Management**: Strategy Templates, Social Signal Sharing, Indicator Combo Performance (✅)
-- **Execution Validation**: Trade Approval Workflow, Paper Trading Mode (✅), Performance Testing
+- **Signal Analysis**: 12-Indicator System (✅), Signal Strength Filtering (✅), Custom Indicators, Signal Optimization
+- **Strategy Management**: Strategy Templates (✅), Social Signal Sharing, Indicator Combo Performance (✅)
+- **Execution Validation**: Backtesting Interface (✅), Trade Approval Workflow, Paper Trading Mode (✅)
 
 ### Multi-Brokerage & Asset Coverage
 - **Brokerage Integration**: Schwab, Fidelity, Plaid, Interactive Brokers
@@ -278,9 +286,9 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 ### Critical Dependencies by Priority
 
 **Priority 1 Dependencies:**
-- **Backtesting Interface** ← Requires: Agentic Trading (✅), Trade Signals (✅), Historical Data Access
-- **Signal Optimization** ← Requires: Backtesting Interface, Performance Analytics
-- **Custom Indicators** ← Requires: Multi-indicator System (✅), Signal Analysis Infrastructure
+- **Backtesting Interface (✅)** ← Requires: Agentic Trading (✅), Trade Signals (✅), Historical Data Access
+- **Signal Optimization** ← Requires: Backtesting Interface (✅), Performance Analytics
+- **Custom Indicators** ← Requires: 12-Indicator System (✅), Signal Analysis Infrastructure
 - **Trade Approval Workflow** ← Requires: Agentic Trading (✅), Order Execution Framework
 - **Advanced Risk Controls** ← Requires: Agentic Trading (✅), Portfolio State Management (✅)
 - **Copy Trading Auto-Execute** ← Requires: Copy Trading Manual (✅), WebSocket/Real-time Updates
