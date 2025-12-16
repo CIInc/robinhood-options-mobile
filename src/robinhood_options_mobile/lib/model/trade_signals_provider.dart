@@ -300,17 +300,15 @@ class TradeSignalsProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   List<Map<String, dynamic>> _tradeSignals = [];
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-      _tradeSignalsSubscription;
   List<String>? _currentSymbols;
   int _currentLimit = 50;
-  bool _hasReceivedServerData = false;
   String? _selectedInterval; // Will be auto-set based on market hours
 
   String? _tradeProposalMessage;
   Map<String, dynamic>? _lastTradeProposal;
   Map<String, dynamic>? _lastAssessment;
   bool _isTradeInProgress = false;
+  bool _isLoading = false;
   Map<String, dynamic>? _tradeSignal;
 
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
@@ -318,6 +316,7 @@ class TradeSignalsProvider with ChangeNotifier {
   Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
   Map<String, dynamic>? get lastAssessment => _lastAssessment;
   bool get isTradeInProgress => _isTradeInProgress;
+  bool get isLoading => _isLoading;
   Map<String, dynamic>? get tradeSignal => _tradeSignal;
   String get selectedInterval {
     final interval = _selectedInterval ?? _getDefaultInterval();
@@ -335,11 +334,8 @@ class TradeSignalsProvider with ChangeNotifier {
   @override
   void dispose() {
     debugPrint('🧹 Disposing TradeSignalsProvider - cancelling subscription');
-    _tradeSignalsSubscription?.cancel();
     super.dispose();
   }
-
-  bool get hasActiveSubscription => _tradeSignalsSubscription != null;
 
   Future<void> fetchTradeSignal(String symbol, {String? interval}) async {
     try {
@@ -398,27 +394,27 @@ class TradeSignalsProvider with ChangeNotifier {
   Future<void> fetchAllTradeSignals({
     String? signalType,
     List<String>? indicators,
+    Map<String, String>? indicatorFilters,
     int? minSignalStrength,
+    int? maxSignalStrength,
     DateTime? startDate,
     DateTime? endDate,
     List<String>? symbols,
     int? limit,
     String? interval,
   }) async {
-    if (_tradeSignalsSubscription != null) {
-      debugPrint('🛑 Cancelling existing trade signals subscription');
-      _tradeSignalsSubscription!.cancel();
-      _tradeSignalsSubscription = null;
-    }
+    _isLoading = true;
+    notifyListeners();
 
-    _hasReceivedServerData = false;
     _currentSymbols = symbols;
     _currentLimit = limit ?? 50;
 
     debugPrint('🚀 Setting up new trade signals subscription with filters:');
     debugPrint('   Signal type: $signalType');
     debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
+    debugPrint('   Indicator Filters: $indicatorFilters');
     debugPrint('   Min signal strength: $minSignalStrength');
+    debugPrint('   Max signal strength: $maxSignalStrength');
     debugPrint('   Start date: $startDate');
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
@@ -430,7 +426,13 @@ class TradeSignalsProvider with ChangeNotifier {
 
       final effectiveInterval = interval ?? selectedInterval;
 
-      if (signalType != null && signalType.isNotEmpty) {
+      if (indicatorFilters != null && indicatorFilters.isNotEmpty) {
+        indicatorFilters.forEach((indicator, signal) {
+          query = query.where(
+              'multiIndicatorResult.indicators.$indicator.signal',
+              isEqualTo: signal);
+        });
+      } else if (signalType != null && signalType.isNotEmpty) {
         if (indicators == null || indicators.isEmpty) {
           query = query.where('signal', isEqualTo: signalType);
         } else {
@@ -444,6 +446,10 @@ class TradeSignalsProvider with ChangeNotifier {
       if (minSignalStrength != null) {
         query = query.where('multiIndicatorResult.signalStrength',
             isGreaterThanOrEqualTo: minSignalStrength);
+      }
+      if (maxSignalStrength != null) {
+        query = query.where('multiIndicatorResult.signalStrength',
+            isLessThanOrEqualTo: maxSignalStrength);
       }
 
       query = query.where('interval', isEqualTo: effectiveInterval);
@@ -471,86 +477,15 @@ class TradeSignalsProvider with ChangeNotifier {
       query = query.orderBy('timestamp', descending: true);
       query = query.limit(queryLimit);
 
-      query
-          .get(const GetOptions(source: Source.server))
-          .then((initialSnapshot) {
-        if (!_hasReceivedServerData) {
-          debugPrint(
-              '📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
-          _hasReceivedServerData = true;
-          _updateTradeSignalsFromSnapshot(
-              initialSnapshot, _currentSymbols, effectiveInterval);
-        }
-      }).catchError((e) {
-        debugPrint('⚠️ Initial server fetch failed: $e');
-      });
-
-      _tradeSignalsSubscription = query.snapshots().listen(
-        (snapshot) {
-          final timestamp = DateTime.now().toString().substring(11, 23);
-          debugPrint(
-              '🔔 [$timestamp] Firestore snapshot received: ${snapshot.docs.length} documents');
-          debugPrint(
-              '🔍 [$timestamp] Snapshot metadata - fromCache: ${snapshot.metadata.isFromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites}');
-
-          if (!_hasReceivedServerData) {
-            if (!snapshot.metadata.isFromCache) {
-              _hasReceivedServerData = true;
-              debugPrint(
-                  '📡 [$timestamp] First server snapshot - processing immediately');
-            } else if (snapshot.metadata.hasPendingWrites) {
-              debugPrint(
-                  '📝 [$timestamp] Processing cached snapshot with pending writes');
-            } else {
-              Future.delayed(const Duration(milliseconds: 1000), () {
-                if (!_hasReceivedServerData) {
-                  debugPrint(
-                      '⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
-                  _hasReceivedServerData = true;
-                  _updateTradeSignalsFromSnapshot(
-                      snapshot, _currentSymbols, effectiveInterval);
-                }
-              });
-              return;
-            }
-          }
-
-          if (!snapshot.metadata.isFromCache) {
-            _hasReceivedServerData = true;
-            debugPrint('📡 [$timestamp] Received data from server');
-          }
-
-          debugPrint('📋 [$timestamp] Document IDs in snapshot:');
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            debugPrint(
-                '   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
-          }
-
-          final beforeCount = _tradeSignals.length;
-          _updateTradeSignalsFromSnapshot(
-              snapshot, _currentSymbols, effectiveInterval);
-          final afterCount = _tradeSignals.length;
-
-          debugPrint(
-              '✅ [$timestamp] Processed $afterCount trade signals (was $beforeCount)');
-          if (_tradeSignals.isNotEmpty) {
-            debugPrint(
-                '   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');
-          }
-          debugPrint('📢 [$timestamp] Called notifyListeners()');
-        },
-        onError: (error) {
-          debugPrint('❌ Firestore subscription error: $error');
-          _tradeSignals = [];
-          _tradeProposalMessage =
-              'Failed to fetch trade signals: ${error.toString()}';
-          notifyListeners();
-        },
-      );
+      final snapshot = await query.get(const GetOptions(source: Source.server));
+      debugPrint('📥 Server fetch completed: ${snapshot.docs.length} docs');
+      _updateTradeSignalsFromSnapshot(
+          snapshot, _currentSymbols, effectiveInterval);
     } catch (e) {
       _tradeSignals = [];
       _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
+      debugPrint('❌ Error fetching trade signals: ${e.toString()}');
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -598,6 +533,7 @@ class TradeSignalsProvider with ChangeNotifier {
           .toList();
     }
 
+    _isLoading = false;
     notifyListeners();
   }
 

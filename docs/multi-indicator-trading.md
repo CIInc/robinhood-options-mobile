@@ -6,6 +6,15 @@ The multi-indicator automatic trading system correlates **12 technical indicator
 
 This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. The system also calculates a **Signal Strength score (0-100)** that quantifies the overall alignment of indicators.
 
+## Signal Discovery & Filtering
+
+Users can explore trade signals in the **Search** tab using advanced filtering options:
+
+1.  **Signal Strength**: Filter by **Strong** (75-100), **Moderate** (50-74), or **Weak** (0-49) signals.
+2.  **Indicator States**: Filter by specific indicator states using a 4-way toggle (Off/BUY/SELL/HOLD). For example, you can search for "RSI: BUY" and "MACD: BUY" to find specific momentum setups.
+
+*Note: Signal Strength and Indicator filters are exclusive. Selecting one type clears the other to ensure clear, non-conflicting results.*
+
 ## The 12 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)

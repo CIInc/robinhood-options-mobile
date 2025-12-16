@@ -16,7 +16,7 @@
 - Enhanced security and privacy for user data.
 - Customizable watchlists and alerts for market movements.
 - Advanced charting tools for technical analysis.
-- Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
+- Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
 
@@ -43,7 +43,9 @@ This feature adds investment profile configuration to user settings, allowing us
 The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
 
 ### Key Components
-- **Multi-Indicator Correlation:** Analyzes price patterns, RSI, market direction, and volume to generate high-confidence trade signals
+- **Multi-Indicator Correlation:** Analyzes 12 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) to generate high-confidence trade signals
+- **Signal Strength Visualization:** Color-coded signal strength scores (0-100) with filtering by minimum strength threshold
+- **Indicator Documentation Widget:** In-app technical reference for all 12 indicators with detailed explanations of signals, configuration, and technical details
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
 - **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
 - **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours

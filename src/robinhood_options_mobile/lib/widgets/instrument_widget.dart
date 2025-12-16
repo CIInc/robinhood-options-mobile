@@ -534,10 +534,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         //duration: Duration(milliseconds: 300),
                         opacity:
                             opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                        child: SingleChildScrollView(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: headerWidgets.toList())),
+                        child: Consumer<QuoteStore>(
+                            builder: (context, quoteStore, child) {
+                          return SingleChildScrollView(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children:
+                                      getHeaderWidgets(quoteStore).toList()));
+                        }),
                         /*
           ListTile(
             title: Text('${instrument.simpleName}'),
@@ -4444,300 +4448,69 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Iterable<Widget> get headerWidgets sync* {
+  Iterable<Widget> getHeaderWidgets(QuoteStore quoteStore) sync* {
     var instrument = widget.instrument;
-    // yield Row(children: const [SizedBox(height: 70)]);
-    yield Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+    var quoteObj = quoteStore.items
+        .firstWhereOrNull((element) => element.symbol == instrument.symbol);
+    quoteObj ??= instrument.quoteObj;
+
+    yield Padding(
+      padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 10,
+          Text(
+            '${instrument.name != "" ? instrument.name : instrument.simpleName}',
+            style: TextStyle(
+                fontSize: 16.0,
+                color: Theme.of(context).appBarTheme.foregroundColor),
+            textAlign: TextAlign.left,
           ),
-          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-            SizedBox(
-                width: 190,
-                child: Text(
-                  '${instrument.name != "" ? instrument.name : instrument.simpleName}',
-                  //instrument.simpleName ?? instrument.name,
-                  style: TextStyle(
-                      fontSize: 16.0,
-                      color: Theme.of(context).appBarTheme.foregroundColor),
-                  // Colors.white), // Theme.of(context).textTheme.bodyLarge!.color!),
-                  textAlign: TextAlign.left,
-                  //overflow: TextOverflow.ellipsis
-                ))
-          ]),
-          Container(
-            width: 10,
-          ),
-        ]);
-    /*
-    yield Row(children: const [SizedBox(height: 10)]);
-    */
-    if (instrument.quoteObj != null) {
-      /*
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
+          if (quoteObj != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              formatCurrency.format(quoteObj.lastTradePrice),
+              style:
+                  const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
             ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
-              SizedBox(
-                width: 60,
-                child: Text(
-                  "Today",
-                  style: TextStyle(fontSize: 10.0),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                    quoteObj.changeToday > 0
+                        ? Icons.trending_up
+                        : (quoteObj.changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (quoteObj.changeToday > 0
+                        ? Colors.lightGreenAccent
+                        : (quoteObj.changeToday < 0
+                            ? Colors.red
+                            : Colors.grey)),
+                    size: 20.0),
+                const SizedBox(width: 4),
+                Text(
+                  formatPercentage.format(quoteObj.changePercentToday),
+                  style: const TextStyle(fontSize: 16.0),
                 ),
-              )
-            ]),
-            Container(
-              width: 5,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              SizedBox(
-                  width: 60,
-                  child: Wrap(children: [
-                    Icon(
-                        instrument.quoteObj!.changeToday > 0
-                            ? Icons.trending_up
-                            : (instrument.quoteObj!.changeToday < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (instrument.quoteObj!.changeToday > 0
-                            ? Colors.lightGreenAccent
-                            : (instrument.quoteObj!.changeToday < 0
-                                ? Colors.red
-                                : Colors.grey)),
-                        size: 14.0),
-                    Container(
-                      width: 2,
-                    ),
-                    Text(
-                        formatPercentage
-                            .format(instrument.quoteObj!.changePercentToday),
-                        style: const TextStyle(fontSize: 12.0)),
-                  ]))
-            ]),
-            Container(
-              width: 5,
-            ),
-            SizedBox(
-                width: 60,
-                child: Text(
-                    "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
-                    style: const TextStyle(fontSize: 12.0),
-                    textAlign: TextAlign.right)),
-            Container(
-              width: 10,
-            ),
-          ]);
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  "Last Price",
-                  style: TextStyle(fontSize: 10.0),
+                const SizedBox(width: 8),
+                Text(
+                  "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
+                  style: const TextStyle(fontSize: 16.0),
                 ),
-              )
-            ]),
-            Container(
-              width: 5,
+              ],
             ),
-            SizedBox(
-                width: 115,
-                child: Text(
-                    formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                    style: const TextStyle(fontSize: 12.0),
-                    textAlign: TextAlign.right)),
-            Container(
-              width: 10,
-            ),
-          ]);
-          */
-      /*
-      if (instrument.quoteObj!.lastExtendedHoursTradePrice != null) {
-        yield Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Container(
-                width: 10,
+            if (quoteObj.lastExtendedHoursTradePrice != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                "After Hours: ${formatCurrency.format(quoteObj.lastExtendedHoursTradePrice)}",
+                style: const TextStyle(fontSize: 12.0, color: Colors.grey),
               ),
-              Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: const [
-                    SizedBox(
-                      width: 70,
-                      child: Text(
-                        "After Hours",
-                        style: TextStyle(fontSize: 10.0),
-                      ),
-                    )
-                  ]),
-              Container(
-                width: 5,
-              ),
-              SizedBox(
-                  width: 115,
-                  child: Text(
-                      formatCurrency.format(
-                          instrument.quoteObj!.lastExtendedHoursTradePrice),
-                      style: const TextStyle(fontSize: 12.0),
-                      textAlign: TextAlign.right)),
-              Container(
-                width: 10,
-              ),
-            ]);
-      }
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  "Bid",
-                  style: TextStyle(fontSize: 10.0),
-                ),
-              )
-            ]),
-            Container(
-              width: 5,
-            ),
-            SizedBox(
-                width: 115,
-                child: //Wrap(children: [
-                    Text(
-                        "${formatCurrency.format(instrument.quoteObj!.bidPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.bidSize)}",
-                        style: const TextStyle(fontSize: 12.0),
-                        textAlign: TextAlign.right)
-                //]),
-                ),
-            Container(
-              width: 10,
-            ),
-          ]);
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  "Ask",
-                  style: TextStyle(fontSize: 10.0),
-                ),
-              )
-            ]),
-            Container(
-              width: 5,
-            ),
-            SizedBox(
-                width: 115,
-                child: Text(
-                    "${formatCurrency.format(instrument.quoteObj!.askPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-                    style: const TextStyle(fontSize: 12.0),
-                    textAlign: TextAlign.right)),
-            Container(
-              width: 10,
-            ),
-          ]);
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  "Previous Close",
-                  style: TextStyle(fontSize: 10.0),
-                ),
-              )
-            ]),
-            Container(
-              width: 5,
-            ),
-            SizedBox(
-                width: 115,
-                child: Text(
-                    formatCurrency
-                        .format(instrument.quoteObj!.adjustedPreviousClose),
-                    style: const TextStyle(fontSize: 12.0),
-                    textAlign: TextAlign.right)),
-            Container(
-              width: 10,
-            ),
-          ]);
-          */
-    }
-    /*
-    yield Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Container(
-            width: 10,
-          ),
-          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-            const SizedBox(
-              width: 70,
-              child: Text(
-                "Extended Hours Price",
-                style: TextStyle(fontSize: 10.0),
-              ),
-            )
-          ]),
-          Container(
-            width: 5,
-          ),
-          SizedBox(
-              width: 115,
-              child: Text(
-                  "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
-                  style: const TextStyle(fontSize: 12.0),
-                  textAlign: TextAlign.right)),
-          Container(
-            width: 10,
-          ),
-        ]);
-        */
-    /*
-      Row(children: [
-        Text(
-            '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
-            style: const TextStyle(fontSize: 17.0)),
-      ])
-      */
+            ]
+          ]
+        ],
+      ),
+    );
   }
 }
 

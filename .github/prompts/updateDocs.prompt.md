@@ -21,14 +21,16 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Any other .md files
 
 3. **Update pubspec.yaml**:
-   - Increment a new version in pubspec.yaml based on semantic versioning rules:
+   - Check the current version number compared the argument provided (if any)
+   - If different, increment a new version in pubspec.yaml based on semantic versioning rules:
      - Major version for breaking changes
      - Minor version for new features
      - Patch version for bug fixes
-   - Ensure the build number is incremented appropriately
+   - Ensure the build number is incremented appropriately only if the version number changes
 
 3. **Update CHANGELOG.md**:
    - Add a new version section with the current date (using the version defined in pubspec.yaml)
+   - Create a title for the new version
    - Document all features added, changed, fixed, removed, and performance improvements
    - Use clear, descriptive bullet points
    - Group related changes together

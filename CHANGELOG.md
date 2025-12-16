@@ -4,6 +4,84 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.0] - 2025-12-15
+
+### Added
+- **Advanced Trade Signal Filtering:**
+  - **Signal Strength Filters:** Filter signals by Strong (75-100), Moderate (50-74), or Weak (0-49) categories.
+  - **4-Way Indicator Filters:** Granular control for each of the 12 indicators (Off, BUY, SELL, HOLD).
+  - **Exclusive Filtering:** Smart logic prevents conflicting queries by toggling between strength and indicator modes.
+- **Dedicated Search Widgets:**
+  - **ScreenerWidget:** Standalone widget for fundamental stock screening (Market Cap, P/E, etc.).
+  - **PresetsWidget:** Standalone widget for Yahoo Finance preset screeners.
+  - **SearchWidget:** Streamlined UI with navigation to new screener widgets.
+- **Performance Improvements:**
+  - **Server-Side Filtering:** Moved all trade signal filtering to Firestore for faster results and reduced data usage.
+  - **Optimized Querying:** Removed real-time subscriptions for search queries to improve UI responsiveness.
+  - **Composite Indexes:** Added new Firestore indexes to support complex multi-factor queries.
+
+### Changed
+- **Search UI:** Reorganized Search tab to feature "Stock Screener" and "Presets" buttons instead of inline lists.
+- **TradeSignalsProvider:** Refactored to support server-side filtering and single-fetch queries.
+- **Documentation:** Updated Agentic Trading and Multi-Indicator Trading docs with new filtering capabilities.
+
+### Fixed
+- **Initial Load:** Fixed issue where trade signals wouldn't appear on first load due to loading state logic.
+- **Error Handling:** Improved error messaging when trade signal fetching fails.
+
+    - SELL signal when %R > -20 (overbought) or -80 ≤ %R < -50 (bearish momentum)
+    - Provides early reversal signals and complements RSI analysis
+
+- **Indicator Documentation Widget:** New in-app technical reference system
+  - Comprehensive documentation for all 12 indicators accessible from settings
+  - Each indicator page includes: purpose, signals (BUY/SELL/HOLD), configuration, technical details
+  - Interactive help icon in indicator toggle cards links to full documentation
+  - Educational resource for understanding each indicator's role in the trading system
+  - Helps users make informed decisions about which indicators to enable
+
+- **Enhanced Signal Strength Display:** Improved visualization of trade signal quality
+  - Signal strength score (0-100) now prominently displayed with color-coded visual indicators
+  - Strength categories: Strong (75-100, green), Moderate (50-74, orange), Weak (0-49, red)
+  - Filter trade signals by minimum strength threshold in Search widget
+  - Signal strength chip with icon and percentage in Instrument widget
+  - Better understanding of signal confidence before entering trades
+
+### Changed
+- **Updated Trade Signal System:** All references to indicator count updated from 9 to 12
+  - Search widget now shows "12 indicators must align" in filter descriptions
+  - Agentic trading settings updated to reflect 12-indicator system
+  - Performance analytics updated to track 12 indicators in combination analysis
+  - Backtesting configuration supports all 12 indicators
+- **Improved Indicator Display:** Enhanced settings UI for better indicator management
+  - Alphabetical sorting option for indicator list (Price patterns always first)
+  - Help icons link to indicator documentation for each toggle card
+  - More compact spacing between indicator cards
+  - Better visual hierarchy in settings sections
+
+### Technical
+- **Backend Enhancements:**
+  - `evaluateVWAP()` function in `technical-indicators.ts` for VWAP calculations
+  - `evaluateADX()` function with +DI/-DI directional movement analysis
+  - `evaluateWilliamsR()` function for Williams %R momentum oscillator
+  - Updated `evaluateAllIndicators()` to include all 12 indicators
+- **Model Updates:**
+  - `AgenticTradingConfig` model expanded with `vwapEnabled`, `adxEnabled`, `williamsREnabled` fields
+  - `BacktestConfig` model supports new indicators for historical testing
+  - `TradeSignal` model tracks all 12 indicator states
+- **Widget Updates:**
+  - New `IndicatorDocumentationWidget` for in-app technical reference
+  - Enhanced `AgenticTradingSettingsWidget` with help icons and documentation links
+  - Updated `SearchWidget` with signal strength filtering and improved display
+  - Enhanced `InstrumentWidget` with signal strength chip and reorganized layout
+  - Updated `BacktestingWidget` to configure all 12 indicators
+  - Enhanced `AgenticTradingPerformanceWidget` to track 12-indicator combinations
+
+### Performance
+- Optimized indicator calculation pipeline for 12 indicators without performance degradation
+- Efficient VWAP calculation using cumulative volume-weighted price sums
+- ADX uses 14-period smoothing for accurate trend strength measurement
+- Williams %R leverages existing price data structures for fast computation
+
 ## [0.19.0] - 2025-12-15
 
 ### Added

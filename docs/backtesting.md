@@ -11,7 +11,7 @@ Comprehensive backtesting interface for testing trading strategies on historical
 - Market index data for correlation analysis (SPY/QQQ)
 
 ### Strategy Builder
-- Configure all 12 technical indicators independently
+- Configure all 12 technical indicators independently (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R)
 - Match live trading configuration exactly
 - Advanced parameter tuning:
   - RSI period
