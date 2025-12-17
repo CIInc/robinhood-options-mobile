@@ -706,7 +706,8 @@ class _HistoryPageState extends State<HistoryPage>
                         child: ListTile(
                       title: const Text(
                         "Stocks & ETFs",
-                        style: TextStyle(fontSize: 19.0),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                         "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
@@ -743,7 +744,9 @@ class _HistoryPageState extends State<HistoryPage>
                                               const Icon(Icons.filter_list),
                                           title: const Text(
                                             "Filter Stock Orders",
-                                            style: TextStyle(fontSize: 19.0),
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           /*
                                       trailing: TextButton(
@@ -944,7 +947,8 @@ class _HistoryPageState extends State<HistoryPage>
                         child: ListTile(
                       title: const Text(
                         "Options",
-                        style: TextStyle(fontSize: 19.0),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                           "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
@@ -980,7 +984,9 @@ class _HistoryPageState extends State<HistoryPage>
                                               const Icon(Icons.filter_list),
                                           title: const Text(
                                             "Filter Option Orders",
-                                            style: TextStyle(fontSize: 19.0),
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           /*
                                       trailing: TextButton(
@@ -1162,7 +1168,8 @@ class _HistoryPageState extends State<HistoryPage>
                         child: ListTile(
                       title: const Text(
                         "Option Events",
-                        style: TextStyle(fontSize: 19.0),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(orderDateFilterDisplay),
                       // ${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders
@@ -1197,7 +1204,9 @@ class _HistoryPageState extends State<HistoryPage>
                                               const Icon(Icons.filter_list),
                                           title: const Text(
                                             "Filter Option Events",
-                                            style: TextStyle(fontSize: 19.0),
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           /*
                                       trailing: TextButton(
@@ -1352,7 +1361,8 @@ class _HistoryPageState extends State<HistoryPage>
                         child: ListTile(
                       title: const Text(
                         "Dividends",
-                        style: TextStyle(fontSize: 19.0),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                           "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
@@ -1388,7 +1398,9 @@ class _HistoryPageState extends State<HistoryPage>
                                               const Icon(Icons.filter_list),
                                           title: const Text(
                                             "Filter Dividends",
-                                            style: TextStyle(fontSize: 19.0),
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                           /*
                                       trailing: TextButton(
@@ -1609,7 +1621,8 @@ class _HistoryPageState extends State<HistoryPage>
                         child: ListTile(
                       title: const Text(
                         "Interest Payments",
-                        style: TextStyle(fontSize: 19.0),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
                           "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}"),
@@ -1635,7 +1648,9 @@ class _HistoryPageState extends State<HistoryPage>
                                               const Icon(Icons.filter_list),
                                           title: const Text(
                                             "Filter Interest Payments",
-                                            style: TextStyle(fontSize: 19.0),
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                         // const ListTile(

@@ -430,8 +430,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                             Text(
                                               "Trade Signals",
                                               style: TextStyle(
-                                                fontSize: 19.0,
-                                                fontWeight: FontWeight.w600,
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold,
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .onSurface,
@@ -696,8 +696,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   title: Text(
                                     "S&P Gainers",
                                     style: TextStyle(
-                                      fontSize: 19.0,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -747,8 +747,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   title: Text(
                                     "S&P Decliners",
                                     style: TextStyle(
-                                      fontSize: 19.0,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -804,8 +804,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   title: Text(
                                     "Top Movers",
                                     style: TextStyle(
-                                      fontSize: 19.0,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -863,8 +863,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   title: Text(
                                     "100 Most Popular",
                                     style: TextStyle(
-                                      fontSize: 19.0,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,

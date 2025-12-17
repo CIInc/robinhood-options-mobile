@@ -24,13 +24,9 @@ class AgenticTradingSettingsWidget extends StatefulWidget {
 class _AgenticTradingSettingsWidgetState
     extends State<AgenticTradingSettingsWidget> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _smaPeriodFastController;
-  late TextEditingController _smaPeriodSlowController;
   late TextEditingController _tradeQuantityController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
-  late TextEditingController _rsiPeriodController;
-  late TextEditingController _marketIndexSymbolController;
   late TextEditingController _dailyTradeLimitController;
   late TextEditingController _autoTradeCooldownController;
   late TextEditingController _maxDailyLossPercentController;
@@ -67,20 +63,12 @@ class _AgenticTradingSettingsWidgetState
           'adx': true,
           'williamsR': true,
         };
-    _smaPeriodFastController = TextEditingController(
-        text: config['smaPeriodFast']?.toString() ?? '10');
-    _smaPeriodSlowController = TextEditingController(
-        text: config['smaPeriodSlow']?.toString() ?? '30');
     _tradeQuantityController =
         TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
         text: config['maxPositionSize']?.toString() ?? '100');
     _maxPortfolioConcentrationController = TextEditingController(
         text: config['maxPortfolioConcentration']?.toString() ?? '0.5');
-    _rsiPeriodController =
-        TextEditingController(text: config['rsiPeriod']?.toString() ?? '14');
-    _marketIndexSymbolController = TextEditingController(
-        text: config['marketIndexSymbol']?.toString() ?? 'SPY');
     _dailyTradeLimitController = TextEditingController(
         text: config['dailyTradeLimit']?.toString() ?? '5');
     _autoTradeCooldownController = TextEditingController(
@@ -95,13 +83,9 @@ class _AgenticTradingSettingsWidgetState
 
   @override
   void dispose() {
-    _smaPeriodFastController.dispose();
-    _smaPeriodSlowController.dispose();
     _tradeQuantityController.dispose();
     _maxPositionSizeController.dispose();
     _maxPortfolioConcentrationController.dispose();
-    _rsiPeriodController.dispose();
-    _marketIndexSymbolController.dispose();
     _dailyTradeLimitController.dispose();
     _autoTradeCooldownController.dispose();
     _maxDailyLossPercentController.dispose();
@@ -185,6 +169,68 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  Widget _buildSwitchListTile(
+    String key,
+    String title,
+    String description,
+    AgenticTradingProvider provider, {
+    bool defaultValue = true,
+    Widget? extraContent,
+    double? titleFontSize,
+    double? subtitleFontSize = 13,
+    EdgeInsetsGeometry? contentPadding = EdgeInsets.zero,
+    ValueChanged<bool>? onChanged,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isEnabled = provider.config[key] as bool? ?? defaultValue;
+
+    return Column(
+      children: [
+        SwitchListTile(
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: titleFontSize,
+              color: isEnabled
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+          subtitle: Text(
+            description,
+            style: TextStyle(
+              fontSize: subtitleFontSize,
+              color: isEnabled
+                  ? colorScheme.onSurface.withOpacity(0.7)
+                  : colorScheme.onSurface.withOpacity(0.5),
+            ),
+          ),
+          value: isEnabled,
+          onChanged: (bool value) {
+            if (onChanged != null) {
+              onChanged(value);
+            } else {
+              setState(() {
+                provider.config[key] = value;
+              });
+              _saveSettings();
+            }
+          },
+          activeThumbColor: colorScheme.primary,
+          contentPadding: contentPadding,
+        ),
+        if (isEnabled && extraContent != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: extraContent,
+          ),
+      ],
+    );
+  }
+
   Widget _buildDocSection(String key) {
     return IndicatorDocumentationWidget(
       indicatorKey: key,
@@ -218,14 +264,15 @@ class _AgenticTradingSettingsWidgetState
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final newConfig = {
         'enabled': agenticTradingProvider.isAgenticTradingEnabled,
-        'smaPeriodFast': int.parse(_smaPeriodFastController.text),
-        'smaPeriodSlow': int.parse(_smaPeriodSlowController.text),
+        'smaPeriodFast': agenticTradingProvider.config['smaPeriodFast'] ?? 10,
+        'smaPeriodSlow': agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
         'tradeQuantity': int.parse(_tradeQuantityController.text),
         'maxPositionSize': int.parse(_maxPositionSizeController.text),
         'maxPortfolioConcentration':
             double.parse(_maxPortfolioConcentrationController.text),
-        'rsiPeriod': int.parse(_rsiPeriodController.text),
-        'marketIndexSymbol': _marketIndexSymbolController.text,
+        'rsiPeriod': agenticTradingProvider.config['rsiPeriod'] ?? 14,
+        'marketIndexSymbol':
+            agenticTradingProvider.config['marketIndexSymbol'] ?? 'SPY',
         'enabledIndicators': _enabledIndicators,
         'autoTradeEnabled':
             agenticTradingProvider.config['autoTradeEnabled'] ?? false,
@@ -358,21 +405,12 @@ class _AgenticTradingSettingsWidgetState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SwitchListTile(
-                            title: Text(
-                              'Enable Auto-Trade',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              'Automatically execute approved trades',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            value: agenticTradingProvider
-                                    .config['autoTradeEnabled'] as bool? ??
-                                false,
+                          _buildSwitchListTile(
+                            'autoTradeEnabled',
+                            'Enable Auto-Trade',
+                            'Automatically execute approved trades',
+                            agenticTradingProvider,
+                            defaultValue: false,
                             onChanged: (bool value) {
                               setState(() {
                                 agenticTradingProvider
@@ -388,8 +426,6 @@ class _AgenticTradingSettingsWidgetState
                               });
                               _saveSettings();
                             },
-                            activeThumbColor: colorScheme.primary,
-                            contentPadding: EdgeInsets.zero,
                           ),
                           const SizedBox(height: 16),
                           // Status indicators
@@ -626,20 +662,29 @@ class _AgenticTradingSettingsWidgetState
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               OutlinedButton.icon(
-                                onPressed: agenticTradingProvider
-                                        .emergencyStopActivated
-                                    ? null
-                                    : () {
-                                        agenticTradingProvider
-                                            .activateEmergencyStop(
-                                          userDocRef: widget.userDocRef,
-                                        );
-                                      },
+                                onPressed: (agenticTradingProvider
+                                            .config['autoTradeEnabled'] ==
+                                        true)
+                                    ? (agenticTradingProvider
+                                            .emergencyStopActivated
+                                        ? null
+                                        : () {
+                                            agenticTradingProvider
+                                                .activateEmergencyStop(
+                                              userDocRef: widget.userDocRef,
+                                            );
+                                          })
+                                    : null,
                                 icon: const Icon(Icons.stop, size: 18),
                                 label: const Text('Emergency Stop'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: colorScheme.error,
-                                  side: BorderSide(color: colorScheme.error),
+                                  side: BorderSide(
+                                      color: (agenticTradingProvider
+                                                  .config['autoTradeEnabled'] ==
+                                              true)
+                                          ? colorScheme.error
+                                          : colorScheme.error.withOpacity(0.3)),
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
                                     horizontal: 16,
@@ -867,60 +912,27 @@ class _AgenticTradingSettingsWidgetState
                             ),
                             child: Column(
                               children: [
-                                SwitchListTile(
-                                  title: const Text(
-                                    'Pre-Market Trading',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  subtitle: const Text(
-                                    '4:00 AM - 9:30 AM ET',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  value: agenticTradingProvider
-                                              .config['allowPreMarketTrading']
-                                          as bool? ??
-                                      false,
-                                  onChanged: (bool value) {
-                                    setState(() {
-                                      agenticTradingProvider
-                                              .config['allowPreMarketTrading'] =
-                                          value;
-                                    });
-                                    _saveSettings();
-                                  },
-                                  activeThumbColor: colorScheme.primary,
+                                _buildSwitchListTile(
+                                  'allowPreMarketTrading',
+                                  'Pre-Market Trading',
+                                  '4:00 AM - 9:30 AM ET',
+                                  agenticTradingProvider,
+                                  defaultValue: false,
+                                  titleFontSize: 14,
+                                  subtitleFontSize: 12,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
                                     vertical: 4.0,
                                   ),
                                 ),
-                                SwitchListTile(
-                                  title: const Text(
-                                    'After-Hours Trading',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  subtitle: const Text(
-                                    '4:00 PM - 8:00 PM ET',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                  value: agenticTradingProvider
-                                              .config['allowAfterHoursTrading']
-                                          as bool? ??
-                                      false,
-                                  onChanged: (bool value) {
-                                    setState(() {
-                                      agenticTradingProvider.config[
-                                          'allowAfterHoursTrading'] = value;
-                                    });
-                                    _saveSettings();
-                                  },
-                                  activeThumbColor: colorScheme.primary,
+                                _buildSwitchListTile(
+                                  'allowAfterHoursTrading',
+                                  'After-Hours Trading',
+                                  '4:00 PM - 8:00 PM ET',
+                                  agenticTradingProvider,
+                                  defaultValue: false,
+                                  titleFontSize: 14,
+                                  subtitleFontSize: 12,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
                                     vertical: 4.0,
@@ -1159,120 +1171,73 @@ class _AgenticTradingSettingsWidgetState
                               return null;
                             },
                           ),
-                          const SizedBox(height: 16),
-                          // Trailing Stop sub-card for consistent styling
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.flag,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Trailing Stop Loss',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // Row(
-                                  //   children: [
-                                  //     Icon(
-                                  //       Icons.flag,
-                                  //       size: 16,
-                                  //       color: colorScheme.primary,
-                                  //     ),
-                                  //     const SizedBox(width: 8),
-                                  //     Text(
-                                  //       'Trailing Stop Loss',
-                                  //       style: TextStyle(
-                                  //         fontWeight: FontWeight.bold,
-                                  //         color: colorScheme.onSurface,
-                                  //         fontSize: 14,
-                                  //       ),
-                                  //     ),
-                                  //   ],
-                                  // ),
-                                  // const SizedBox(height: 8),
-                                  SwitchListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: const Text('Enable Trailing Stop'),
-                                    subtitle: const Text(
-                                      'Trail a stop below the highest price since entry',
+                          const SizedBox(height: 8),
+                          // Row(
+                          //   children: [
+                          //     Icon(
+                          //       Icons.flag,
+                          //       size: 16,
+                          //       color: colorScheme.primary,
+                          //     ),
+                          //     const SizedBox(width: 8),
+                          //     Text(
+                          //       'Trailing Stop Loss',
+                          //       style: TextStyle(
+                          //         fontWeight: FontWeight.bold,
+                          //         color: colorScheme.onSurface,
+                          //         fontSize: 14,
+                          //       ),
+                          //     ),
+                          //   ],
+                          // ),
+                          _buildSwitchListTile(
+                            'trailingStopEnabled',
+                            'Trailing Stop Loss',
+                            'Trail a stop below the highest price since entry',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    initialValue:
+                                        (agenticTradingProvider.config[
+                                                        'trailingStopPercent']
+                                                    as double? ??
+                                                3.0)
+                                            .toStringAsFixed(1),
+                                    decoration: InputDecoration(
+                                      labelText: 'Trailing Stop %',
+                                      helperText:
+                                          'Sell if price falls by this % from the peak',
+                                      prefixIcon: const Icon(Icons.percent),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      filled: true,
+                                      fillColor: colorScheme.surface,
                                     ),
-                                    value: agenticTradingProvider
-                                                .config['trailingStopEnabled']
-                                            as bool? ??
-                                        false,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    validator: (value) {
+                                      final v = double.tryParse(value ?? '');
+                                      if (v == null || v <= 0 || v > 50) {
+                                        return 'Enter a percent between 0 and 50';
+                                      }
+                                      return null;
+                                    },
                                     onChanged: (value) {
-                                      agenticTradingProvider
-                                              .config['trailingStopEnabled'] =
-                                          value;
-                                      _saveSettings();
+                                      final v = double.tryParse(value);
+                                      if (v != null) {
+                                        agenticTradingProvider
+                                            .config['trailingStopPercent'] = v;
+                                        _saveSettings();
+                                      }
                                     },
                                   ),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          initialValue: (agenticTradingProvider
-                                                              .config[
-                                                          'trailingStopPercent']
-                                                      as double? ??
-                                                  3.0)
-                                              .toStringAsFixed(1),
-                                          decoration: InputDecoration(
-                                            labelText: 'Trailing Stop %',
-                                            helperText:
-                                                'Sell if price falls by this % from the peak',
-                                            prefixIcon:
-                                                const Icon(Icons.percent),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            filled: true,
-                                            fillColor: colorScheme.surface,
-                                          ),
-                                          keyboardType: const TextInputType
-                                              .numberWithOptions(decimal: true),
-                                          validator: (value) {
-                                            final v =
-                                                double.tryParse(value ?? '');
-                                            if (v == null || v <= 0 || v > 50) {
-                                              return 'Enter a percent between 0 and 50';
-                                            }
-                                            return null;
-                                          },
-                                          onChanged: (value) {
-                                            final v = double.tryParse(value);
-                                            if (v != null) {
-                                              agenticTradingProvider.config[
-                                                  'trailingStopPercent'] = v;
-                                              _saveSettings();
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -1396,101 +1361,11 @@ class _AgenticTradingSettingsWidgetState
                     'momentum',
                     'Momentum (RSI)',
                     'Relative Strength Index - overbought/oversold conditions',
-                    settings: [
-                      TextFormField(
-                        controller: _rsiPeriodController,
-                        decoration: InputDecoration(
-                          labelText: 'RSI Period',
-                          helperText: 'Default: 14',
-                          prefixIcon: const Icon(Icons.speed),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => _saveSettings(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a value';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
                   ),
                   _buildIndicatorToggle(
                     'marketDirection',
                     'Market Direction',
-                    'Moving averages on market index (SPY/QQQ)',
-                    settings: [
-                      TextFormField(
-                        controller: _smaPeriodFastController,
-                        decoration: InputDecoration(
-                          labelText: 'SMA Period (Fast)',
-                          helperText: 'Short-term moving average',
-                          prefixIcon: const Icon(Icons.trending_up),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => _saveSettings(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a value';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _smaPeriodSlowController,
-                        decoration: InputDecoration(
-                          labelText: 'SMA Period (Slow)',
-                          helperText: 'Long-term moving average',
-                          prefixIcon: const Icon(Icons.trending_flat),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => _saveSettings(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a value';
-                          }
-                          if (int.tryParse(value) == null) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _marketIndexSymbolController,
-                        decoration: InputDecoration(
-                          labelText: 'Market Index Symbol',
-                          helperText: 'SPY or QQQ',
-                          prefixIcon: const Icon(Icons.business),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onChanged: (_) => _saveSettings(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a value';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
+                    'Moving averages on market index (SPY)', // (SPY/QQQ)
                   ),
                   _buildIndicatorToggle(
                     'volume',
@@ -1585,89 +1460,50 @@ class _AgenticTradingSettingsWidgetState
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          SwitchListTile(
-                            title: const Text('Notify on Buy Orders'),
-                            subtitle: const Text(
-                                'Get notified when auto-trade executes a buy'),
-                            value: agenticTradingProvider.config['notifyOnBuy']
-                                    as bool? ??
-                                true,
-                            onChanged: (value) {
-                              agenticTradingProvider.config['notifyOnBuy'] =
-                                  value;
-                              _saveSettings();
-                            },
+                          _buildSwitchListTile(
+                            'notifyOnBuy',
+                            'Notify on Buy Orders',
+                            'Get notified when auto-trade executes a buy',
+                            agenticTradingProvider,
                           ),
-                          SwitchListTile(
-                            title: const Text('Notify on Take Profit'),
-                            subtitle: const Text(
-                                'Get notified when take profit target is hit'),
-                            value: agenticTradingProvider
-                                    .config['notifyOnTakeProfit'] as bool? ??
-                                true,
-                            onChanged: (value) {
-                              agenticTradingProvider
-                                  .config['notifyOnTakeProfit'] = value;
-                              _saveSettings();
-                            },
+                          _buildSwitchListTile(
+                            'notifyOnTakeProfit',
+                            'Notify on Take Profit',
+                            'Get notified when take profit target is hit',
+                            agenticTradingProvider,
                           ),
-                          SwitchListTile(
-                            title: const Text('Notify on Stop Loss'),
-                            subtitle: const Text(
-                                'Get notified when stop loss is triggered'),
-                            value: agenticTradingProvider
-                                    .config['notifyOnStopLoss'] as bool? ??
-                                true,
-                            onChanged: (value) {
-                              agenticTradingProvider
-                                  .config['notifyOnStopLoss'] = value;
-                              _saveSettings();
-                            },
+                          _buildSwitchListTile(
+                            'notifyOnStopLoss',
+                            'Notify on Stop Loss',
+                            'Get notified when stop loss is triggered',
+                            agenticTradingProvider,
                           ),
-                          SwitchListTile(
-                            title: const Text('Notify on Emergency Stop'),
-                            subtitle: const Text(
-                                'Get notified when emergency stop is activated'),
-                            value: agenticTradingProvider
-                                    .config['notifyOnEmergencyStop'] as bool? ??
-                                true,
-                            onChanged: (value) {
-                              agenticTradingProvider
-                                  .config['notifyOnEmergencyStop'] = value;
-                              _saveSettings();
-                            },
+                          _buildSwitchListTile(
+                            'notifyOnEmergencyStop',
+                            'Notify on Emergency Stop',
+                            'Get notified when emergency stop is activated',
+                            agenticTradingProvider,
                           ),
-                          SwitchListTile(
-                            title: const Text('Daily Summary'),
-                            subtitle: const Text(
-                                'Receive end-of-day trading summary'),
-                            value: agenticTradingProvider
-                                    .config['notifyDailySummary'] as bool? ??
-                                false,
-                            onChanged: (value) {
-                              agenticTradingProvider
-                                  .config['notifyDailySummary'] = value;
-                              _saveSettings();
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: ElevatedButton.icon(
-                              onPressed: (agenticTradingProvider
-                                              .config['notifyDailySummary']
-                                          as bool? ??
-                                      false)
-                                  ? () {
-                                      agenticTradingProvider
-                                          .sendDailySummary(widget.userDocRef);
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.summarize, size: 18),
-                              label: const Text('Send Daily Summary Now'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.primaryContainer,
-                                foregroundColor: colorScheme.onPrimaryContainer,
+                          _buildSwitchListTile(
+                            'notifyDailySummary',
+                            'Daily Summary',
+                            'Receive end-of-day trading summary',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  agenticTradingProvider
+                                      .sendDailySummary(widget.userDocRef);
+                                },
+                                icon: const Icon(Icons.summarize, size: 18),
+                                label: const Text('Send Daily Summary Now'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.primaryContainer,
+                                  foregroundColor:
+                                      colorScheme.onPrimaryContainer,
+                                ),
                               ),
                             ),
                           ),

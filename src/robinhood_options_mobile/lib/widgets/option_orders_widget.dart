@@ -43,6 +43,7 @@ class OptionOrdersWidget extends StatefulWidget {
 
 class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
   //final List<String> orderFilters = <String>["confirmed", "filled"];
+  bool _showAllOptionOrders = false;
 
   _OptionOrdersWidgetState();
 
@@ -69,6 +70,16 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
             .reduce((a, b) => a + b) as double
         : 0;
 
+    var filteredOptionOrders = optionOrders
+        .where((element) =>
+            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .toList();
+
+    final displayCount = _showAllOptionOrders
+        ? filteredOptionOrders.length
+        : (filteredOptionOrders.length > 3 ? 3 : filteredOptionOrders.length);
+    final showButton = filteredOptionOrders.length > 3;
+
     return SliverStickyHeader(
       header: Material(
           //elevation: 2,
@@ -79,7 +90,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
               child: ListTile(
                 title: const Text(
                   "Option Orders",
-                  style: TextStyle(fontSize: 19.0),
+                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
@@ -101,7 +112,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",
-                                  style: TextStyle(fontSize: 19.0),
+                                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                                 ),
                                 /*
                                   trailing: TextButton(
@@ -118,12 +129,25 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          if ( //optionOrders[index] == null ||
-              (orderFilters.isNotEmpty &&
-                  !orderFilters.contains(optionOrders[index].state))) {
-            return Container();
+          if (index >= displayCount) {
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllOptionOrders = !_showAllOptionOrders;
+                    });
+                  },
+                  icon: Icon(_showAllOptionOrders
+                      ? Icons.expand_less
+                      : Icons.expand_more),
+                  label: Text(_showAllOptionOrders
+                      ? 'Show Less'
+                      : 'Show All (${filteredOptionOrders.length})')),
+            );
           }
-          var optionOrder = optionOrders[index];
+
+          var optionOrder = filteredOptionOrders[index];
           var subtitle =
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
@@ -153,14 +177,14 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                         : Text('${optionOrder.quantity!.round()}',
                             style: const TextStyle(fontSize: 17))),
                 title: Text(
-                    "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: subtitle,
                 trailing: Wrap(spacing: 8, children: [
                   Text(
-                    (optionOrders[index].direction == "credit" ? "+" : "-") +
-                        (optionOrders[index].processedPremium != null
+                    (optionOrder.direction == "credit" ? "+" : "-") +
+                        (optionOrder.processedPremium != null
                             ? formatCurrency
-                                .format(optionOrders[index].processedPremium)
+                                .format(optionOrder.processedPremium)
                             : ""),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
@@ -206,7 +230,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                           builder: (context) => OptionOrderWidget(
                                 widget.brokerageUser,
                                 widget.service,
-                                optionOrders[index],
+                                optionOrder,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
@@ -217,7 +241,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
               ),
             ],
           ));
-        }, childCount: optionOrders.length),
+        }, childCount: displayCount + (showButton ? 1 : 0)),
       ),
     );
   }

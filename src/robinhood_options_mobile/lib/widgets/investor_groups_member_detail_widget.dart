@@ -236,7 +236,7 @@ class _InvestorGroupsMemberDetailWidgetState
             child: ListTile(
               title: const Text(
                 "Options",
-                style: TextStyle(fontSize: 19.0, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -388,7 +388,7 @@ class _InvestorGroupsMemberDetailWidgetState
             child: ListTile(
               title: const Text(
                 "Stocks & ETFs",
-                style: TextStyle(fontSize: 19.0, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
               ),
             ),
           ),

@@ -33,7 +33,7 @@ class _OptionOrderFilterBottomSheetState
           leading: const Icon(Icons.filter_list),
           title: const Text(
             "Filter Option Orders",
-            style: TextStyle(fontSize: 19.0),
+            style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
           ),
           /*
                                   trailing: TextButton(

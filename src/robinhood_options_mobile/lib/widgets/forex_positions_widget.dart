@@ -66,15 +66,16 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
       {double fontSize = badgeValueFontSize}) {
     final base = _pnlColor(context, value ?? 0);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
+        color: base.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: base.withOpacity(0.3)),
       ),
       child: Text(
         text ?? '',
         style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w600, color: base),
+            fontSize: fontSize, fontWeight: FontWeight.w500, color: base),
         overflow: TextOverflow.fade,
         softWrap: false,
       ),
@@ -301,7 +302,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           title: Wrap(children: [
             const Text(
               "Crypto",
-              style: TextStyle(fontSize: 19.0),
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             if (!widget.showList) ...[
               SizedBox(

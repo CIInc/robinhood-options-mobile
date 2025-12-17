@@ -683,7 +683,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           child: ListTile(
         title: Text(
           "${widget.interestStore == null ? 'Dividend ' : ''}Income",
-          style: TextStyle(fontSize: 19.0),
+          style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
         ),
         subtitle: const Text("last 12 months"),
         trailing: Wrap(spacing: 8, children: [
@@ -829,7 +829,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           title: Wrap(children: [
             Text(
               "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
-              style: TextStyle(fontSize: 19.0),
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             if (!widget.showList) ...[
               SizedBox(
@@ -1782,23 +1782,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              if (!showAllTransactions && index == maxTransactionsToShow) {
-                return ListTile(
-                  title: Center(
-                    child: TextButton(
-                      child: const Text('Show more'),
-                      onPressed: () {
-                        setState(() {
-                          showAllTransactions = true;
-                        });
-                      },
-                    ),
-                  ),
-                );
-              }
-              if (!showAllTransactions && index > maxTransactionsToShow) {
-                return null;
-              }
               var transaction = incomeTransactions[index];
               if (transaction["payable_date"] != null) {
                 var instrument = transaction["instrumentObj"];
@@ -1967,10 +1950,30 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               }
               // return _buildCryptoRow(context, filteredHoldings, index);
             },
-            // Or, uncomment the following line:
-            childCount: incomeTransactions.length,
+            childCount: showAllTransactions
+                ? incomeTransactions.length
+                : (incomeTransactions.length > maxTransactionsToShow
+                    ? maxTransactionsToShow
+                    : incomeTransactions.length),
           ),
         ),
+        if (incomeTransactions.length > maxTransactionsToShow)
+          SliverToBoxAdapter(
+              child: Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    showAllTransactions = !showAllTransactions;
+                  });
+                },
+                icon: Icon(showAllTransactions
+                    ? Icons.expand_less
+                    : Icons.expand_more),
+                label: Text(showAllTransactions
+                    ? 'Show Less'
+                    : 'Show All (${incomeTransactions.length})')),
+          ))
       ],
       if (widget.showFooter) ...[
         // TODO: Introduce web banner

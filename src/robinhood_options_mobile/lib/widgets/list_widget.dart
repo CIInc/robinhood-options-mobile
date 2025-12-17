@@ -279,7 +279,8 @@ class _ListWidgetState extends State<ListWidget>
                       child: ListTile(
                         title: Text(
                           watchlist != null ? watchlist!.displayName : '',
-                          style: const TextStyle(fontSize: 19.0),
+                          style: const TextStyle(
+                              fontSize: 20.0, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                             "${formatCompactNumber.format(watchlist != null ? watchlist!.items.length : 0)} items"),
@@ -303,7 +304,9 @@ class _ListWidgetState extends State<ListWidget>
                                         //     .primary,
                                         title: const Text(
                                           "Sort Watch List",
-                                          style: TextStyle(fontSize: 19.0),
+                                          style: TextStyle(
+                                              fontSize: 20.0,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                         //trailing: TextButton(
                                         //    child: const Text("APPLY"),

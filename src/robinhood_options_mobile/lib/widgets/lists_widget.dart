@@ -183,7 +183,8 @@ class _ListsWidgetState extends State<ListsWidget>
                             leading: const Icon(Icons.sort),
                             title: const Text(
                               "Sort Watch List",
-                              style: TextStyle(fontSize: 19.0),
+                              style: TextStyle(
+                                  fontSize: 20.0, fontWeight: FontWeight.bold),
                             ),
                             /*
                                   trailing: TextButton(
@@ -435,7 +436,8 @@ class _ListsWidgetState extends State<ListsWidget>
                       child: ListTile(
                         title: Text(
                           watchlist.displayName,
-                          style: const TextStyle(fontSize: 19.0),
+                          style: const TextStyle(
+                              fontSize: 20.0, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                             "${formatCompactNumber.format(watchlist.items.length)} items"),
@@ -459,7 +461,9 @@ class _ListsWidgetState extends State<ListsWidget>
                                         //     .primary,
                                         title: const Text(
                                           "Sort Watch List",
-                                          style: TextStyle(fontSize: 19.0),
+                                          style: TextStyle(
+                                              fontSize: 20.0,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                         //trailing: TextButton(
                                         //    child: const Text("APPLY"),

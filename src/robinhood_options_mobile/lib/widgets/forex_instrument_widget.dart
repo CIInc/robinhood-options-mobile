@@ -684,34 +684,22 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     }
   }
 
-  Card buildOverview(ForexHolding holding) {
+  Widget buildOverview(ForexHolding holding) {
     if (holding.quoteObj == null) {
-      return const Card();
+      return const SizedBox.shrink();
     }
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            const SizedBox(width: 8),
-            const Expanded(child: SizedBox()),
-            //const SizedBox(width: 8),
-            TextButton(
-              child: const Text('BUY'),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: FilledButton(
               onPressed: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
                   title: const Text('Alert'),
                   content: const Text('This feature is not implemented.'),
                   actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
                     TextButton(
                       onPressed: () => Navigator.pop(context, 'OK'),
                       child: const Text('OK'),
@@ -719,22 +707,18 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                   ],
                 ),
               ),
+              child: const Text('Buy'),
             ),
-            const SizedBox(width: 8),
-            TextButton(
-              child: const Text('SELL'),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton.tonal(
               onPressed: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
                   title: const Text('Alert'),
                   content: const Text('This feature is not implemented.'),
                   actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
                     TextButton(
                       onPressed: () => Navigator.pop(context, 'OK'),
                       child: const Text('OK'),
@@ -742,12 +726,12 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                   ],
                 ),
               ),
+              child: const Text('Sell'),
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
-      ],
-    ));
+          ),
+        ],
+      ),
+    );
   }
 
   Widget quoteWidget(ForexHolding holding) {
@@ -757,7 +741,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       ListTile(
         title: Text(
           "Quote",
-          style: TextStyle(fontSize: 19.0),
+          style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
         ),
       ),
       ListTile(

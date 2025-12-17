@@ -15,7 +15,6 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
-import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -31,9 +30,9 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
@@ -43,13 +42,10 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart'
-    as charts;
 
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -116,11 +112,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<List<OptionEvent>>? futureOptionEvents;
   Future<dynamic>? futureEtp;
 
-  //charts.TimeSeriesChart? chart;
-  TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.t24_7;
-  InstrumentHistorical? selection;
 
   List<String> optionFilters = <String>[];
   List<String> positionFilters = <String>[];
@@ -132,15 +125,238 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   double positionOrdersBalance = 0;
   // Controls whether all similar instruments are shown or only the first 5.
   bool _showAllSimilar = false;
+  bool _showAllPositionOrders = false;
+  bool _showAllNews = false;
+  bool _showAllEarnings = false;
+  bool _showAllLists = false;
 
   Timer? refreshTriggerTime;
   //final dataKey = GlobalKey();
 
   _InstrumentWidgetState();
 
+  void _updateBalances() {
+    var instrument = widget.instrument;
+    positionOrdersBalance = instrument.positionOrders != null &&
+            instrument.positionOrders!.isNotEmpty
+        ? instrument.positionOrders!
+            .map((e) =>
+                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
+                (e.side == "buy" ? 1 : -1))
+            .reduce((a, b) => a + b)
+        : 0.0;
+
+    optionOrdersPremiumBalance =
+        instrument.optionOrders != null && instrument.optionOrders!.isNotEmpty
+            ? instrument.optionOrders!
+                .map((e) =>
+                    (e.processedPremium != null ? e.processedPremium! : 0) *
+                    (e.direction == "credit" ? 1 : -1))
+                .reduce((a, b) => a + b) as double
+            : 0;
+  }
+
+  void _loadData() {
+    var instrument = widget.instrument;
+    var user = widget.brokerageUser;
+
+    var optionOrderStore =
+        Provider.of<OptionOrderStore>(context, listen: false);
+    var optionOrders = optionOrderStore.items
+        .where((element) => element.chainSymbol == widget.instrument.symbol)
+        .toList();
+    if (optionOrders.isNotEmpty) {
+      futureOptionOrders = Future.value(optionOrders);
+    } else if (widget.instrument.tradeableChainId != null) {
+      futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
+          optionOrderStore, widget.instrument.tradeableChainId!);
+    } else {
+      futureOptionOrders = Future.value([]);
+    }
+    futureOptionOrders?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.optionOrders = value;
+          _updateBalances();
+        });
+      }
+    });
+
+    var stockPositionOrderStore =
+        Provider.of<InstrumentOrderStore>(context, listen: false);
+    var positionOrders = stockPositionOrderStore.items
+        .where((element) => element.instrumentId == widget.instrument.id)
+        .toList();
+    if (positionOrders.isNotEmpty) {
+      futureInstrumentOrders = Future.value(positionOrders);
+    } else {
+      futureInstrumentOrders = widget.service.getInstrumentOrders(
+          widget.brokerageUser,
+          stockPositionOrderStore,
+          [widget.instrument.url]);
+    }
+    futureInstrumentOrders?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.positionOrders = value;
+          _updateBalances();
+        });
+      }
+    });
+
+    if (widget.instrument.logoUrl == null &&
+        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol) &&
+        auth.currentUser != null) {
+      widget.instrument.logoUrl =
+          RobinhoodService.logoUrls[widget.instrument.symbol];
+      _firestoreService.upsertInstrument(widget.instrument);
+    }
+
+    if (instrument.quoteObj == null) {
+      futureQuote = widget.service.getQuote(user,
+          Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
+      futureQuote?.then((value) {
+        if (mounted) {
+          setState(() {
+            instrument.quoteObj = value;
+          });
+        }
+      });
+    }
+
+    if (instrument.fundamentalsObj == null) {
+      futureFundamentals = widget.service.getFundamentals(user, instrument);
+      futureFundamentals?.then((value) {
+        if (mounted) {
+          setState(() {
+            instrument.fundamentalsObj = value;
+          });
+        }
+      });
+    }
+
+    futureNews = widget.service.getNews(user, instrument.symbol);
+    futureNews?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.newsObj = value;
+        });
+      }
+    });
+
+    futureLists = widget.service.getLists(user, instrument.id);
+    futureLists?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.listsObj = value;
+        });
+      }
+    });
+
+    futureDividends = widget.service.getDividends(
+        user,
+        Provider.of<DividendStore>(context, listen: false),
+        Provider.of<InstrumentStore>(context, listen: false),
+        instrumentId: instrument.id);
+    futureDividends?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.dividendsObj = value;
+        });
+      }
+    });
+
+    futureRatings = widget.service.getRatings(user, instrument.id);
+    futureRatings?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.ratingsObj = value;
+        });
+      }
+    });
+
+    futureRatingsOverview =
+        widget.service.getRatingsOverview(user, instrument.id);
+    futureRatingsOverview?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.ratingsOverviewObj = value;
+        });
+      }
+    });
+
+    futureOptionEvents = widget.service
+        .getOptionEventsByInstrumentUrl(widget.brokerageUser, instrument.url);
+    futureOptionEvents?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.optionEvents = value;
+        });
+      }
+    });
+
+    futureEarnings = widget.service.getEarnings(user, instrument.id);
+    futureEarnings?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.earningsObj = value;
+        });
+      }
+    });
+
+    futureSimilar = widget.service.getSimilar(user, instrument.id);
+    futureSimilar?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.similarObj = value;
+        });
+      }
+    });
+
+    futureSplits = widget.service.getSplits(user, instrument);
+    futureSplits?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.splitsObj = value;
+        });
+      }
+    });
+
+    futureHistoricals = widget.service.getInstrumentHistoricals(
+        user,
+        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+        instrument.symbol,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
+    futureHistoricals?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.instrumentHistoricalsObj = value;
+        });
+      }
+    });
+
+    if (instrument.type == 'etp' && widget.service is RobinhoodService) {
+      futureEtp =
+          (widget.service as RobinhoodService).getEtpDetails(user, instrument);
+      futureEtp?.then((value) {
+        if (mounted) {
+          setState(() {
+            instrument.etpDetails = value;
+            if (auth.currentUser != null) {
+              _firestoreService.upsertInstrument(instrument);
+            }
+          });
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+
+    _loadData();
 
     _startRefreshTimer();
 
@@ -213,203 +429,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
-    var user = widget.brokerageUser;
-
-    var optionOrderStore =
-        Provider.of<OptionOrderStore>(context, listen: false);
-    var optionOrders = optionOrderStore.items
-        .where((element) => element.chainSymbol == widget.instrument.symbol)
-        .toList();
-    if (optionOrders.isNotEmpty) {
-      futureOptionOrders = Future.value(optionOrders);
-    } else if (widget.instrument.tradeableChainId != null) {
-      futureOptionOrders ??= widget.service.getOptionOrders(
-          widget.brokerageUser,
-          optionOrderStore,
-          widget.instrument.tradeableChainId!);
-    } else {
-      futureOptionOrders = Future.value([]);
-    }
-
-    var stockPositionOrderStore =
-        Provider.of<InstrumentOrderStore>(context, listen: false);
-    var positionOrders = stockPositionOrderStore.items
-        .where((element) => element.instrumentId == widget.instrument.id)
-        .toList();
-    if (positionOrders.isNotEmpty) {
-      futureInstrumentOrders = Future.value(positionOrders);
-    } else {
-      futureInstrumentOrders ??= widget.service.getInstrumentOrders(
-          widget.brokerageUser,
-          stockPositionOrderStore,
-          [widget.instrument.url]);
-    }
-
-    if (widget.instrument.logoUrl == null &&
-        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol) &&
-        auth.currentUser != null) {
-      widget.instrument.logoUrl =
-          RobinhoodService.logoUrls[widget.instrument.symbol];
-      _firestoreService.upsertInstrument(widget.instrument);
-    }
-
-    if (instrument.quoteObj == null) {
-      futureQuote ??= widget.service.getQuote(user,
-          Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
-    } else {
-      futureQuote = Future.value(instrument.quoteObj);
-    }
-
-    if (instrument.fundamentalsObj == null) {
-      futureFundamentals ??= widget.service.getFundamentals(user, instrument);
-    } else {
-      futureFundamentals ??= Future.value(instrument.fundamentalsObj);
-    }
-
-    futureNews ??= widget.service.getNews(user, instrument.symbol);
-
-    futureLists ??= widget.service.getLists(user, instrument.id);
-
-    futureDividends ??= widget.service.getDividends(
-        user,
-        Provider.of<DividendStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        instrumentId: instrument.id);
-
-    futureRatings ??= widget.service.getRatings(user, instrument.id);
-    futureRatingsOverview ??=
-        widget.service.getRatingsOverview(user, instrument.id);
-
-    futureOptionEvents ??= widget.service
-        .getOptionEventsByInstrumentUrl(widget.brokerageUser, instrument.url);
-
-    futureEarnings ??= widget.service.getEarnings(user, instrument.id);
-
-    futureSimilar ??= widget.service.getSimilar(user, instrument.id);
-
-    futureSplits ??= widget.service.getSplits(user, instrument);
-
-    futureHistoricals ??= widget.service.getInstrumentHistoricals(
-        user,
-        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-        instrument.symbol,
-        chartBoundsFilter: chartBoundsFilter,
-        chartDateSpanFilter: chartDateSpanFilter);
-
-    // futureRsiHistoricals ??= widget.service.getInstrumentHistoricals(
-    //     user,
-    //     Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-    //     instrument.symbol,
-    //     chartBoundsFilter: Bounds.t24_7,
-    //     chartDateSpanFilter: ChartDateSpan.month,
-    //     chartInterval: 'day');
-
-    if (instrument.type == 'etp' && widget.service is RobinhoodService) {
-      futureEtp ??=
-          (widget.service as RobinhoodService).getEtpDetails(user, instrument);
-    }
-
     return Scaffold(
-        body: FutureBuilder(
-      future: Future.wait([
-        futureQuote as Future,
-        futureFundamentals as Future,
-        futureNews as Future,
-        futureLists as Future,
-        futureDividends as Future,
-        futureRatings as Future,
-        futureRatingsOverview as Future,
-        futureInstrumentOrders as Future,
-        futureOptionOrders as Future,
-        futureOptionEvents as Future,
-        futureEarnings as Future,
-        futureSimilar as Future,
-        futureSplits as Future,
-        futureHistoricals as Future,
-        if (futureEtp != null) ...[futureEtp as Future]
-      ]),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          bool updateInstrument = false;
-          List<dynamic> data = snapshot.data as List<dynamic>;
-          if (instrument.quoteObj != null) {
-            Quote? newQuote = data.isNotEmpty ? data[0] : null;
-            if (instrument.quoteObj!.updatedAt!
-                .isBefore(newQuote!.updatedAt!)) {
-              instrument.quoteObj = newQuote;
-              updateInstrument = true;
-            }
-          } else {
-            instrument.quoteObj = data.isNotEmpty ? data[0] : null;
-          }
-          instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
-          instrument.newsObj = data.length > 2 ? data[2] : null;
-          instrument.listsObj = data.length > 3 ? data[3] : null;
-          instrument.dividendsObj = data.length > 4 ? data[4] : null;
-          instrument.ratingsObj = data.length > 5 ? data[5] : null;
-          instrument.ratingsOverviewObj = data.length > 6 ? data[6] : null;
-          instrument.positionOrders = data.length > 7 ? data[7] : null;
-          instrument.optionOrders = data.length > 8 ? data[8] : null;
-          instrument.optionEvents = data.length > 9 ? data[9] : null;
-          instrument.earningsObj = data.length > 10 ? data[10] : null;
-          instrument.similarObj = data.length > 11 ? data[11] : null;
-          instrument.splitsObj = data.length > 12 ? data[12] : null;
-          instrument.instrumentHistoricalsObj =
-              data.length > 12 ? data[13] : null;
-          // Conditionally persist to Firestore if the data has changed.
-          if (instrument.etpDetails != null) {
-            //// TODO: Figure out why the first 2 solutions don't work
-            //// instead going to compare date properties.
-            // if (DeepCollectionEquality.unordered().equals(instrument.etpDetails, data[14])) {
-            // if (jsonMapEquals(instrument.etpDetails, data[14])) {
-            //// Doesn't work because json ordering is different between Firebase and Robinhood API
-            // if (jsonEncode(instrument.etpDetails) != jsonEncode(data[14])) {
-            if (instrument.etpDetails['quarter_end_date'] !=
-                    data[14]['quarter_end_date'] ||
-                instrument.etpDetails['month_end_date'] !=
-                    data[14]['month_end_date'] ||
-                instrument.etpDetails['sectors_portfolio_date'] !=
-                    data[14]['sectors_portfolio_date'] ||
-                instrument.etpDetails['holdings_portfolio_date'] !=
-                    data[14]['holdings_portfolio_date']) {
-              updateInstrument = true;
-            }
-          } else {
-            updateInstrument = true;
-          }
-          instrument.etpDetails = data.length > 14 ? data[14] : null;
-          if (updateInstrument && auth.currentUser != null) {
-            _firestoreService.upsertInstrument(instrument);
-            debugPrint(
-                'InstrumentWidget: Stored instrument into Firestore ${instrument.symbol}');
-          }
-          positionOrdersBalance = instrument.positionOrders != null &&
-                  instrument.positionOrders!.isNotEmpty
-              ? instrument.positionOrders!
-                  .map((e) =>
-                      (e.averagePrice != null
-                          ? e.averagePrice! * e.quantity!
-                          : 0.0) *
-                      (e.side == "buy" ? 1 : -1))
-                  .reduce((a, b) => a + b)
-              : 0.0;
-
-          optionOrdersPremiumBalance = instrument.optionOrders != null &&
-                  instrument.optionOrders!.isNotEmpty
-              ? instrument.optionOrders!
-                  .map((e) =>
-                      (e.processedPremium != null ? e.processedPremium! : 0) *
-                      (e.direction == "credit" ? 1 : -1))
-                  .reduce((a, b) => a + b) as double
-              : 0;
-        } else if (snapshot.hasError) {
-          debugPrint("${snapshot.error}");
-          return Center(child: Text("${snapshot.error}"));
-        }
-        return buildScrollView(instrument,
-            done: snapshot.connectionState == ConnectionState.done);
-      },
-    ));
+        body: buildScrollView(instrument, done: instrument.quoteObj != null));
   }
 
   void _startRefreshTimer() {
@@ -605,92 +626,81 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Consumer2<InstrumentHistoricalsStore, GenerativeProvider>(builder:
               (context, instrumentHistoricalsStore, generativeProvider, child) {
             return SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(
-                    12.0,
-                    0, // 16.0,
-                    16.0,
-                    0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                height: 50,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   children: [
-                    // const CircleAvatar(
-                    //   child: Icon(Icons.lightbulb_circle_outlined),
-                    // ),
-                    // const SizedBox(width: 10),
-                    // const Text(
-                    //   'AI Insight',
-                    //   style:
-                    //       TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    // ),
-                    // const SizedBox(width: 16),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ActionChip(
-                        avatar: generativeProvider.generating &&
-                                generativeProvider.generatingPrompt ==
-                                    'chart-trend'
-                            ? const CircularProgressIndicator()
-                            : const Icon(Icons.recommend_outlined),
-                        label: const Text('Trend'),
-                        onPressed: () async {
-                          var prompt = widget.generativeService.prompts
-                              .firstWhere((p) => p.key == 'chart-trend');
-                          String historicalDataString = instrument
-                              .instrumentHistoricalsObj!.historicals
-                              .where((e) => e.volume > 0)
-                              .map((e) =>
-                                  'Date: ${e.beginsAt}, Open: ${formatCurrency.format(e.openPrice)}, High: ${formatCurrency.format(e.highPrice)}, Low: ${formatCurrency.format(e.lowPrice)}, Close: ${formatCurrency.format(e.closePrice)}, Volume: ${formatCompactNumber.format(e.volume)}')
-                              .join("\n");
-                          var newPrompt = Prompt(
-                              key: prompt.key,
-                              title: prompt.title,
-                              prompt:
-                                  '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}\nwith the following chart data:\n$historicalDataString');
-                          await generateContent(generativeProvider,
-                              widget.generativeService, newPrompt, context);
-                        },
-                      ),
+                    ActionChip(
+                      avatar: generativeProvider.generating &&
+                              generativeProvider.generatingPrompt ==
+                                  'chart-trend'
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.trending_up, size: 18),
+                      label: const Text('Trend Analysis'),
+                      onPressed: () async {
+                        var prompt = widget.generativeService.prompts
+                            .firstWhere((p) => p.key == 'chart-trend');
+                        String historicalDataString = instrument
+                            .instrumentHistoricalsObj!.historicals
+                            .where((e) => e.volume > 0)
+                            .map((e) =>
+                                'Date: ${e.beginsAt}, Open: ${formatCurrency.format(e.openPrice)}, High: ${formatCurrency.format(e.highPrice)}, Low: ${formatCurrency.format(e.lowPrice)}, Close: ${formatCurrency.format(e.closePrice)}, Volume: ${formatCompactNumber.format(e.volume)}')
+                            .join("\n");
+                        var newPrompt = Prompt(
+                            key: prompt.key,
+                            title: prompt.title,
+                            prompt:
+                                '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}\nwith the following chart data:\n$historicalDataString');
+                        await generateContent(generativeProvider,
+                            widget.generativeService, newPrompt, context);
+                      },
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ActionChip(
-                        avatar: generativeProvider.generating &&
-                                generativeProvider.generatingPrompt ==
-                                    'stock-summary'
-                            ? const CircularProgressIndicator()
-                            : const Icon(Icons.summarize),
-                        label: const Text('Summary'),
-                        onPressed: () async {
-                          var prompt = widget.generativeService.prompts
-                              .firstWhere((p) => p.key == 'stock-summary');
-                          var newPrompt = Prompt(
-                              key: prompt.key,
-                              title: prompt.title,
-                              prompt: prompt.prompt
-                                  .replaceAll("{{symbol}}", instrument.symbol));
-                          await generateContent(generativeProvider,
-                              widget.generativeService, newPrompt, context);
-                        },
-                      ),
+                    const SizedBox(width: 8),
+                    ActionChip(
+                      avatar: generativeProvider.generating &&
+                              generativeProvider.generatingPrompt ==
+                                  'stock-summary'
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.summarize_outlined, size: 18),
+                      label: const Text('Summary'),
+                      onPressed: () async {
+                        var prompt = widget.generativeService.prompts
+                            .firstWhere((p) => p.key == 'stock-summary');
+                        var newPrompt = Prompt(
+                            key: prompt.key,
+                            title: prompt.title,
+                            prompt: prompt.prompt
+                                .replaceAll("{{symbol}}", instrument.symbol));
+                        await generateContent(generativeProvider,
+                            widget.generativeService, newPrompt, context);
+                      },
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ActionChip(
-                        avatar: generativeProvider.generating &&
-                                generativeProvider.generatingPrompt == 'ask'
-                            ? const CircularProgressIndicator()
-                            : const Icon(Icons.question_answer),
-                        label: const Text('Ask a question'),
-                        onPressed: () async {
-                          var prompt = widget.generativeService.prompts
-                              .firstWhere((p) => p.key == 'ask');
-                          prompt.appendPortfolioToPrompt = false;
-                          await generateContent(generativeProvider,
-                              widget.generativeService, prompt, context);
-                        },
-                      ),
+                    const SizedBox(width: 8),
+                    ActionChip(
+                      avatar: generativeProvider.generating &&
+                              generativeProvider.generatingPrompt == 'ask'
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.chat_bubble_outline, size: 18),
+                      label: const Text('Ask AI'),
+                      onPressed: () async {
+                        var prompt = widget.generativeService.prompts
+                            .firstWhere((p) => p.key == 'ask');
+                        prompt.appendPortfolioToPrompt = false;
+                        await generateContent(generativeProvider,
+                            widget.generativeService, prompt, context);
+                      },
                     ),
                   ],
                 ),
@@ -784,405 +794,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ],
             buildOverview(instrument)
           ])),
-          Consumer<InstrumentHistoricalsStore>(builder: //, QuoteStore
-              (context, instrumentHistoricalsStore, child) {
-            //, quoteStore
-            instrument.instrumentHistoricalsObj =
-                instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
-                        element.symbol == instrument.symbol &&
-                        element.span ==
-                            convertChartSpanFilter(chartDateSpanFilter) &&
-                        element.bounds ==
-                            convertChartBoundsFilter(chartBoundsFilter)
-                    //&& element.interval == element.interval
-                    );
-
-            // TODO: The close of the last period should be added to the chart series data.
-            // var rsi = instrumentHistoricalsStore.items.firstWhereOrNull(
-            //     (element) =>
-            //         element.symbol == instrument.symbol &&
-            //         element.span ==
-            //             convertChartSpanFilter(ChartDateSpan.month) &&
-            //         element.bounds ==
-            //             convertChartBoundsFilter(chartBoundsFilter) &&
-            //         element.interval == 'day');
-            // if (rsi != null) {
-            //   debugPrint(rsi.historicals.first.closePrice!.toString());
-            //   debugPrint(rsi.historicals.last.closePrice!.toString());
-            // }
-
-            if (instrument.instrumentHistoricalsObj != null &&
-                instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
-              InstrumentHistorical? firstHistorical;
-              InstrumentHistorical? lastHistorical;
-              double open = 0;
-              double close = 0;
-              double changeInPeriod = 0;
-              double changePercentInPeriod = 0;
-
-              firstHistorical =
-                  instrument.instrumentHistoricalsObj!.historicals[0];
-              lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
-                  instrument.instrumentHistoricalsObj!.historicals.length - 1];
-              open = firstHistorical
-                  .openPrice!; // instrument.instrumentHistoricalsObj!.previousClosePrice ??
-              close = lastHistorical.closePrice!;
-              changeInPeriod = close - open;
-              changePercentInPeriod =
-                  close / open - 1; // changeInPeriod / close;
-
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var textColor = Theme.of(context).colorScheme.surface;
-              if (brightness == Brightness.dark) {
-                textColor = Colors.grey.shade200;
-              } else {
-                textColor = Colors.grey.shade800;
-              }
-              /* TODO: review
-              var quoteObj = quoteStore.items.firstWhereOrNull(
-                  (element) => element.symbol == instrument.symbol);
-              if (instrument
-                      .instrumentHistoricalsObj!.historicals.last.beginsAt !=
-                  quoteObj!.updatedAt) {
-                instrument.instrumentHistoricalsObj!.historicals
-                    .add(InstrumentHistorical(
-                        //DateTime.now(),
-                        quoteObj.updatedAt,
-                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
-                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
-                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
-                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
-                        0,
-                        '',
-                        false));
-              }
-              */
-              List<charts.Series<InstrumentHistorical, DateTime>> seriesList = [
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Open',
-                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                      Theme.of(context).colorScheme.primary),
-                  //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.openPrice,
-                  data: instrument.instrumentHistoricalsObj!.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Close',
-                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.closePrice,
-                  data: instrument.instrumentHistoricalsObj!.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                    id: 'Volume',
-                    colorFn: (_, __) =>
-                        charts.MaterialPalette.cyan.shadeDefault,
-                    domainFn: (InstrumentHistorical history, _) =>
-                        history.beginsAt!,
-                    measureFn: (InstrumentHistorical history, _) =>
-                        history.volume,
-                    data: instrument.instrumentHistoricalsObj!.historicals),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Low',
-                  colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.lowPrice,
-                  data: instrument.instrumentHistoricalsObj!.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'High',
-                  colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.highPrice,
-                  data: instrument.instrumentHistoricalsObj!.historicals,
-                ),
-              ];
-              var extents = charts.NumericExtents.fromValues(
-                  seriesList[0].data.map((e) => e.openPrice!));
-              extents = charts.NumericExtents(
-                  extents.min - (extents.width * 0.1),
-                  extents.max + (extents.width * 0.1));
-              //extents.min - (extents.min * 0.01), extents.max * 1.01);
-              var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
-                  context,
-                  listen: false);
-
-              chart = TimeSeriesChart(seriesList,
-                  open: open,
-                  close: close,
-                  seriesLegend: charts.SeriesLegend(
-                    horizontalFirst: true,
-                    position: charts.BehaviorPosition.top,
-                    defaultHiddenSeries: const [
-                      "Close",
-                      "Volume",
-                      "Low",
-                      "High"
-                    ],
-                    // To show value on legend upon selection
-                    showMeasures: true,
-                    measureFormatter: (measure) =>
-                        measure != null ? formatCurrency.format(measure) : '',
-                    // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                  ), onSelected: (charts.SelectionModel<DateTime>? historical) {
-                provider
-                    .selectionChanged(historical?.selectedDatum.first.datum);
-              },
-                  symbolRenderer: TextSymbolRenderer(() {
-                    return provider.selection != null
-                        // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
-                        ? formatCompactDateTimeWithHour.format(
-                            (provider.selection as InstrumentHistorical)
-                                .beginsAt!
-                                .toLocal())
-                        : '0';
-                  }, marginBottom: 16),
-                  zeroBound: false,
-                  viewport: extents);
-
-              /*
-              slivers.add(const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )));
-*/
-              return SliverToBoxAdapter(
-                  child: Column(
-                children: [
-                  SizedBox(
-                      height: 340, // 240,
-                      child: Padding(
-                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        padding: const EdgeInsets.all(10.0),
-                        child: chart,
-                      )),
-                  Consumer<InstrumentHistoricalsSelectionStore>(
-                      builder: (context, value, child) {
-                    selection = value.selection;
-                    if (selection != null) {
-                      changeInPeriod = selection!.closePrice! - open;
-                      changePercentInPeriod = selection!.closePrice! / open -
-                          1; // changeInPeriod / selection!.closePrice!;
-                    } else {
-                      changeInPeriod = close - open;
-                      changePercentInPeriod =
-                          close / open - 1; // changeInPeriod / close;
-                    }
-                    return SizedBox(
-                        // height: 43,
-                        child: Center(
-                            child: Padding(
-                      padding: const EdgeInsets.all(summaryEgdeInset),
-                      child: Column(
-                        children: [
-                          Wrap(
-                            children: [
-                              Text(
-                                  formatCurrency.format(selection != null
-                                      ? selection!.closePrice
-                                      : close),
-                                  style: TextStyle(
-                                      fontSize: 20, color: textColor)),
-                              Container(
-                                width: 10,
-                              ),
-                              Icon(
-                                changeInPeriod > 0
-                                    ? Icons.trending_up
-                                    : (changeInPeriod < 0
-                                        ? Icons.trending_down
-                                        : Icons.trending_flat),
-                                color: (changeInPeriod > 0
-                                    ? Colors.green
-                                    : (changeInPeriod < 0
-                                        ? Colors.red
-                                        : Colors.grey)),
-                                //size: 16.0
-                              ),
-                              Container(
-                                width: 2,
-                              ),
-                              Text(
-                                  formatPercentage
-                                      //.format(selection!.netReturn!.abs()),
-                                      .format(changePercentInPeriod.abs()),
-                                  style: TextStyle(
-                                      fontSize: 20.0, color: textColor)),
-                              Container(
-                                width: 10,
-                              ),
-                              Text(
-                                  "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                  style: TextStyle(
-                                      fontSize: 20.0, color: textColor)),
-                            ],
-                          ),
-                          Text(
-                            '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                            style: TextStyle(fontSize: 10, color: textColor),
-                          ),
-                        ],
-                      ),
-                    )));
-                  }),
-                  SizedBox(
-                      height: 56,
-                      child: ListView.builder(
-                        key: const PageStorageKey<String>(
-                            'instrumentChartFilters'),
-                        padding: const EdgeInsets.all(5.0),
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, index) {
-                          return Row(children: [
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Day'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.day,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.day, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Week'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.week,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.week, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Month'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.month,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.month, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('3 Months'),
-                                selected: chartDateSpanFilter ==
-                                    ChartDateSpan.month_3,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(ChartDateSpan.month_3,
-                                        chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Year'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.year,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.year, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('5 Years'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.year_5,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(ChartDateSpan.year_5,
-                                        chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Container(
-                              width: 10,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Regular Hours'),
-                                selected: chartBoundsFilter == Bounds.regular,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        chartDateSpanFilter, Bounds.regular);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Trading Hours'),
-                                selected: chartBoundsFilter == Bounds.trading,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        chartDateSpanFilter, Bounds.trading);
-                                  }
-                                },
-                              ),
-                            ),
-                          ]);
-                        },
-                        itemCount: 1,
-                      ))
-                ],
-              ));
-
-              //child: StackedAreaLineChart.withSampleData()))));
-            }
-            return SliverToBoxAdapter(child: Container());
-          }),
+          InstrumentChartWidget(
+            instrument: instrument,
+            chartDateSpanFilter: chartDateSpanFilter,
+            chartBoundsFilter: chartBoundsFilter,
+            onFilterChanged: (span, bounds) {
+              resetChart(span, bounds);
+            },
+          ),
           if (instrument.quoteObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
@@ -1204,7 +823,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
               ListTile(
-                  title: Text("Position", style: TextStyle(fontSize: 19)),
+                  title: Text("Position", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   subtitle:
                       Text('${formatNumber.format(position.quantity!)} shares'),
                   trailing: Text(formatCurrency.format(position.marketValue),
@@ -1458,18 +1077,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget buildOverview(Instrument instrument) {
     if (instrument.quoteObj == null) {
-      return Container();
+      return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            if (instrument.tradeableChainId != null) ...[
-              FilledButton.tonal(
-                child: const Text('OPTION CHAIN'),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: <Widget>[
+          if (instrument.tradeableChainId != null) ...[
+            Expanded(
+              child: FilledButton.tonalIcon(
+                icon: const Icon(Icons.list_alt),
+                label: const Text('Option Chain'),
                 onPressed: () {
                   Navigator.push(
                       context,
@@ -1486,11 +1104,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               )));
                 },
               ),
-            ],
-            const SizedBox(width: 8),
-            if (instrument.tradeable) ...[
-              FilledButton(
-                child: const Text('TRADE'),
+            ),
+            const SizedBox(width: 12),
+          ],
+          if (instrument.tradeable) ...[
+            Expanded(
+              child: FilledButton.icon(
+                icon: const Icon(Icons.attach_money),
+                label: const Text('Trade'),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1503,10 +1124,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               observer: widget.observer,
                             ))),
               ),
-            ],
-            const SizedBox(width: 4),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -1521,17 +1141,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _pnlBadge(String text, double? value, double fontSize,
       {bool neutral = false}) {
-    var color = neutral ? Colors.grey : _pnlColor(value);
+    var color = neutral
+        ? Theme.of(context).colorScheme.onSurfaceVariant
+        : _pnlColor(value);
+    var backgroundColor = neutral
+        ? Theme.of(context).colorScheme.surfaceContainerHighest
+        : color.withOpacity(0.1);
+
     return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.25))),
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withOpacity(0.3))),
         child: Text(text,
             style: TextStyle(
-                fontSize: fontSize, color: color)) // keep passed font size
-        );
+                fontSize: fontSize,
+                fontWeight: FontWeight.w500,
+                color: color)));
   }
 
   SingleChildScrollView _buildDetailScrollRow(
@@ -1730,774 +1357,785 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget quoteWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Quote",
-            style: TextStyle(fontSize: 19.0),
+      child: Column(
+        children: [
+          ListTile(
+            title: const Text(
+              "Quote",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            subtitle: instrument.quoteObj!.lastExtendedHoursTradePrice != null
+                ? const Text('Extended hours')
+                : null,
+            trailing: Text(
+                formatCurrency.format(
+                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                        instrument.quoteObj!.lastTradePrice),
+                style: const TextStyle(fontSize: 21)),
           ),
-          subtitle: instrument.quoteObj!.lastExtendedHoursTradePrice != null
-              ? Text('Extended hours')
-              : null,
-          trailing: Text(
-              formatCurrency.format(
-                  instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                      instrument.quoteObj!.lastTradePrice),
-              style: const TextStyle(fontSize: 21)),
-        ),
-        _buildQuoteScrollRow(instrument, badgeValueFontSize, badgeLabelFontSize,
-            iconSize: 27.0),
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        // ListTile(
-        //   minTileHeight: 10,
-        //   title: const Text("Bid/Ask"),
-        //   trailing: Text(
-        //       "${formatCurrency.format(instrument.quoteObj!.bidPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.bidSize)}",
-        //       style: const TextStyle(fontSize: 18)),
-        // ),
-        // ListTile(
-        //   minTileHeight: 10,
-        //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
-        //   // title: const Text("Ask"),
-        //   trailing: Text(
-        //       "${formatCurrency.format(instrument.quoteObj!.askPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-        //       style: const TextStyle(fontSize: 18)),
-        // ),
-        // ListTile(
-        //   minTileHeight: 10,
-        //   title: const Text("Previous Close"),
-        //   trailing: Text(
-        //       formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
-        //       style: const TextStyle(fontSize: 18)),
-        // ),
-        // ListTile(
-        //   minTileHeight: 10,
-        //   title: const Text("Bid - Ask Size"),
-        //   trailing: Text(
-        //       "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-        //       style: const TextStyle(fontSize: 18)),
-        // ),
-        // Container(
-        //   height: 10,
-        // )
-      ])))
-    ]));
+          _buildQuoteScrollRow(
+              instrument, badgeValueFontSize, badgeLabelFontSize,
+              iconSize: 27.0),
+        ],
+      ),
+    );
   }
 
   Widget fundamentalsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Fundamentals",
-            style: TextStyle(fontSize: 19.0),
-          ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        /*
-          ListTile(
-              title:
-                  const Text("Fundamentals", style: TextStyle(fontSize: 19))),
-                  */
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Volume"),
-          trailing: Text(
-              formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        if (instrument.fundamentalsObj!.averageVolume != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Average Volume"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.averageVolume!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.averageVolume2Weeks != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Average Volume (2 weeks)"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.high52Weeks != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("52 Week High"),
-            trailing: Text(
-                formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.low52Weeks != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("52 Week Low"),
-            trailing: Text(
-                formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Dividend Yield"),
-          trailing: Text(
-              instrument.fundamentalsObj!.dividendYield != null
-                  ? formatCompactNumber
-                      .format(instrument.fundamentalsObj!.dividendYield!)
-                  : "-",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Market Cap"),
-          trailing: Text(
-              formatCompactNumber
-                  .format(instrument.fundamentalsObj!.marketCap ?? 0),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Shares Outstanding"),
-          trailing: Text(
-              formatCompactNumber
-                  .format(instrument.fundamentalsObj!.sharesOutstanding ?? 0),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("P/E Ratio"),
-          trailing: Text(
-              instrument.fundamentalsObj!.peRatio != null
-                  ? formatCompactNumber
-                      .format(instrument.fundamentalsObj!.peRatio!)
-                  : "-",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Type"),
-          trailing: Text(
-              instrument.type == "stock"
-                  ? "Stock"
-                  : (instrument.type == "etp"
-                      ? "Exchange Traded Product"
-                      : instrument.type),
-              style: const TextStyle(fontSize: 16)),
-        ),
-        if (instrument.type == "etp" && instrument.etpDetails != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Inception"),
-            trailing: Text(
-                formatDate.format(
-                    DateTime.parse(instrument.etpDetails["inception_date"])),
-                style: const TextStyle(fontSize: 16)),
-          ),
-          if (instrument.etpDetails["is_inverse"] ||
-              instrument.etpDetails["is_leveraged"] ||
-              instrument.etpDetails["is_volatility_linked"] ||
-              instrument.etpDetails["is_crypto_futures"] ||
-              instrument.etpDetails["is_actively_managed"]) ...[
-            ListTile(
-              minTileHeight: 10,
-              title: const Text("Characteristics"),
-              trailing: Text(
-                  "${instrument.etpDetails["is_inverse"] ? "Inverse" : ""} ${instrument.etpDetails["is_leveraged"] ? "Leveraged" : ""} ${instrument.etpDetails["is_volatility_linked"] ? "Volatility linked" : ""} ${instrument.etpDetails["is_crypto_futures"] ? "Crypto futures" : ""} ${instrument.etpDetails["is_actively_managed"] ? "Actively managed" : ""}",
-                  style: const TextStyle(fontSize: 16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ListTile(
+            title: Text(
+              "Fundamentals",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ],
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Category"),
-            trailing: Text(instrument.etpDetails["category"],
-                style: const TextStyle(fontSize: 16)),
           ),
-          if (instrument.etpDetails["total_holdings"] != null) ...[
-            ListTile(
-              minTileHeight: 10,
-              title: Wrap(
-                children: [
-                  const Text("Holdings"),
-                  SizedBox(
-                    height: 24,
-                    child: IconButton(
-                      iconSize: 18,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.info_outline),
-                      onPressed: () {
-                        // var holdings = instrument.etpDetails["holdings"]
-                        //     .map((h) => "${h["name"]} ${h["weight"]}%")
-                        //     .toList();
-                        showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) => AlertDialog(
-                                  // context: context,
-                                  title: Text('${instrument.symbol} Holdings'),
-                                  content: Table(
-                                    border: TableBorder.all(),
-                                    columnWidths: {
-                                      0: FlexColumnWidth(4),
-                                      1: FlexColumnWidth(1)
-                                    },
-                                    children: [
-                                      for (var holding in instrument
-                                          .etpDetails["holdings"]) ...[
-                                        TableRow(children: [
-                                          SelectableText(holding["name"]),
-                                          SelectableText(holding["weight"]),
-                                        ])
-                                      ]
-                                    ],
-                                  ),
-                                  // SelectableText(holdings.join("\n")),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ));
-                      },
-                    ),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Volume"),
+                  trailing: Text(
+                      formatCompactNumber
+                          .format(instrument.fundamentalsObj!.volume!),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                if (instrument.fundamentalsObj!.averageVolume != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Average Volume"),
+                    trailing: Text(
+                        formatCompactNumber
+                            .format(instrument.fundamentalsObj!.averageVolume!),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
-              ),
-              trailing: Wrap(children: [
-                Text(
-                    formatNumber
-                        .format(instrument.etpDetails["total_holdings"]),
-                    style: const TextStyle(fontSize: 18)),
-              ]),
+                if (instrument.fundamentalsObj!.averageVolume2Weeks !=
+                    null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Avg Vol (2 weeks)"),
+                    trailing: Text(
+                        formatCompactNumber.format(
+                            instrument.fundamentalsObj!.averageVolume2Weeks!),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (instrument.fundamentalsObj!.high52Weeks != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("52 Week High"),
+                    trailing: Text(
+                        formatCurrency
+                            .format(instrument.fundamentalsObj!.high52Weeks!),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (instrument.fundamentalsObj!.low52Weeks != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("52 Week Low"),
+                    trailing: Text(
+                        formatCurrency
+                            .format(instrument.fundamentalsObj!.low52Weeks!),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Dividend Yield"),
+                  trailing: Text(
+                      instrument.fundamentalsObj!.dividendYield != null
+                          ? formatCompactNumber.format(
+                              instrument.fundamentalsObj!.dividendYield!)
+                          : "-",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Market Cap"),
+                  trailing: Text(
+                      formatCompactNumber
+                          .format(instrument.fundamentalsObj!.marketCap ?? 0),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Shares Outstanding"),
+                  trailing: Text(
+                      formatCompactNumber.format(
+                          instrument.fundamentalsObj!.sharesOutstanding ?? 0),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("P/E Ratio"),
+                  trailing: Text(
+                      instrument.fundamentalsObj!.peRatio != null
+                          ? formatCompactNumber
+                              .format(instrument.fundamentalsObj!.peRatio!)
+                          : "-",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Type"),
+                  trailing: Text(
+                      instrument.type == "stock"
+                          ? "Stock"
+                          : (instrument.type == "etp"
+                              ? "Exchange Traded Product"
+                              : instrument.type),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                if (instrument.type == "etp" &&
+                    instrument.etpDetails != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Inception"),
+                    trailing: Text(
+                        formatDate.format(DateTime.parse(
+                            instrument.etpDetails["inception_date"])),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  if (instrument.etpDetails["is_inverse"] ||
+                      instrument.etpDetails["is_leveraged"] ||
+                      instrument.etpDetails["is_volatility_linked"] ||
+                      instrument.etpDetails["is_crypto_futures"] ||
+                      instrument.etpDetails["is_actively_managed"]) ...[
+                    ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(vertical: -2),
+                      title: const Text("Characteristics"),
+                      trailing: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 200),
+                        child: Text(
+                            "${instrument.etpDetails["is_inverse"] ? "Inverse" : ""} ${instrument.etpDetails["is_leveraged"] ? "Leveraged" : ""} ${instrument.etpDetails["is_volatility_linked"] ? "Volatility linked" : ""} ${instrument.etpDetails["is_crypto_futures"] ? "Crypto futures" : ""} ${instrument.etpDetails["is_actively_managed"] ? "Actively managed" : ""}",
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      ),
+                    ),
+                  ],
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Category"),
+                    trailing: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 200),
+                      child: Text(instrument.etpDetails["category"],
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    ),
+                  ),
+                  if (instrument.etpDetails["total_holdings"] != null) ...[
+                    ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(vertical: -2),
+                      title: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text("Holdings"),
+                          const SizedBox(width: 4),
+                          SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: IconButton(
+                              iconSize: 16,
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.info_outline),
+                              onPressed: () {
+                                showDialog<String>(
+                                    context: context,
+                                    builder: (BuildContext context) =>
+                                        AlertDialog(
+                                          title: Text(
+                                              '${instrument.symbol} Holdings'),
+                                          content: SizedBox(
+                                            width: double.maxFinite,
+                                            child: SingleChildScrollView(
+                                              child: Table(
+                                                border: TableBorder.all(
+                                                  color: Theme.of(context).dividerColor,
+                                                  width: 0.5
+                                                ),
+                                                columnWidths: const {
+                                                  0: FlexColumnWidth(4),
+                                                  1: FlexColumnWidth(1)
+                                                },
+                                                children: [
+                                                  for (var holding in instrument
+                                                      .etpDetails["holdings"]) ...[
+                                                    TableRow(children: [
+                                                      Padding(
+                                                        padding: const EdgeInsets.all(8.0),
+                                                        child: SelectableText(
+                                                            holding["name"]),
+                                                      ),
+                                                      Padding(
+                                                        padding: const EdgeInsets.all(8.0),
+                                                        child: SelectableText(
+                                                            holding["weight"]),
+                                                      ),
+                                                    ])
+                                                  ]
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        ));
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Text(
+                          formatNumber.format(
+                              instrument.etpDetails["total_holdings"]),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    ),
+                  ],
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("AUM"),
+                    trailing: Text(
+                        formatCompactCurrency
+                            .format(double.parse(instrument.etpDetails["aum"])),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Gross Expense Ratio"),
+                    trailing: Text(
+                        formatPercentage.format(double.tryParse(
+                                instrument.etpDetails["gross_expense_ratio"])! /
+                            100),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("SEC Yield"),
+                    trailing: Text(
+                        instrument.etpDetails["sec_yield"] != null
+                            ? formatPercentage.format(double.tryParse(
+                                    instrument.etpDetails["sec_yield"])! /
+                                100)
+                            : "-",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Month Performance"),
+                    subtitle: Text(
+                        "1 year to ${instrument.etpDetails["month_end_date"]}"),
+                    trailing: Text(
+                        instrument.etpDetails["month_end_performance"]["market"]
+                                    ["1Y"] !=
+                                null
+                            ? formatPercentage.format(double.tryParse(instrument
+                                        .etpDetails["month_end_performance"]
+                                    ["market"]["1Y"])! /
+                                100)
+                            : "-",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Quarter Performance"),
+                    subtitle: Text(
+                        "Since inception to ${instrument.etpDetails["quarter_end_date"]}"),
+                    trailing: Text(
+                        instrument.etpDetails["quarter_end_performance"]
+                                    ["market"]["since_inception"] !=
+                                null
+                            ? formatPercentage.format(double.tryParse(instrument
+                                        .etpDetails["quarter_end_performance"]
+                                    ["market"]["since_inception"])! /
+                                100)
+                            : "-",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Sector"),
+                  trailing: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: Text(instrument.fundamentalsObj!.sector,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text("Industry"),
+                  trailing: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: Text(instrument.fundamentalsObj!.industry,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text(
+                    "Name",
+                  ),
+                  subtitle: Text(instrument.name,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  dense: true,
+                  visualDensity: const VisualDensity(vertical: -2),
+                  title: const Text(
+                    "Description",
+                  ),
+                  subtitle: Text(instrument.fundamentalsObj!.description,
+                      style: const TextStyle(fontSize: 14)),
+                ),
+                if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
+                    instrument
+                        .fundamentalsObj!.headquartersState.isNotEmpty) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Headquarters"),
+                    subtitle: Text(
+                        "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("CEO"),
+                    trailing: Text(instrument.fundamentalsObj!.ceo,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (instrument.fundamentalsObj!.numEmployees != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Employees"),
+                    trailing: Text(
+                        instrument.fundamentalsObj!.numEmployees != null
+                            ? formatCompactNumber.format(
+                                instrument.fundamentalsObj!.numEmployees!)
+                            : "",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                if (instrument.fundamentalsObj!.yearFounded != null) ...[
+                  ListTile(
+                    dense: true,
+                    visualDensity: const VisualDensity(vertical: -2),
+                    title: const Text("Founded"),
+                    trailing: Text(
+                        "${instrument.fundamentalsObj!.yearFounded ?? ""}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
             ),
-          ],
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Assets under Management"),
-            trailing: Text(
-                formatCompactCurrency
-                    .format(double.parse(instrument.etpDetails["aum"])),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Gross Expense Ratio"),
-            trailing: Text(
-                formatPercentage.format(double.tryParse(
-                        instrument.etpDetails["gross_expense_ratio"])! /
-                    100),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("SEC Yield"),
-            trailing: Text(
-                instrument.etpDetails["sec_yield"] != null
-                    ? formatPercentage.format(
-                        double.tryParse(instrument.etpDetails["sec_yield"])! /
-                            100)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Month Performance"),
-            subtitle:
-                Text("1 year to ${instrument.etpDetails["month_end_date"]}"),
-            trailing: Text(
-                instrument.etpDetails["month_end_performance"]["market"]
-                            ["1Y"] !=
-                        null
-                    ? formatPercentage.format(double.tryParse(
-                            instrument.etpDetails["month_end_performance"]
-                                ["market"]["1Y"])! /
-                        100)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Quarter Performance"),
-            subtitle: Text(
-                "Since inception to ${instrument.etpDetails["quarter_end_date"]}"),
-            trailing: Text(
-                instrument.etpDetails["quarter_end_performance"]["market"]
-                            ["since_inception"] !=
-                        null
-                    ? formatPercentage.format(double.tryParse(
-                            instrument.etpDetails["quarter_end_performance"]
-                                ["market"]["since_inception"])! /
-                        100)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
           ),
         ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Sector"),
-          subtitle: Text(instrument.fundamentalsObj!.sector,
-              style: const TextStyle(fontSize: 16)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Industry"),
-          subtitle: Text(instrument.fundamentalsObj!.industry,
-              style: const TextStyle(fontSize: 16)),
-          // trailing: Text(instrument.fundamentalsObj!.industry,
-          //     overflow: TextOverflow.ellipsis,
-          //     style: const TextStyle(fontSize: 16)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text(
-            "Name",
-            style: TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(instrument.name, style: const TextStyle(fontSize: 16)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text(
-            "Description",
-            style: TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(instrument.fundamentalsObj!.description,
-              style: const TextStyle(fontSize: 16)),
-        ),
-        if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
-            instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Headquarters"),
-            subtitle: Text(
-                "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                style: const TextStyle(fontSize: 16)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("CEO"),
-            trailing: Text(instrument.fundamentalsObj!.ceo,
-                style: const TextStyle(fontSize: 17)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.numEmployees != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Number of Employees"),
-            trailing: Text(
-                instrument.fundamentalsObj!.numEmployees != null
-                    ? formatCompactNumber
-                        .format(instrument.fundamentalsObj!.numEmployees!)
-                    : "",
-                style: const TextStyle(fontSize: 17)),
-          ),
-        ],
-        if (instrument.fundamentalsObj!.yearFounded != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Year Founded"),
-            trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
-                style: const TextStyle(fontSize: 17)),
-          ),
-        ],
-        Container(
-          height: 10,
-        )
-      ])))
-    ]));
+      ),
+    );
   }
 
   Widget _buildRatingsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Ratings",
-            style: TextStyle(fontSize: 19.0),
-          ),
-        )
-      ])),
-      SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 150.0,
-                //mainAxisSpacing: 6.0,
-                crossAxisSpacing: 2.0,
-                childAspectRatio: 1.3),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                switch (index) {
-                  case 0:
-                    return Card(
-                        child: InkWell(
-                      child: Center(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                  formatCompactNumber.format(
-                                      instrument.ratingsObj["summary"]
-                                          ["num_buy_ratings"]),
-                                  style: const TextStyle(fontSize: 21.0)),
-                              Container(
-                                height: 5,
-                              ),
-                              const Text("Buy",
-                                  style: TextStyle(fontSize: 17.0)),
-                              //const Text("Delta",
-                              //    style: TextStyle(fontSize: 10.0)),
-                            ]),
-                      ),
-                      onTap: () {
-                        showDialog<String>(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                            title: const Text('Buy Ratings'),
-                            content: SingleChildScrollView(
-                                child: Column(children: [
-                              for (var rating
-                                  in instrument.ratingsObj["ratings"]) ...[
-                                if (rating["type"] == "buy") ...[
-                                  Text("${rating["text"]}\n"),
-                                  Text(
-                                      "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
-                                      style: const TextStyle(fontSize: 11.0)),
-                                ]
-                              ]
-                            ])),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, 'OK'),
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ));
-                  case 1:
-                    return Card(
-                      child: Center(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                  formatCompactNumber.format(
-                                      instrument.ratingsObj["summary"]
-                                          ["num_hold_ratings"]),
-                                  style: const TextStyle(fontSize: 21.0)),
-                              Container(
-                                height: 5,
-                              ),
-                              const Text("Hold",
-                                  style: TextStyle(fontSize: 17.0)),
-                              //const Text("Gamma",
-                              //    style: TextStyle(fontSize: 10.0)),
-                            ]),
-                      ),
-                    );
-                  case 2:
-                    return Card(
-                        child: InkWell(
-                      child: Center(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                  formatCompactNumber.format(
-                                      instrument.ratingsObj["summary"]
-                                          ["num_sell_ratings"]),
-                                  style: const TextStyle(fontSize: 21.0)),
-                              Container(
-                                height: 5,
-                              ),
-                              const Text("Sell",
-                                  style: TextStyle(fontSize: 17.0)),
-                              //const Text("Theta",
-                              //    style: TextStyle(fontSize: 10.0)),
-                            ]),
-                      ),
-                      onTap: () {
-                        showDialog<String>(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                            title: const Text('Sell Ratings'),
-                            content: SingleChildScrollView(
-                                child: Column(children: [
-                              for (var rating
-                                  in instrument.ratingsObj["ratings"]) ...[
-                                if (rating["type"] == "sell") ...[
-                                  Text("${rating["text"]}\n"),
-                                  Text(
-                                      "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
-                                      style: const TextStyle(fontSize: 11.0)),
-                                ]
-                              ]
-                            ])),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, 'OK'),
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ));
-
-                  default:
-                    return Container();
-                }
-              },
-              childCount: 3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ListTile(
+            title: Text(
+              "Analyst Ratings",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ))
-    ]));
+          ),
+          GridView.count(
+            crossAxisCount: 3,
+            childAspectRatio: 1.0,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            children: [
+              _buildRatingCard(
+                context,
+                "Buy",
+                instrument.ratingsObj["summary"]["num_buy_ratings"],
+                Colors.green,
+                instrument.ratingsObj["ratings"],
+                "buy",
+              ),
+              _buildRatingCard(
+                context,
+                "Hold",
+                instrument.ratingsObj["summary"]["num_hold_ratings"],
+                Colors.grey,
+                instrument.ratingsObj["ratings"],
+                "hold",
+              ),
+              _buildRatingCard(
+                context,
+                "Sell",
+                instrument.ratingsObj["summary"]["num_sell_ratings"],
+                Colors.red,
+                instrument.ratingsObj["ratings"],
+                "sell",
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingCard(BuildContext context, String title, int? count,
+      Color color, List<dynamic> ratings, String type) {
+    return Card(
+      elevation: 0,
+      color: color.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () {
+          showDialog<String>(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+              title: Text('$title Ratings'),
+              content: SingleChildScrollView(
+                  child: Column(children: [
+                for (var rating in ratings) ...[
+                  if (rating["type"] == type) ...[
+                    Text("${rating["text"]}\n"),
+                    Text(
+                        "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
+                        style: const TextStyle(fontSize: 11.0)),
+                  ]
+                ]
+              ])),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'OK'),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              count != null ? formatCompactNumber.format(count) : "-",
+              style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildRatingsOverviewWidget(Instrument instrument) {
     if (instrument.ratingsOverviewObj == null) {
-      return Container();
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Research",
-            style: TextStyle(fontSize: 19.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ListTile(
+            title: Text(
+              "Research",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        // const SizedBox(height: 15),
-        if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
-          ListTile(
-            minTileHeight: 10,
-            title: const Text("Fair Value"),
-            trailing: Text(
-                formatCurrency.format(double.parse(
-                    instrument.ratingsOverviewObj!["fair_value"]["value"])),
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Economic Moat"),
-          trailing: Text(
-              instrument.ratingsOverviewObj!["economic_moat"]
-                  .toString()
-                  .capitalize(),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
-          ListTile(
-              minTileHeight: 10,
-              title: const Text("Star Rating"),
-              trailing: Wrap(
-                children: [
-                  for (var i = 0;
-                      i <
-                          int.parse(
-                              instrument.ratingsOverviewObj!["star_rating"]);
-                      i++) ...[
-                    const Icon(Icons.star),
-                  ]
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
+                  ListTile(
+                    title: const Text("Fair Value"),
+                    trailing: Text(
+                        formatCurrency.format(double.parse(instrument
+                            .ratingsOverviewObj!["fair_value"]["value"])),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
                 ],
-              )
-              /*
-            Text(
-                instrument.ratingsOverviewObj!["star_rating"]
-                    .toString()
-                    .capitalize(),
-                style: const TextStyle(fontSize: 18)),
-                */
-              ),
+                ListTile(
+                  title: const Text("Economic Moat"),
+                  trailing: Text(
+                      instrument.ratingsOverviewObj!["economic_moat"]
+                          .toString()
+                          .capitalize(),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
+                  ListTile(
+                      title: const Text("Star Rating"),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0;
+                              i <
+                                  int.parse(instrument
+                                      .ratingsOverviewObj!["star_rating"]);
+                              i++) ...[
+                            const Icon(Icons.star, color: Colors.amber),
+                          ]
+                        ],
+                      )),
+                ],
+                ListTile(
+                  title: const Text("Stewardship"),
+                  trailing: Text(
+                      instrument.ratingsOverviewObj!["stewardship"]
+                          .toString()
+                          .capitalize(),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  title: const Text("Uncertainty"),
+                  trailing: Text(
+                      instrument.ratingsOverviewObj!["uncertainty"]
+                          .toString()
+                          .replaceAll('_', ' ')
+                          .capitalize(),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                ListTile(
+                  title: Text(
+                    instrument.ratingsOverviewObj!["report_title"],
+                    style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                      instrument.ratingsOverviewObj!["report_updated_at"] !=
+                              null
+                          ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
+                          : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
+                      style: const TextStyle(fontSize: 14)),
+                ),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      TextButton(
+                        child: const Text('DOWNLOAD REPORT'),
+                        onPressed: () async {
+                          var url =
+                              instrument.ratingsOverviewObj!["download_url"];
+                          var uri = Uri.parse(url);
+                          await canLaunchUrl(uri)
+                              ? await launchUrl(uri)
+                              : throw 'Could not launch $url';
+                        },
+                      ),
+                    ])
+              ],
+            ),
+          ),
         ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Stewardship"),
-          trailing: Text(
-              instrument.ratingsOverviewObj!["stewardship"]
-                  .toString()
-                  .capitalize(),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Uncertainty"),
-          trailing: Text(
-              instrument.ratingsOverviewObj!["uncertainty"]
-                  .toString()
-                  .replaceAll('_', ' ')
-                  .capitalize(),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: Text(
-            instrument.ratingsOverviewObj!["report_title"],
-            style: const TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(
-              instrument.ratingsOverviewObj!["report_updated_at"] != null
-                  ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
-                  : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
-              style: const TextStyle(fontSize: 14)),
-        ),
-        Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
-          TextButton(
-            child: const Text('DOWNLOAD REPORT'),
-            onPressed: () async {
-              var url = instrument.ratingsOverviewObj!["download_url"];
-              var uri = Uri.parse(url);
-              await canLaunchUrl(uri)
-                  ? await launchUrl(uri)
-                  : throw 'Could not launch $url';
-            },
-          ),
-        ])
-      ])))
-    ]));
+      ),
+    );
   }
 
   Widget _buildEarningsWidget(Instrument instrument) {
     dynamic futureEarning;
     dynamic pastEarning;
-    if (instrument.earningsObj!.isNotEmpty) {
-      futureEarning =
-          instrument.earningsObj![instrument.earningsObj!.length - 1];
-      pastEarning = instrument.earningsObj![instrument.earningsObj!.length - 2];
+    final earnings = instrument.earningsObj!;
+    if (earnings.isNotEmpty) {
+      futureEarning = earnings[earnings.length - 1];
+      pastEarning = earnings[earnings.length - 2];
     }
 
+    final displayCount = _showAllEarnings
+        ? earnings.length
+        : (earnings.length > 3 ? 3 : earnings.length);
+    // Show the last 3 items (most recent) if collapsed, but keep chronological order?
+    // Or just show the first 3?
+    // If the list is chronological, showing first 3 shows oldest.
+    // If we want to show recent, we should probably show the *last* 3.
+    // But "Show All" usually expands down.
+    // Let's reverse the list to show newest first, which is better for "Show Less".
+    // var displayEarnings = List.from(earnings.reversed);
+    // displayEarnings = displayEarnings.take(displayCount).toList();
+    // Actually, let's stick to the existing order to avoid confusion, just limit the count.
+    final displayEarnings = earnings.take(displayCount).toList();
+
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Earnings",
-            style: TextStyle(fontSize: 19.0),
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text(
+              "Earnings",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        for (var earning in instrument.earningsObj!) ...[
-          ListTile(
-              title: Text(
-                "${earning!["year"]} Q${earning!["quarter"]}",
-                style: const TextStyle(fontSize: 18.0),
-                //overflow: TextOverflow.visible
-              ),
-              subtitle: Text(
-                  earning!["report"] != null
-                      ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
-                      : "",
-                  style: const TextStyle(fontSize: 14)),
-              trailing: (earning!["eps"]["estimate"] != null ||
-                      earning!["eps"]["actual"] != null)
-                  ? Wrap(spacing: 10.0, children: [
-                      if (earning!["eps"]["estimate"] != null) ...[
-                        Column(
-                          children: [
-                            const Text("Estimate",
-                                style: TextStyle(fontSize: 11)),
-                            Text(
-                                formatCurrency.format(
-                                    double.parse(earning!["eps"]["estimate"])),
-                                style: const TextStyle(fontSize: 18)),
+          Card(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                for (var earning in displayEarnings) ...[
+                  ListTile(
+                      title: Text(
+                        "${earning!["year"]} Q${earning!["quarter"]}",
+                        style: const TextStyle(fontSize: 18.0),
+                        //overflow: TextOverflow.visible
+                      ),
+                      subtitle: Text(
+                          earning!["report"] != null
+                              ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
+                              : "",
+                          style: const TextStyle(fontSize: 14)),
+                      trailing: (earning!["eps"]["estimate"] != null ||
+                              earning!["eps"]["actual"] != null)
+                          ? Wrap(spacing: 10.0, children: [
+                              if (earning!["eps"]["estimate"] != null) ...[
+                                Column(
+                                  children: [
+                                    const Text("Estimate",
+                                        style: TextStyle(fontSize: 11)),
+                                    Text(
+                                        formatCurrency.format(double.parse(
+                                            earning!["eps"]["estimate"])),
+                                        style: const TextStyle(fontSize: 18)),
+                                  ],
+                                )
+                              ],
+                              if (earning!["eps"]["actual"] != null) ...[
+                                Column(children: [
+                                  const Text("Actual",
+                                      style: TextStyle(fontSize: 11)),
+                                  Text(
+                                      formatCurrency.format(double.parse(
+                                          earning!["eps"]["actual"])),
+                                      style: const TextStyle(fontSize: 18))
+                                ])
+                              ]
+                            ])
+                          : null),
+                  if (earning!["call"] != null &&
+                      ((pastEarning["year"] == earning!["year"] &&
+                              pastEarning["quarter"] == earning!["quarter"]) ||
+                          (futureEarning["year"] == earning!["year"] &&
+                              futureEarning["quarter"] ==
+                                  earning!["quarter"]))) ...[
+                    if (!earning!["report"]["verified"]) ...[
+                      ListTile(
+                        title: Text(
+                            "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                            style: const TextStyle(fontSize: 18)),
+                        subtitle: Text(
+                            formatLongDate.format(DateTime.parse(earning![
+                                    "call"][
+                                "datetime"])), // ${earning!["report"]["timing"]}",
+                            style: const TextStyle(fontSize: 16)),
+                      ),
+                    ],
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                          if (earning!["call"]["replay_url"] != null) ...[
+                            TextButton(
+                              child: const Text('LISTEN TO REPLAY'),
+                              onPressed: () async {
+                                var url = earning!["call"]["replay_url"];
+                                var uri = Uri.parse(url);
+                                await canLaunchUrl(uri)
+                                    ? await launchUrl(uri)
+                                    : throw 'Could not launch $url';
+                              },
+                            ),
                           ],
-                        )
-                      ],
-                      if (earning!["eps"]["actual"] != null) ...[
-                        Column(children: [
-                          const Text("Actual", style: TextStyle(fontSize: 11)),
-                          Text(
-                              formatCurrency.format(
-                                  double.parse(earning!["eps"]["actual"])),
-                              style: const TextStyle(fontSize: 18))
+                          if (earning!["call"]["broadcast_url"] != null) ...[
+                            Container(width: 50),
+                            TextButton(
+                              child: const Text('LISTEN TO BROADCAST'),
+                              onPressed: () async {
+                                var url = earning!["call"]["broadcast_url"];
+                                var uri = Uri.parse(url);
+                                await canLaunchUrl(uri)
+                                    ? await launchUrl(uri)
+                                    : throw 'Could not launch $url';
+                              },
+                            ),
+                          ],
                         ])
-                      ]
-                    ])
-                  : null),
-          if (earning!["call"] != null &&
-              ((pastEarning["year"] == earning!["year"] &&
-                      pastEarning["quarter"] == earning!["quarter"]) ||
-                  (futureEarning["year"] == earning!["year"] &&
-                      futureEarning["quarter"] == earning!["quarter"]))) ...[
-            if (!earning!["report"]["verified"]) ...[
-              ListTile(
-                title: Text(
-                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                    style: const TextStyle(fontSize: 18)),
-                subtitle: Text(
-                    formatLongDate.format(DateTime.parse(earning!["call"]
-                        ["datetime"])), // ${earning!["report"]["timing"]}",
-                    style: const TextStyle(fontSize: 16)),
-              ),
-            ],
-            Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
-              if (earning!["call"]["replay_url"] != null) ...[
-                TextButton(
-                  child: const Text('LISTEN TO REPLAY'),
-                  onPressed: () async {
-                    var url = earning!["call"]["replay_url"];
-                    var uri = Uri.parse(url);
-                    await canLaunchUrl(uri)
-                        ? await launchUrl(uri)
-                        : throw 'Could not launch $url';
-                  },
-                ),
+                  ],
+                ],
               ],
-              if (earning!["call"]["broadcast_url"] != null) ...[
-                Container(width: 50),
-                TextButton(
-                  child: const Text('LISTEN TO BROADCAST'),
-                  onPressed: () async {
-                    var url = earning!["call"]["broadcast_url"];
-                    var uri = Uri.parse(url);
-                    await canLaunchUrl(uri)
-                        ? await launchUrl(uri)
-                        : throw 'Could not launch $url';
+            ),
+          ),
+          if (earnings.length > 3)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllEarnings = !_showAllEarnings;
+                    });
                   },
-                ),
-              ],
-            ])
-          ],
+                  icon: Icon(
+                      _showAllEarnings ? Icons.expand_less : Icons.expand_more),
+                  label: Text(_showAllEarnings
+                      ? 'Show Less'
+                      : 'Show All (${earnings.length})')),
+            )
         ],
-      ])))
-    ]));
+      ),
+    );
   }
 
   Widget _buildDividendsWidget(Instrument instrument) {
@@ -2561,7 +2199,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ListTile(
               title: Text(
                 "Splits",
-                style: TextStyle(fontSize: 19.0),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             )
           ])),
@@ -2668,7 +2306,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           title: Text(
             "Similar",
-            style: TextStyle(fontSize: 19.0),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         )
       ])),
@@ -2763,6 +2401,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildListsWidget(Instrument instrument) {
+    final lists = instrument.listsObj!;
+    final displayCount =
+        _showAllLists ? lists.length : (lists.length > 3 ? 3 : lists.length);
+
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       const SliverToBoxAdapter(
@@ -2770,7 +2412,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           title: Text(
             "Lists",
-            style: TextStyle(fontSize: 19.0),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         )
       ])),
@@ -2783,15 +2425,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             children: <Widget>[
               ListTile(
                 // minTileHeight: 10,
-                leading: instrument.listsObj![index]["image_urls"] != null
-                    ? Image.network(instrument.listsObj![index]["image_urls"]
+                leading: lists[index]["image_urls"] != null
+                    ? Image.network(lists[index]["image_urls"]
                         ["circle_64:3"]) //,width: 96, height: 56
                     : Container(), //SizedBox(width: 96, height: 56),
                 title: Text(
-                  "${instrument.listsObj![index]["display_name"]} - ${instrument.listsObj![index]["item_count"]} items",
+                  "${lists[index]["display_name"]} - ${lists[index]["item_count"]} items",
                 ), //style: TextStyle(fontSize: 17.0)),
-                subtitle: Text(
-                    "${instrument.listsObj![index]["display_description"]}"),
+                subtitle: Text("${lists[index]["display_description"]}"),
                 /*
                   trailing: Image.network(
                       instrument.newsObj![index]["preview_image_url"])
@@ -2801,10 +2442,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => ListWidget(
-                              widget.brokerageUser,
-                              widget.service,
-                              instrument.listsObj![index]["id"].toString(),
+                          builder: (context) => ListWidget(widget.brokerageUser,
+                              widget.service, lists[index]["id"].toString(),
                               analytics: widget.analytics,
                               observer: widget.observer,
                               generativeService: widget.generativeService,
@@ -2817,70 +2456,117 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           //if (positionOrders.length > index) {
           //}
-        }, childCount: instrument.listsObj!.length),
-      )
+        }, childCount: displayCount),
+      ),
+      if (lists.length > 3)
+        SliverToBoxAdapter(
+            child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showAllLists = !_showAllLists;
+                });
+              },
+              icon: Icon(_showAllLists ? Icons.expand_less : Icons.expand_more),
+              label: Text(
+                  _showAllLists ? 'Show Less' : 'Show All (${lists.length})')),
+        ))
     ]));
   }
 
   Widget _buildNewsWidget(Instrument instrument) {
+    final news = instrument.newsObj!;
+    final displayCount =
+        _showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
+
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "News",
-            style: TextStyle(fontSize: 19.0),
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text(
+              "News",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-        )
-      ])),
-      SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return Card(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading:
-                    instrument.newsObj![index]["preview_image_url"] != null &&
-                            instrument.newsObj![index]["preview_image_url"]
+          ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: displayCount,
+            itemBuilder: (BuildContext context, int index) {
+              return Card(
+                  child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  ListTile(
+                    leading: news[index]["preview_image_url"] != null &&
+                            news[index]["preview_image_url"]
                                 .toString()
                                 .isNotEmpty
-                        ? Image.network(
-                            instrument.newsObj![index]["preview_image_url"],
-                            width: 96,
-                            height: 56)
+                        ? Image.network(news[index]["preview_image_url"],
+                            width: 96, height: 56)
                         : const SizedBox(width: 96, height: 56),
-                title: Text(
-                  "${instrument.newsObj![index]["title"]}",
-                ), //style: TextStyle(fontSize: 17.0)),
-                subtitle: Text(
-                    "Published ${formatDate.format(DateTime.parse(instrument.newsObj![index]["published_at"]!))} by ${instrument.newsObj![index]["source"]}"),
-                /*
-                  trailing: Image.network(
-                      instrument.newsObj![index]["preview_image_url"])
-                      */
-                isThreeLine: true,
-                onTap: () async {
-                  var url = instrument.newsObj![index]["url"];
-                  var uri = Uri.parse(url);
-                  await canLaunchUrl(uri)
-                      ? await launchUrl(uri)
-                      : throw 'Could not launch $url';
-                },
-              ),
-            ],
-          ));
-
-          //if (positionOrders.length > index) {
-          //}
-        }, childCount: instrument.newsObj!.length),
-      )
-    ]));
+                    title: Text(
+                      "${news[index]["title"]}",
+                    ), //style: TextStyle(fontSize: 17.0)),
+                    subtitle: Text(
+                        "Published ${formatDate.format(DateTime.parse(news[index]["published_at"]!))} by ${news[index]["source"]}"),
+                    isThreeLine: true,
+                    onTap: () async {
+                      var url = news[index]["url"];
+                      var uri = Uri.parse(url);
+                      await canLaunchUrl(uri)
+                          ? await launchUrl(uri)
+                          : throw 'Could not launch $url';
+                    },
+                  ),
+                ],
+              ));
+            },
+          ),
+          if (news.length > 3)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllNews = !_showAllNews;
+                    });
+                  },
+                  icon: Icon(
+                      _showAllNews ? Icons.expand_less : Icons.expand_more),
+                  label: Text(_showAllNews
+                      ? 'Show Less'
+                      : 'Show All (${news.length})')),
+            )
+        ],
+      ),
+    );
   }
 
   Widget positionOrdersWidget(List<InstrumentOrder> positionOrders) {
+    if (positionOrders.isNotEmpty) {
+      positionOrdersBalance = positionOrders
+          .map((e) =>
+              (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
+              (e.side == "sell" ? 1 : -1))
+          .reduce((a, b) => a + b);
+    } else {
+      positionOrdersBalance = 0;
+    }
+
+    var filteredPositionOrders = positionOrders
+        .where((element) =>
+            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .toList();
+
+    final displayCount = _showAllPositionOrders
+        ? filteredPositionOrders.length
+        : (filteredPositionOrders.length > 3
+            ? 3
+            : filteredPositionOrders.length);
+
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
@@ -2888,7 +2574,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
             title: const Text(
               "Position Orders",
-              style: TextStyle(fontSize: 19.0),
+              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
                 "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
@@ -2909,7 +2595,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             leading: const Icon(Icons.filter_list),
                             title: const Text(
                               "Filter Position Orders",
-                              style: TextStyle(fontSize: 19.0),
+                              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                             ),
                             /*
                                   trailing: TextButton(
@@ -2926,20 +2612,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          if ( //positionOrders[index] == null ||
-              (orderFilters.isNotEmpty &&
-                  !orderFilters.contains(positionOrders[index].state))) {
-            return Container();
-          }
-
-          positionOrdersBalance = positionOrders
-              .map((e) =>
-                  (e.averagePrice != null
-                      ? e.averagePrice! * e.quantity!
-                      : 0.0) *
-                  (e.side == "sell" ? 1 : -1))
-              .reduce((a, b) => a + b);
-
           return Card(
               child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2947,19 +2619,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ListTile(
                 leading: CircleAvatar(
                     //backgroundImage: AssetImage(user.profilePicture),
-                    child: Text('${positionOrders[index].quantity!.round()}',
+                    child: Text(
+                        '${filteredPositionOrders[index].quantity!.round()}',
                         style: const TextStyle(fontSize: 18))),
                 title: Text(
-                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${positionOrders[index].averagePrice != null ? formatCompactNumber.format(positionOrders[index].averagePrice) : (positionOrders[index].price != null ? formatCompactNumber.format(positionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
+                    "${filteredPositionOrders[index].side == "buy" ? "Buy" : filteredPositionOrders[index].side == "sell" ? "Sell" : filteredPositionOrders[index].side} ${filteredPositionOrders[index].quantity} at \$${filteredPositionOrders[index].averagePrice != null ? formatCompactNumber.format(filteredPositionOrders[index].averagePrice) : (filteredPositionOrders[index].price != null ? formatCompactNumber.format(filteredPositionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
-                    "${positionOrders[index].state} ${formatDate.format(positionOrders[index].updatedAt!)}"),
+                    "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
-                    (positionOrders[index].side == "sell" ? "+" : "-") +
-                        (positionOrders[index].averagePrice != null
+                    (filteredPositionOrders[index].side == "sell" ? "+" : "-") +
+                        (filteredPositionOrders[index].averagePrice != null
                             ? formatCurrency.format(
-                                positionOrders[index].averagePrice! *
-                                    positionOrders[index].quantity!)
+                                filteredPositionOrders[index].averagePrice! *
+                                    filteredPositionOrders[index].quantity!)
                             : ""),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
@@ -2999,14 +2672,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ),*/
                 //isThreeLine: true,
                 onTap: () {
-                  positionOrders[index].instrumentObj = widget.instrument;
+                  filteredPositionOrders[index].instrumentObj =
+                      widget.instrument;
                   Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (context) => PositionOrderWidget(
                                 widget.brokerageUser,
                                 widget.service,
-                                positionOrders[index],
+                                filteredPositionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
@@ -3020,8 +2694,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           //if (positionOrders.length > index) {
           //}
-        }, childCount: positionOrders.length),
-      )
+        }, childCount: displayCount),
+      ),
+      if (filteredPositionOrders.length > 3)
+        SliverToBoxAdapter(
+            child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showAllPositionOrders = !_showAllPositionOrders;
+                });
+              },
+              icon: Icon(_showAllPositionOrders
+                  ? Icons.expand_less
+                  : Icons.expand_more),
+              label: Text(_showAllPositionOrders
+                  ? 'Show Less'
+                  : 'Show All (${filteredPositionOrders.length})')),
+        ))
     ]));
   }
 
@@ -3395,7 +3086,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               ? Icons.trending_down
                               : Icons.trending_flat),
                       color: (quoteObj.changeToday > 0
-                          ? Colors.lightGreenAccent
+                          ? (Theme.of(context).brightness == Brightness.light
+                              ? Colors.green
+                              : Colors.lightGreenAccent)
                           : (quoteObj.changeToday < 0
                               ? Colors.red
                               : Colors.grey)),
@@ -3406,7 +3099,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     style: TextStyle(
                         fontSize: 12.0,
                         color: (quoteObj.changeToday > 0
-                            ? Colors.lightGreenAccent
+                            ? (Theme.of(context).brightness == Brightness.light
+                                ? Colors.green
+                                : Colors.lightGreenAccent)
                             : (quoteObj.changeToday < 0
                                 ? Colors.red
                                 : Colors.grey))),
@@ -3904,7 +3599,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               return ListTile(
                 title: const Text(
                   "Trade Signal",
-                  style: TextStyle(fontSize: 19.0),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -4449,8 +4144,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             const SizedBox(height: 4),
             Text(
               formatCurrency.format(quoteObj.lastTradePrice),
-              style:
-                  const TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).appBarTheme.foregroundColor),
             ),
             const SizedBox(height: 4),
             Row(
@@ -4462,7 +4159,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             ? Icons.trending_down
                             : Icons.trending_flat),
                     color: (quoteObj.changeToday > 0
-                        ? Colors.lightGreenAccent
+                        ? (Theme.of(context).brightness == Brightness.light
+                            ? Colors.green
+                            : Colors.lightGreenAccent)
                         : (quoteObj.changeToday < 0
                             ? Colors.red
                             : Colors.grey)),
@@ -4470,12 +4169,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 const SizedBox(width: 4),
                 Text(
                   formatPercentage.format(quoteObj.changePercentToday),
-                  style: const TextStyle(fontSize: 16.0),
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).appBarTheme.foregroundColor),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
-                  style: const TextStyle(fontSize: 16.0),
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).appBarTheme.foregroundColor),
                 ),
               ],
             ),

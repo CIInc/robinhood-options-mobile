@@ -138,8 +138,8 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                       ? 'Results (${screenerResults!.length})'
                       : 'Filters',
                   style: TextStyle(
-                    fontSize: 19.0,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),

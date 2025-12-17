@@ -83,7 +83,7 @@ Volume - Volume bar or other volume indicators
         title: 'Option Selector',
         prompt:
             'Analyze the option chain for symbol {{symbol}} as of ${formatLongDate.format(DateTime.now())} and provide the best {{type}} contracts to {{action}} and explain why.'),
-    Prompt(key: 'ask', title: '', prompt: '', appendPortfolioToPrompt: true),
+    Prompt(key: 'ask', title: 'Ask a Question', prompt: '', appendPortfolioToPrompt: true),
   ];
   // final String _apiKey;
   // final String _baseUrl;

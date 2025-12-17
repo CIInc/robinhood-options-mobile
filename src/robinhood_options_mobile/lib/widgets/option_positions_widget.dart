@@ -469,7 +469,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 title: Wrap(children: [
                   const Text(
                     "Options",
-                    style: TextStyle(fontSize: 19.0),
+                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
                   if (!widget.showList) ...[
                     SizedBox(

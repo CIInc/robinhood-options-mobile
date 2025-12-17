@@ -431,7 +431,8 @@ class _InstrumentOptionChainWidgetState
                           //EdgeInsets.symmetric(horizontal: 16.0),
                           child: const Text(
                             "Option Chain",
-                            style: TextStyle(fontSize: 19.0),
+                            style: TextStyle(
+                                fontSize: 20.0, fontWeight: FontWeight.bold),
                           )),
                           */
                       optionChainFilterWidget

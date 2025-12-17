@@ -46,67 +46,10 @@ class ExpandedSliverAppBar extends StatelessWidget {
         stream: auth.authStateChanges(),
         builder: (context, snapshot) {
           return SliverAppBar(
-              // floating: true,
-              // snap: true,
-              // pinned: false,
               pinned: true,
-              // leading: IconButton(
-              //     icon: const Icon(Icons.menu_outlined), onPressed: () async {}),
               centerTitle: false,
               title: title,
               automaticallyImplyLeading: automaticallyImplyLeading,
-              // expandedHeight: 200, // 143.0,
-              // flexibleSpace: LayoutBuilder(
-              //     builder: (BuildContext context, BoxConstraints constraints) {
-              //   final settings = context.dependOnInheritedWidgetOfExactType<
-              //       FlexibleSpaceBarSettings>();
-
-              //   final deltaExtent = settings!.maxExtent - settings.minExtent;
-              //   final t = (1.0 -
-              //           (settings.currentExtent - settings.minExtent) /
-              //               deltaExtent)
-              //       .clamp(0.0, 1.0);
-              //   final fadeStart = max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-              //   const fadeEnd = 1.0;
-              //   final opacity = Interval(fadeStart, fadeEnd).transform(t);
-
-              //   return FlexibleSpaceBar(
-              //     title: Opacity(
-              //         opacity: opacity,
-              //         child: Row(
-              //           children: [
-              //             // const SizedBox(
-              //             //   width: 48,
-              //             // ),
-              //             // Image.asset(
-              //             //   'assets/images/SwingSauce-2.png',
-              //             //   width: 48,
-              //             //   height: 48,
-              //             //   // fit: BoxFit.cover,
-              //             // ), // 'assets/images/SwingSauce.png',
-              //             // const SizedBox(
-              //             //   width: 16,
-              //             // ),
-              //             const Text(
-              //               'RealizeAlpha',
-              //               style: TextStyle(color: Colors.white),
-              //             ),
-              //           ],
-              //         )),
-
-              //     /// If [titlePadding] is null, then defaults to start
-              //     /// padding of 72.0 pixels and bottom padding of 16.0 pixels.
-              //     titlePadding:
-              //         const EdgeInsetsDirectional.only(start: 6, bottom: 4),
-              //     // centerTitle: false,
-              //     expandedTitleScale: 3.0,
-              //     collapseMode: CollapseMode.parallax,
-              //     background: const Image(
-              //       image: AssetImage('assets/images/icon.png'),
-              //       alignment: Alignment.bottomCenter,
-              //     ),
-              //   );
-              // }),
               actions: [
                 AutoTradeStatusBadgeWidget(
                   user: firestoreUser,

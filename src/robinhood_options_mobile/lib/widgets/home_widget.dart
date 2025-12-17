@@ -23,7 +23,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
-import 'package:robinhood_options_mobile/model/generative_provider.dart';
+// import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
@@ -46,12 +46,13 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
-import 'package:robinhood_options_mobile/utils/ai.dart';
+// import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/generative_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
@@ -207,18 +208,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Widget _pnlBadge(String text, double? value, double fontSize,
       {bool neutral = false}) {
     var color = neutral
-        ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+        ? Theme.of(context).colorScheme.onSurfaceVariant
         : _pnlColor(value);
+    var backgroundColor = neutral
+        ? Theme.of(context).colorScheme.surfaceContainerHighest
+        : color.withOpacity(0.1);
+
     return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.25))),
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withOpacity(0.3))),
         child: Text(text,
             style: TextStyle(
                 fontSize: fontSize,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 color: color)));
   }
 
@@ -573,162 +578,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-            Consumer5<PortfolioStore, InstrumentPositionStore,
-                    OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
-                builder: (context,
-                    portfolioStore,
-                    stockPositionStore,
-                    optionPositionStore,
-                    forexHoldingStore,
-                    generativeProvider,
-                    child) {
-              return SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(
-                      12.0,
-                      0, // 16.0,
-                      16.0,
-                      0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // const CircleAvatar(
-                      //   child: Icon(Icons.lightbulb_circle_outlined),
-                      // ),
-                      // const SizedBox(width: 10),
-                      // const Text(
-                      //   'AI Insight',
-                      //   style: TextStyle(
-                      //       fontWeight: FontWeight.bold, fontSize: 18),
-                      // ),
-                      // const SizedBox(width: 16),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'portfolio-summary'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.summarize_outlined),
-                          label: const Text('Portfolio Summary'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts.firstWhere(
-                                  (p) => p.key == 'portfolio-summary'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'portfolio-recommendations'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.recommend_outlined),
-                          label: const Text('Recommendations'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts.firstWhere(
-                                  (p) => p.key == 'portfolio-recommendations'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'market-summary'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.public),
-                          label: const Text('Market Summary'),
-                          onPressed: () async {
-                            await generateContent(
-                                generativeProvider,
-                                widget.generativeService,
-                                widget.generativeService.prompts.firstWhere(
-                                    (p) => p.key == 'market-summary'),
-                                context,
-                                stockPositionStore: stockPositionStore,
-                                optionPositionStore: optionPositionStore,
-                                forexHoldingStore: forexHoldingStore,
-                                localInference:
-                                    false, // Needed for googleTools RAG only available in cloud rn.
-                                user: widget.user);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'market-predictions'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.batch_prediction_outlined),
-                          label: const Text('Market Predictions'),
-                          onPressed: () async {
-                            await generateContent(
-                                generativeProvider,
-                                widget.generativeService,
-                                widget.generativeService.prompts.firstWhere(
-                                    (p) => p.key == 'market-predictions'),
-                                context,
-                                stockPositionStore: stockPositionStore,
-                                optionPositionStore: optionPositionStore,
-                                forexHoldingStore: forexHoldingStore,
-                                localInference:
-                                    false, // Needed for googleTools RAG only available in cloud rn.
-                                user: widget.user);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt == 'ask'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.question_answer),
-                          label: const Text('Ask a question'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts
-                                  .firstWhere((p) => p.key == 'ask'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            SliverToBoxAdapter(
+              child: GenerativeActionsWidget(
+                generativeService: widget.generativeService,
+                user: widget.user,
+              ),
+            ),
 
             // Consumer4<PortfolioStore, InstrumentPositionStore,
             //         OptionPositionStore, ForexHoldingStore>(
@@ -1847,7 +1702,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ListTile(
                     title: const Text(
                       "Allocation",
-                      style: TextStyle(fontSize: 19.0),
+                      style: TextStyle(
+                          fontSize: 20.0, fontWeight: FontWeight.bold),
                     ),
                     // subtitle: Text("last 12 months"),
                     // trailing: Wrap(spacing: 8, children: [
@@ -2135,82 +1991,158 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               child:
                   // Promote Automated Trading & Backtesting
                   Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Card(
-                  elevation: 1,
+                  elevation: 2,
+                  shadowColor:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.2),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
+                      width: 1,
+                    ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.auto_graph,
-                                color: Theme.of(context).colorScheme.primary),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Automated Trading & Backtesting',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Let the system trade for you or simulate strategies on historical data.',
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.75),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Theme.of(context).colorScheme.surface,
+                          Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withOpacity(0.3),
+                        ],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                                .withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.auto_graph,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Automated Trading',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      '& Backtesting',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.settings),
-                              label: const Text('Auto-Trading'),
-                              onPressed: (widget.user == null ||
-                                      widget.userDoc == null)
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              AgenticTradingSettingsWidget(
-                                            user: widget.user!,
-                                            userDocRef: widget.userDoc!,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                          const SizedBox(height: 12),
+                          Text(
+                            'Let the system trade for you or simulate strategies on historical data.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.8),
                             ),
-                            // const SizedBox(width: 8),
-                            Expanded(child: Container()),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.history_outlined),
-                              label: const Text('Run Backtest'),
-                              onPressed: (widget.user == null ||
-                                      widget.userDoc == null)
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              BacktestingWidget(
-                                            userDocRef: widget.userDoc,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.settings, size: 18),
+                                  label: const Text('Configure'),
+                                  onPressed: (widget.user == null ||
+                                          widget.userDoc == null)
+                                      ? null
+                                      : () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  AgenticTradingSettingsWidget(
+                                                user: widget.user!,
+                                                userDocRef: widget.userDoc!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.history, size: 18),
+                                  label: const Text('Backtest'),
+                                  onPressed: (widget.user == null ||
+                                          widget.userDoc == null)
+                                      ? null
+                                      : () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BacktestingWidget(
+                                                userDocRef: widget.userDoc,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -2306,51 +2238,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // var seriesOpensp500 = quotesp500['open'][0];
                     // var seriesOpennasdaq = quotenasdaq['open'][0];
                     var seriesDatasp500 =
-                      (sp500['chart']['result'][0]['timestamp'] as List)
-                        .mapIndexed((index, e) {
+                        (sp500['chart']['result'][0]['timestamp'] as List)
+                            .mapIndexed((index, e) {
                       final numerator = (sp500['chart']['result'][0]
-                          ['indicators']['adjclose'][0]['adjclose']
-                        as List)[index];
+                              ['indicators']['adjclose'][0]['adjclose']
+                          as List)[index];
                       final close = (numerator as num?)?.toDouble();
                       return {
-                      'date': DateTime.fromMillisecondsSinceEpoch(
-                        (e + enddiffsp500) * 1000),
-                      'value': close == null
-                        ? 0.0
-                        : (close / sp500PreviousClose) - 1.0,
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': close == null
+                            ? 0.0
+                            : (close / sp500PreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatasp500
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatanasdaq =
-                      (nasdaq['chart']['result'][0]['timestamp'] as List)
-                        .mapIndexed((index, e) {
+                        (nasdaq['chart']['result'][0]['timestamp'] as List)
+                            .mapIndexed((index, e) {
                       final numerator = (nasdaq['chart']['result'][0]
-                          ['indicators']['adjclose'][0]['adjclose']
-                        as List)[index];
+                              ['indicators']['adjclose'][0]['adjclose']
+                          as List)[index];
                       final close = (numerator as num?)?.toDouble();
                       return {
-                      'date': DateTime.fromMillisecondsSinceEpoch(
-                        (e + enddiffsp500) * 1000),
-                      'value': close == null
-                        ? 0.0
-                        : (close / nasdaqPreviousClose) - 1.0,
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': close == null
+                            ? 0.0
+                            : (close / nasdaqPreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatanasdaq
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
                     var seriesDatadow =
-                      (dow['chart']['result'][0]['timestamp'] as List)
-                        .mapIndexed((index, e) {
+                        (dow['chart']['result'][0]['timestamp'] as List)
+                            .mapIndexed((index, e) {
                       final numerator = (dow['chart']['result'][0]['indicators']
-                        ['adjclose'][0]['adjclose'] as List)[index];
+                          ['adjclose'][0]['adjclose'] as List)[index];
                       final close = (numerator as num?)?.toDouble();
                       return {
-                      'date': DateTime.fromMillisecondsSinceEpoch(
-                        (e + enddiffsp500) * 1000),
-                      'value': close == null
-                        ? 0.0
-                        : (close / dowPreviousClose) - 1.0,
+                        'date': DateTime.fromMillisecondsSinceEpoch(
+                            (e + enddiffsp500) * 1000),
+                        'value': close == null
+                            ? 0.0
+                            : (close / dowPreviousClose) - 1.0,
                       };
                     }).toList();
                     seriesDatadow
@@ -2377,14 +2309,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     //     (seriesDataportfolio.last['value'] as double) -
                     //         seriesDatanasdaq.last['value'];
                     final allValues = <double>[
-                      ...seriesDatasp500.map((e) =>
-                        (e['value'] as num?)?.toDouble() ?? 0.0),
-                      ...seriesDatanasdaq.map((e) =>
-                        (e['value'] as num?)?.toDouble() ?? 0.0),
-                      ...seriesDatadow.map((e) =>
-                        (e['value'] as num?)?.toDouble() ?? 0.0),
-                      ...seriesDataportfolio.map((e) =>
-                        (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatasp500
+                          .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatanasdaq
+                          .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDatadow
+                          .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+                      ...seriesDataportfolio
+                          .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
                     ];
                     var extents = charts.NumericExtents.fromValues(allValues);
                     extents = charts.NumericExtents(
@@ -2532,7 +2464,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             child: ListTile(
                               title: const Text(
                                 "Performance",
-                                style: TextStyle(fontSize: 19.0),
+                                style: TextStyle(
+                                    fontSize: 20.0,
+                                    fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
                                   "Compare market indices and benchmarks (YTD)"),
@@ -2562,7 +2496,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 debugPrint("${snapshot.error}");
 
                 return SliverToBoxAdapter(
-                  child: Container(),
+                  child: const SizedBox(),
                 );
               },
             ),

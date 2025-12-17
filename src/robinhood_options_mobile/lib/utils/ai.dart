@@ -110,6 +110,7 @@ void showAIResponse(
       isScrollControlled: true,
       useSafeArea: true,
       builder: (BuildContext newContext) {
+        bool includeContext = true;
         return StatefulBuilder(
             builder: (BuildContext buildercontext, setState) {
           final theme = Theme.of(buildercontext);
@@ -155,10 +156,11 @@ void showAIResponse(
                             Prompt(
                                 key: prompt.key,
                                 title: prompt.title,
-                                prompt: userMessage),
-                            stockPositionStore,
-                            optionPositionStore,
-                            forexHoldingStore,
+                                prompt: userMessage,
+                                appendPortfolioToPrompt: includeContext),
+                            includeContext ? stockPositionStore : null,
+                            includeContext ? optionPositionStore : null,
+                            includeContext ? forexHoldingStore : null,
                             user: user);
 
                     setState(() {
@@ -182,23 +184,33 @@ void showAIResponse(
                 if (prompt.key == 'ask') {
                   return Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.chat_bubble_outline,
-                                color: colorScheme.primary, size: 24),
-                            const SizedBox(width: 8),
-                            Text(
-                              prompt.title,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Divider(height: 1, thickness: 1),
+                      // Padding(
+                      //   padding: const EdgeInsets.all(16.0),
+                      //   child: Row(
+                      //     children: [
+                      //       Container(
+                      //         padding: const EdgeInsets.all(8.0),
+                      //         decoration: BoxDecoration(
+                      //           color: colorScheme.primaryContainer,
+                      //           borderRadius: BorderRadius.circular(12),
+                      //         ),
+                      //         child: Icon(
+                      //           Icons.chat_bubble_outline,
+                      //           color: colorScheme.onPrimaryContainer,
+                      //           size: 24,
+                      //         ),
+                      //       ),
+                      //       const SizedBox(width: 12),
+                      //       Text(
+                      //         prompt.title,
+                      //         style: theme.textTheme.titleLarge?.copyWith(
+                      //           fontWeight: FontWeight.bold,
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
+                      // Divider(height: 1, thickness: 1),
                       Flexible(
                         fit: FlexFit.loose,
                         child: ListView.builder(
@@ -235,6 +247,30 @@ void showAIResponse(
                                           ? colorScheme.onPrimaryContainer
                                           : colorScheme.onSecondaryContainer,
                                     ),
+                                    h1: theme.textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isUser
+                                          ? colorScheme.onPrimaryContainer
+                                          : colorScheme.onSecondaryContainer,
+                                    ),
+                                    h2: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isUser
+                                          ? colorScheme.onPrimaryContainer
+                                          : colorScheme.onSecondaryContainer,
+                                    ),
+                                    code: theme.textTheme.bodyMedium?.copyWith(
+                                      fontFamily: 'monospace',
+                                      backgroundColor: isUser
+                                          ? colorScheme.primary.withOpacity(0.1)
+                                          : colorScheme.surface,
+                                    ),
+                                    codeblockDecoration: BoxDecoration(
+                                      color: isUser
+                                          ? colorScheme.primary.withOpacity(0.1)
+                                          : colorScheme.surface,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -261,6 +297,24 @@ void showAIResponse(
                           ),
                           child: Row(
                             children: [
+                              IconButton(
+                                icon: Icon(
+                                  includeContext
+                                      ? Icons.pie_chart
+                                      : Icons.pie_chart_outline,
+                                  color: includeContext
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                                tooltip: includeContext
+                                    ? 'Portfolio context included'
+                                    : 'Portfolio context excluded',
+                                onPressed: () {
+                                  setState(() {
+                                    includeContext = !includeContext;
+                                  });
+                                },
+                              ),
                               if (messages.isNotEmpty) ...[
                                 IconButton(
                                   key: chatShareButtonKey,
@@ -291,6 +345,9 @@ void showAIResponse(
                                 child: TextField(
                                   controller: promptController,
                                   autofocus: true,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  keyboardType: TextInputType.multiline,
                                   maxLines: null,
                                   decoration: InputDecoration(
                                     hintText: 'Ask a question...',
@@ -348,7 +405,7 @@ void showAIResponse(
                                         ),
                                         child: Icon(
                                           Icons.auto_awesome,
-                                          color: colorScheme.primary,
+                                          color: colorScheme.onPrimaryContainer,
                                           size: 24,
                                         ),
                                       ),
@@ -393,15 +450,58 @@ void showAIResponse(
                                               child: MarkdownBody(
                                                 data: current,
                                                 styleSheet: MarkdownStyleSheet(
-                                                  p: theme.textTheme.bodyLarge,
+                                                  p: theme.textTheme.bodyMedium,
                                                   h1: theme
                                                       .textTheme.headlineSmall
                                                       ?.copyWith(
                                                     fontWeight: FontWeight.bold,
+                                                    color: colorScheme.primary,
                                                   ),
                                                   h2: theme.textTheme.titleLarge
                                                       ?.copyWith(
                                                     fontWeight: FontWeight.bold,
+                                                    color: colorScheme.primary,
+                                                  ),
+                                                  h3: theme
+                                                      .textTheme.titleMedium
+                                                      ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  code: theme
+                                                      .textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    fontFamily: 'monospace',
+                                                    backgroundColor: colorScheme
+                                                        .surfaceContainerHighest,
+                                                  ),
+                                                  codeblockDecoration:
+                                                      BoxDecoration(
+                                                    color: colorScheme
+                                                        .surfaceContainerHighest,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  blockquote: theme
+                                                      .textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                  blockquoteDecoration:
+                                                      BoxDecoration(
+                                                    border: Border(
+                                                        left: BorderSide(
+                                                            color: colorScheme
+                                                                .primary,
+                                                            width: 4)),
+                                                    color: colorScheme
+                                                        .surfaceContainerHighest
+                                                        .withOpacity(0.5),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
                                                   ),
                                                 ),
                                               ),

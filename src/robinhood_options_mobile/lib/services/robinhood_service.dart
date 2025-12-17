@@ -2422,8 +2422,12 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       var result = resultJson["results"][i];
       list.add(result);
     }
-    list.sort((a, b) => DateTime.parse(b["report"]["date"]!)
-        .compareTo(DateTime.parse(a["report"]["date"]!)));
+    list.sort((a, b) => a["report"] == null
+        ? 1
+        : b["report"] == null
+            ? -1
+            : DateTime.parse(b["report"]["date"]!)
+                .compareTo(DateTime.parse(a["report"]["date"]!)));
     return list;
   }
 

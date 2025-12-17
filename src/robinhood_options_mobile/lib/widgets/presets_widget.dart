@@ -96,8 +96,8 @@ class _PresetsWidgetState extends State<PresetsWidget> {
             title: Text(
               "Presets",
               style: TextStyle(
-                fontSize: 19.0,
-                fontWeight: FontWeight.w600,
+                fontSize: 20.0,
+                fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),

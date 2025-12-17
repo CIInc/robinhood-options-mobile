@@ -684,7 +684,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     const Text("Greeks & Market Data",
-                        style: TextStyle(fontSize: 20.0)),
+                        style: TextStyle(
+                            fontSize: 20.0, fontWeight: FontWeight.bold)),
                     Container(
                       width: 5,
                     ),
@@ -1154,7 +1155,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                 const Text("Days to Expiration",
-                    style: TextStyle(fontSize: 20.0)),
+                    style: TextStyle(
+                        fontSize: 20.0, fontWeight: FontWeight.bold)),
                 Container(
                   width: 5,
                 ),
@@ -2147,89 +2149,87 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             ],
           ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('VIEW STOCK'),
-              onPressed: () {
-                /*
-                _navKey.currentState!.push(
-                  MaterialPageRoute(
-                    builder: (_) => SubSecondPage(),
-                  ),
-                );
-                */
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                              user,
-                              widget.service,
-                              //widget.account,
-                              instrument,
-                              //optionPosition: optionPosition
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                            )));
-              },
-            ),
-            if (optionPosition != null) ...[
-              const Expanded(child: SizedBox()),
-              TextButton(
-                  child: Text(optionPosition.direction == "debit"
-                      ? "BUY TO OPEN"
-                      : "BUY TO CLOSE"),
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                                user,
-                                widget.service,
-                                //widget.account,
-                                optionPosition: optionPosition,
-                                optionInstrument: optionInstrument,
-                                positionType: "Buy",
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )))),
-              TextButton(
-                  child: Text(optionPosition.direction == "debit"
-                      ? "SELL TO CLOSE"
-                      : "SELL TO OPEN"),
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                                user,
-                                widget.service,
-                                //widget.account,
-                                optionPosition: optionPosition,
-                                optionInstrument: optionInstrument,
-                                positionType: "Sell",
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )))),
-            ] else ...[
-              TextButton(
-                  child: const Text('TRADE'),
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                                user,
-                                widget.service,
-                                //widget.account,
-                                optionInstrument: optionInstrument,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )))),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: OutlinedButton(
+                  child: const Text('View Stock'),
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(
+                                  user,
+                                  widget.service,
+                                  instrument,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  generativeService: widget.generativeService,
+                                  user: widget.user,
+                                  userDocRef: widget.userDocRef,
+                                )));
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (optionPosition != null) ...[
+                Expanded(
+                  child: FilledButton(
+                      child: Text(optionPosition.direction == "debit"
+                          ? "Buy"
+                          : "Buy to Close"),
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => TradeOptionWidget(
+                                    user,
+                                    widget.service,
+                                    optionPosition: optionPosition,
+                                    optionInstrument: optionInstrument,
+                                    positionType: "Buy",
+                                    analytics: widget.analytics,
+                                    observer: widget.observer,
+                                  )))),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.tonal(
+                      child: Text(optionPosition.direction == "debit"
+                          ? "Sell"
+                          : "Sell to Open"),
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => TradeOptionWidget(
+                                    user,
+                                    widget.service,
+                                    optionPosition: optionPosition,
+                                    optionInstrument: optionInstrument,
+                                    positionType: "Sell",
+                                    analytics: widget.analytics,
+                                    observer: widget.observer,
+                                  )))),
+                ),
+              ] else ...[
+                Expanded(
+                  child: FilledButton(
+                      child: const Text('Trade'),
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => TradeOptionWidget(
+                                    user,
+                                    widget.service,
+                                    optionInstrument: optionInstrument,
+                                    analytics: widget.analytics,
+                                    observer: widget.observer,
+                                  )))),
+                ),
+              ],
             ],
-            const SizedBox(width: 8),
-          ],
+          ),
         ),
       ],
     ));

@@ -310,7 +310,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Performance Overview',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -385,7 +385,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Profit & Loss',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -429,7 +429,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Trade Breakdown',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -483,7 +483,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Best & Worst Trades',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -1442,7 +1442,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Advanced Analytics',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -1693,7 +1693,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Risk Metrics',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -1867,7 +1867,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Performance by Time of Day',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -2018,7 +2018,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Performance by Indicator Combo',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -2147,7 +2147,7 @@ class _AgenticTradingPerformanceWidgetState
                 Text(
                   'Performance by Symbol',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
