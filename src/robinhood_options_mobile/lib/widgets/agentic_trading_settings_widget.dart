@@ -37,6 +37,11 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxDailyLossPercentController;
   late TextEditingController _takeProfitPercentController;
   late TextEditingController _stopLossPercentController;
+  late TextEditingController _maxSectorExposureController;
+  late TextEditingController _maxCorrelationController;
+  late TextEditingController _minVolatilityController;
+  late TextEditingController _maxVolatilityController;
+  late TextEditingController _maxDrawdownController;
   late Map<String, bool> _enabledIndicators;
 
   @override
@@ -84,6 +89,16 @@ class _AgenticTradingSettingsWidgetState
         text: config['takeProfitPercent']?.toString() ?? '10.0');
     _stopLossPercentController = TextEditingController(
         text: config['stopLossPercent']?.toString() ?? '5.0');
+    _maxSectorExposureController = TextEditingController(
+        text: config['maxSectorExposure']?.toString() ?? '20.0');
+    _maxCorrelationController = TextEditingController(
+        text: config['maxCorrelation']?.toString() ?? '0.7');
+    _minVolatilityController = TextEditingController(
+        text: config['minVolatility']?.toString() ?? '0.0');
+    _maxVolatilityController = TextEditingController(
+        text: config['maxVolatility']?.toString() ?? '100.0');
+    _maxDrawdownController = TextEditingController(
+        text: config['maxDrawdown']?.toString() ?? '10.0');
   }
 
   @override
@@ -96,6 +111,11 @@ class _AgenticTradingSettingsWidgetState
     _maxDailyLossPercentController.dispose();
     _takeProfitPercentController.dispose();
     _stopLossPercentController.dispose();
+    _maxSectorExposureController.dispose();
+    _maxCorrelationController.dispose();
+    _minVolatilityController.dispose();
+    _maxVolatilityController.dispose();
+    _maxDrawdownController.dispose();
     super.dispose();
   }
 
@@ -312,6 +332,20 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider.config['paperTradingMode'] ?? false,
         'requireApproval':
             agenticTradingProvider.config['requireApproval'] ?? true,
+        // Advanced Risk Controls
+        'enableSectorLimits':
+            agenticTradingProvider.config['enableSectorLimits'] ?? false,
+        'maxSectorExposure': double.parse(_maxSectorExposureController.text),
+        'enableCorrelationChecks':
+            agenticTradingProvider.config['enableCorrelationChecks'] ?? false,
+        'maxCorrelation': double.parse(_maxCorrelationController.text),
+        'enableVolatilityFilters':
+            agenticTradingProvider.config['enableVolatilityFilters'] ?? false,
+        'minVolatility': double.parse(_minVolatilityController.text),
+        'maxVolatility': double.parse(_maxVolatilityController.text),
+        'enableDrawdownProtection':
+            agenticTradingProvider.config['enableDrawdownProtection'] ?? false,
+        'maxDrawdown': double.parse(_maxDrawdownController.text),
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -334,7 +368,8 @@ class _AgenticTradingSettingsWidgetState
     final brokerageUser =
         brokerageUserStore.items[brokerageUserStore.currentUserIndex];
 
-    var account = accountStore.items.firstOrNull;
+    var account =
+        accountStore.items.isNotEmpty ? accountStore.items.first : null;
     if (account == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No brokerage account found')),
@@ -1011,6 +1046,31 @@ class _AgenticTradingSettingsWidgetState
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
+                            controller: _tradeQuantityController,
+                            decoration: InputDecoration(
+                              labelText: 'Trade Quantity',
+                              helperText: 'Number of shares per trade',
+                              prefixIcon: const Icon(Icons.shopping_cart),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => _saveSettings(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              if (int.tryParse(value) == null) {
+                                return 'Please enter a valid number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
                             controller: _dailyTradeLimitController,
                             decoration: InputDecoration(
                               labelText: 'Daily Trade Limit',
@@ -1165,7 +1225,7 @@ class _AgenticTradingSettingsWidgetState
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Risk Management Rules',
+                        'Risk Management',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1187,31 +1247,6 @@ class _AgenticTradingSettingsWidgetState
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          TextFormField(
-                            controller: _tradeQuantityController,
-                            decoration: InputDecoration(
-                              labelText: 'Trade Quantity',
-                              helperText: 'Number of shares per trade',
-                              prefixIcon: const Icon(Icons.shopping_cart),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              if (int.tryParse(value) == null) {
-                                return 'Please enter a valid number';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _maxPositionSizeController,
                             decoration: InputDecoration(
@@ -1294,80 +1329,108 @@ class _AgenticTradingSettingsWidgetState
                             },
                           ),
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _takeProfitPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Take Profit %',
-                              helperText:
-                                  'Sell when position gains exceed this %',
-                              prefixIcon: const Icon(Icons.trending_up),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Exit Strategies Section
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.exit_to_app,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Exit Strategies',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _takeProfitPercentController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Take Profit %',
+                                    helperText: 'Sell when gains > %',
+                                    prefixIcon: const Icon(Icons.trending_up),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    filled: true,
+                                    fillColor: colorScheme.surface,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  onChanged: (_) => _saveSettings(),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final parsed = double.tryParse(value);
+                                    if (parsed == null || parsed <= 0) {
+                                      return '> 0';
+                                    }
+                                    return null;
+                                  },
+                                ),
                               ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _stopLossPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Stop Loss %',
-                              helperText:
-                                  'Sell when position losses exceed this %',
-                              prefixIcon: const Icon(Icons.warning),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _stopLossPercentController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Stop Loss %',
+                                    helperText: 'Sell when loss > %',
+                                    prefixIcon: const Icon(Icons.warning),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    filled: true,
+                                    fillColor: colorScheme.surface,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  onChanged: (_) => _saveSettings(),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Required';
+                                    }
+                                    final parsed = double.tryParse(value);
+                                    if (parsed == null || parsed <= 0) {
+                                      return '> 0';
+                                    }
+                                    return null;
+                                  },
+                                ),
                               ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
-                              }
-                              return null;
-                            },
+                            ],
                           ),
                           const SizedBox(height: 8),
-                          // Row(
-                          //   children: [
-                          //     Icon(
-                          //       Icons.flag,
-                          //       size: 16,
-                          //       color: colorScheme.primary,
-                          //     ),
-                          //     const SizedBox(width: 8),
-                          //     Text(
-                          //       'Trailing Stop Loss',
-                          //       style: TextStyle(
-                          //         fontWeight: FontWeight.bold,
-                          //         color: colorScheme.onSurface,
-                          //         fontSize: 14,
-                          //       ),
-                          //     ),
-                          //   ],
-                          // ),
                           _buildSwitchListTile(
                             'trailingStopEnabled',
                             'Trailing Stop Loss',
@@ -1423,6 +1486,187 @@ class _AgenticTradingSettingsWidgetState
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Advanced Risk Controls Section
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.shield,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Advanced Risk Controls',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildSwitchListTile(
+                            'enableSectorLimits',
+                            'Sector Limits',
+                            'Limit exposure to specific sectors',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: TextFormField(
+                              controller: _maxSectorExposureController,
+                              decoration: InputDecoration(
+                                labelText: 'Max Sector Exposure %',
+                                helperText: 'Max allocation per sector',
+                                prefixIcon: const Icon(Icons.pie_chart),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                filled: true,
+                                fillColor: colorScheme.surface,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              onChanged: (_) => _saveSettings(),
+                              validator: (value) {
+                                final v = double.tryParse(value ?? '');
+                                if (v == null || v <= 0 || v > 100) {
+                                  return 'Enter a percent between 0 and 100';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const Divider(),
+                          _buildSwitchListTile(
+                            'enableCorrelationChecks',
+                            'Correlation Checks',
+                            'Avoid highly correlated positions',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: TextFormField(
+                              controller: _maxCorrelationController,
+                              decoration: InputDecoration(
+                                labelText: 'Max Correlation',
+                                helperText: 'Max correlation coefficient (0-1)',
+                                prefixIcon: const Icon(Icons.compare_arrows),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                filled: true,
+                                fillColor: colorScheme.surface,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              onChanged: (_) => _saveSettings(),
+                              validator: (value) {
+                                final v = double.tryParse(value ?? '');
+                                if (v == null || v < 0 || v > 1) {
+                                  return 'Enter a value between 0 and 1';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const Divider(),
+                          _buildSwitchListTile(
+                            'enableVolatilityFilters',
+                            'Volatility Filters',
+                            'Filter trades based on volatility (IV Rank)',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _minVolatilityController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Min Volatility',
+                                      helperText: 'Min IV Rank',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      filled: true,
+                                      fillColor: colorScheme.surface,
+                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    onChanged: (_) => _saveSettings(),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _maxVolatilityController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Max Volatility',
+                                      helperText: 'Max IV Rank',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      filled: true,
+                                      fillColor: colorScheme.surface,
+                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    onChanged: (_) => _saveSettings(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(),
+                          _buildSwitchListTile(
+                            'enableDrawdownProtection',
+                            'Drawdown Protection',
+                            'Stop trading if drawdown exceeds limit',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: TextFormField(
+                              controller: _maxDrawdownController,
+                              decoration: InputDecoration(
+                                labelText: 'Max Drawdown %',
+                                helperText: 'Stop trading at this drawdown',
+                                prefixIcon: const Icon(Icons.trending_down),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                filled: true,
+                                fillColor: colorScheme.surface,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              onChanged: (_) => _saveSettings(),
+                              validator: (value) {
+                                final v = double.tryParse(value ?? '');
+                                if (v == null || v <= 0 || v > 100) {
+                                  return 'Enter a percent between 0 and 100';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   // Technical Indicators Section
                   Row(
                     children: [
@@ -1434,7 +1678,7 @@ class _AgenticTradingSettingsWidgetState
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Technical Indicators',
+                          'Entry Strategies',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

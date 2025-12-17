@@ -29,6 +29,17 @@ class AgenticTradingConfig {
   bool paperTradingMode;
   bool requireApproval;
 
+  // Advanced Risk Controls
+  bool enableSectorLimits;
+  double maxSectorExposure; // Max % allocation per sector
+  bool enableCorrelationChecks;
+  double maxCorrelation; // Max correlation coefficient (0-1)
+  bool enableVolatilityFilters;
+  double minVolatility; // Min IV rank or similar
+  double maxVolatility; // Max IV rank or similar
+  bool enableDrawdownProtection;
+  double maxDrawdown; // Max drawdown % before stopping
+
   AgenticTradingConfig({
     this.enabled = false,
     this.smaPeriodFast = 10,
@@ -56,6 +67,15 @@ class AgenticTradingConfig {
     this.trailingStopPercent = 3.0,
     this.paperTradingMode = false,
     this.requireApproval = false,
+    this.enableSectorLimits = false,
+    this.maxSectorExposure = 20.0,
+    this.enableCorrelationChecks = false,
+    this.maxCorrelation = 0.7,
+    this.enableVolatilityFilters = false,
+    this.minVolatility = 0.0,
+    this.maxVolatility = 100.0,
+    this.enableDrawdownProtection = false,
+    this.maxDrawdown = 10.0,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -104,6 +124,19 @@ class AgenticTradingConfig {
             (json['trailingStopPercent'] as num?)?.toDouble() ?? 3.0,
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
         requireApproval = json['requireApproval'] as bool? ?? false,
+        enableSectorLimits = json['enableSectorLimits'] as bool? ?? false,
+        maxSectorExposure =
+            (json['maxSectorExposure'] as num?)?.toDouble() ?? 20.0,
+        enableCorrelationChecks =
+            json['enableCorrelationChecks'] as bool? ?? false,
+        maxCorrelation = (json['maxCorrelation'] as num?)?.toDouble() ?? 0.7,
+        enableVolatilityFilters =
+            json['enableVolatilityFilters'] as bool? ?? false,
+        minVolatility = (json['minVolatility'] as num?)?.toDouble() ?? 0.0,
+        maxVolatility = (json['maxVolatility'] as num?)?.toDouble() ?? 100.0,
+        enableDrawdownProtection =
+            json['enableDrawdownProtection'] as bool? ?? false,
+        maxDrawdown = (json['maxDrawdown'] as num?)?.toDouble() ?? 10.0,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -149,6 +182,15 @@ class AgenticTradingConfig {
       'allowAfterHoursTrading': allowAfterHoursTrading,
       'requireApproval': requireApproval,
       'paperTradingMode': paperTradingMode,
+      'enableSectorLimits': enableSectorLimits,
+      'maxSectorExposure': maxSectorExposure,
+      'enableCorrelationChecks': enableCorrelationChecks,
+      'maxCorrelation': maxCorrelation,
+      'enableVolatilityFilters': enableVolatilityFilters,
+      'minVolatility': minVolatility,
+      'maxVolatility': maxVolatility,
+      'enableDrawdownProtection': enableDrawdownProtection,
+      'maxDrawdown': maxDrawdown,
     };
   }
 
@@ -171,6 +213,15 @@ class AgenticTradingConfig {
     bool? allowPreMarketTrading,
     bool? requireApproval,
     bool? allowAfterHoursTrading,
+    bool? enableSectorLimits,
+    double? maxSectorExposure,
+    bool? enableCorrelationChecks,
+    double? maxCorrelation,
+    bool? enableVolatilityFilters,
+    double? minVolatility,
+    double? maxVolatility,
+    bool? enableDrawdownProtection,
+    double? maxDrawdown,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -196,6 +247,18 @@ class AgenticTradingConfig {
       requireApproval: requireApproval ?? this.requireApproval,
       allowAfterHoursTrading:
           allowAfterHoursTrading ?? this.allowAfterHoursTrading,
+      enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,
+      maxSectorExposure: maxSectorExposure ?? this.maxSectorExposure,
+      enableCorrelationChecks:
+          enableCorrelationChecks ?? this.enableCorrelationChecks,
+      maxCorrelation: maxCorrelation ?? this.maxCorrelation,
+      enableVolatilityFilters:
+          enableVolatilityFilters ?? this.enableVolatilityFilters,
+      minVolatility: minVolatility ?? this.minVolatility,
+      maxVolatility: maxVolatility ?? this.maxVolatility,
+      enableDrawdownProtection:
+          enableDrawdownProtection ?? this.enableDrawdownProtection,
+      maxDrawdown: maxDrawdown ?? this.maxDrawdown,
     );
   }
 }

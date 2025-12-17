@@ -331,8 +331,12 @@ export async function handleAlphaTask(marketData: any,
   };
 
   // Call riskguard to assess
-  const assessment = await riskguard.assessTrade(proposal,
-    portfolioState, config);
+  const assessment = await riskguard.assessTrade(
+    proposal, portfolioState, config,
+    {
+      ...marketData,
+      marketIndexCloses: marketIndexData.closes,
+    });
 
   // Persist trade signal to Firestore
   try {
@@ -377,7 +381,7 @@ export async function handleAlphaTask(marketData: any,
   return {
     status: "approved",
     message: `Alpha agent approved ${overallSignal} proposal (${interval}): ` +
-      "All 9 indicators aligned",
+      "All 12 indicators aligned",
     proposal: proposal,
     assessment: assessment,
     interval,
