@@ -221,14 +221,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### Trading Automation & Execution
 - **Core Trading**: Stock Orders, Multi-Leg Options, Futures Trading, Crypto/Forex Trading
-- **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute, Trade Approval Workflow
+- **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute, Trade Approval Workflow (✅)
 - **Advanced Orders**: Trailing Stops, Conditional Orders, Order Templates, Time-Based Exits
-- **Risk Management**: Advanced Risk Controls, Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
+- **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
 
 ### Strategy Development & Optimization
 - **Signal Analysis**: 12-Indicator System (✅), Signal Strength Filtering (✅), Custom Indicators, Signal Optimization
 - **Strategy Management**: Strategy Templates (✅), Social Signal Sharing, Indicator Combo Performance (✅)
-- **Execution Validation**: Backtesting Interface (✅), Trade Approval Workflow, Paper Trading Mode (✅)
+- **Execution Validation**: Backtesting Interface (✅), Trade Approval Workflow (✅), Paper Trading Mode (✅)
 
 ### Multi-Brokerage & Asset Coverage
 - **Brokerage Integration**: Schwab, Fidelity, Plaid, Interactive Brokers
@@ -302,8 +302,8 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - **Backtesting Interface (✅)** ← Requires: Agentic Trading (✅), Trade Signals (✅), Historical Data Access
 - **Signal Optimization** ← Requires: Backtesting Interface (✅), Performance Analytics
 - **Custom Indicators** ← Requires: 12-Indicator System (✅), Signal Analysis Infrastructure
-- **Trade Approval Workflow** ← Requires: Agentic Trading (✅), Order Execution Framework
-- **Advanced Risk Controls** ← Requires: Agentic Trading (✅), Portfolio State Management (✅)
+- **Trade Approval Workflow (✅)** ← Requires: Agentic Trading (✅), Order Execution Framework
+- **Advanced Risk Controls (✅)** ← Requires: Agentic Trading (✅), Portfolio State Management (✅)
 - **Copy Trading Auto-Execute** ← Requires: Copy Trading Manual (✅), WebSocket/Real-time Updates
 
 **Priority 2 Dependencies:**
@@ -553,8 +553,8 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 #### Advanced Agentic Trading ([Tracking: #112](https://github.com/CIInc/robinhood-options-mobile/issues/112))
 - [x] **Backtesting Interface**: Backtest strategies with historical data ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)) - ✅ **Completed v0.19.0**
 - [x] **Strategy Templates**: Save and reuse backtest configurations - ✅ **Completed v0.19.0**
-- [ ] **Trade Approval Workflow**: Review-before-execute mode for semi-automatic trading - **Medium** (2-3 weeks)
-- [ ] **Advanced Risk Controls**: Sector limits, correlation checks, volatility filters, drawdown protection - **Large** (4-5 weeks)
+- [x] **Trade Approval Workflow**: Review-before-execute mode for semi-automatic trading - ✅ **Completed v0.20.2**
+- [x] **Advanced Risk Controls**: Sector limits, correlation checks, volatility filters, drawdown protection - ✅ **Completed v0.20.2**
 - [ ] **Partial Position Exits**: Take profit in stages (e.g., 50% at +5%, 50% at +10%) - **Medium** (2-3 weeks)
 - [ ] **Time-Based Exits**: Auto-close positions after X hours/days - **Small** (1-2 weeks)
 - [ ] **Signal Optimization**: Machine learning-based signal optimization - **Large** (5-8 weeks)
@@ -780,7 +780,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] Webhook notifications - **Medium** (2-3 weeks)
 - [ ] Third-party app integrations - **Large** (4-6 weeks)
 - [ ] **Yahoo Finance Integration**: - **Large** (3-4 weeks)
-    - [ ] Implement `getChartData` for advanced charting
+    - [x] Implement `getChartData` for advanced charting
     - [ ] Implement `getNews` for real-time market news
     - [ ] Implement `getSummary` for stock details
 
@@ -823,19 +823,19 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 ### Security & Privacy
 - [ ] **Security**: - **Large** (6-8 weeks)
     - [ ] **Biometric Auth**: FaceID/TouchID integration ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
-    - [ ] **Secure Storage**: Secure storage for OAuth tokens ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88))
+    - [x] **Secure Storage**: Secure storage for OAuth tokens ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88))
     - [ ] **2FA**: Two-factor authentication support ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89))
     - [ ] Implement certificate pinning for API calls
     - [ ] Add data encryption at rest
     - [ ] Security audit and penetration testing
     - [ ] Implement rate limiting for API calls
 - [ ] Add session timeout and auto-logout - **Small** (1 week)
-- [ ] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system - **Medium** (2-3 weeks)
-- [ ] **OAuth2 Refresh** ([#14](https://github.com/CIInc/robinhood-options-mobile/issues/14)): Handle token refresh seamlessly - **Small** (1 week)
+- [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system - **Medium** (2-3 weeks)
+- [x] **OAuth2 Refresh** ([#14](https://github.com/CIInc/robinhood-options-mobile/issues/14)): Handle token refresh seamlessly - **Small** (1 week)
 
 ### Platform & Build
-- [ ] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon - **Small** (1 week)
-- [ ] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement - **Small** (1 week)
+- [x] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon - **Small** (1 week)
+- [x] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement - **Small** (1 week)
 
 ### Documentation
 - [ ] **API Documentation**: Comprehensive API reference ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94)) - **Medium** (2-3 weeks)
