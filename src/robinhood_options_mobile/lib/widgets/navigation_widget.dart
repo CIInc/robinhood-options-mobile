@@ -511,14 +511,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         user: user,
         userDocRef: userDoc,
       ),
-      if (auth.currentUser != null) ...[
-        if (userRole == UserRole.admin) ...[
-          UsersWidget(auth,
-              analytics: widget.analytics,
-              observer: widget.observer,
-              brokerageUser: userStore.currentUser!)
-        ]
-      ],
+      // if (auth.currentUser != null) ...[
+      //   if (userRole == UserRole.admin) ...[
+      //     UsersWidget(auth,
+      //         analytics: widget.analytics,
+      //         observer: widget.observer,
+      //         brokerageUser: userStore.currentUser!)
+      //   ]
+      // ],
     ];
   }
 
@@ -598,14 +598,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 //   icon: Icon(Icons.account_circle), // manage_accounts //person
                 //   label: 'Accounts',
                 // ),
-                if (auth.currentUser != null) ...[
-                  if (userRole == UserRole.admin) ...[
-                    const BottomNavigationBarItem(
-                      icon: Icon(Icons.person_search),
-                      label: 'Users',
-                    ),
-                  ]
-                ]
+                // if (auth.currentUser != null) ...[
+                //   if (userRole == UserRole.admin) ...[
+                //     const BottomNavigationBarItem(
+                //       icon: Icon(Icons.person_search),
+                //       label: 'Users',
+                //     ),
+                //   ]
+                // ]
               ],
               currentIndex: _pageIndex,
               type: BottomNavigationBarType.fixed,
@@ -997,18 +997,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                                 //   _onPageChanged(6);
                                 // },
                                 onTap: () {
-                                  Navigator.pop(context); // close the drawer
-                                  _onPageChanged(5);
                                   // Navigator.pop(context); // close the drawer
-                                  // Navigator.push(
-                                  //     context,
-                                  //     MaterialPageRoute(
-                                  //         builder: (BuildContext context) =>
-                                  //             UsersWidget(auth,
-                                  //                 analytics: widget.analytics,
-                                  //                 observer: widget.observer,
-                                  //                 brokerageUser:
-                                  //                     userStore.currentUser!)));
+                                  // _onPageChanged(5);
+                                  Navigator.pop(context); // close the drawer
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (BuildContext context) =>
+                                              UsersWidget(auth,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
+                                                  brokerageUser:
+                                                      userStore.currentUser!)));
                                 }),
                             // const Divider(
                             //   height: 10,

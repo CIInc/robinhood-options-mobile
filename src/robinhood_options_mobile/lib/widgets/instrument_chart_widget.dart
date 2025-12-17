@@ -225,12 +225,12 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     scrollDirection: Axis.horizontal,
                     itemBuilder: (context, index) {
                       return Row(children: [
-                        _buildDateSpanChip(ChartDateSpan.day, 'Day'),
-                        _buildDateSpanChip(ChartDateSpan.week, 'Week'),
-                        _buildDateSpanChip(ChartDateSpan.month, 'Month'),
-                        _buildDateSpanChip(ChartDateSpan.month_3, '3 Months'),
-                        _buildDateSpanChip(ChartDateSpan.year, 'Year'),
-                        _buildDateSpanChip(ChartDateSpan.year_5, '5 Years'),
+                        _buildDateSpanChip(ChartDateSpan.day, '1D'),
+                        _buildDateSpanChip(ChartDateSpan.week, '1W'),
+                        _buildDateSpanChip(ChartDateSpan.month, '1M'),
+                        _buildDateSpanChip(ChartDateSpan.month_3, '3M'),
+                        _buildDateSpanChip(ChartDateSpan.year, '1Y'),
+                        _buildDateSpanChip(ChartDateSpan.year_5, '5Y'),
                         Container(width: 10),
                         _buildBoundsChip(Bounds.regular, 'Regular Hours'),
                         _buildBoundsChip(Bounds.trading, 'Trading Hours'),
