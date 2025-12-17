@@ -511,7 +511,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         user: user,
         userDocRef: userDoc,
       ),
-      // Shared Portfolios tab
       if (auth.currentUser != null) ...[
         if (userRole == UserRole.admin) ...[
           UsersWidget(auth,
@@ -599,6 +598,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 //   icon: Icon(Icons.account_circle), // manage_accounts //person
                 //   label: 'Accounts',
                 // ),
+                if (auth.currentUser != null) ...[
+                  if (userRole == UserRole.admin) ...[
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.person_search),
+                      label: 'Users',
+                    ),
+                  ]
+                ]
               ],
               currentIndex: _pageIndex,
               type: BottomNavigationBarType.fixed,

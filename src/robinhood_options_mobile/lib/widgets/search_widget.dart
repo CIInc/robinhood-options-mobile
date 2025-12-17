@@ -103,9 +103,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
     // Fetch trade signals on initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      tradeSignalsProvider.fetchAllTradeSignals();
+      _fetchTradeSignalsWithFilters();
     });
   }
 
@@ -986,9 +984,7 @@ class _SearchWidgetState extends State<SearchWidget>
       futureTradeSignals = null;
     });
     // Refresh trade signals on pull-to-refresh
-    final tradeSignalsProvider =
-        Provider.of<TradeSignalsProvider>(context, listen: false);
-    await tradeSignalsProvider.fetchAllTradeSignals();
+    _fetchTradeSignalsWithFilters();
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
@@ -1650,7 +1646,7 @@ class _SearchWidgetState extends State<SearchWidget>
                 ? 49
                 : null;
 
-    tradeSignalsProvider.fetchAllTradeSignals(
+    tradeSignalsProvider.streamTradeSignals(
       // signalType: tradeSignalFilter,
       indicatorFilters: selectedIndicators.isEmpty ? null : selectedIndicators,
       minSignalStrength: serverMinStrength,

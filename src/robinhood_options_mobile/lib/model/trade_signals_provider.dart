@@ -299,6 +299,7 @@ class TradeSignalsProvider with ChangeNotifier {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
+  StreamSubscription<QuerySnapshot>? _tradeSignalsSubscription;
   List<Map<String, dynamic>> _tradeSignals = [];
   List<String>? _currentSymbols;
   int _currentLimit = 50;
@@ -334,6 +335,7 @@ class TradeSignalsProvider with ChangeNotifier {
   @override
   void dispose() {
     debugPrint('🧹 Disposing TradeSignalsProvider - cancelling subscription');
+    _tradeSignalsSubscription?.cancel();
     super.dispose();
   }
 
@@ -391,6 +393,142 @@ class TradeSignalsProvider with ChangeNotifier {
     }
   }
 
+  Query<Map<String, dynamic>> _buildQuery({
+    String? signalType,
+    List<String>? indicators,
+    Map<String, String>? indicatorFilters,
+    int? minSignalStrength,
+    int? maxSignalStrength,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? symbols,
+    String? interval,
+  }) {
+    Query<Map<String, dynamic>> query =
+        FirebaseFirestore.instance.collection('agentic_trading');
+
+    final effectiveInterval = interval ?? selectedInterval;
+
+    if (indicatorFilters != null && indicatorFilters.isNotEmpty) {
+      indicatorFilters.forEach((indicator, signal) {
+        query = query.where('multiIndicatorResult.indicators.$indicator.signal',
+            isEqualTo: signal);
+      });
+    } else if (signalType != null && signalType.isNotEmpty) {
+      if (indicators == null || indicators.isEmpty) {
+        query = query.where('signal', isEqualTo: signalType);
+      } else {
+        for (final indicator in indicators) {
+          query = query.where(
+              'multiIndicatorResult.indicators.$indicator.signal',
+              isEqualTo: signalType);
+        }
+      }
+    }
+    if (minSignalStrength != null) {
+      query = query.where('multiIndicatorResult.signalStrength',
+          isGreaterThanOrEqualTo: minSignalStrength);
+    }
+    if (maxSignalStrength != null) {
+      query = query.where('multiIndicatorResult.signalStrength',
+          isLessThanOrEqualTo: maxSignalStrength);
+    }
+
+    query = query.where('interval', isEqualTo: effectiveInterval);
+
+    final queryLimit = 200;
+
+    debugPrint(
+        '⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
+
+    if (startDate != null) {
+      query = query.where('timestamp',
+          isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch);
+    }
+    if (endDate != null) {
+      query = query.where('timestamp',
+          isLessThanOrEqualTo: endDate.millisecondsSinceEpoch);
+    }
+
+    if (symbols != null && symbols.isNotEmpty) {
+      if (symbols.length <= 30) {
+        query = query.where('symbol', whereIn: symbols);
+      }
+    }
+
+    query = query.orderBy('timestamp', descending: true);
+    query = query.limit(queryLimit);
+    return query;
+  }
+
+  void streamTradeSignals({
+    String? signalType,
+    List<String>? indicators,
+    Map<String, String>? indicatorFilters,
+    int? minSignalStrength,
+    int? maxSignalStrength,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? symbols,
+    int? limit,
+    String? interval,
+  }) {
+    _isLoading = true;
+    notifyListeners();
+
+    _currentSymbols = symbols;
+    _currentLimit = limit ?? 50;
+
+    debugPrint('🚀 Setting up new trade signals subscription with filters:');
+    debugPrint('   Signal type: $signalType');
+    debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
+    debugPrint('   Indicator Filters: $indicatorFilters');
+    debugPrint('   Min signal strength: $minSignalStrength');
+    debugPrint('   Max signal strength: $maxSignalStrength');
+    debugPrint('   Start date: $startDate');
+    debugPrint('   End date: $endDate');
+    debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
+    debugPrint('   Limit: $_currentLimit');
+
+    // Cancel existing subscription
+    _tradeSignalsSubscription?.cancel();
+
+    try {
+      final effectiveInterval = interval ?? selectedInterval;
+      final query = _buildQuery(
+        signalType: signalType,
+        indicators: indicators,
+        indicatorFilters: indicatorFilters,
+        minSignalStrength: minSignalStrength,
+        maxSignalStrength: maxSignalStrength,
+        startDate: startDate,
+        endDate: endDate,
+        symbols: symbols,
+        interval: effectiveInterval,
+      );
+
+      _tradeSignalsSubscription = query.snapshots().listen((snapshot) {
+        debugPrint('📥 Stream update received: ${snapshot.docs.length} docs');
+        _updateTradeSignalsFromSnapshot(
+            snapshot, _currentSymbols, effectiveInterval);
+      }, onError: (e) {
+        _tradeSignals = [];
+        _tradeProposalMessage =
+            'Failed to stream trade signals: ${e.toString()}';
+        debugPrint('❌ Error streaming trade signals: ${e.toString()}');
+        _isLoading = false;
+        notifyListeners();
+      });
+    } catch (e) {
+      _tradeSignals = [];
+      _tradeProposalMessage =
+          'Failed to setup trade signals stream: ${e.toString()}';
+      debugPrint('❌ Error setting up trade signals stream: ${e.toString()}');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchAllTradeSignals({
     String? signalType,
     List<String>? indicators,
@@ -421,61 +559,18 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint('   Limit: $_currentLimit');
 
     try {
-      Query<Map<String, dynamic>> query =
-          FirebaseFirestore.instance.collection('agentic_trading');
-
       final effectiveInterval = interval ?? selectedInterval;
-
-      if (indicatorFilters != null && indicatorFilters.isNotEmpty) {
-        indicatorFilters.forEach((indicator, signal) {
-          query = query.where(
-              'multiIndicatorResult.indicators.$indicator.signal',
-              isEqualTo: signal);
-        });
-      } else if (signalType != null && signalType.isNotEmpty) {
-        if (indicators == null || indicators.isEmpty) {
-          query = query.where('signal', isEqualTo: signalType);
-        } else {
-          for (final indicator in indicators) {
-            query = query.where(
-                'multiIndicatorResult.indicators.$indicator.signal',
-                isEqualTo: signalType);
-          }
-        }
-      }
-      if (minSignalStrength != null) {
-        query = query.where('multiIndicatorResult.signalStrength',
-            isGreaterThanOrEqualTo: minSignalStrength);
-      }
-      if (maxSignalStrength != null) {
-        query = query.where('multiIndicatorResult.signalStrength',
-            isLessThanOrEqualTo: maxSignalStrength);
-      }
-
-      query = query.where('interval', isEqualTo: effectiveInterval);
-
-      final queryLimit = 200;
-
-      debugPrint(
-          '⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
-
-      if (startDate != null) {
-        query = query.where('timestamp',
-            isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch);
-      }
-      if (endDate != null) {
-        query = query.where('timestamp',
-            isLessThanOrEqualTo: endDate.millisecondsSinceEpoch);
-      }
-
-      if (symbols != null && symbols.isNotEmpty) {
-        if (symbols.length <= 30) {
-          query = query.where('symbol', whereIn: symbols);
-        }
-      }
-
-      query = query.orderBy('timestamp', descending: true);
-      query = query.limit(queryLimit);
+      final query = _buildQuery(
+        signalType: signalType,
+        indicators: indicators,
+        indicatorFilters: indicatorFilters,
+        minSignalStrength: minSignalStrength,
+        maxSignalStrength: maxSignalStrength,
+        startDate: startDate,
+        endDate: endDate,
+        symbols: symbols,
+        interval: effectiveInterval,
+      );
 
       final snapshot = await query.get(const GetOptions(source: Source.server));
       debugPrint('📥 Server fetch completed: ${snapshot.docs.length} docs');
