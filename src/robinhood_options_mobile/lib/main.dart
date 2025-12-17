@@ -122,7 +122,7 @@ class MyApp extends StatelessWidget {
       // secondary: Color.fromRGBO(83, 109, 254, 0.7))
       ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.dark(
-              primary: Colors.indigo, secondary: CupertinoColors.systemGrey3
+              primary: Colors.indigo, secondary: CupertinoColors.systemGrey
               // CupertinoColors.systemMint
               // Colors.indigoAccent
               )

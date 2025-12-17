@@ -55,6 +55,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Instrument Widget Refactoring (Performance improvements)
 - ✅ UI Consistency Improvements (Font sizes, bold styling)
 
+### v0.20.2 ✅ (Released Dec 17, 2025)
+**Watchlist Management & App Badging**
+- ✅ Watchlist Management (Create, Add/Remove, UI enhancements)
+- ✅ App Icon Badging (Notification indicators)
+- ✅ Navigation Improvements (Bottom bar refactoring)
+
 ### v0.21.0 (Late December 2025)
 **Copy Trading & Risk Controls Phase 1**
 - Trade Approval Workflow (review before execution)

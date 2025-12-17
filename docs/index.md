@@ -14,7 +14,7 @@
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
 - Enhanced security and privacy for user data.
-- Customizable watchlists and alerts for market movements.
+- **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
 - **Instrument Charting:** Advanced charting capabilities on instrument details pages.

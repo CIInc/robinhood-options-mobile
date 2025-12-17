@@ -35,6 +35,7 @@ Patterns & conventions (concrete examples):
 - Real-time subscriptions: Use `StreamSubscription` for Firestore snapshot listeners and always implement `dispose()` in providers to cancel subscriptions (see `AgenticTradingProvider` for reference pattern).
 - Ads & analytics: AdMob and FirebaseAnalytics are initialized in `main.dart` — changes to analytics events should reuse `FirebaseAnalytics.instance`.
 - **User Context Threading:** Navigation widgets use `brokerageUser` for brokerage operations and `userDocRef` (optional `DocumentReference<User>?`) for Firestore user document access. Pass both through navigation chains: `ChildWidget(brokerageUser, service, data, user: widget.user, userDocRef: widget.userDocRef)`. This enables user-specific settings, generative features, and investor group functionality throughout the app.
+- **App Badging:** Uses `flutter_app_badger` to manage app icon badges.
 
 Developer workflows (notes an agent should surface when changing code):
 - Pod / iOS problems: if `pod install` fails, the README instructs `rm -rf ./ios/Pods; rm ./ios/Podfile.lock; flutter clean; flutter pub get; flutter build ios` and/or `pod repo update`.
@@ -58,6 +59,7 @@ Examples of specific file references an agent can use in patches:
 - Agentic Trading Analytics UI: `src/robinhood_options_mobile/lib/widgets/agentic_trading_settings_widget.dart` (auto-trade configuration with real-time countdown, paper trading toggle), `agentic_trading_performance_widget.dart` (9 analytics cards with comprehensive metrics and trade filtering).
 - Backtesting UI: `src/robinhood_options_mobile/lib/widgets/backtesting_widget.dart` (3-tab interface with Run/History/Templates tabs, result page with 4 tabs, interactive equity curve chart).
 - Investor Groups UI: `src/robinhood_options_mobile/lib/widgets/investor_groups_widget.dart` (main 3-tab layout), `investor_group_detail_widget.dart` (member list, portfolio navigation), `investor_group_manage_members_widget.dart` (admin 3-tab interface: Members/Pending/Invite), `investor_group_create_widget.dart` (creation form).
+- Watchlist UI: `src/robinhood_options_mobile/lib/widgets/lists_widget.dart` (main lists view), `list_widget.dart` (individual list details).
 - Copy Trading UI & Backend: `lib/widgets/copy_trade_settings_widget.dart`, `lib/widgets/copy_trade_button_widget.dart`, model in `lib/model/investor_group_store.dart` (`memberCopyTradeSettings`), functions trigger logic in `functions/src/copy-trading.ts`, audit collection `copy_trades` (see Firestore rules), documentation in `docs/copy-trading.md`.
 - Chart widgets: `src/robinhood_options_mobile/lib/widgets/chart_pie_widget.dart` (reusable PieChart with selection handling), `chart_time_series_widget.dart`, `chart_bar_widget.dart`, `instrument_chart_widget.dart` (enhanced instrument charting).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).

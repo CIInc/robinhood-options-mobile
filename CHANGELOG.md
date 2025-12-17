@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.2] - 2025-12-17
+
+### Added
+- **Watchlist Management:** Implemented comprehensive watchlist features including creating new lists, adding/removing instruments, and improved list display UI.
+- **App Badging:** Integrated `flutter_app_badger` to support app icon badges for notifications or status updates.
+
+### Changed
+- **Navigation:** Refactored `NavigationStatefulWidget` and bottom navigation bar for improved user experience and responsiveness.
+- **UI Consistency:** Enhanced various widgets for better visual consistency and functionality.
+
 ## [0.20.1] - 2025-12-16
 
 ### Added
