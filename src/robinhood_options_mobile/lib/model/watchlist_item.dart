@@ -3,6 +3,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 class WatchlistItem {
+  final String? id;
   final String objectType;
   final String objectId;
   final String instrument;
@@ -14,11 +15,12 @@ class WatchlistItem {
   ForexQuote? forexObj;
   OptionInstrument? optionInstrumentObj;
 
-  WatchlistItem(this.objectType, this.objectId, this.instrument, this.createdAt,
-      this.watchlist, this.url);
+  WatchlistItem(this.id, this.objectType, this.objectId, this.instrument,
+      this.createdAt, this.watchlist, this.url);
 
   WatchlistItem.fromJson(dynamic json)
-      : objectType = json['object_type'],
+      : id = json['id'],
+        objectType = json['object_type'],
         objectId = json['object_id'],
         instrument = json['instrument'] ?? '',
         createdAt = DateTime.tryParse(json['created_at']),

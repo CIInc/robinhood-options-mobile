@@ -142,6 +142,92 @@ class _ListsWidgetState extends State<ListsWidget>
         });
   }
 
+  void _showCreateListDialog() {
+    final TextEditingController nameController = TextEditingController();
+    String selectedEmoji = "💡";
+    final List<String> emojis = [
+      "💡",
+      "🔥",
+      "🚀",
+      "💰",
+      "📈",
+      "📉",
+      "👀",
+      "❤️",
+      "⭐",
+      "⚠️"
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text("Create New List"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "List Name"),
+                ),
+                const SizedBox(height: 16),
+                const Text("Select Icon"),
+                Wrap(
+                  spacing: 8.0,
+                  children: emojis.map((emoji) {
+                    return ChoiceChip(
+                      label: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      selected: selectedEmoji == emoji,
+                      onSelected: (bool selected) {
+                        setStateDialog(() {
+                          selectedEmoji = emoji;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                child: const Text("Cancel"),
+                onPressed: () => Navigator.pop(context),
+              ),
+              TextButton(
+                child: const Text("Create"),
+                onPressed: () async {
+                  if (nameController.text.isNotEmpty) {
+                    try {
+                      await widget.service.createList(
+                          widget.brokerageUser, nameController.text,
+                          emoji: selectedEmoji);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        setState(() {
+                          watchlistStream = widget.service.streamLists(
+                              widget.brokerageUser,
+                              Provider.of<InstrumentStore>(context,
+                                  listen: false),
+                              Provider.of<QuoteStore>(context, listen: false));
+                        });
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text("Error: $e")));
+                      }
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
   Widget _buildScaffold({Widget? welcomeWidget, bool done = false}) {
     var totalItems = 0;
     var totalLists = 0;
@@ -276,6 +362,10 @@ class _ListsWidgetState extends State<ListsWidget>
               )
             ]),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _showCreateListDialog,
+          ),
           AutoTradeStatusBadgeWidget(
             user: widget.user,
             userDocRef: widget.userDocRef,
@@ -434,124 +524,184 @@ class _ListsWidgetState extends State<ListsWidget>
                       //padding: EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       child: ListTile(
+                        leading: watchlist.iconEmoji != null
+                            ? Text(
+                                watchlist.iconEmoji!,
+                                style: const TextStyle(fontSize: 32),
+                              )
+                            : null,
                         title: Text(
-                          watchlist.displayName,
+                          // "${watchlist.iconEmoji ?? ''} ${watchlist.displayName}".trim()
+                          watchlist.displayName.trim(),
                           style: const TextStyle(
                               fontSize: 20.0, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                             "${formatCompactNumber.format(watchlist.items.length)} items"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.sort),
-                            onPressed: () {
-                              showModalBottomSheet<void>(
-                                context: context,
-                                showDragHandle: true,
-                                constraints:
-                                    const BoxConstraints(maxHeight: 260),
-                                builder: (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        // tileColor: Theme.of(context)
-                                        //     .colorScheme
-                                        //     .primary,
-                                        title: const Text(
-                                          "Sort Watch List",
-                                          style: TextStyle(
-                                              fontSize: 20.0,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        //trailing: TextButton(
-                                        //    child: const Text("APPLY"),
-                                        //    onPressed: () => Navigator.pop(context))
-                                      ),
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          RadioListTile<SortType>(
-                                            title: const Text('Alphabetical'),
-                                            value: SortType.alphabetical,
-                                            groupValue: _sortType,
-                                            onChanged: (SortType? value) {
-                                              Navigator.pop(context);
-                                              setState(() {
-                                                _sortType = value;
-                                              });
-                                            },
-                                            secondary: _sortType ==
-                                                    SortType.alphabetical
-                                                ? IconButton(
-                                                    icon: Icon(_sortDirection ==
-                                                            SortDirection.desc
-                                                        ? Icons.south
-                                                        : Icons.north),
-                                                    onPressed: () {
-                                                      Navigator.pop(
-                                                          context, 'dialog');
-                                                      setState(() {
-                                                        _sortDirection =
-                                                            _sortDirection ==
-                                                                    SortDirection
-                                                                        .asc
-                                                                ? SortDirection
-                                                                    .desc
-                                                                : SortDirection
-                                                                    .asc;
-                                                      });
-                                                      // showSettings();
-                                                    },
-                                                  )
-                                                : null,
+                        trailing: PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (value) {
+                              if (value == 'sort') {
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 260),
+                                  builder: (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context)
+                                          //     .colorScheme
+                                          //     .primary,
+                                          title: const Text(
+                                            "Sort Watch List",
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
                                           ),
-                                          RadioListTile<SortType>(
-                                            title: const Text('Change'),
-                                            value: SortType.change,
-                                            groupValue: _sortType,
-                                            onChanged: (SortType? value) {
-                                              Navigator.pop(context);
+                                          //trailing: TextButton(
+                                          //    child: const Text("APPLY"),
+                                          //    onPressed: () => Navigator.pop(context))
+                                        ),
+                                        Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RadioListTile<SortType>(
+                                              title: const Text('Alphabetical'),
+                                              value: SortType.alphabetical,
+                                              groupValue: _sortType,
+                                              onChanged: (SortType? value) {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  _sortType = value;
+                                                });
+                                              },
+                                              secondary: _sortType ==
+                                                      SortType.alphabetical
+                                                  ? IconButton(
+                                                      icon: Icon(
+                                                          _sortDirection ==
+                                                                  SortDirection
+                                                                      .desc
+                                                              ? Icons.south
+                                                              : Icons.north),
+                                                      onPressed: () {
+                                                        Navigator.pop(
+                                                            context, 'dialog');
+                                                        setState(() {
+                                                          _sortDirection =
+                                                              _sortDirection ==
+                                                                      SortDirection
+                                                                          .asc
+                                                                  ? SortDirection
+                                                                      .desc
+                                                                  : SortDirection
+                                                                      .asc;
+                                                        });
+                                                        // showSettings();
+                                                      },
+                                                    )
+                                                  : null,
+                                            ),
+                                            RadioListTile<SortType>(
+                                              title: const Text('Change'),
+                                              value: SortType.change,
+                                              groupValue: _sortType,
+                                              onChanged: (SortType? value) {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  _sortType = value;
+                                                });
+                                              },
+                                              secondary: _sortType ==
+                                                      SortType.change
+                                                  ? IconButton(
+                                                      icon: Icon(
+                                                          _sortDirection ==
+                                                                  SortDirection
+                                                                      .desc
+                                                              ? Icons.south
+                                                              : Icons.north),
+                                                      onPressed: () {
+                                                        Navigator.pop(
+                                                            context, 'dialog');
+                                                        setState(() {
+                                                          _sortDirection =
+                                                              _sortDirection ==
+                                                                      SortDirection
+                                                                          .asc
+                                                                  ? SortDirection
+                                                                      .desc
+                                                                  : SortDirection
+                                                                      .asc;
+                                                        });
+                                                        // showSettings();
+                                                      },
+                                                    )
+                                                  : null,
+                                            ),
+                                          ],
+                                        )
+                                      ],
+                                    );
+                                  },
+                                );
+                              } else if (value == 'delete') {
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text("Delete List"),
+                                        content: Text(
+                                            "Are you sure you want to delete ${watchlist.displayName}?"),
+                                        actions: [
+                                          TextButton(
+                                            child: const Text("Cancel"),
+                                            onPressed: () =>
+                                                Navigator.of(context).pop(),
+                                          ),
+                                          TextButton(
+                                            child: const Text("Delete"),
+                                            onPressed: () async {
+                                              Navigator.of(context).pop();
+                                              await widget.service.deleteList(
+                                                  widget.brokerageUser,
+                                                  watchlist.id);
                                               setState(() {
-                                                _sortType = value;
+                                                watchlistStream = null;
                                               });
                                             },
-                                            secondary: _sortType ==
-                                                    SortType.change
-                                                ? IconButton(
-                                                    icon: Icon(_sortDirection ==
-                                                            SortDirection.desc
-                                                        ? Icons.south
-                                                        : Icons.north),
-                                                    onPressed: () {
-                                                      Navigator.pop(
-                                                          context, 'dialog');
-                                                      setState(() {
-                                                        _sortDirection =
-                                                            _sortDirection ==
-                                                                    SortDirection
-                                                                        .asc
-                                                                ? SortDirection
-                                                                    .desc
-                                                                : SortDirection
-                                                                    .asc;
-                                                      });
-                                                      // showSettings();
-                                                    },
-                                                  )
-                                                : null,
                                           ),
                                         ],
-                                      )
-                                    ],
-                                  );
-                                },
-                              );
-                            }),
+                                      );
+                                    });
+                              }
+                            },
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                                  const PopupMenuItem<String>(
+                                    value: 'sort',
+                                    child: ListTile(
+                                      leading: Icon(Icons.sort),
+                                      title: Text('Sort'),
+                                    ),
+                                  ),
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: ListTile(
+                                      leading: Icon(Icons.delete),
+                                      title: Text('Delete'),
+                                    ),
+                                  ),
+                                ]),
                         /*
                             trailing: IconButton(
                                 icon: const Icon(Icons.sort),

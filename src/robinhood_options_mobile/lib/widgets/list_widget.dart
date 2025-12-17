@@ -36,7 +36,8 @@ class ListWidget extends StatefulWidget {
       required this.generativeService,
       this.navigatorKey,
       required this.user,
-      required this.userDocRef});
+      required this.userDocRef,
+      this.ownerType = "robinhood"});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -48,6 +49,7 @@ class ListWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   //final Account account;
   final String listKey;
+  final String ownerType;
 
   @override
   State<ListWidget> createState() => _ListWidgetState();
@@ -88,7 +90,7 @@ class _ListWidgetState extends State<ListWidget>
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false),
         widget.listKey,
-        ownerType: "robinhood");
+        ownerType: widget.ownerType);
     return StreamBuilder(
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
@@ -139,7 +141,11 @@ class _ListWidgetState extends State<ListWidget>
               spacing: 20,
               //runSpacing: 5,
               children: [
-                const Text('Lists', style: TextStyle(fontSize: 20.0)),
+                Text(
+                    widget.ownerType == "robinhood"
+                        ? 'Robinhood List'
+                        : 'Watchlist',
+                    style: TextStyle(fontSize: 20.0)),
                 Text(
                   "${formatCompactNumber.format(totalItems)} items",
                   style: TextStyle(
@@ -277,6 +283,21 @@ class _ListWidgetState extends State<ListWidget>
                       //padding: EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       child: ListTile(
+                        leading: (watchlist?.imageUrls?['circle_64:3'] != null)
+                            ? CircleAvatar(
+                                backgroundImage: CachedNetworkImageProvider(
+                                    watchlist!.imageUrls!['circle_64:3']),
+                              )
+                            : (watchlist?.iconEmoji != null
+                                ? CircleAvatar(
+                                    backgroundColor: Colors.transparent,
+                                    child: Text(
+                                      watchlist!.iconEmoji!,
+                                      style:
+                                          const TextStyle(fontSize: 40), // 28
+                                    ),
+                                  )
+                                : null),
                         title: Text(
                           watchlist != null ? watchlist!.displayName : '',
                           style: const TextStyle(

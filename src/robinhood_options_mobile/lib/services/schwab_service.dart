@@ -1456,6 +1456,34 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement addToList
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement removeFromList
+  }
+
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    // TODO: implement createList
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    // TODO: implement deleteList
+  }
+
+  @override
   Future<List> getLists(BrokerageUser user, String instrumentId) {
     // TODO: implement getLists
     return Future.value([]);

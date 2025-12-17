@@ -199,6 +199,13 @@ abstract class IBrokerageService {
       {String ownerType = "custom"});
   Future<Watchlist> getList(String key, BrokerageUser user,
       {String ownerType = "custom"});
+  Future<List<Watchlist>> getAllLists(BrokerageUser user);
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId);
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId);
+  Future<void> createList(BrokerageUser user, String name, {String? emoji});
+  Future<void> deleteList(BrokerageUser user, String listId);
 
   // Orders
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,

@@ -942,7 +942,7 @@ class DemoService implements IBrokerageService {
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem = WatchlistItem('instrument', instrumentObj.id,
+        var watchlistItem = WatchlistItem(null, 'instrument', instrumentObj.id,
             instrumentObj.id, DateTime.now(), entry.key, "");
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
@@ -969,8 +969,8 @@ class DemoService implements IBrokerageService {
       if (forexIds.isNotEmpty) {
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
-          var watchlistItem = WatchlistItem('currency_pair', forexQuote.id,
-              forexQuote.id, DateTime.now(), entry.key, "");
+          var watchlistItem = WatchlistItem(null, 'currency_pair',
+              forexQuote.id, forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;
@@ -1083,13 +1083,12 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
-        return getPortfolioHistoricals(user, store, account, chartBoundsFilter, chartDateSpanFilter);
-    }
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return getPortfolioHistoricals(
+        user, store, account, chartBoundsFilter, chartDateSpanFilter);
+  }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
@@ -1333,6 +1332,34 @@ class DemoService implements IBrokerageService {
       list.add(result);
     }
     return list;
+  }
+
+  @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement addToList
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement removeFromList
+  }
+
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    // TODO: implement createList
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    // TODO: implement deleteList
   }
 
   @override

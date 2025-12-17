@@ -428,16 +428,13 @@ class PlaidService implements IBrokerageService {
     throw UnimplementedError();
   }
 
-    @override
+  @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     throw UnimplementedError();
-    }
-
+  }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
@@ -591,6 +588,34 @@ class PlaidService implements IBrokerageService {
   Future<List> getNews(BrokerageUser user, String symbol) {
     // TODO: implement getNews
     throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement addToList
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement removeFromList
+  }
+
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    // TODO: implement createList
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    // TODO: implement deleteList
   }
 
   @override

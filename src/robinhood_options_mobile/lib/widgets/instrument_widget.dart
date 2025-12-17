@@ -48,6 +48,7 @@ import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
@@ -823,7 +824,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
               ListTile(
-                  title: Text("Position", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: Text("Position",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   subtitle:
                       Text('${formatNumber.format(position.quantity!)} shares'),
                   trailing: Text(formatCurrency.format(position.marketValue),
@@ -968,13 +971,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildNewsWidget(instrument)
           ],
-          if (instrument.similarObj != null) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildSimilarWidget(instrument)
-          ],
           if (instrument.listsObj != null &&
               instrument.listsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
@@ -982,6 +978,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               height: 8.0,
             )),
             _buildListsWidget(instrument)
+          ],
+          if (instrument.similarObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+            _buildSimilarWidget(instrument)
           ],
           Consumer<InstrumentOrderStore>(
               builder: (context, stockOrderStore, child) {
@@ -1395,8 +1398,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 0,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -1407,7 +1414,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   trailing: Text(
                       formatCompactNumber
                           .format(instrument.fundamentalsObj!.volume!),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 if (instrument.fundamentalsObj!.averageVolume != null) ...[
                   ListTile(
@@ -1417,7 +1425,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCompactNumber
                             .format(instrument.fundamentalsObj!.averageVolume!),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.averageVolume2Weeks !=
@@ -1429,7 +1438,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCompactNumber.format(
                             instrument.fundamentalsObj!.averageVolume2Weeks!),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.high52Weeks != null) ...[
@@ -1440,7 +1450,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCurrency
                             .format(instrument.fundamentalsObj!.high52Weeks!),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.low52Weeks != null) ...[
@@ -1451,7 +1462,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCurrency
                             .format(instrument.fundamentalsObj!.low52Weeks!),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 ListTile(
@@ -1463,7 +1475,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? formatCompactNumber.format(
                               instrument.fundamentalsObj!.dividendYield!)
                           : "-",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   dense: true,
@@ -1472,7 +1485,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   trailing: Text(
                       formatCompactNumber
                           .format(instrument.fundamentalsObj!.marketCap ?? 0),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   dense: true,
@@ -1481,7 +1495,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   trailing: Text(
                       formatCompactNumber.format(
                           instrument.fundamentalsObj!.sharesOutstanding ?? 0),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   dense: true,
@@ -1492,7 +1507,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? formatCompactNumber
                               .format(instrument.fundamentalsObj!.peRatio!)
                           : "-",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   dense: true,
@@ -1504,7 +1520,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           : (instrument.type == "etp"
                               ? "Exchange Traded Product"
                               : instrument.type),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 if (instrument.type == "etp" &&
                     instrument.etpDetails != null) ...[
@@ -1515,7 +1532,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatDate.format(DateTime.parse(
                             instrument.etpDetails["inception_date"])),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                   if (instrument.etpDetails["is_inverse"] ||
                       instrument.etpDetails["is_leveraged"] ||
@@ -1531,7 +1549,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: Text(
                             "${instrument.etpDetails["is_inverse"] ? "Inverse" : ""} ${instrument.etpDetails["is_leveraged"] ? "Leveraged" : ""} ${instrument.etpDetails["is_volatility_linked"] ? "Volatility linked" : ""} ${instrument.etpDetails["is_crypto_futures"] ? "Crypto futures" : ""} ${instrument.etpDetails["is_actively_managed"] ? "Actively managed" : ""}",
                             textAlign: TextAlign.end,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500)),
                       ),
                     ),
                   ],
@@ -1543,7 +1562,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       constraints: const BoxConstraints(maxWidth: 200),
                       child: Text(instrument.etpDetails["category"],
                           textAlign: TextAlign.end,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500)),
                     ),
                   ),
                   if (instrument.etpDetails["total_holdings"] != null) ...[
@@ -1574,24 +1594,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             child: SingleChildScrollView(
                                               child: Table(
                                                 border: TableBorder.all(
-                                                  color: Theme.of(context).dividerColor,
-                                                  width: 0.5
-                                                ),
+                                                    color: Theme.of(context)
+                                                        .dividerColor,
+                                                    width: 0.5),
                                                 columnWidths: const {
                                                   0: FlexColumnWidth(4),
                                                   1: FlexColumnWidth(1)
                                                 },
                                                 children: [
-                                                  for (var holding in instrument
-                                                      .etpDetails["holdings"]) ...[
+                                                  for (var holding
+                                                      in instrument.etpDetails[
+                                                          "holdings"]) ...[
                                                     TableRow(children: [
                                                       Padding(
-                                                        padding: const EdgeInsets.all(8.0),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
                                                         child: SelectableText(
                                                             holding["name"]),
                                                       ),
                                                       Padding(
-                                                        padding: const EdgeInsets.all(8.0),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
                                                         child: SelectableText(
                                                             holding["weight"]),
                                                       ),
@@ -1616,9 +1641,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ],
                       ),
                       trailing: Text(
-                          formatNumber.format(
-                              instrument.etpDetails["total_holdings"]),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          formatNumber
+                              .format(instrument.etpDetails["total_holdings"]),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500)),
                     ),
                   ],
                   ListTile(
@@ -1628,7 +1654,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCompactCurrency
                             .format(double.parse(instrument.etpDetails["aum"])),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                   ListTile(
                     dense: true,
@@ -1638,7 +1665,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         formatPercentage.format(double.tryParse(
                                 instrument.etpDetails["gross_expense_ratio"])! /
                             100),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                   ListTile(
                     dense: true,
@@ -1650,7 +1678,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     instrument.etpDetails["sec_yield"])! /
                                 100)
                             : "-",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                   ListTile(
                     dense: true,
@@ -1667,7 +1696,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     ["market"]["1Y"])! /
                                 100)
                             : "-",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                   ListTile(
                     dense: true,
@@ -1684,7 +1714,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     ["market"]["since_inception"])! /
                                 100)
                             : "-",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 ListTile(
@@ -1695,7 +1726,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     constraints: const BoxConstraints(maxWidth: 200),
                     child: Text(instrument.fundamentalsObj!.sector,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ),
                 ListTile(
@@ -1706,7 +1738,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     constraints: const BoxConstraints(maxWidth: 200),
                     child: Text(instrument.fundamentalsObj!.industry,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ),
                 ListTile(
@@ -1716,7 +1749,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     "Name",
                   ),
                   subtitle: Text(instrument.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   dense: true,
@@ -1736,7 +1770,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     title: const Text("Headquarters"),
                     subtitle: Text(
                         "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
@@ -1745,7 +1780,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     visualDensity: const VisualDensity(vertical: -2),
                     title: const Text("CEO"),
                     trailing: Text(instrument.fundamentalsObj!.ceo,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.numEmployees != null) ...[
@@ -1758,7 +1794,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             ? formatCompactNumber.format(
                                 instrument.fundamentalsObj!.numEmployees!)
                             : "",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 if (instrument.fundamentalsObj!.yearFounded != null) ...[
@@ -1768,7 +1805,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     title: const Text("Founded"),
                     trailing: Text(
                         "${instrument.fundamentalsObj!.yearFounded ?? ""}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -1901,8 +1939,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             elevation: 0,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -1912,7 +1954,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     trailing: Text(
                         formatCurrency.format(double.parse(instrument
                             .ratingsOverviewObj!["fair_value"]["value"])),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ],
                 ListTile(
@@ -1921,7 +1964,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       instrument.ratingsOverviewObj!["economic_moat"]
                           .toString()
                           .capitalize(),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
                   ListTile(
@@ -1945,7 +1989,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       instrument.ratingsOverviewObj!["stewardship"]
                           .toString()
                           .capitalize(),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   title: const Text("Uncertainty"),
@@ -1954,12 +1999,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           .toString()
                           .replaceAll('_', ' ')
                           .capitalize(),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
                 ListTile(
                   title: Text(
                     instrument.ratingsOverviewObj!["report_title"],
-                    style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 16.0, fontWeight: FontWeight.w500),
                   ),
                   subtitle: Text(
                       instrument.ratingsOverviewObj!["report_updated_at"] !=
@@ -2324,22 +2371,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             similar[index]["logo_url"]
                                 .toString()
                                 .replaceAll("https:////", "https://"),
-                            width: 50,
-                            height: 50,
+                            // width: 50,
+                            // height: 50,
                             errorBuilder: (BuildContext context,
                                 Object exception, StackTrace? stackTrace) {
                               return CircleAvatar(
-                                  radius: 25,
+                                  // radius: 25,
                                   child: Text(
-                                    similar[index]["symbol"],
-                                  ));
+                                similar[index]["symbol"],
+                              ));
                             },
                           )
                         : CircleAvatar(
-                            radius: 25,
+                            // radius: 25,
                             child: Text(
-                              similar[index]["symbol"],
-                            ))),
+                            similar[index]["symbol"],
+                          ))),
                 title: Text(
                   "${similar[index]["symbol"]}",
                 ),
@@ -2400,66 +2447,248 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ]));
   }
 
-  Widget _buildListsWidget(Instrument instrument) {
-    final lists = instrument.listsObj!;
-    final displayCount =
-        _showAllLists ? lists.length : (lists.length > 3 ? 3 : lists.length);
+  void _showCreateListDialog(Function onListCreated) {
+    final TextEditingController nameController = TextEditingController();
+    String selectedEmoji = "💡";
+    final List<String> emojis = [
+      "💡",
+      "🔥",
+      "🚀",
+      "💰",
+      "📈",
+      "📉",
+      "👀",
+      "❤️",
+      "⭐",
+      "⚠️"
+    ];
 
-    return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Lists",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        )
-      ])),
-      SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return Card(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                // minTileHeight: 10,
-                leading: lists[index]["image_urls"] != null
-                    ? Image.network(lists[index]["image_urls"]
-                        ["circle_64:3"]) //,width: 96, height: 56
-                    : Container(), //SizedBox(width: 96, height: 56),
-                title: Text(
-                  "${lists[index]["display_name"]} - ${lists[index]["item_count"]} items",
-                ), //style: TextStyle(fontSize: 17.0)),
-                subtitle: Text("${lists[index]["display_description"]}"),
-                /*
-                  trailing: Image.network(
-                      instrument.newsObj![index]["preview_image_url"])
-                      */
-                isThreeLine: true,
-                onTap: () async {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => ListWidget(widget.brokerageUser,
-                              widget.service, lists[index]["id"].toString(),
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef)));
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text("Create New List"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "List Name"),
+                ),
+                const SizedBox(height: 16),
+                const Text("Select Icon"),
+                Wrap(
+                  spacing: 8.0,
+                  children: emojis.map((emoji) {
+                    return ChoiceChip(
+                      label: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      selected: selectedEmoji == emoji,
+                      onSelected: (bool selected) {
+                        setStateDialog(() {
+                          selectedEmoji = emoji;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                child: const Text("Cancel"),
+                onPressed: () => Navigator.pop(context),
+              ),
+              TextButton(
+                child: const Text("Create"),
+                onPressed: () async {
+                  if (nameController.text.isNotEmpty) {
+                    try {
+                      await widget.service.createList(
+                          widget.brokerageUser, nameController.text,
+                          emoji: selectedEmoji);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        onListCreated();
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text("Error: $e")));
+                      }
+                    }
+                  }
                 },
               ),
             ],
-          ));
+          );
+        });
+      },
+    );
+  }
 
-          //if (positionOrders.length > index) {
-          //}
-        }, childCount: displayCount),
-      ),
-      if (lists.length > 3)
-        SliverToBoxAdapter(
+  void _showAddToListDialog() {
+    var futureAllLists = widget.service.getAllLists(widget.brokerageUser);
+    Set<String>? selectedListIds;
+    showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text("Add to List"),
+              content: FutureBuilder<List<Watchlist>>(
+                future: futureAllLists,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    var allLists = snapshot.data!;
+                    selectedListIds ??= widget.instrument.listsObj
+                            ?.map((e) => e['id'].toString())
+                            .toSet() ??
+                        {};
+
+                    return SizedBox(
+                      width: double.maxFinite,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: allLists.length,
+                        itemBuilder: (context, index) {
+                          var list = allLists[index];
+                          var isInList = selectedListIds!.contains(list.id);
+                          return CheckboxListTile(
+                            title: Text(
+                                "${list.iconEmoji ?? ''} ${list.displayName}"
+                                    .trim()),
+                            value: isInList,
+                            onChanged: (value) async {
+                              setStateDialog(() {
+                                if (value == true) {
+                                  selectedListIds!.add(list.id);
+                                } else {
+                                  selectedListIds!.remove(list.id);
+                                }
+                              });
+                              try {
+                                if (value == true) {
+                                  await widget.service.addToList(
+                                      widget.brokerageUser,
+                                      list.id,
+                                      widget.instrument.id);
+                                } else {
+                                  await widget.service.removeFromList(
+                                      widget.brokerageUser,
+                                      list.id,
+                                      widget.instrument.id);
+                                }
+
+                                // Refresh lists in main widget
+                                var newLists = await widget.service.getLists(
+                                    widget.brokerageUser, widget.instrument.id);
+
+                                if (mounted) {
+                                  setState(() {
+                                    widget.instrument.listsObj = newLists;
+                                  });
+                                  // setStateDialog(() {});
+                                }
+                              } catch (e) {
+                                setStateDialog(() {
+                                  if (value == true) {
+                                    selectedListIds!.remove(list.id);
+                                  } else {
+                                    selectedListIds!.add(list.id);
+                                  }
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Error: $e")));
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text("Error: ${snapshot.error}");
+                  }
+                  return const Center(child: CircularProgressIndicator());
+                },
+              ),
+              actions: [
+                TextButton(
+                    child: const Text("Create List"),
+                    onPressed: () {
+                      _showCreateListDialog(() {
+                        setStateDialog(() {
+                          futureAllLists =
+                              widget.service.getAllLists(widget.brokerageUser);
+                        });
+                      });
+                    }),
+                TextButton(
+                  child: const Text("Close"),
+                  onPressed: () => Navigator.pop(context),
+                )
+              ],
+            );
+          });
+        });
+  }
+
+  Widget _buildListsWidget(Instrument instrument) {
+    final lists = instrument.listsObj!;
+    final userLists = lists.where((l) => l["owner_type"] == "custom").toList();
+    final rhLists = lists.where((l) => l["owner_type"] != "custom").toList();
+
+    final rhDisplayCount = _showAllLists
+        ? rhLists.length
+        : (rhLists.length > 3 ? 3 : rhLists.length);
+
+    List<Widget> slivers = [];
+
+    slivers.add(SliverToBoxAdapter(
+        child: Column(children: [
+      ListTile(
+        title: const Text(
+          "Lists",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.playlist_add),
+          onPressed: _showAddToListDialog,
+        ),
+      )
+    ])));
+
+    if (userLists.isNotEmpty) {
+      if (rhLists.isNotEmpty) {
+        slivers.add(const SliverToBoxAdapter(
+            child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: Text("Your Lists",
+                    style: TextStyle(fontWeight: FontWeight.bold)))));
+      }
+      slivers.add(SliverList(
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return _buildListItem(userLists[index]);
+        }, childCount: userLists.length),
+      ));
+    }
+
+    if (rhLists.isNotEmpty) {
+      if (userLists.isNotEmpty) {
+        slivers.add(const SliverToBoxAdapter(
+            child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: Text("Robinhood Lists",
+                    style: TextStyle(fontWeight: FontWeight.bold)))));
+      }
+      slivers.add(SliverList(
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return _buildListItem(rhLists[index]);
+        }, childCount: rhDisplayCount),
+      ));
+
+      if (rhLists.length > 3) {
+        slivers.add(SliverToBoxAdapter(
             child: Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
@@ -2469,10 +2698,65 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 });
               },
               icon: Icon(_showAllLists ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                  _showAllLists ? 'Show Less' : 'Show All (${lists.length})')),
-        ))
-    ]));
+              label: Text(_showAllLists
+                  ? 'Show Less'
+                  : 'Show All (${rhLists.length})')),
+        )));
+      }
+    }
+
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(
+            offset: ViewportOffset.zero(), slivers: slivers));
+  }
+
+  Widget _buildListItem(dynamic list) {
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ListTile(
+          // minTileHeight: 10,
+          leading: list["image_urls"] != null
+              ? CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  child: Image.network(list["image_urls"]
+                      ["circle_64:3"])) //,width: 96, height: 56
+              : (list["icon_emoji"] != null
+                  ? CircleAvatar(
+                      backgroundColor: Colors.transparent,
+                      child: Text(list["icon_emoji"],
+                          style: const TextStyle(fontSize: 32))) // 28
+                  : const CircleAvatar(
+                      child: Icon(Icons.list),
+                    )), //SizedBox(width: 96, height: 56),
+          title: Text(
+            "${list["display_name"]} - ${list["item_count"]} items",
+          ), //style: TextStyle(fontSize: 17.0)),
+          subtitle: list["display_description"] != null
+              ? Text("${list["display_description"]}")
+              : null,
+          /*
+                  trailing: Image.network(
+                      instrument.newsObj![index]["preview_image_url"])
+                      */
+          isThreeLine: list["display_description"] != null,
+          onTap: () async {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ListWidget(widget.brokerageUser,
+                        widget.service, list["id"].toString(),
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        ownerType: list["owner_type"] ?? "robinhood")));
+          },
+        ),
+      ],
+    ));
   }
 
   Widget _buildNewsWidget(Instrument instrument) {
@@ -2595,7 +2879,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             leading: const Icon(Icons.filter_list),
                             title: const Text(
                               "Filter Position Orders",
-                              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 20.0, fontWeight: FontWeight.bold),
                             ),
                             /*
                                   trailing: TextButton(

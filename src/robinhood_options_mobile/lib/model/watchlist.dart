@@ -30,15 +30,24 @@
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
 class Watchlist {
+  final String id;
   final String displayName;
+  final String? ownerType;
+  final String? iconEmoji;
+  final Map<String, dynamic>? imageUrls;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   List<WatchlistItem> items = [];
 
-  Watchlist(this.displayName, this.createdAt, this.updatedAt);
+  Watchlist(this.id, this.displayName, this.ownerType, this.iconEmoji,
+      this.imageUrls, this.createdAt, this.updatedAt);
 
   Watchlist.fromJson(dynamic json)
-      : displayName = json['display_name'],
+      : id = json['id'],
+        displayName = json['display_name'],
+        ownerType = json['owner_type'],
+        iconEmoji = json['icon_emoji'],
+        imageUrls = json['image_urls'],
         createdAt = DateTime.tryParse(json['created_at']),
         updatedAt = DateTime.tryParse(json['updated_at']);
 }

@@ -1868,7 +1868,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
     for (var chunk in chunks) {
       List<Fundamentals> fundamentals =
-          await getFundamentalsById(user, ids, store);
+          await getFundamentalsById(user, chunk.cast<String>(), store);
       //https://api.robinhood.com/instruments/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
       var url =
           "$endpoint/instruments/?ids=${Uri.encodeComponent(chunk.join(","))}";
@@ -2342,21 +2342,6 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     var results = await RobinhoodService.pagedGet(
         user, "$endpoint/midlands/news/$symbol/");
 
-    List<dynamic> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      list.add(result);
-    }
-    return list;
-  }
-
-  @override
-  Future<List<dynamic>> getLists(
-      BrokerageUser user, String instrumentId) async {
-    //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
-    //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
-    var results = await pagedGet(user,
-        "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -3355,7 +3340,7 @@ WATCHLIST
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem = WatchlistItem('instrument', instrumentObj.id,
+        var watchlistItem = WatchlistItem(null, 'instrument', instrumentObj.id,
             instrumentObj.id, DateTime.now(), entry.key, "");
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
@@ -3382,8 +3367,8 @@ WATCHLIST
       if (forexIds.isNotEmpty) {
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
-          var watchlistItem = WatchlistItem('currency_pair', forexQuote.id,
-              forexQuote.id, DateTime.now(), entry.key, "");
+          var watchlistItem = WatchlistItem(null, 'currency_pair',
+              forexQuote.id, forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;
@@ -3420,30 +3405,32 @@ WATCHLIST
     yield wl;
 
     var instrumentIds = items.map((e) => e.objectId).toList();
-    var instrumentObjs =
-        await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-    for (var instrumentObj in instrumentObjs) {
-      var watchlistItem =
-          items.firstWhere((element) => element.objectId == instrumentObj.id);
-      watchlistItem.instrumentObj = instrumentObj;
-      wl.items.add(watchlistItem);
-      yield wl;
-    }
 
-    var instrumentSymbols = items
-        .where((e) =>
-            e.instrumentObj !=
-            null) // Figure out why in certain conditions, instrumentObj is null
-        .map((e) => e.instrumentObj!.symbol)
-        .toList();
-    var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
-    for (var quoteObj in quoteObjs) {
-      var watchlistItem = wl.items.firstWhere(
-          (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-      watchlistItem.instrumentObj!.quoteObj = quoteObj;
-      //wl.items.add(watchlistItem);
+    int chunkSize = 25;
+    for (var i = 0; i < instrumentIds.length; i += chunkSize) {
+      var end = (i + chunkSize < instrumentIds.length)
+          ? i + chunkSize
+          : instrumentIds.length;
+      var chunkIds = instrumentIds.sublist(i, end);
+
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, chunkIds);
+      for (var instrumentObj in instrumentObjs) {
+        var watchlistItem =
+            items.firstWhere((element) => element.objectId == instrumentObj.id);
+        watchlistItem.instrumentObj = instrumentObj;
+        wl.items.add(watchlistItem);
+      }
       yield wl;
-      //wl.items.add(watchlistItem);
+
+      var chunkSymbols = instrumentObjs.map((e) => e.symbol).toList();
+      var quoteObjs = await getQuoteByIds(user, quoteStore, chunkSymbols);
+      for (var quoteObj in quoteObjs) {
+        var instrument =
+            instrumentObjs.firstWhere((i) => i.symbol == quoteObj.symbol);
+        instrument.quoteObj = quoteObj;
+      }
+      yield wl;
     }
 
     /*
@@ -3466,6 +3453,25 @@ WATCHLIST
   }
 
   @override
+  Future<List<dynamic>> getLists(BrokerageUser user, String instrumentId,
+      {String? ownerType}) async {
+    //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
+    //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
+    List<dynamic> list = [];
+    if (ownerType == null || ownerType == "robinhood") {
+      var results = await pagedGet(user,
+          "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
+      list.addAll(results);
+    }
+    if (ownerType == null || ownerType == "custom") {
+      var results = await pagedGet(user,
+          "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=custom");
+      list.addAll(results);
+    }
+    return list;
+  }
+
+  @override
   Future<Watchlist> getList(String key, BrokerageUser user,
       {String ownerType = "custom"}) async {
     var watchlistUrl = "$endpoint/midlands/lists/$key/?owner_type=$ownerType";
@@ -3473,6 +3479,91 @@ WATCHLIST
 
     var wl = Watchlist.fromJson(entryJson);
     return wl;
+  }
+
+  @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    var watchlistsUrl = "$endpoint/midlands/lists/user_items/";
+    var userItemsJson = await getJson(user, watchlistsUrl);
+    List<Watchlist> list = [];
+    for (var entry in userItemsJson.entries) {
+      Watchlist wl = await getList(entry.key, user);
+      list.add(wl);
+    }
+    return list;
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    var url = "$endpoint/discovery/lists/items/";
+    var payload = {
+      listId: [
+        {
+          "object_id": instrumentId,
+          "object_type": "instrument",
+          "operation": "create"
+        }
+      ]
+    };
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+    debugPrint(response.body);
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    var url = "$endpoint/discovery/lists/items/";
+    var payload = {
+      listId: [
+        {
+          "object_id": instrumentId,
+          "object_type": "instrument",
+          "operation": "delete"
+        }
+      ]
+    };
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+    debugPrint(response.body);
+  }
+
+  // TODO: Implement screener lists, separate from watchlists (currently being created)
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    var url = "$endpoint/discovery/lists/";
+    var payload = {
+      "display_name": name,
+      "icon_emoji": emoji ?? "💡",
+      "list_position": 0
+    };
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+    debugPrint(response.body);
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    var url = "$endpoint/discovery/lists/$listId/";
+    var response = await user.oauth2Client!.delete(Uri.parse(url), headers: {
+      "content-type": "application/json",
+      "accept": "application/json"
+    });
+    debugPrint(response.body);
   }
 
   Future<List<WatchlistItem>> getListItems(
