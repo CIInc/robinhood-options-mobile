@@ -2114,9 +2114,16 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
     List<Fundamentals> list = [];
     for (var chunk in chunks) {
-      var url =
-          "$endpoint/fundamentals/?ids=${Uri.encodeComponent(chunk.join(","))}";
-      var resultJson = await getJson(user, url);
+      var url = "$endpoint/fundamentals/?ids=${chunk.join(",")}";
+      final dynamic resultJson;
+      try {
+        resultJson = await getJson(user, url);
+      } on Exception catch (e) {
+        // Format
+        debugPrint('getFundamentalsById. Error: $e');
+        // return Future.value(list);
+        continue;
+      }
 
       for (var i = 0; i < resultJson['results'].length; i++) {
         var result = resultJson['results'][i];

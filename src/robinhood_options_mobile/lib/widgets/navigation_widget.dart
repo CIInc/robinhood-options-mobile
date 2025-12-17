@@ -480,24 +480,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       if (userStore.currentUser != null &&
           (userStore.currentUser!.source == BrokerageSource.robinhood ||
               userStore.currentUser!.source == BrokerageSource.demo)) ...[
+        HistoryPage(userStore.currentUser!, service,
+            user: user,
+            userDoc:
+                userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: _generativeService,
+            navigatorKey: navigatorKeys[1]),
         SearchWidget(userStore.currentUser!, service,
             user: user,
             analytics: widget.analytics,
             observer: widget.observer,
             generativeService: _generativeService,
-            navigatorKey: navigatorKeys[1],
+            navigatorKey: navigatorKeys[2],
             userDocRef: userDoc),
         ListsWidget(userStore.currentUser!, service,
             user: user,
             userDocRef: userDoc,
-            analytics: widget.analytics,
-            observer: widget.observer,
-            generativeService: _generativeService,
-            navigatorKey: navigatorKeys[2]),
-        HistoryPage(userStore.currentUser!, service,
-            user: user,
-            userDoc:
-                userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
             analytics: widget.analytics,
             observer: widget.observer,
             generativeService: _generativeService,
@@ -558,56 +558,59 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      // bottomNavigationBar: !loggedIn(userStore)
-      //     ? null
-      //     : SizedBox(
-      //         height: loggedIn(userStore) ? null : 0,
-      //         child: BottomNavigationBar(
-      //           items: <BottomNavigationBarItem>[
-      //             BottomNavigationBarItem(
-      //               icon: Icon(Icons.account_balance), //home
-      //               label: 'Portfolio',
-      //             ),
-      //             if (userStore.currentUser != null &&
-      //                 (userStore.currentUser!.source ==
-      //                         BrokerageSource.robinhood ||
-      //                     userStore.currentUser!.source ==
-      //                         BrokerageSource.demo)) ...[
-      //               BottomNavigationBarItem(
-      //                 icon: Icon(Icons.search),
-      //                 label: 'Search',
-      //               ),
-      //               /*
-      //           BottomNavigationBarItem(
-      //             icon: Icon(Icons.payments), //inventory //history
-      //             label: 'Orders',
-      //           ),
-      //           */
-      //               BottomNavigationBarItem(
-      //                 icon: Icon(
-      //                     Icons.collections_bookmark), //bookmarks //visibility
-      //                 label: 'Lists',
-      //               ),
-      //               BottomNavigationBarItem(
-      //                 icon: Icon(Icons.history),
-      //                 label: 'History',
-      //               ),
-      //             ],
-      //             // BottomNavigationBarItem(
-      //             //   icon: Icon(Icons.account_circle), // manage_accounts //person
-      //             //   label: 'Accounts',
-      //             // ),
-      //           ],
-      //           currentIndex: _pageIndex,
-      //           //fixedColor: Colors.grey,
-      //           selectedItemColor: Theme.of(context).colorScheme.primary,
-      //           //selectedItemColor: Colors.blue,
-      //           unselectedItemColor: Colors
-      //               .grey.shade400, // Theme.of(context).colorScheme.background,
-      //           //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-      //           onTap: _onPageChanged,
-      //           //onTap: _onIndexedViewChanged,
-      //         )),
+      bottomNavigationBar: userStore.items.isEmpty
+          ? null
+          : BottomNavigationBar(
+              items: <BottomNavigationBarItem>[
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.account_balance), //home
+                  label: 'Portfolio',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.history),
+                  label: 'History',
+                ),
+                if (userStore.currentUser != null &&
+                    (userStore.currentUser!.source ==
+                            BrokerageSource.robinhood ||
+                        userStore.currentUser!.source ==
+                            BrokerageSource.demo)) ...[
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.search),
+                    label: 'Search',
+                  ),
+                  /*
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.payments), //inventory //history
+                  label: 'Orders',
+                ),
+                */
+                  const BottomNavigationBarItem(
+                    icon: Icon(
+                        Icons.collections_bookmark), //bookmarks //visibility
+                    label: 'Lists',
+                  ),
+                ],
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.groups),
+                  label: 'Investors',
+                ),
+                // BottomNavigationBarItem(
+                //   icon: Icon(Icons.account_circle), // manage_accounts //person
+                //   label: 'Accounts',
+                // ),
+              ],
+              currentIndex: _pageIndex,
+              type: BottomNavigationBarType.fixed,
+              //fixedColor: Colors.grey,
+              selectedItemColor: Theme.of(context).colorScheme.primary,
+              //selectedItemColor: Colors.blue,
+              unselectedItemColor: Colors
+                  .grey.shade400, // Theme.of(context).colorScheme.background,
+              //unselectedItemColor: Colors.grey.shade400, //.amber[800],
+              onTap: _onPageChanged,
+              //onTap: _onIndexedViewChanged,
+            ),
     );
   }
 
@@ -825,15 +828,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                             ListTile(
                               leading: const Icon(Icons.receipt),
                               title: const Text("Transactions"),
-                              selected: _pageIndex == 3,
-                              onTap: () {
-                                Navigator.pop(context); // close the drawer
-                                _onPageChanged(3);
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.search),
-                              title: const Text("Search"),
                               selected: _pageIndex == 1,
                               onTap: () {
                                 Navigator.pop(context); // close the drawer
@@ -841,12 +835,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                               },
                             ),
                             ListTile(
-                              leading: const Icon(Icons.collections_bookmark),
-                              title: const Text("Lists"),
+                              leading: const Icon(Icons.search),
+                              title: const Text("Search"),
                               selected: _pageIndex == 2,
                               onTap: () {
                                 Navigator.pop(context); // close the drawer
                                 _onPageChanged(2);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.collections_bookmark),
+                              title: const Text("Lists"),
+                              selected: _pageIndex == 3,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(3);
                               },
                             ),
                             // Agentic Trading Settings moved to the User page
