@@ -1155,8 +1155,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                 const Text("Days to Expiration",
-                    style: TextStyle(
-                        fontSize: 20.0, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold)),
                 Container(
                   width: 5,
                 ),
@@ -2015,7 +2015,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     _firestoreService,
                     widget.analytics,
                     widget.observer,
-                    widget.brokerageUser);
+                    widget.brokerageUser,
+                    widget.service);
                 if (response != null) {
                   setState(() {});
                 }

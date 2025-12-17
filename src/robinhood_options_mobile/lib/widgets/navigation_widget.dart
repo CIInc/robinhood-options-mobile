@@ -506,6 +506,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       InvestorGroupsWidget(
         firestoreService: _firestoreService,
         brokerageUser: userStore.currentUser!,
+        service: service,
         analytics: widget.analytics,
         observer: widget.observer,
         user: user,
@@ -1004,7 +1005,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                                       context,
                                       MaterialPageRoute(
                                           builder: (BuildContext context) =>
-                                              UsersWidget(auth,
+                                              UsersWidget(auth, service,
                                                   analytics: widget.analytics,
                                                   observer: widget.observer,
                                                   brokerageUser:

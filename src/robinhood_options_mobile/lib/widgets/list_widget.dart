@@ -172,7 +172,8 @@ class _ListWidgetState extends State<ListWidget>
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
-                      widget.brokerageUser);
+                      widget.brokerageUser,
+                      widget.service);
                   if (response != null) {
                     setState(() {});
                   }

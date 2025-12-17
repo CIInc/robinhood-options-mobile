@@ -27,6 +27,7 @@ class AgenticTradingConfig {
   bool trailingStopEnabled;
   double trailingStopPercent;
   bool paperTradingMode;
+  bool requireApproval;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -54,6 +55,7 @@ class AgenticTradingConfig {
     this.trailingStopEnabled = false,
     this.trailingStopPercent = 3.0,
     this.paperTradingMode = false,
+    this.requireApproval = false,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -101,6 +103,7 @@ class AgenticTradingConfig {
         trailingStopPercent =
             (json['trailingStopPercent'] as num?)?.toDouble() ?? 3.0,
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
+        requireApproval = json['requireApproval'] as bool? ?? false,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -144,6 +147,7 @@ class AgenticTradingConfig {
       'stopLossPercent': stopLossPercent,
       'allowPreMarketTrading': allowPreMarketTrading,
       'allowAfterHoursTrading': allowAfterHoursTrading,
+      'requireApproval': requireApproval,
       'paperTradingMode': paperTradingMode,
     };
   }
@@ -165,6 +169,7 @@ class AgenticTradingConfig {
     double? takeProfitPercent,
     double? stopLossPercent,
     bool? allowPreMarketTrading,
+    bool? requireApproval,
     bool? allowAfterHoursTrading,
   }) {
     return AgenticTradingConfig(
@@ -188,6 +193,7 @@ class AgenticTradingConfig {
       stopLossPercent: stopLossPercent ?? this.stopLossPercent,
       allowPreMarketTrading:
           allowPreMarketTrading ?? this.allowPreMarketTrading,
+      requireApproval: requireApproval ?? this.requireApproval,
       allowAfterHoursTrading:
           allowAfterHoursTrading ?? this.allowAfterHoursTrading,
     );

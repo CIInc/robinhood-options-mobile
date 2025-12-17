@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,6 +40,8 @@ class UserWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
   final UserInfo? userInfo;
   final ScrollController? scrollController;
+  final IBrokerageService service;
+
   const UserWidget(this.auth,
       {super.key,
       required this.userId,
@@ -48,7 +51,8 @@ class UserWidget extends StatefulWidget {
       required this.observer,
       required this.brokerageUser,
       this.userInfo,
-      this.scrollController});
+      this.scrollController,
+      required this.service});
 
   @override
   State<UserWidget> createState() => _UserWidgetState();
@@ -151,7 +155,8 @@ class _UserWidgetState extends State<UserWidget> {
                                             _firestoreService,
                                             widget.analytics,
                                             widget.observer,
-                                            widget.brokerageUser);
+                                            widget.brokerageUser,
+                                            widget.service);
                                       })
                                 ]),
                           ],
@@ -656,6 +661,7 @@ class _UserWidgetState extends State<UserWidget> {
                                                 user: user!,
                                                 userDocRef:
                                                     userDocumentReference!,
+                                                service: widget.service,
                                               ),
                                             ),
                                           );

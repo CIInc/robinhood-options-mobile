@@ -522,6 +522,7 @@ class _HistoryPageState extends State<HistoryPage>
                     AutoTradeStatusBadgeWidget(
                       user: widget.user,
                       userDocRef: widget.userDoc,
+                      service: widget.service,
                     ),
                     IconButton(
                         icon: auth.currentUser != null
@@ -541,7 +542,8 @@ class _HistoryPageState extends State<HistoryPage>
                               _firestoreService,
                               widget.analytics,
                               widget.observer,
-                              widget.brokerageUser);
+                              widget.brokerageUser,
+                              widget.service);
                           if (response != null) {
                             setState(() {});
                           }

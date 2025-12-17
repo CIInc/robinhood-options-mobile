@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 
@@ -16,8 +17,10 @@ class UsersWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
+  final IBrokerageService service;
   const UsersWidget(
-    this.auth, {
+    this.auth,
+    this.service, {
     super.key,
     required this.analytics,
     required this.observer,
@@ -81,7 +84,8 @@ class _UsersWidgetState extends State<UsersWidget> {
                               _firestoreService,
                               widget.analytics,
                               widget.observer,
-                              widget.brokerageUser);
+                              widget.brokerageUser,
+                              widget.service);
                         })
                   ]),
               SliverPadding(
@@ -138,7 +142,8 @@ class _UsersWidgetState extends State<UsersWidget> {
                   document: document,
                   analytics: widget.analytics,
                   observer: widget.observer,
-                  brokerageUser: widget.brokerageUser);
+                  brokerageUser: widget.brokerageUser,
+                  service: widget.service);
             }, childCount: querySnapshot.docs.length),
           )
         : const SliverToBoxAdapter(

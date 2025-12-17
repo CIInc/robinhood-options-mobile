@@ -218,6 +218,7 @@ class _SearchWidgetState extends State<SearchWidget>
                         AutoTradeStatusBadgeWidget(
                           user: widget.user,
                           userDocRef: widget.userDocRef,
+                          service: widget.service,
                         ),
                         IconButton(
                             icon: auth.currentUser != null
@@ -237,7 +238,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   _firestoreService,
                                   widget.analytics,
                                   widget.observer,
-                                  widget.brokerageUser);
+                                  widget.brokerageUser,
+                                  widget.service);
                               if (response != null) {
                                 setState(() {});
                               }
@@ -460,6 +462,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                                       user: widget.user!,
                                                       userDocRef:
                                                           widget.userDocRef!,
+                                                      service: widget.service,
                                                     ),
                                                   ),
                                                 );

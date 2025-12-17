@@ -575,6 +575,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   AutoTradeStatusBadgeWidget(
                     user: widget.user,
                     userDocRef: widget.userDocRef,
+                    service: widget.service,
                   ),
                   IconButton(
                       icon: auth.currentUser != null
@@ -594,7 +595,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             _firestoreService,
                             widget.analytics,
                             widget.observer,
-                            widget.brokerageUser);
+                            widget.brokerageUser,
+                            widget.service);
                         if (response != null) {
                           setState(() {});
                         }
@@ -3932,6 +3934,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             builder: (context) => AgenticTradingSettingsWidget(
                               user: widget.user!,
                               userDocRef: widget.userDocRef!,
+                              service: widget.service,
                             ),
                           ),
                         );

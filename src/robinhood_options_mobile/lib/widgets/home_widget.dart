@@ -565,6 +565,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               user: widget.brokerageUser,
               firestoreUser: widget.user,
               userDocRef: widget.userDoc,
+              service: widget.service,
             ),
 
             if (welcomeWidget != null) ...[
@@ -2035,7 +2036,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   color: Theme.of(context)
                                       .colorScheme
                                       .primaryContainer
-                                                .withOpacity(0.15),
+                                      .withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -2106,6 +2107,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                   AgenticTradingSettingsWidget(
                                                 user: widget.user!,
                                                 userDocRef: widget.userDoc!,
+                                                service: widget.service,
                                               ),
                                             ),
                                           );

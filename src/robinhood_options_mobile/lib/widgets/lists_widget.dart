@@ -369,6 +369,7 @@ class _ListsWidgetState extends State<ListsWidget>
           AutoTradeStatusBadgeWidget(
             user: widget.user,
             userDocRef: widget.userDocRef,
+            service: widget.service,
           ),
           IconButton(
               icon: auth.currentUser != null
@@ -388,7 +389,8 @@ class _ListsWidgetState extends State<ListsWidget>
                     _firestoreService,
                     widget.analytics,
                     widget.observer,
-                    widget.brokerageUser);
+                    widget.brokerageUser,
+                    widget.service);
                 if (response != null) {
                   setState(() {});
                 }

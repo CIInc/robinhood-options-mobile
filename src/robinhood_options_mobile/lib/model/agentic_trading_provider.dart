@@ -71,6 +71,8 @@ class AgenticTradingProvider with ChangeNotifier {
   // Track automated BUY trades for TP/SL monitoring (with quantity and entry price)
   // Each entry: {symbol, quantity, entryPrice, timestamp}
   List<Map<String, dynamic>> _automatedBuyTrades = [];
+  // Pending orders requiring approval
+  final List<Map<String, dynamic>> _pendingOrders = [];
 
   // Auto-trade timer countdown
   DateTime? _nextAutoTradeTime;
@@ -90,6 +92,7 @@ class AgenticTradingProvider with ChangeNotifier {
   int get dailyTradeCount => _dailyTradeCount;
   bool get emergencyStopActivated => _emergencyStopActivated;
   List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
+  List<Map<String, dynamic>> get pendingOrders => _pendingOrders;
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
   int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
@@ -772,6 +775,26 @@ class AgenticTradingProvider with ChangeNotifier {
               final side = normalizedAction == 'BUY' ? 'buy' : 'sell';
 
               final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+              final requireApproval =
+                  _config['requireApproval'] as bool? ?? false;
+
+              if (requireApproval) {
+                final pendingOrder = {
+                  'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                  'timestamp': DateTime.now().toIso8601String(),
+                  'symbol': symbol,
+                  'action': normalizedAction,
+                  'quantity': quantity,
+                  'price': currentPrice,
+                  'instrument': instrument,
+                  'status': 'pending',
+                  'reason': 'Auto-trade signal',
+                };
+                _pendingOrders.add(pendingOrder);
+                notifyListeners();
+                debugPrint('📝 Order added to pending approval: $symbol');
+                continue;
+              }
 
               debugPrint(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
@@ -926,18 +949,119 @@ class AgenticTradingProvider with ChangeNotifier {
       _isAutoTrading = false;
       _scheduleVisualStateReset();
       notifyListeners();
-
-      _analytics.logEvent(
-        name: 'agentic_trading_auto_failed',
-        parameters: {'error': e.toString()},
-      );
-
+      debugPrint('❌ Error in auto-trade execution: $e');
       return {
         'success': false,
         'tradesExecuted': 0,
-        'message': 'Auto-trade failed: ${e.toString()}',
+        'message': 'Error: $e',
         'trades': [],
       };
+    }
+  }
+
+  /// Approves a pending order and executes it
+  Future<void> approveOrder(
+    Map<String, dynamic> order, {
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    DocumentReference? userDocRef,
+  }) async {
+    if (!_pendingOrders.contains(order)) {
+      debugPrint('❌ Order not found in pending list');
+      return;
+    }
+
+    final symbol = order['symbol'] as String;
+    final action = order['action'] as String;
+    final quantity = order['quantity'] as int;
+    final price = order['price'] as double;
+    final instrument = order['instrument'];
+
+    try {
+      final side = action.toLowerCase() == 'buy' ? 'buy' : 'sell';
+      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+
+      debugPrint(
+          '${isPaperMode ? '📝 PAPER' : '📤'} Approving order: $action $quantity shares of $symbol at \$$price');
+
+      // Execute order
+      final orderResponse = isPaperMode
+          ? _simulatePaperOrder(action, symbol, quantity, price)
+          : await brokerageService.placeInstrumentOrder(
+              brokerageUser,
+              account,
+              instrument,
+              symbol,
+              side,
+              price,
+              quantity,
+            );
+
+      const httpOk = 200;
+      const httpCreated = 201;
+      if (orderResponse.statusCode == httpOk ||
+          orderResponse.statusCode == httpCreated) {
+        // Add to history
+        final tradeRecord = {
+          'timestamp': DateTime.now().toIso8601String(),
+          'symbol': symbol,
+          'action': action,
+          'quantity': quantity,
+          'price': price,
+          'paperMode': isPaperMode,
+          'orderResponse': orderResponse.body,
+          'approved': true,
+        };
+
+        _autoTradeHistory.insert(0, tradeRecord);
+        if (_autoTradeHistory.length > 100) {
+          _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+        }
+
+        _dailyTradeCount++;
+        _lastAutoTradeTime = DateTime.now();
+
+        // Track BUY trades
+        if (action.toUpperCase() == 'BUY') {
+          _automatedBuyTrades.add({
+            'symbol': symbol,
+            'quantity': quantity,
+            'entryPrice': price,
+            'highestPrice': price,
+            'timestamp': DateTime.now().toIso8601String(),
+            'enabledIndicators': List<String>.from(
+              (_config['enabledIndicators'] as Map<String, dynamic>? ?? {})
+                  .entries
+                  .where((e) => e.value == true)
+                  .map((e) => e.key),
+            ),
+          });
+          if (userDocRef != null) {
+            await _saveAutomatedBuyTradesToFirestore(userDocRef);
+          }
+        }
+
+        // Remove from pending
+        _pendingOrders.remove(order);
+        notifyListeners();
+
+        debugPrint('✅ Approved order executed for $symbol');
+      } else {
+        debugPrint(
+            '❌ Approved order failed for $symbol: ${orderResponse.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error executing approved order for $symbol: $e');
+    }
+  }
+
+  /// Rejects a pending order
+  void rejectOrder(Map<String, dynamic> order) {
+    if (_pendingOrders.contains(order)) {
+      _pendingOrders.remove(order);
+      notifyListeners();
+      debugPrint('🚫 Order rejected: ${order['symbol']}');
     }
   }
 

@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
@@ -16,13 +17,15 @@ class UserListTile extends StatelessWidget {
       this.showNavigation = true,
       required this.analytics,
       required this.observer,
-      required this.brokerageUser});
+      required this.brokerageUser,
+      required this.service});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
   final DocumentSnapshot<User> document;
   final bool showNavigation;
+  final IBrokerageService service;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +82,7 @@ class UserListTile extends StatelessWidget {
                                 analytics: analytics,
                                 observer: observer,
                                 brokerageUser: brokerageUser,
+                                service: service,
                               ),
                             )));
               }

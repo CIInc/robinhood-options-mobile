@@ -5,15 +5,20 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
+  final IBrokerageService service;
 
   const AgenticTradingSettingsWidget({
     super.key,
     required this.user,
     required this.userDocRef,
+    required this.service,
   });
 
   @override
@@ -305,11 +310,45 @@ class _AgenticTradingSettingsWidgetState
         // Paper Trading Mode
         'paperTradingMode':
             agenticTradingProvider.config['paperTradingMode'] ?? false,
+        'requireApproval':
+            agenticTradingProvider.config['requireApproval'] ?? true,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
       debugPrint('Error auto-saving settings: $e');
     }
+  }
+
+  void _approveOrder(BuildContext context, AgenticTradingProvider provider,
+      Map<String, dynamic> order) async {
+    final brokerageUserStore =
+        Provider.of<BrokerageUserStore>(context, listen: false);
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+
+    if (brokerageUserStore.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to brokerage first')),
+      );
+      return;
+    }
+    final brokerageUser =
+        brokerageUserStore.items[brokerageUserStore.currentUserIndex];
+
+    var account = accountStore.items.firstOrNull;
+    if (account == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No brokerage account found')),
+      );
+      return;
+    }
+
+    await provider.approveOrder(
+      order,
+      brokerageUser: brokerageUser,
+      account: account,
+      brokerageService: widget.service,
+      userDocRef: widget.userDocRef,
+    );
   }
 
   @override
@@ -721,6 +760,137 @@ class _AgenticTradingSettingsWidgetState
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Pending Orders Section
+                  if (agenticTradingProvider.pendingOrders.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.pending_actions,
+                          size: 20,
+                          color: colorScheme.tertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Pending Approvals',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${agenticTradingProvider.pendingOrders.length}',
+                            style: TextStyle(
+                              color: colorScheme.onTertiaryContainer,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...agenticTradingProvider.pendingOrders.map((order) {
+                      final symbol = order['symbol'] as String;
+                      final action = order['action'] as String;
+                      final quantity = order['quantity'] as int;
+                      final price = order['price'] as double;
+                      final timestamp = DateTime.parse(order['timestamp']);
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: action.toUpperCase() == 'BUY'
+                                              ? Colors.green.withOpacity(0.2)
+                                              : Colors.red.withOpacity(0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          action.toUpperCase(),
+                                          style: TextStyle(
+                                            color: action.toUpperCase() == 'BUY'
+                                                ? Colors.green
+                                                : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        symbol,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    _formatTime(timestamp),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurface
+                                          .withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '$quantity shares @ \$${price.toStringAsFixed(2)}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      agenticTradingProvider.rejectOrder(order);
+                                    },
+                                    child: const Text('Reject'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  FilledButton(
+                                    onPressed: () {
+                                      _approveOrder(context,
+                                          agenticTradingProvider, order);
+                                    },
+                                    child: const Text('Approve'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
                   // Auto-Trade Configuration
                   Row(
                     children: [
@@ -830,8 +1000,16 @@ class _AgenticTradingSettingsWidgetState
                               ),
                             ),
                           ),
-                          const SizedBox(height: 24),
-
+                          // const SizedBox(height: 24),
+                          const SizedBox(height: 16),
+                          _buildSwitchListTile(
+                            'requireApproval',
+                            'Require Approval',
+                            'Review trades before execution',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                          ),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _dailyTradeLimitController,
                             decoration: InputDecoration(
@@ -1344,7 +1522,7 @@ class _AgenticTradingSettingsWidgetState
                             style: TextStyle(
                               fontSize: 13,
                               fontStyle: FontStyle.italic,
-                              color: colorScheme.onSecondaryContainer,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),

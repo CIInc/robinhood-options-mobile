@@ -70,7 +70,7 @@ class _InstrumentPositionsPageWidgetState
                   : const Icon(Icons.login),
               onPressed: () {
                 showProfile(context, auth, _firestoreService, widget.analytics,
-                    widget.observer, widget.brokerageUser);
+                    widget.observer, widget.brokerageUser, widget.service);
               }),
           IconButton(
               icon: Icon(Icons.more_vert),

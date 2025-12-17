@@ -7,13 +7,19 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 
 void main() {
   group('AgenticTradingSettingsWidget Auto-Save Tests', () {
     late User testUser;
     late DocumentReference<User> testUserDocRef;
+    late MockBrokerageService mockService;
 
     setUp(() {
+      mockService = MockBrokerageService();
       testUser = User(
         name: 'Test User',
         email: 'test@example.com',
@@ -66,6 +72,7 @@ void main() {
             child: AgenticTradingSettingsWidget(
               user: testUser,
               userDocRef: testUserDocRef,
+              service: mockService,
             ),
           ),
         ),
@@ -96,6 +103,7 @@ void main() {
             child: AgenticTradingSettingsWidget(
               user: testUser,
               userDocRef: testUserDocRef,
+              service: mockService,
             ),
           ),
         ),
@@ -123,6 +131,7 @@ void main() {
             child: AgenticTradingSettingsWidget(
               user: testUser,
               userDocRef: testUserDocRef,
+              service: mockService,
             ),
           ),
         ),
@@ -134,4 +143,24 @@ void main() {
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
     });
   });
+}
+
+class MockBrokerageService implements IBrokerageService {
+  @override
+  Future<dynamic> placeInstrumentOrder(
+      BrokerageUser user,
+      Account account,
+      Instrument instrument,
+      String symbol,
+      String side,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) async {
+    return {'id': 'mock_order_id', 'state': 'filled'};
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -2036,7 +2036,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                 _firestoreService,
                                 widget.analytics,
                                 widget.observer,
-                                widget.brokerageUser);
+                                widget.brokerageUser,
+                                widget.service);
                           })
                     ]),
                 // SliverPersistentHeader(

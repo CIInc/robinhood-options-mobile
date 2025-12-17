@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 
 /// A reusable badge widget that displays the current auto-trade status.
@@ -19,11 +20,13 @@ import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget
 class AutoTradeStatusBadgeWidget extends StatefulWidget {
   final User? user;
   final DocumentReference<User>? userDocRef;
+  final IBrokerageService service;
 
   const AutoTradeStatusBadgeWidget({
     super.key,
     this.user,
     this.userDocRef,
+    required this.service,
   });
 
   @override
@@ -122,6 +125,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                         builder: (context) => AgenticTradingSettingsWidget(
                           user: widget.user!,
                           userDocRef: widget.userDocRef!,
+                          service: widget.service,
                         ),
                       ),
                     );

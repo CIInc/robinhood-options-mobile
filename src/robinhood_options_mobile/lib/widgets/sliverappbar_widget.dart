@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as app_user;
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auth_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -26,6 +27,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
   final BrokerageUser user;
   final app_user.User? firestoreUser;
   final DocumentReference<app_user.User>? userDocRef;
+  final IBrokerageService service;
+
   const ExpandedSliverAppBar({
     super.key,
     required this.auth,
@@ -38,6 +41,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
     required this.user,
     this.firestoreUser,
     this.userDocRef,
+    required this.service,
   });
 
   @override
@@ -54,6 +58,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
                 AutoTradeStatusBadgeWidget(
                   user: firestoreUser,
                   userDocRef: userDocRef,
+                  service: service,
                 ),
                 IconButton(
                     icon: auth.currentUser != null
@@ -68,7 +73,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
                         : const Icon(Icons.login),
                     onPressed: () async {
                       var response = await showProfile(context, auth,
-                          firestoreService, analytics, observer, user);
+                          firestoreService, analytics, observer, user, service);
                       if (response != null && onChange != null) {
                         onChange!();
                       }
@@ -127,7 +132,8 @@ Future<String?> showProfile(
     FirestoreService firestoreService,
     FirebaseAnalytics analytics,
     FirebaseAnalyticsObserver observer,
-    BrokerageUser brokerageUser) async {
+    BrokerageUser brokerageUser,
+    IBrokerageService service) async {
   return await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -161,6 +167,7 @@ Future<String?> showProfile(
                     analytics: analytics,
                     observer: observer,
                     brokerageUser: brokerageUser,
+                    service: service,
                     scrollController: scrollController,
                   )
                 : AuthGate(

@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 class InvestorGroupsWidget extends StatelessWidget {
   final FirestoreService firestoreService;
   final BrokerageUser brokerageUser;
+  final IBrokerageService service;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final User? user;
@@ -23,6 +25,7 @@ class InvestorGroupsWidget extends StatelessWidget {
     super.key,
     required this.firestoreService,
     required this.brokerageUser,
+    required this.service,
     required this.analytics,
     required this.observer,
     this.user,
@@ -77,7 +80,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                     : const Icon(Icons.login),
                 onPressed: () async {
                   await showProfile(context, auth, firestoreService, analytics,
-                      observer, brokerageUser);
+                      observer, brokerageUser, service);
                 },
               ),
             ],
@@ -126,7 +129,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                     icon: const Icon(Icons.login),
                     onPressed: () {
                       showProfile(context, auth, firestoreService, analytics,
-                          observer, brokerageUser);
+                          observer, brokerageUser, service);
                     },
                     label: const Text('Sign In'),
                   ),
@@ -294,7 +297,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                     icon: const Icon(Icons.login),
                     onPressed: () {
                       showProfile(context, auth, firestoreService, analytics,
-                          observer, brokerageUser);
+                          observer, brokerageUser, service);
                     },
                     label: const Text('Sign In'),
                   ),
