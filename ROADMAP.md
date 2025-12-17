@@ -14,8 +14,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**
-- 🔥 **In Progress**: Copy Trading Auto-Execute, Advanced Risk Controls
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**
+- 🔥 **In Progress**: Copy Trading Auto-Execute
 - 🎯 **Upcoming**: Strategy Templates, Partial Exits, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
@@ -56,22 +56,22 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ UI Consistency Improvements (Font sizes, bold styling)
 
 ### v0.20.2 ✅ (Released Dec 17, 2025)
-**Watchlist Management & App Badging**
+**Watchlist Management & Risk Controls**
 - ✅ Watchlist Management (Create, Add/Remove, UI enhancements)
+- ✅ Advanced Risk Controls (Sector Limits, Correlation Checks, Volatility Filters, Drawdown Protection)
+- ✅ Order Approval Workflow (Review pending orders)
 - ✅ App Icon Badging (Notification indicators)
 - ✅ Navigation Improvements (Bottom bar refactoring)
 
 ### v0.21.0 (Late December 2025)
-**Copy Trading & Risk Controls Phase 1**
-- Trade Approval Workflow (review before execution)
+**Copy Trading & Signal Optimization**
 - Signal Optimization (ML-powered improvements)
 - Custom Indicators (create your own indicators)
 - UI improvements & bug fixes
 
 ### v0.22.0 (Q1 2026 - Early January)
-**Copy Trading Enhancement & Risk Controls**
+**Copy Trading Enhancement**
 - Auto-Execute for Copy Trading
-- Advanced Risk Controls (sector limits, correlation checks)
 - Partial Position Exits (take profit in stages)
 - Time-Based Exits (auto-close after X hours/days)
 - Copy Trade Performance Dashboard

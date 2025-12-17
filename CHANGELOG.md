@@ -7,10 +7,13 @@ All notable changes to this project will be documented in this file.
 ## [0.20.2] - 2025-12-17
 
 ### Added
+- **Advanced Risk Controls:** Introduced `RiskGuardAgent` with configurable limits for sector exposure, correlation checks, volatility filters, and drawdown protection.
+- **Order Approval Workflow:** Added `requireApproval` setting to `AgenticTradingConfig`, allowing manual review of agent-generated orders before execution.
 - **Watchlist Management:** Implemented comprehensive watchlist features including creating new lists, adding/removing instruments, and improved list display UI.
 - **App Badging:** Integrated `flutter_app_badger` to support app icon badges for notifications or status updates.
 
 ### Changed
+- **Trade Signals:** Enhanced `TradeSignalsProvider` with improved query handling and subscription management for better performance.
 - **Navigation:** Refactored `NavigationStatefulWidget` and bottom navigation bar for improved user experience and responsiveness.
 - **UI Consistency:** Enhanced various widgets for better visual consistency and functionality.
 

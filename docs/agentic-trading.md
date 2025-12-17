@@ -42,7 +42,8 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
 
 6. **Backend Functions** (`functions/src/`)
-   - `riskguardTask`: Risk assessment and validation
+   - `riskguardTask`: Advanced risk assessment and validation engine
+   - `RiskGuardAgent`: Implements sector limits, correlation checks, and volatility filters
    - Trade signal generation cron jobs (daily, hourly, 15-min)
 
 7. **Search & Discovery Widgets** (`lib/widgets/search_widget.dart`, `screener_widget.dart`, `presets_widget.dart`) *[NEW]*
@@ -142,6 +143,39 @@ Future<Map<String, dynamic>> autoTrade({
    - Enforce rate limiting between trades
    - **Record enabledIndicators snapshot for performance analysis**
    - **Mark trade as real or paper mode**
+
+### Advanced Risk Controls
+
+The system now includes a sophisticated `RiskGuardAgent` that enforces portfolio-level risk management rules before any trade is executed. These controls are configurable in the Agentic Trading Settings.
+
+**Key Risk Features:**
+- **Sector Exposure Limits:** Prevents over-concentration in a single sector.
+  - Configurable `maxSectorExposure` (default 20%).
+  - Checks current portfolio allocation before approving new trades.
+- **Correlation Checks:** Avoids adding positions that are highly correlated with existing holdings.
+  - Configurable `maxCorrelation` coefficient (default 0.7).
+  - Helps maintain portfolio diversification.
+- **Volatility Filters:** Ensures trades are only taken within acceptable volatility ranges.
+  - Configurable `minVolatility` and `maxVolatility` (IV Rank).
+  - Prevents trading in extremely low or high volatility environments.
+- **Drawdown Protection:** Halts trading if the portfolio experiences significant drawdown.
+  - Configurable `maxDrawdown` percentage.
+  - Acts as a circuit breaker for the entire trading system.
+
+### Order Approval Workflow
+
+For users who want the benefits of AI signal generation but prefer manual control over execution, the system offers an **Order Approval Workflow**.
+
+**How it works:**
+1. **Enable Approval:** Toggle `requireApproval` in Agentic Trading Settings.
+2. **Signal Generation:** The system generates trade proposals as usual based on signals and risk checks.
+3. **Pending State:** Instead of executing immediately, orders are placed in a "Pending Approval" queue.
+4. **Notification:** The user receives a notification about the pending order.
+5. **Review & Action:**
+   - Users can review pending orders in the Agentic Trading Settings.
+   - **Approve:** The order is sent to the brokerage for execution.
+   - **Reject:** The order is discarded.
+   - **Timeout:** Pending orders may expire if not acted upon within a certain timeframe (configurable).
 
 ### Advanced Performance Analytics
 
