@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.20.1] - 2025-12-16
+
+### Added
+- **Generative Actions:** Added `GenerativeActionsWidget` to provide AI-driven actions and insights directly within the UI.
+- **Instrument Charting:** Introduced `InstrumentChartWidget` for enhanced charting capabilities on instrument details.
+- **Firestore Indexes:** Updated Firestore indexes to support new query patterns and improve performance.
+
+### Changed
+- **Instrument Details:** Major refactoring of `InstrumentWidget` to improve performance and maintainability.
+- **Home Screen:** Enhanced `HomeWidget` for better UI consistency and data presentation.
+- **Agentic Trading Settings:** Updated `AgenticTradingSettingsWidget` with improved configuration options.
+- **AI Utilities:** Enhanced `utils/ai.dart` to support new generative features.
+- **Error Handling:** Improved error handling in `RobinhoodService` for more robust data fetching.
+
+### Removed
+- **SliverAppBarWidget:** Removed obsolete `SliverAppBarWidget` in favor of standard app bar implementations.
+
 ## [0.20.0] - 2025-12-15
 
 ### Added

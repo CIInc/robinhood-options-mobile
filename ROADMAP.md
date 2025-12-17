@@ -48,6 +48,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ In-App Indicator Documentation
 - ✅ Server-Side Filtering Performance Improvements
 
+### v0.20.1 ✅ (Released Dec 16, 2025)
+**Generative Actions & Instrument Charting**
+- ✅ Generative Actions Widget (AI-driven actions and insights)
+- ✅ Instrument Chart Widget (Enhanced charting capabilities)
+- ✅ Instrument Widget Refactoring (Performance improvements)
+- ✅ UI Consistency Improvements (Font sizes, bold styling)
+
 ### v0.21.0 (Late December 2025)
 **Copy Trading & Risk Controls Phase 1**
 - Trade Approval Workflow (review before execution)
@@ -640,8 +647,8 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
-    - [ ] Integrate `firebase_ai` for natural language queries
-    - [ ] Implement portfolio insights and summaries
+    - [x] Integrate `firebase_ai` for natural language queries
+    - [x] Implement portfolio insights and summaries (via GenerativeActionsWidget)
     - [ ] Add chat interface for market questions
     - [ ] Implement `generateInvestmentThesis`
 
@@ -731,7 +738,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **CI/CD Pipeline**: Automated testing and deployment - **Large** (3-4 weeks)
 - [ ] **Performance Optimization**: App size and speed improvements - **Medium** (2-3 weeks)
 - [ ] **Mock Brokerage Service** ([#5](https://github.com/CIInc/robinhood-options-mobile/issues/5)): Demo and testing service - **Medium** (2-3 weeks)
-- [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)) - **Large** (4-5 weeks)
+- [x] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)) - **Large** (4-5 weeks)
 - [ ] **AI Summaries** ([#21](https://github.com/CIInc/robinhood-options-mobile/issues/21)): AI-driven portfolio summaries - **Medium** (2-3 weeks)
 - [ ] AI-powered price targets
 - [ ] Fair value calculations

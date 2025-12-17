@@ -16,6 +16,8 @@
 - Enhanced security and privacy for user data.
 - Customizable watchlists and alerts for market movements.
 - Advanced charting tools for technical analysis.
+- **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
+- **Instrument Charting:** Advanced charting capabilities on instrument details pages.
 - Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.

@@ -16,6 +16,7 @@ Update all markdown documentation based on recently closed or merged pull reques
 2. **Identify Documentation Files**: Locate all markdown files in the repository:
    - CHANGELOG.md
    - README.md
+   - ROADMAP.md
    - Documentation files (docs/ directory)
    - Developer instruction files (.github/ directory)
    - Any other .md files
@@ -28,14 +29,14 @@ Update all markdown documentation based on recently closed or merged pull reques
      - Patch version for bug fixes
    - Ensure the build number is incremented appropriately only if the version number changes
 
-3. **Update CHANGELOG.md**:
+4. **Update CHANGELOG.md**:
    - Add a new version section with the current date (using the version defined in pubspec.yaml)
    - Create a title for the new version
    - Document all features added, changed, fixed, removed, and performance improvements
    - Use clear, descriptive bullet points
    - Group related changes together
 
-4. **Update documentation files**:
+5. **Update documentation files**:
    - Add or update sections describing new features
    - Document new configuration options or settings
    - Include code examples where applicable
@@ -43,29 +44,34 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Add diagrams or screenshots if relevant
    - Add future enhancements or TODOs if applicable
 
-5. **Update Main README.md**:
+6. **Update Main README.md**:
    - Add mentions of new major features to the features list
    - Ensure feature descriptions are concise but complete
 
-6. **Update Developer Instructions**:
+7. **Update ROADMAP.md**:
+   - Mark completed features as done (check off items)
+   - Add new planned features based on PR discussions or future enhancements mentioned
+   - Reorder priorities if necessary
+
+8. **Update Developer Instructions**:
    - Add references to new providers, services, or components
    - Update architecture notes with new patterns
    - Add file references for new modules
    - Update examples section
 
-7. **Cross-Check Consistency**:
+9. **Cross-Check Consistency**:
    - Verify version numbers are consistent
    - Ensure feature descriptions match across all files
    - Confirm code references are accurate
    - Validate internal links between documentation files
    - Check that configuration files match documentation
 
-8. **Verify Technical Accuracy**:
+10. **Verify Technical Accuracy**:
    - Ensure any mentioned indexes, configurations, or deployment steps are accurate
    - Verify file paths and code references exist
    - Check that API parameters match implementation
 
-9. **Tag release**:
+11. **Tag release**:
    - Create a new git tag for the updated version
    - Push changes and tags to the repository
 
