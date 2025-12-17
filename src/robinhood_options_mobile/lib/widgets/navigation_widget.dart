@@ -39,6 +39,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -69,7 +70,8 @@ class NavigationStatefulWidget extends StatefulWidget {
 }
 
 /// This is the private State class that goes with NavigationStatefulWidget.
-class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
+class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
+    with WidgetsBindingObserver {
   final FirestoreService _firestoreService = FirestoreService();
   final GenerativeService _generativeService = GenerativeService();
 
@@ -101,6 +103,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _removeBadge();
     _pageController = PageController(initialPage: _pageIndex);
     initTabs();
 
@@ -128,6 +132,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_pageController != null) {
       _pageController!.dispose();
     }
@@ -146,6 +151,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //         : brokerageUsers[0];
 
   // Moved: _startAutoTradeTimer is now in AgenticTradingProvider
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _removeBadge();
+    }
+  }
+
+  void _removeBadge() {
+    FlutterAppBadger.isAppBadgeSupported().then((isSupported) {
+      if (isSupported) {
+        FlutterAppBadger.removeBadge();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1351,6 +1351,8 @@ PODS:
   - FirebaseMessagingInterop (11.14.0)
   - FirebaseSharedSwift (11.14.0)
   - Flutter (1.0.0)
+  - flutter_app_badger (1.3.0):
+    - Flutter
   - flutter_facebook_auth (7.1.2):
     - FBSDKLoginKit (~> 18.0.0)
     - Flutter
@@ -1570,6 +1572,7 @@ DEPENDENCIES:
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
   - Flutter (from `Flutter`)
+  - flutter_app_badger (from `.symlinks/plugins/flutter_app_badger/ios`)
   - flutter_facebook_auth (from `.symlinks/plugins/flutter_facebook_auth/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
@@ -1648,6 +1651,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_messaging/ios"
   Flutter:
     :path: Flutter
+  flutter_app_badger:
+    :path: ".symlinks/plugins/flutter_app_badger/ios"
   flutter_facebook_auth:
     :path: ".symlinks/plugins/flutter_facebook_auth/ios"
   flutter_secure_storage:
@@ -1712,6 +1717,7 @@ SPEC CHECKSUMS:
   FirebaseMessagingInterop: c07695471ba98ec7d4ffeb3491c34c105f8e8fcc
   FirebaseSharedSwift: bdd5c8674c4712a98e70287c936bc5cca5d640f6
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_app_badger: b87fc231847b03b92ce1412aa351842e7e97932f
   flutter_facebook_auth: fa503a7103e482577bf50694ceefe6b61a78ef1a
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   flutter_web_auth_2: 06d500582775790a0d4c323222fcb6d7990f9603
