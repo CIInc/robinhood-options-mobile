@@ -39,7 +39,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -160,9 +160,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   void _removeBadge() {
-    FlutterAppBadger.isAppBadgeSupported().then((isSupported) {
+    AppBadgePlus.isSupported().then((isSupported) {
       if (isSupported) {
-        FlutterAppBadger.removeBadge();
+        AppBadgePlus.updateBadge(0);
       }
     });
   }
