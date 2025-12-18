@@ -281,8 +281,11 @@ Response: {
 
     if (expiresIn != null) {
       body['expires_in'] = expiresIn;
-      body['long_session'] = 'true';
     }
+
+    // Keep me logged in for up to 30 days
+    body['long_session'] = 'true';
+
     if (requestId != null) {
       body['request_id'] = requestId;
     }

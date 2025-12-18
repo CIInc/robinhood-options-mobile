@@ -58,7 +58,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? computerId;
   String? challengeRequestId;
   String? challengeResponseId;
-  String challengeType = 'email'; // 'app'; //sms // prompt
+  String challengeType = 'prompt'; //'email'; // 'app'; //sms // prompt
   bool mfaRequired = false;
   bool loading = false;
 
