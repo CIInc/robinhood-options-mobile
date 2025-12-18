@@ -965,8 +965,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildSplitsWidget(instrument)
           ],
-          if (instrument.newsObj != null &&
-              instrument.earningsObj!.isNotEmpty) ...[
+          if (instrument.newsObj != null
+              // && instrument.earningsObj!.isNotEmpty
+              ) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,
@@ -981,7 +982,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildListsWidget(instrument)
           ],
-          if (instrument.similarObj != null) ...[
+          if (instrument.similarObj != null &&
+              instrument.similarObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,
