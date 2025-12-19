@@ -92,6 +92,32 @@ class MarketHours {
     }
   }
 
+  /// Returns the number of minutes until the regular market closes (4:00 PM ET).
+  /// Returns null if the market is not in the regular session.
+  static int? minutesUntilMarketClose() {
+    final now = DateTime.now().toUtc();
+    final year = now.year;
+    final isDST = _isDaylightSavingTime(now, year);
+    final offset = isDST ? 4 : 5;
+    final etTime = now.subtract(Duration(hours: offset));
+
+    if (etTime.weekday == DateTime.saturday ||
+        etTime.weekday == DateTime.sunday) {
+      return null;
+    }
+
+    final currentTimeInMinutes = etTime.hour * 60 + etTime.minute;
+    final regularOpen = 9 * 60 + 30; // 570 minutes
+    final regularClose = 16 * 60; // 960 minutes
+
+    if (currentTimeInMinutes >= regularOpen &&
+        currentTimeInMinutes < regularClose) {
+      return regularClose - currentTimeInMinutes;
+    }
+
+    return null;
+  }
+
   /// Gets a human-readable description of the current trading session
   static String getSessionDescription() {
     final session = getCurrentTradingSession();

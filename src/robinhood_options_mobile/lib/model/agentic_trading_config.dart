@@ -49,6 +49,12 @@ class AgenticTradingConfig {
   bool enablePartialExits;
   List<ExitStage> exitStages;
 
+  // Time-Based Exits
+  bool timeBasedExitEnabled;
+  int timeBasedExitMinutes;
+  bool marketCloseExitEnabled;
+  int marketCloseExitMinutes;
+
   // Advanced Risk Controls
   bool enableSectorLimits;
   double maxSectorExposure; // Max % allocation per sector
@@ -89,6 +95,10 @@ class AgenticTradingConfig {
     this.requireApproval = false,
     this.enablePartialExits = false,
     List<ExitStage>? exitStages,
+    this.timeBasedExitEnabled = false,
+    this.timeBasedExitMinutes = 0,
+    this.marketCloseExitEnabled = false,
+    this.marketCloseExitMinutes = 15,
     this.enableSectorLimits = false,
     this.maxSectorExposure = 20.0,
     this.enableCorrelationChecks = false,
@@ -156,6 +166,11 @@ class AgenticTradingConfig {
                 ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
+        timeBasedExitEnabled = json['timeBasedExitEnabled'] as bool? ?? false,
+        timeBasedExitMinutes = json['timeBasedExitMinutes'] as int? ?? 0,
+        marketCloseExitEnabled =
+            json['marketCloseExitEnabled'] as bool? ?? false,
+        marketCloseExitMinutes = json['marketCloseExitMinutes'] as int? ?? 15,
         enableSectorLimits = json['enableSectorLimits'] as bool? ?? false,
         maxSectorExposure =
             (json['maxSectorExposure'] as num?)?.toDouble() ?? 20.0,
@@ -210,6 +225,10 @@ class AgenticTradingConfig {
       'maxDailyLossPercent': maxDailyLossPercent,
       'takeProfitPercent': takeProfitPercent,
       'stopLossPercent': stopLossPercent,
+      'timeBasedExitEnabled': timeBasedExitEnabled,
+      'timeBasedExitMinutes': timeBasedExitMinutes,
+      'marketCloseExitEnabled': marketCloseExitEnabled,
+      'marketCloseExitMinutes': marketCloseExitMinutes,
       'allowPreMarketTrading': allowPreMarketTrading,
       'allowAfterHoursTrading': allowAfterHoursTrading,
       'requireApproval': requireApproval,
@@ -249,6 +268,10 @@ class AgenticTradingConfig {
     bool? allowAfterHoursTrading,
     bool? enablePartialExits,
     List<ExitStage>? exitStages,
+    bool? timeBasedExitEnabled,
+    int? timeBasedExitMinutes,
+    bool? marketCloseExitEnabled,
+    int? marketCloseExitMinutes,
     bool? enableSectorLimits,
     double? maxSectorExposure,
     bool? enableCorrelationChecks,
@@ -283,6 +306,12 @@ class AgenticTradingConfig {
       requireApproval: requireApproval ?? this.requireApproval,
       allowAfterHoursTrading:
           allowAfterHoursTrading ?? this.allowAfterHoursTrading,
+      timeBasedExitEnabled: timeBasedExitEnabled ?? this.timeBasedExitEnabled,
+      timeBasedExitMinutes: timeBasedExitMinutes ?? this.timeBasedExitMinutes,
+      marketCloseExitEnabled:
+          marketCloseExitEnabled ?? this.marketCloseExitEnabled,
+      marketCloseExitMinutes:
+          marketCloseExitMinutes ?? this.marketCloseExitMinutes,
       enablePartialExits: enablePartialExits ?? this.enablePartialExits,
       exitStages: exitStages ?? List.from(this.exitStages),
       enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,

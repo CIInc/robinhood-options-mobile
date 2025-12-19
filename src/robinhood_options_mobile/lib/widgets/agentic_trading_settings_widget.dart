@@ -43,6 +43,8 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _minVolatilityController;
   late TextEditingController _maxVolatilityController;
   late TextEditingController _maxDrawdownController;
+  late TextEditingController _timeBasedExitMinutesController;
+  late TextEditingController _marketCloseExitMinutesController;
   late Map<String, bool> _enabledIndicators;
   late List<ExitStage> _exitStages;
 
@@ -108,6 +110,10 @@ class _AgenticTradingSettingsWidgetState
         text: config['maxVolatility']?.toString() ?? '100.0');
     _maxDrawdownController = TextEditingController(
         text: config['maxDrawdown']?.toString() ?? '10.0');
+    _timeBasedExitMinutesController = TextEditingController(
+        text: config['timeBasedExitMinutes']?.toString() ?? '0');
+    _marketCloseExitMinutesController = TextEditingController(
+        text: config['marketCloseExitMinutes']?.toString() ?? '15');
   }
 
   @override
@@ -123,6 +129,8 @@ class _AgenticTradingSettingsWidgetState
     _maxSectorExposureController.dispose();
     _maxCorrelationController.dispose();
     _minVolatilityController.dispose();
+    _timeBasedExitMinutesController.dispose();
+    _marketCloseExitMinutesController.dispose();
     _maxVolatilityController.dispose();
     _maxDrawdownController.dispose();
     super.dispose();
@@ -340,6 +348,14 @@ class _AgenticTradingSettingsWidgetState
         'enablePartialExits':
             agenticTradingProvider.config['enablePartialExits'] ?? false,
         'exitStages': _exitStages.map((e) => e.toJson()).toList(),
+        // Time-Based Exits
+        'timeBasedExitEnabled':
+            agenticTradingProvider.config['timeBasedExitEnabled'] ?? false,
+        'timeBasedExitMinutes': int.parse(_timeBasedExitMinutesController.text),
+        'marketCloseExitEnabled':
+            agenticTradingProvider.config['marketCloseExitEnabled'] ?? false,
+        'marketCloseExitMinutes':
+            int.parse(_marketCloseExitMinutesController.text),
         // Paper Trading Mode
         'paperTradingMode':
             agenticTradingProvider.config['paperTradingMode'] ?? false,
@@ -1717,6 +1733,96 @@ class _AgenticTradingSettingsWidgetState
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSwitchListTile(
+                            'timeBasedExitEnabled',
+                            'Time-Based Exits',
+                            'Auto-close positions after a set time',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller:
+                                          _timeBasedExitMinutesController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Exit After (minutes)',
+                                        helperText:
+                                            'Close position after X minutes',
+                                        prefixIcon: const Icon(Icons.timer),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        filled: true,
+                                        fillColor: colorScheme.surface,
+                                      ),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => _saveSettings(),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter a value';
+                                        }
+                                        final parsed = int.tryParse(value);
+                                        if (parsed == null || parsed < 0) {
+                                          return 'Must be >= 0';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSwitchListTile(
+                            'marketCloseExitEnabled',
+                            'Exit at Market Close',
+                            'Auto-close positions before market close',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller:
+                                          _marketCloseExitMinutesController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Minutes Before Close',
+                                        helperText:
+                                            'Close X minutes before 4:00 PM ET',
+                                        prefixIcon: const Icon(Icons.schedule),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        filled: true,
+                                        fillColor: colorScheme.surface,
+                                      ),
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (_) => _saveSettings(),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter a value';
+                                        }
+                                        final parsed = int.tryParse(value);
+                                        if (parsed == null || parsed < 0) {
+                                          return 'Must be >= 0';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

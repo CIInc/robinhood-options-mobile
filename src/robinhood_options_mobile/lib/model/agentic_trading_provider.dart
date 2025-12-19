@@ -315,6 +315,8 @@ class AgenticTradingProvider with ChangeNotifier {
           'obv': true,
         },
         'paperTradingMode': false,
+        'timeBasedExitEnabled': false,
+        'timeBasedExitMinutes': 0,
       };
       _isAgenticTradingEnabled = false;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
@@ -1254,6 +1256,45 @@ class AgenticTradingProvider with ChangeNotifier {
               quantityToSell = buyQuantity; // Sell remaining
               debugPrint(
                   '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
+            }
+          }
+
+          // Time-Based Exit
+          if (!shouldExit &&
+              (_config['timeBasedExitEnabled'] as bool? ?? false)) {
+            final exitMinutes = _config['timeBasedExitMinutes'] as int? ?? 0;
+            if (exitMinutes > 0) {
+              final tradeTimestamp = buyTrade['timestamp'] as String?;
+              if (tradeTimestamp != null) {
+                final tradeTime = DateTime.tryParse(tradeTimestamp);
+                if (tradeTime != null) {
+                  final duration = DateTime.now().difference(tradeTime);
+                  if (duration.inMinutes >= exitMinutes) {
+                    shouldExit = true;
+                    exitReason = 'Time-Based Exit ($exitMinutes min)';
+                    quantityToSell = buyQuantity;
+                    debugPrint(
+                        '⏱️ $symbol time-based exit triggered: ${duration.inMinutes} min >= $exitMinutes min');
+                  }
+                }
+              }
+            }
+          }
+
+          // Market Close Exit
+          if (!shouldExit &&
+              (_config['marketCloseExitEnabled'] as bool? ?? false)) {
+            final exitMinutes = _config['marketCloseExitMinutes'] as int? ?? 15;
+            final minutesUntilClose = MarketHours.minutesUntilMarketClose();
+            if (minutesUntilClose != null &&
+                minutesUntilClose <= exitMinutes &&
+                minutesUntilClose > 0) {
+              shouldExit = true;
+              exitReason =
+                  'Market Close Exit ($minutesUntilClose min remaining)';
+              quantityToSell = buyQuantity;
+              debugPrint(
+                  '🌅 $symbol market close exit triggered: $minutesUntilClose min remaining <= $exitMinutes min');
             }
           }
 
