@@ -19,9 +19,10 @@ Future<void> generateContent(
   ForexHoldingStore? forexHoldingStore,
   bool localInference = true,
   User? user,
+  bool showModal = true,
 }) async {
   // Open sheet immediately with current cached response (if any)
-  if (context.mounted) {
+  if (showModal && context.mounted) {
     showAIResponse(
       generativeProvider.promptResponses[prompt.prompt],
       prompt,
@@ -110,14 +111,19 @@ void showAIResponse(
       isScrollControlled: true,
       useSafeArea: true,
       builder: (BuildContext newContext) {
-        bool includeContext = true;
+        bool includeContext = prompt.appendPortfolioToPrompt;
+        Prompt currentPrompt = prompt;
+        bool isEditing = false;
+        TextEditingController? editController;
         return StatefulBuilder(
             builder: (BuildContext buildercontext, setState) {
           final theme = Theme.of(buildercontext);
           final colorScheme = theme.colorScheme;
 
           // Add the initial response if it exists and the prompt key is 'ask'
-          if (prompt.key == 'ask' && response != null && response!.isNotEmpty) {
+          if (currentPrompt.key == 'ask' &&
+              response != null &&
+              response!.isNotEmpty) {
             messages.add(ChatMessage(sender: Sender.ai, content: response!));
             // Clear the initial response so it's not added again on rebuilds
             response =
@@ -127,7 +133,7 @@ void showAIResponse(
           return DraggableScrollableSheet(
               expand: false,
               snap: true,
-              initialChildSize: prompt.key == 'ask' ? 1 : 0.5,
+              initialChildSize: currentPrompt.key == 'ask' ? 1 : 0.5,
               minChildSize: 0.5,
               builder: (context1, controller) {
                 void handleSendMessage() async {
@@ -137,7 +143,7 @@ void showAIResponse(
                       messages.add(ChatMessage(
                           sender: Sender.user, content: userMessage));
                       promptController.clear();
-                      generativeProvider.startGenerating(prompt.key);
+                      generativeProvider.startGenerating(currentPrompt.key);
                     });
 
                     // Auto-scroll to bottom after user message
@@ -154,8 +160,8 @@ void showAIResponse(
                     final aiResponse =
                         await generativeService.generateContentFromServer(
                             Prompt(
-                                key: prompt.key,
-                                title: prompt.title,
+                                key: currentPrompt.key,
+                                title: currentPrompt.title,
                                 prompt: userMessage,
                                 appendPortfolioToPrompt: includeContext),
                             includeContext ? stockPositionStore : null,
@@ -181,7 +187,7 @@ void showAIResponse(
                   }
                 }
 
-                if (prompt.key == 'ask') {
+                if (currentPrompt.key == 'ask') {
                   return Column(
                     children: [
                       // Padding(
@@ -262,12 +268,14 @@ void showAIResponse(
                                     code: theme.textTheme.bodyMedium?.copyWith(
                                       fontFamily: 'monospace',
                                       backgroundColor: isUser
-                                          ? colorScheme.primary.withOpacity(0.1)
+                                          ? colorScheme.primary
+                                              .withValues(alpha: 0.1)
                                           : colorScheme.surface,
                                     ),
                                     codeblockDecoration: BoxDecoration(
                                       color: isUser
-                                          ? colorScheme.primary.withOpacity(0.1)
+                                          ? colorScheme.primary
+                                              .withValues(alpha: 0.1)
                                           : colorScheme.surface,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -292,7 +300,7 @@ void showAIResponse(
                             color: colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: colorScheme.outline.withOpacity(0.2),
+                              color: colorScheme.outline.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
@@ -331,7 +339,7 @@ void showAIResponse(
                                     if (box != null) {
                                       await SharePlus.instance.share(
                                           ShareParams(
-                                              subject: prompt.title,
+                                              subject: currentPrompt.title,
                                               text: conversationText,
                                               sharePositionOrigin:
                                                   box.localToGlobal(
@@ -384,7 +392,7 @@ void showAIResponse(
                   );
                 } else {
                   return Consumer<GenerativeProvider>(builder: (ctx, gp, _) {
-                    final current = gp.promptResponses[prompt.prompt];
+                    final current = gp.promptResponses[currentPrompt.prompt];
                     return SingleChildScrollView(
                         controller: controller,
                         child: Column(
@@ -412,12 +420,82 @@ void showAIResponse(
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
-                                          prompt.title,
+                                          currentPrompt.title,
                                           style: theme.textTheme.titleLarge
                                               ?.copyWith(
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
+                                      ),
+                                      if (!isEditing)
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined),
+                                          tooltip: 'Edit Prompt',
+                                          onPressed: () {
+                                            String initialText =
+                                                currentPrompt.prompt;
+                                            if (currentPrompt
+                                                    .appendPortfolioToPrompt &&
+                                                stockPositionStore != null &&
+                                                optionPositionStore != null &&
+                                                forexHoldingStore != null) {
+                                              initialText +=
+                                                  '\n${generativeService.portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user)}';
+                                            }
+                                            editController =
+                                                TextEditingController(
+                                                    text: initialText);
+                                            setState(() {
+                                              isEditing = true;
+                                            });
+                                          },
+                                        ),
+                                      if (current != null && current.isNotEmpty)
+                                        IconButton(
+                                          key: shareButtonKey,
+                                          icon:
+                                              const Icon(Icons.share_outlined),
+                                          tooltip: 'Share',
+                                          onPressed: () async {
+                                            final box = shareButtonKey
+                                                    .currentContext
+                                                    ?.findRenderObject()
+                                                as RenderBox?;
+                                            if (box != null) {
+                                              await SharePlus.instance
+                                                  .share(ShareParams(
+                                                subject: currentPrompt.title,
+                                                text:
+                                                    '${currentPrompt.title}\n\n$current',
+                                                sharePositionOrigin:
+                                                    box.localToGlobal(
+                                                            Offset.zero) &
+                                                        box.size,
+                                              ));
+                                            }
+                                          },
+                                        ),
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh),
+                                        tooltip: 'Refresh',
+                                        onPressed: () async {
+                                          generativeProvider.promptResponses[
+                                              currentPrompt.prompt] = null;
+                                          await generateContent(
+                                            generativeProvider,
+                                            generativeService,
+                                            currentPrompt,
+                                            context,
+                                            stockPositionStore:
+                                                stockPositionStore,
+                                            optionPositionStore:
+                                                optionPositionStore,
+                                            forexHoldingStore:
+                                                forexHoldingStore,
+                                            user: user,
+                                            showModal: false,
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -430,82 +508,186 @@ void showAIResponse(
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.all(20.0),
-                                      child: current == null
-                                          ? Row(
+                                      child: isEditing
+                                          ? Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
                                               children: [
-                                                SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      const CircularProgressIndicator(
-                                                          strokeWidth: 2),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Text('Generating...',
+                                                Container(
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.surface,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    border: Border.all(
+                                                      color: colorScheme.outline
+                                                          .withValues(
+                                                              alpha: 0.1),
+                                                    ),
+                                                  ),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12),
+                                                  child: TextField(
+                                                    controller: editController,
+                                                    maxLines: null,
                                                     style: theme
-                                                        .textTheme.bodyMedium),
+                                                        .textTheme.bodySmall,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                      hintText:
+                                                          'Enter custom instructions...',
+                                                      border: InputBorder.none,
+                                                      isDense: true,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          isEditing = false;
+                                                        });
+                                                      },
+                                                      child:
+                                                          const Text('Cancel'),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    FilledButton(
+                                                      onPressed: () async {
+                                                        if (editController!
+                                                            .text.isNotEmpty) {
+                                                          setState(() {
+                                                            isEditing = false;
+                                                            currentPrompt =
+                                                                Prompt(
+                                                              key: currentPrompt
+                                                                  .key,
+                                                              title:
+                                                                  currentPrompt
+                                                                      .title,
+                                                              prompt:
+                                                                  editController!
+                                                                      .text,
+                                                              appendPortfolioToPrompt:
+                                                                  false,
+                                                            );
+                                                          });
+                                                          await generateContent(
+                                                            generativeProvider,
+                                                            generativeService,
+                                                            currentPrompt,
+                                                            context,
+                                                            stockPositionStore:
+                                                                stockPositionStore,
+                                                            optionPositionStore:
+                                                                optionPositionStore,
+                                                            forexHoldingStore:
+                                                                forexHoldingStore,
+                                                            user: user,
+                                                            showModal: false,
+                                                          );
+                                                        }
+                                                      },
+                                                      child:
+                                                          const Text('Update'),
+                                                    ),
+                                                  ],
+                                                ),
                                               ],
                                             )
-                                          : SelectionArea(
-                                              child: MarkdownBody(
-                                                data: current,
-                                                styleSheet: MarkdownStyleSheet(
-                                                  p: theme.textTheme.bodyMedium,
-                                                  h1: theme
-                                                      .textTheme.headlineSmall
-                                                      ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: colorScheme.primary,
-                                                  ),
-                                                  h2: theme.textTheme.titleLarge
-                                                      ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: colorScheme.primary,
-                                                  ),
-                                                  h3: theme
-                                                      .textTheme.titleMedium
-                                                      ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  code: theme
-                                                      .textTheme.bodyMedium
-                                                      ?.copyWith(
-                                                    fontFamily: 'monospace',
-                                                    backgroundColor: colorScheme
-                                                        .surfaceContainerHighest,
-                                                  ),
-                                                  codeblockDecoration:
-                                                      BoxDecoration(
-                                                    color: colorScheme
-                                                        .surfaceContainerHighest,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  blockquote: theme
-                                                      .textTheme.bodyMedium
-                                                      ?.copyWith(
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontStyle: FontStyle.italic,
-                                                  ),
-                                                  blockquoteDecoration:
-                                                      BoxDecoration(
-                                                    border: Border(
-                                                        left: BorderSide(
-                                                            color: colorScheme
-                                                                .primary,
-                                                            width: 4)),
-                                                    color: colorScheme
-                                                        .surfaceContainerHighest
-                                                        .withOpacity(0.5),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
+                                          : current == null
+                                              ? Row(
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child:
+                                                          const CircularProgressIndicator(
+                                                              strokeWidth: 2),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Text('Generating...',
+                                                        style: theme.textTheme
+                                                            .bodyMedium),
+                                                  ],
+                                                )
+                                              : SelectionArea(
+                                                  child: MarkdownBody(
+                                                    data: current,
+                                                    styleSheet:
+                                                        MarkdownStyleSheet(
+                                                      p: theme
+                                                          .textTheme.bodyMedium,
+                                                      h1: theme.textTheme
+                                                          .headlineSmall
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            colorScheme.primary,
+                                                      ),
+                                                      h2: theme
+                                                          .textTheme.titleLarge
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            colorScheme.primary,
+                                                      ),
+                                                      h3: theme
+                                                          .textTheme.titleMedium
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                      code: theme
+                                                          .textTheme.bodyMedium
+                                                          ?.copyWith(
+                                                        fontFamily: 'monospace',
+                                                        backgroundColor: colorScheme
+                                                            .surfaceContainerHighest,
+                                                      ),
+                                                      codeblockDecoration:
+                                                          BoxDecoration(
+                                                        color: colorScheme
+                                                            .surfaceContainerHighest,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                      ),
+                                                      blockquote: theme
+                                                          .textTheme.bodyMedium
+                                                          ?.copyWith(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                        fontStyle:
+                                                            FontStyle.italic,
+                                                      ),
+                                                      blockquoteDecoration:
+                                                          BoxDecoration(
+                                                        border: Border(
+                                                            left: BorderSide(
+                                                                color:
+                                                                    colorScheme
+                                                                        .primary,
+                                                                width: 4)),
+                                                        color: colorScheme
+                                                            .surfaceContainerHighest
+                                                            .withValues(
+                                                                alpha: 0.5),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(4),
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            ),
                                     ),
                                   ),
                                 ],
@@ -534,68 +716,6 @@ void showAIResponse(
                             //     label: const Text('Copy to Pro Notes'),
                             //   ),
                             // ],
-                            if (prompt.key != 'ask') ...[
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    FilledButton.tonalIcon(
-                                      key: shareButtonKey,
-                                      icon: const Icon(Icons.share_outlined,
-                                          size: 20),
-                                      onPressed: () async {
-                                        if (current != null &&
-                                            current.isNotEmpty) {
-                                          final box = shareButtonKey
-                                                  .currentContext
-                                                  ?.findRenderObject()
-                                              as RenderBox?;
-                                          if (box != null) {
-                                            await SharePlus.instance
-                                                .share(ShareParams(
-                                              subject: prompt.title,
-                                              text:
-                                                  '${prompt.title}\n\n$current',
-                                              sharePositionOrigin:
-                                                  box.localToGlobal(
-                                                          Offset.zero) &
-                                                      box.size,
-                                            ));
-                                          }
-                                        }
-                                      },
-                                      label: const Text('Share'),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    FilledButton.tonalIcon(
-                                      icon: const Icon(Icons.refresh, size: 20),
-                                      onPressed: () async {
-                                        if (context.mounted) {
-                                          Navigator.pop(context);
-                                        }
-                                        generativeProvider.promptResponses[
-                                            prompt.prompt] = null;
-                                        await generateContent(
-                                          generativeProvider,
-                                          generativeService,
-                                          prompt,
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                          user: user,
-                                        );
-                                      },
-                                      label: const Text('Refresh'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                             SizedBox(
                               height: 25,
                             )
