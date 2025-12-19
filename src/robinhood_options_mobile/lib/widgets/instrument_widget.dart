@@ -4070,6 +4070,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
+              final optimization =
+                  signal['optimization'] as Map<String, dynamic>?;
 
               // // Recalculate overall signal based on enabled indicators
               // if (multiIndicator != null) {
@@ -4192,35 +4194,54 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Signal Badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 8.0,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: signalColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      signalIcon,
-                                      color: Colors.white,
-                                      size: 20,
+                              Row(
+                                children: [
+                                  // Signal Badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                      vertical: 8.0,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      signalType,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
+                                    decoration: BoxDecoration(
+                                      color: signalColor,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                  ],
-                                ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          signalIcon,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          signalType,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Tooltip(
+                                    message: signal['reason'] ??
+                                        'No reason provided',
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    showDuration: const Duration(seconds: 5),
+                                    triggerMode: TooltipTriggerMode.tap,
+                                    child: Icon(
+                                      Icons.info_outline,
+                                      color: signalColor,
+                                      size: 26,
+                                    ),
+                                  ),
+                                ],
                               ),
                               // Timestamp and interval
                               Column(
@@ -4252,42 +4273,279 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ),
                     ),
 
-                    // Reason section
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 20,
-                            color: Colors.grey.shade600,
+                    // ML Optimization Section
+                    if (optimization != null)
+                      Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? [
+                                      Colors.purple.shade900.withOpacity(0.2),
+                                      Colors.deepPurple.shade900
+                                          .withOpacity(0.2),
+                                    ]
+                                  : [
+                                      Colors.purple.shade50,
+                                      Colors.deepPurple.shade50,
+                                    ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.purpleAccent.withOpacity(0.2)
+                                  : Colors.purple.withOpacity(0.3),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.black.withOpacity(0.1)
+                                    : Colors.purple.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Analysis',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade700,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header
+                              Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.purpleAccent
+                                                .withOpacity(0.1)
+                                            : Colors.purple.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.auto_awesome,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.purpleAccent
+                                            : Colors.purple,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "AI Optimization",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white
+                                                    : Colors.purple,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        if (optimization['mlModel'] != null)
+                                          Text(
+                                            "Powered by ${optimization['mlModel']}",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white70
+                                                  : Colors.purple.shade400,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const Spacer(),
+                                    // Confidence Badge
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade800
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: Theme.of(context)
+                                                        .brightness ==
+                                                    Brightness.dark
+                                                ? Colors.purpleAccent
+                                                    .withOpacity(0.3)
+                                                : Colors.purple
+                                                    .withOpacity(0.2)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            "${optimization['confidenceScore']}%",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.purpleAccent
+                                                  : Colors.purple,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "Conf.",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.grey.shade400
+                                                  : Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Confidence Bar
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: (optimization['confidenceScore']
+                                            as num) /
+                                        100.0,
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade800
+                                            : Colors.purple.withOpacity(0.1),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      (optimization['confidenceScore'] as num) >
+                                              80
+                                          ? Colors.green
+                                          : (optimization['confidenceScore']
+                                                      as num) >
+                                                  50
+                                              ? (Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.purpleAccent
+                                                  : Colors.purple)
+                                              : Colors.orange,
+                                    ),
+                                    minHeight: 4,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  // recalculatedReason ??
-                                  signal['reason'] ?? 'No reason provided',
-                                  style: const TextStyle(fontSize: 14),
+                              ),
+
+                              const Divider(height: 24),
+
+                              // Content
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      optimization['reasoning'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.grey.shade800,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    if (optimization['refinedSignal'] !=
+                                        signalType) ...[
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.grey.shade800
+                                              : Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey.shade700
+                                                    : Colors.grey.shade200,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.compare_arrows,
+                                                size: 16,
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey.shade400
+                                                    : Colors.grey),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              "Refined Signal: ",
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey.shade400
+                                                      : Colors.grey.shade600),
+                                            ),
+                                            Text(
+                                              optimization['refinedSignal'] ??
+                                                  '',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: optimization[
+                                                            'refinedSignal'] ==
+                                                        'BUY'
+                                                    ? Colors.green
+                                                    : optimization[
+                                                                'refinedSignal'] ==
+                                                            'SELL'
+                                                        ? Colors.red
+                                                        : Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
 
                     // Multi-Indicator Display
                     if (multiIndicator != null)

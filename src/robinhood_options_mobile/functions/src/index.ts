@@ -46,8 +46,8 @@ export const getInvestmentsTransactions =
   plaidfunc.getInvestmentsTransactions;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
-export const generateContent = gemini.generateContent;
-export const generateContent2 = gemini.generateContent2;
+// export const generateContent = gemini.generateContent;
+// export const generateContent2 = gemini.generateContent2;
 export const generateContent25 = gemini.generateContent25;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;

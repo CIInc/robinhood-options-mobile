@@ -2,6 +2,7 @@ import * as riskguard from "./riskguard-agent";
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
+import { optimizeSignal } from "./signal-optimizer";
 import fetch from "node-fetch";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -252,8 +253,35 @@ export async function handleAlphaTask(marketData: any,
     indicatorConfig
   );
 
-  const { allGreen, indicators: indicatorResults,
+  // Optimize signal with ML
+  const optimization = await optimizeSignal(
+    symbol,
+    interval,
+    multiIndicatorResult,
+    { opens, highs, lows, closes, volumes },
+    marketIndexData
+  );
+
+  let { allGreen, indicators: indicatorResults,
     overallSignal, reason } = multiIndicatorResult;
+
+  // Apply ML Optimization (Smart Filter)
+  // If ML strongly disagrees with a trade signal, downgrade to HOLD
+  if (overallSignal !== "HOLD" &&
+    optimization.refinedSignal === "HOLD" &&
+    optimization.confidenceScore > 75) {
+    logger.info(`📉 ML Optimization downgraded ${overallSignal} to HOLD`, {
+      original: overallSignal,
+      mlSignal: optimization.refinedSignal,
+      confidence: optimization.confidenceScore,
+      reason: optimization.reasoning,
+    });
+    overallSignal = "HOLD";
+    reason = `ML Optimization: ${optimization.reasoning}`;
+    // Update the result object for storage consistency
+    multiIndicatorResult.overallSignal = "HOLD";
+    multiIndicatorResult.reason = reason;
+  }
 
   logger.info("Multi-indicator evaluation", {
     allGreen,
@@ -295,6 +323,7 @@ export async function handleAlphaTask(marketData: any,
         signal: overallSignal,
         reason,
         multiIndicatorResult,
+        optimization,
         currentPrice: marketData.currentPrice,
         config,
         portfolioState,
@@ -351,6 +380,7 @@ export async function handleAlphaTask(marketData: any,
       signal: overallSignal,
       reason,
       multiIndicatorResult,
+      optimization,
       currentPrice: marketData.currentPrice,
       pricesLength: Array.isArray(marketData.prices) ?
         marketData.prices.length : 0,
