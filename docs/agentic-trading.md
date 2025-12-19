@@ -148,6 +148,31 @@ Future<Map<String, dynamic>> autoTrade({
 
 The system now includes a sophisticated `RiskGuardAgent` that enforces portfolio-level risk management rules before any trade is executed. These controls are configurable in the Agentic Trading Settings.
 
+**Partial Position Exits:**
+- **Staged Profit Taking:** Configure multiple exit stages to lock in profits incrementally.
+- **Flexible Configuration:** Define profit targets (e.g., +5%, +10%) and the percentage of the position to sell at each stage (e.g., 50%).
+- **Example Strategy:** Sell 50% of position at +5% profit, then sell the remaining 50% at +10% profit.
+- **Persistence:** Partial exit state is saved to Firestore, ensuring stages are tracked correctly even if the app is restarted.
+- **Legacy Support:** Works seamlessly with existing positions (backfills tracking data).
+
+**Stop Loss & Take Profit:**
+- **Stop Loss:** Automatically sells position if loss exceeds configured percentage (e.g., -5%).
+- **Take Profit:** Automatically sells position if profit exceeds configured percentage (e.g., +10%).
+- **Trailing Stop Loss:** Optional dynamic stop loss that follows the price up. If enabled, the stop price is calculated as `Highest Price - Trailing %`. Locks in profits as the stock rises.
+
+**Advanced Risk Controls:**
+- **Sector Exposure Limits:** Cap allocation to specific sectors (e.g., max 20% in Technology).
+- **Correlation Checks:** Prevent opening new positions that are highly correlated with existing holdings (max correlation coefficient 0.7).
+- **Volatility Filters:** Filter trades based on Implied Volatility (IV) rank (min/max thresholds).
+- **Drawdown Protection:** Halt trading if portfolio drawdown exceeds a specified percentage.
+
+**Safety Checks:**
+- **Daily Trade Limit:** Maximum number of automated trades per day.
+- **Cooldown Period:** Minimum time between trades (default 60 mins).
+- **Max Daily Loss:** Stops trading if daily loss exceeds threshold.
+- **Emergency Stop:** Manual override to immediately halt all auto-trading.
+- **Market Hours:** Only trades during regular market hours (9:30 AM - 4:00 PM ET).
+
 **Key Risk Features:**
 - **Sector Exposure Limits:** Prevents over-concentration in a single sector.
   - Configurable `maxSectorExposure` (default 20%).

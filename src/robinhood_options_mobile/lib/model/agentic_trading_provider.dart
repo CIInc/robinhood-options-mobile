@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
@@ -850,6 +851,8 @@ class AgenticTradingProvider with ChangeNotifier {
                   _automatedBuyTrades.add({
                     'symbol': symbol,
                     'quantity': quantity,
+                    'initialQuantity': quantity,
+                    'executedStages': <int>[],
                     'entryPrice': currentPrice,
                     'highestPrice': currentPrice,
                     'timestamp': DateTime.now().toIso8601String(),
@@ -1027,6 +1030,8 @@ class AgenticTradingProvider with ChangeNotifier {
           _automatedBuyTrades.add({
             'symbol': symbol,
             'quantity': quantity,
+            'initialQuantity': quantity,
+            'executedStages': <int>[],
             'entryPrice': price,
             'highestPrice': price,
             'timestamp': DateTime.now().toIso8601String(),
@@ -1106,6 +1111,14 @@ class AgenticTradingProvider with ChangeNotifier {
       final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
       final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
 
+      // Get partial exit config
+      final enablePartialExits =
+          _config['enablePartialExits'] as bool? ?? false;
+      final exitStages = (_config['exitStages'] as List<dynamic>?)
+              ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
       debugPrint(
           '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
       if (_automatedBuyTrades.isNotEmpty) {
@@ -1124,6 +1137,11 @@ class AgenticTradingProvider with ChangeNotifier {
           final symbol = buyTrade['symbol'] as String?;
           final buyQuantity = buyTrade['quantity'] as int?;
           final entryPrice = buyTrade['entryPrice'] as double?;
+          final initialQuantity =
+              buyTrade['initialQuantity'] as int? ?? buyQuantity;
+          final executedStages =
+              (buyTrade['executedStages'] as List<dynamic>?)?.cast<int>() ??
+                  <int>[];
 
           if (symbol == null ||
               buyQuantity == null ||
@@ -1166,20 +1184,53 @@ class AgenticTradingProvider with ChangeNotifier {
 
           bool shouldExit = false;
           String exitReason = '';
+          int quantityToSell = buyQuantity;
+          int? stageIndexToMark;
 
-          // Check take profit
-          if (profitLossPercent >= takeProfitPercent) {
-            shouldExit = true;
-            exitReason = 'Take Profit ($takeProfitPercent%)';
-            debugPrint(
-                '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
-          }
-          // Check stop loss
-          else if (profitLossPercent <= -stopLossPercent) {
-            shouldExit = true;
-            exitReason = 'Stop Loss ($stopLossPercent%)';
-            debugPrint(
-                '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          if (enablePartialExits && exitStages.isNotEmpty) {
+            // Check stages
+            for (int i = 0; i < exitStages.length; i++) {
+              if (executedStages.contains(i)) continue;
+
+              final stage = exitStages[i];
+              if (profitLossPercent >= stage.profitTargetPercent) {
+                shouldExit = true;
+                exitReason =
+                    'Partial Take Profit ${i + 1} (${stage.profitTargetPercent}%)';
+
+                // Calculate quantity
+                int stageQty =
+                    (initialQuantity! * stage.quantityPercent).round();
+                if (stageQty < 1) stageQty = 1;
+                if (stageQty > buyQuantity) stageQty = buyQuantity;
+
+                quantityToSell = stageQty;
+                stageIndexToMark = i;
+                break; // Execute one stage at a time
+              }
+            }
+
+            // If no stage hit, check stop loss (full exit)
+            if (!shouldExit && profitLossPercent <= -stopLossPercent) {
+              shouldExit = true;
+              exitReason = 'Stop Loss ($stopLossPercent%)';
+              quantityToSell = buyQuantity;
+            }
+          } else {
+            // Check take profit
+            if (profitLossPercent >= takeProfitPercent) {
+              shouldExit = true;
+              exitReason = 'Take Profit ($takeProfitPercent%)';
+              debugPrint(
+                  '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
+            }
+            // Check stop loss
+            else if (profitLossPercent <= -stopLossPercent) {
+              shouldExit = true;
+              exitReason = 'Stop Loss ($stopLossPercent%)';
+              debugPrint(
+                  '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+            }
           }
 
           // Trailing Stop Loss: exit if price drops by trailingStopPercent
@@ -1200,6 +1251,7 @@ class AgenticTradingProvider with ChangeNotifier {
             if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
               shouldExit = true;
               exitReason = 'Trailing Stop ($trailPercent%)';
+              quantityToSell = buyQuantity; // Sell remaining
               debugPrint(
                   '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
             }
@@ -1226,7 +1278,7 @@ class AgenticTradingProvider with ChangeNotifier {
             // Execute sell order for the automated buy quantity
             try {
               debugPrint(
-                  '📤 Placing exit order: SELL $buyQuantity shares of $symbol at \$$currentPrice ($exitReason)');
+                  '📤 Placing exit order: SELL $quantityToSell shares of $symbol at \$$currentPrice ($exitReason)');
 
               final orderResponse = await brokerageService.placeInstrumentOrder(
                 brokerageUser,
@@ -1235,7 +1287,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 symbol,
                 'sell',
                 currentPrice,
-                buyQuantity,
+                quantityToSell,
               );
 
               // Check if order was successful
@@ -1247,7 +1299,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
                   'action': 'SELL',
-                  'quantity': buyQuantity,
+                  'quantity': quantityToSell,
                   'entryPrice': entryPrice,
                   'exitPrice': currentPrice,
                   'profitLossPercent': profitLossPercent,
@@ -1264,10 +1316,36 @@ class AgenticTradingProvider with ChangeNotifier {
                   _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
                 }
 
-                // Mark this automated buy trade for removal
-                tradesToRemove.add(buyTrade);
-                debugPrint(
-                    '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
+                // Update trade state
+                if (stageIndexToMark != null) {
+                  executedStages.add(stageIndexToMark);
+                  buyTrade['executedStages'] = executedStages;
+
+                  // Ensure initialQuantity is set if it wasn't (for legacy trades)
+                  if (buyTrade['initialQuantity'] == null) {
+                    buyTrade['initialQuantity'] = buyQuantity;
+                  }
+
+                  buyTrade['quantity'] = buyQuantity - quantityToSell;
+
+                  if (buyTrade['quantity'] <= 0) {
+                    tradesToRemove.add(buyTrade);
+                    debugPrint(
+                        '📝 Marked automated buy trade for removal: $symbol (all stages executed)');
+                  } else {
+                    debugPrint(
+                        '📝 Updated automated buy trade: $symbol remaining ${buyTrade['quantity']}');
+                    // Save updated list to Firestore immediately to persist partial state
+                    if (userDocRef != null) {
+                      await _saveAutomatedBuyTradesToFirestore(userDocRef);
+                    }
+                  }
+                } else {
+                  // Full exit (Stop Loss, Trailing Stop, or Legacy TP)
+                  tradesToRemove.add(buyTrade);
+                  debugPrint(
+                      '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
+                }
 
                 // Send notification based on exit type
                 final isTakeProfit = exitReason.contains('Take Profit');
@@ -1277,9 +1355,9 @@ class AgenticTradingProvider with ChangeNotifier {
                     userDocRef,
                     'take_profit',
                     symbol: symbol,
-                    quantity: buyQuantity,
+                    quantity: quantityToSell,
                     price: currentPrice,
-                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                    profitLoss: (currentPrice - entryPrice) * quantityToSell,
                   );
                 } else if (!isTakeProfit &&
                     (_config['notifyOnStopLoss'] as bool? ?? true)) {
@@ -1287,9 +1365,9 @@ class AgenticTradingProvider with ChangeNotifier {
                     userDocRef,
                     'stop_loss',
                     symbol: symbol,
-                    quantity: buyQuantity,
+                    quantity: quantityToSell,
                     price: currentPrice,
-                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                    profitLoss: (currentPrice - entryPrice) * quantityToSell,
                   );
                 }
 
@@ -1299,6 +1377,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     'symbol': symbol,
                     'reason': exitReason,
                     'profit_loss_percent': profitLossPercent,
+                    'quantity': quantityToSell,
                   },
                 );
 

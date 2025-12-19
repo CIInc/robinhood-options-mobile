@@ -1,3 +1,21 @@
+/// Defines a partial exit stage
+class ExitStage {
+  final double profitTargetPercent;
+  final double quantityPercent; // 0.0 to 1.0 (e.g. 0.5 for 50%)
+
+  ExitStage({required this.profitTargetPercent, required this.quantityPercent});
+
+  Map<String, dynamic> toJson() => {
+        'profitTargetPercent': profitTargetPercent,
+        'quantityPercent': quantityPercent,
+      };
+
+  factory ExitStage.fromJson(Map<String, dynamic> json) => ExitStage(
+        profitTargetPercent: (json['profitTargetPercent'] as num).toDouble(),
+        quantityPercent: (json['quantityPercent'] as num).toDouble(),
+      );
+}
+
 /// Agentic Trading Configuration Model
 ///
 /// Stores per-user configuration for agentic trading system.
@@ -28,6 +46,8 @@ class AgenticTradingConfig {
   double trailingStopPercent;
   bool paperTradingMode;
   bool requireApproval;
+  bool enablePartialExits;
+  List<ExitStage> exitStages;
 
   // Advanced Risk Controls
   bool enableSectorLimits;
@@ -67,6 +87,8 @@ class AgenticTradingConfig {
     this.trailingStopPercent = 3.0,
     this.paperTradingMode = false,
     this.requireApproval = false,
+    this.enablePartialExits = false,
+    List<ExitStage>? exitStages,
     this.enableSectorLimits = false,
     this.maxSectorExposure = 20.0,
     this.enableCorrelationChecks = false,
@@ -76,7 +98,12 @@ class AgenticTradingConfig {
     this.maxVolatility = 100.0,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 10.0,
-  }) : enabledIndicators = enabledIndicators ??
+  })  : exitStages = exitStages ??
+            [
+              ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
+              ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
+            ],
+        enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
               'momentum': true,
@@ -124,6 +151,11 @@ class AgenticTradingConfig {
             (json['trailingStopPercent'] as num?)?.toDouble() ?? 3.0,
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
         requireApproval = json['requireApproval'] as bool? ?? false,
+        enablePartialExits = json['enablePartialExits'] as bool? ?? false,
+        exitStages = (json['exitStages'] as List<dynamic>?)
+                ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
         enableSectorLimits = json['enableSectorLimits'] as bool? ?? false,
         maxSectorExposure =
             (json['maxSectorExposure'] as num?)?.toDouble() ?? 20.0,
@@ -182,6 +214,8 @@ class AgenticTradingConfig {
       'allowAfterHoursTrading': allowAfterHoursTrading,
       'requireApproval': requireApproval,
       'paperTradingMode': paperTradingMode,
+      'enablePartialExits': enablePartialExits,
+      'exitStages': exitStages.map((e) => e.toJson()).toList(),
       'enableSectorLimits': enableSectorLimits,
       'maxSectorExposure': maxSectorExposure,
       'enableCorrelationChecks': enableCorrelationChecks,
@@ -213,6 +247,8 @@ class AgenticTradingConfig {
     bool? allowPreMarketTrading,
     bool? requireApproval,
     bool? allowAfterHoursTrading,
+    bool? enablePartialExits,
+    List<ExitStage>? exitStages,
     bool? enableSectorLimits,
     double? maxSectorExposure,
     bool? enableCorrelationChecks,
@@ -247,6 +283,8 @@ class AgenticTradingConfig {
       requireApproval: requireApproval ?? this.requireApproval,
       allowAfterHoursTrading:
           allowAfterHoursTrading ?? this.allowAfterHoursTrading,
+      enablePartialExits: enablePartialExits ?? this.enablePartialExits,
+      exitStages: exitStages ?? List.from(this.exitStages),
       enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,
       maxSectorExposure: maxSectorExposure ?? this.maxSectorExposure,
       enableCorrelationChecks:

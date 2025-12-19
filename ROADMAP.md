@@ -16,7 +16,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 ### Key Highlights
 - ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**
 - 🔥 **In Progress**: Copy Trading Auto-Execute
-- 🎯 **Upcoming**: Strategy Templates, Partial Exits, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
+- 🎯 **Upcoming**: Strategy Templates, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
 

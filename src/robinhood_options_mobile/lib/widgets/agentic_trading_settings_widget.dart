@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
@@ -43,6 +44,7 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxVolatilityController;
   late TextEditingController _maxDrawdownController;
   late Map<String, bool> _enabledIndicators;
+  late List<ExitStage> _exitStages;
 
   @override
   void initState() {
@@ -73,6 +75,13 @@ class _AgenticTradingSettingsWidgetState
           'adx': true,
           'williamsR': true,
         };
+    _exitStages = (config['exitStages'] as List<dynamic>?)
+            ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [
+          ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
+          ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
+        ];
     _tradeQuantityController =
         TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
@@ -249,7 +258,7 @@ class _AgenticTradingSettingsWidgetState
         if (isEnabled && extraContent != null)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(bottom: 16.0),
+            // padding: const EdgeInsets.only(bottom: 16.0),
             child: extraContent,
           ),
       ],
@@ -327,6 +336,10 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider.config['trailingStopEnabled'] ?? false,
         'trailingStopPercent':
             agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
+        // Partial Exits
+        'enablePartialExits':
+            agenticTradingProvider.config['enablePartialExits'] ?? false,
+        'exitStages': _exitStages.map((e) => e.toJson()).toList(),
         // Paper Trading Mode
         'paperTradingMode':
             agenticTradingProvider.config['paperTradingMode'] ?? false,
@@ -1437,45 +1450,270 @@ class _AgenticTradingSettingsWidgetState
                             'Trail a stop below the highest price since entry',
                             agenticTradingProvider,
                             defaultValue: false,
-                            extraContent: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    initialValue:
-                                        (agenticTradingProvider.config[
-                                                        'trailingStopPercent']
-                                                    as double? ??
-                                                3.0)
-                                            .toStringAsFixed(1),
-                                    decoration: InputDecoration(
-                                      labelText: 'Trailing Stop %',
-                                      helperText:
-                                          'Sell if price falls by this % from the peak',
-                                      prefixIcon: const Icon(Icons.percent),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                            extraContent: Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      initialValue:
+                                          (agenticTradingProvider.config[
+                                                          'trailingStopPercent']
+                                                      as double? ??
+                                                  3.0)
+                                              .toStringAsFixed(1),
+                                      decoration: InputDecoration(
+                                        labelText: 'Trailing Stop %',
+                                        helperText:
+                                            'Sell if price falls by this % from the peak',
+                                        prefixIcon: const Icon(Icons.percent),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        filled: true,
+                                        fillColor: colorScheme.surface,
                                       ),
-                                      filled: true,
-                                      fillColor: colorScheme.surface,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      validator: (value) {
+                                        final v = double.tryParse(value ?? '');
+                                        if (v == null || v <= 0 || v > 50) {
+                                          return 'Enter a percent between 0 and 50';
+                                        }
+                                        return null;
+                                      },
+                                      onChanged: (value) {
+                                        final v = double.tryParse(value);
+                                        if (v != null) {
+                                          agenticTradingProvider.config[
+                                              'trailingStopPercent'] = v;
+                                          _saveSettings();
+                                        }
+                                      },
                                     ),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    validator: (value) {
-                                      final v = double.tryParse(value ?? '');
-                                      if (v == null || v <= 0 || v > 50) {
-                                        return 'Enter a percent between 0 and 50';
-                                      }
-                                      return null;
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSwitchListTile(
+                            'enablePartialExits',
+                            'Partial Exits',
+                            'Take profit in stages (e.g. 50% at +5%, 50% at +10%)',
+                            agenticTradingProvider,
+                            defaultValue: false,
+                            extraContent: Column(
+                              children: [
+                                if (_exitStages.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      'No exit stages configured. Add a stage to take profit incrementally.',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.6),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ..._exitStages.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final stage = entry.value;
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest
+                                          .withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outline
+                                            .withOpacity(0.1),
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'Stage ${index + 1}',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                              ),
+                                            ),
+                                            InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  _exitStages.removeAt(index);
+                                                });
+                                                _saveSettings();
+                                              },
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(4.0),
+                                                child: Icon(
+                                                  Icons.close,
+                                                  size: 18,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface
+                                                      .withOpacity(0.5),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                initialValue: stage
+                                                    .profitTargetPercent
+                                                    .toString(),
+                                                decoration: InputDecoration(
+                                                  labelText: 'Profit Target',
+                                                  suffixText: '%',
+                                                  prefixIcon: const Icon(
+                                                      Icons.trending_up,
+                                                      size: 16),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 8),
+                                                  isDense: true,
+                                                ),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (value) {
+                                                  final val =
+                                                      double.tryParse(value);
+                                                  if (val != null) {
+                                                    setState(() {
+                                                      _exitStages[index] =
+                                                          ExitStage(
+                                                        profitTargetPercent:
+                                                            val,
+                                                        quantityPercent: stage
+                                                            .quantityPercent,
+                                                      );
+                                                    });
+                                                    _saveSettings();
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextFormField(
+                                                initialValue:
+                                                    (stage.quantityPercent *
+                                                            100)
+                                                        .toString(),
+                                                decoration: InputDecoration(
+                                                  labelText: 'Sell Amount',
+                                                  suffixText: '%',
+                                                  prefixIcon: const Icon(
+                                                      Icons.pie_chart,
+                                                      size: 16),
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 12,
+                                                          vertical: 8),
+                                                  isDense: true,
+                                                ),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                        decimal: true),
+                                                onChanged: (value) {
+                                                  final val =
+                                                      double.tryParse(value);
+                                                  if (val != null) {
+                                                    setState(() {
+                                                      _exitStages[index] =
+                                                          ExitStage(
+                                                        profitTargetPercent: stage
+                                                            .profitTargetPercent,
+                                                        quantityPercent:
+                                                            val / 100.0,
+                                                      );
+                                                    });
+                                                    _saveSettings();
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}% of position when profit reaches ${stage.profitTargetPercent}%',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.6),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _exitStages.add(ExitStage(
+                                            profitTargetPercent:
+                                                _exitStages.isEmpty
+                                                    ? 5.0
+                                                    : 10.0,
+                                            quantityPercent: 0.5));
+                                      });
+                                      _saveSettings();
                                     },
-                                    onChanged: (value) {
-                                      final v = double.tryParse(value);
-                                      if (v != null) {
-                                        agenticTradingProvider
-                                            .config['trailingStopPercent'] = v;
-                                        _saveSettings();
-                                      }
-                                    },
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Exit Stage'),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize:
+                                          const Size(double.infinity, 40),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1549,6 +1787,7 @@ class _AgenticTradingSettingsWidgetState
                               },
                             ),
                           ),
+                          const SizedBox(height: 8),
                           const Divider(),
                           _buildSwitchListTile(
                             'enableCorrelationChecks',
@@ -1581,6 +1820,7 @@ class _AgenticTradingSettingsWidgetState
                               },
                             ),
                           ),
+                          const SizedBox(height: 8),
                           const Divider(),
                           _buildSwitchListTile(
                             'enableVolatilityFilters',
@@ -1630,6 +1870,7 @@ class _AgenticTradingSettingsWidgetState
                               ],
                             ),
                           ),
+                          const SizedBox(height: 8),
                           const Divider(),
                           _buildSwitchListTile(
                             'enableDrawdownProtection',
