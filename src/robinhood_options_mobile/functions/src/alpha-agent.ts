@@ -235,6 +235,7 @@ export async function handleAlphaTask(marketData: any,
     rsiPeriod: config?.rsiPeriod || 14,
     marketFastPeriod: config?.smaPeriodFast || 10,
     marketSlowPeriod: config?.smaPeriodSlow || 30,
+    customIndicators: config?.customIndicators || [],
   };
 
   logger.info("📊 Evaluating indicators with config", {

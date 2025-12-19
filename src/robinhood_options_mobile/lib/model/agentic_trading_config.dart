@@ -1,3 +1,5 @@
+import 'custom_indicator_config.dart';
+
 /// Defines a partial exit stage
 class ExitStage {
   final double profitTargetPercent;
@@ -48,6 +50,7 @@ class AgenticTradingConfig {
   bool requireApproval;
   bool enablePartialExits;
   List<ExitStage> exitStages;
+  List<CustomIndicatorConfig> customIndicators;
 
   // Time-Based Exits
   bool timeBasedExitEnabled;
@@ -65,6 +68,7 @@ class AgenticTradingConfig {
   double maxVolatility; // Max IV rank or similar
   bool enableDrawdownProtection;
   double maxDrawdown; // Max drawdown % before stopping
+  String? prompt;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -95,6 +99,7 @@ class AgenticTradingConfig {
     this.requireApproval = false,
     this.enablePartialExits = false,
     List<ExitStage>? exitStages,
+    List<CustomIndicatorConfig>? customIndicators,
     this.timeBasedExitEnabled = false,
     this.timeBasedExitMinutes = 0,
     this.marketCloseExitEnabled = false,
@@ -108,11 +113,13 @@ class AgenticTradingConfig {
     this.maxVolatility = 100.0,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 10.0,
+    this.prompt,
   })  : exitStages = exitStages ??
             [
               ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
               ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
             ],
+        customIndicators = customIndicators ?? [],
         enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -166,6 +173,11 @@ class AgenticTradingConfig {
                 ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
+        customIndicators = (json['customIndicators'] as List<dynamic>?)
+                ?.map((e) =>
+                    CustomIndicatorConfig.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
         timeBasedExitEnabled = json['timeBasedExitEnabled'] as bool? ?? false,
         timeBasedExitMinutes = json['timeBasedExitMinutes'] as int? ?? 0,
         marketCloseExitEnabled =
@@ -184,6 +196,7 @@ class AgenticTradingConfig {
         enableDrawdownProtection =
             json['enableDrawdownProtection'] as bool? ?? false,
         maxDrawdown = (json['maxDrawdown'] as num?)?.toDouble() ?? 10.0,
+        prompt = json['prompt'] as String?,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -235,6 +248,7 @@ class AgenticTradingConfig {
       'paperTradingMode': paperTradingMode,
       'enablePartialExits': enablePartialExits,
       'exitStages': exitStages.map((e) => e.toJson()).toList(),
+      'customIndicators': customIndicators.map((e) => e.toJson()).toList(),
       'enableSectorLimits': enableSectorLimits,
       'maxSectorExposure': maxSectorExposure,
       'enableCorrelationChecks': enableCorrelationChecks,
@@ -244,6 +258,7 @@ class AgenticTradingConfig {
       'maxVolatility': maxVolatility,
       'enableDrawdownProtection': enableDrawdownProtection,
       'maxDrawdown': maxDrawdown,
+      'prompt': prompt,
     };
   }
 
@@ -268,6 +283,7 @@ class AgenticTradingConfig {
     bool? allowAfterHoursTrading,
     bool? enablePartialExits,
     List<ExitStage>? exitStages,
+    List<CustomIndicatorConfig>? customIndicators,
     bool? timeBasedExitEnabled,
     int? timeBasedExitMinutes,
     bool? marketCloseExitEnabled,
@@ -281,6 +297,7 @@ class AgenticTradingConfig {
     double? maxVolatility,
     bool? enableDrawdownProtection,
     double? maxDrawdown,
+    String? prompt,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -314,6 +331,7 @@ class AgenticTradingConfig {
           marketCloseExitMinutes ?? this.marketCloseExitMinutes,
       enablePartialExits: enablePartialExits ?? this.enablePartialExits,
       exitStages: exitStages ?? List.from(this.exitStages),
+      customIndicators: customIndicators ?? List.from(this.customIndicators),
       enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,
       maxSectorExposure: maxSectorExposure ?? this.maxSectorExposure,
       enableCorrelationChecks:
@@ -326,6 +344,7 @@ class AgenticTradingConfig {
       enableDrawdownProtection:
           enableDrawdownProtection ?? this.enableDrawdownProtection,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
+      prompt: prompt ?? this.prompt,
     );
   }
 }

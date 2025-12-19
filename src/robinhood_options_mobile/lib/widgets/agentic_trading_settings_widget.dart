@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
+import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
@@ -45,8 +47,10 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxDrawdownController;
   late TextEditingController _timeBasedExitMinutesController;
   late TextEditingController _marketCloseExitMinutesController;
+  late TextEditingController _promptController;
   late Map<String, bool> _enabledIndicators;
   late List<ExitStage> _exitStages;
+  late List<CustomIndicatorConfig> _customIndicators;
 
   @override
   void initState() {
@@ -84,6 +88,11 @@ class _AgenticTradingSettingsWidgetState
           ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
           ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
         ];
+    _customIndicators = (config['customIndicators'] as List<dynamic>?)
+            ?.map((e) =>
+                CustomIndicatorConfig.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
     _tradeQuantityController =
         TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
@@ -114,6 +123,8 @@ class _AgenticTradingSettingsWidgetState
         text: config['timeBasedExitMinutes']?.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
         text: config['marketCloseExitMinutes']?.toString() ?? '15');
+    _promptController =
+        TextEditingController(text: config['prompt']?.toString() ?? '');
   }
 
   @override
@@ -133,6 +144,7 @@ class _AgenticTradingSettingsWidgetState
     _marketCloseExitMinutesController.dispose();
     _maxVolatilityController.dispose();
     _maxDrawdownController.dispose();
+    _promptController.dispose();
     super.dispose();
   }
 
@@ -348,6 +360,7 @@ class _AgenticTradingSettingsWidgetState
         'enablePartialExits':
             agenticTradingProvider.config['enablePartialExits'] ?? false,
         'exitStages': _exitStages.map((e) => e.toJson()).toList(),
+        'customIndicators': _customIndicators.map((e) => e.toJson()).toList(),
         // Time-Based Exits
         'timeBasedExitEnabled':
             agenticTradingProvider.config['timeBasedExitEnabled'] ?? false,
@@ -375,6 +388,7 @@ class _AgenticTradingSettingsWidgetState
         'enableDrawdownProtection':
             agenticTradingProvider.config['enableDrawdownProtection'] ?? false,
         'maxDrawdown': double.parse(_maxDrawdownController.text),
+        'prompt': _promptController.text,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -415,6 +429,78 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  void _addCustomIndicator() async {
+    final result = await Navigator.push<CustomIndicatorConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CustomIndicatorPage(),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _customIndicators.add(result);
+      });
+      _saveSettings();
+    }
+  }
+
+  void _editCustomIndicator(CustomIndicatorConfig indicator) async {
+    final result = await Navigator.push<CustomIndicatorConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomIndicatorPage(indicator: indicator),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        final index = _customIndicators.indexWhere((i) => i.id == indicator.id);
+        if (index != -1) {
+          _customIndicators[index] = result;
+        }
+      });
+      _saveSettings();
+    }
+  }
+
+  void _removeCustomIndicator(CustomIndicatorConfig indicator) {
+    setState(() {
+      _customIndicators.removeWhere((i) => i.id == indicator.id);
+    });
+    _saveSettings();
+  }
+
+  void _showPromptDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('AI Prompt'),
+        content: TextField(
+          controller: _promptController,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'Enter custom instructions for the AI agent...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              _saveSettings();
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -423,13 +509,13 @@ class _AgenticTradingSettingsWidgetState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Automated Trading'),
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.save_outlined),
-        //     onPressed: _saveSettings,
-        //     tooltip: 'Save settings',
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.psychology),
+            onPressed: _showPromptDialog,
+            tooltip: 'AI Prompt',
+          ),
+        ],
       ),
       body: Consumer<AgenticTradingProvider>(
         builder: (context, agenticTradingProvider, child) {
@@ -2181,21 +2267,85 @@ class _AgenticTradingSettingsWidgetState
                     'Williams %R',
                     'Momentum oscillator - overbought/oversold conditions',
                   ),
-                  // const SizedBox(height: 8),
-                  // SizedBox(
-                  //   width: double.infinity,
-                  //   child: FilledButton.icon(
-                  //     onPressed: _saveSettings,
-                  //     icon: const Icon(Icons.save),
-                  //     label: const Text('Save Settings'),
-                  //     style: FilledButton.styleFrom(
-                  //       padding: const EdgeInsets.symmetric(vertical: 16),
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(12),
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.build,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Custom Indicators',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: _addCustomIndicator,
+                        tooltip: 'Add Custom Indicator',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_customIndicators.isEmpty)
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(
+                          child: Text('No custom indicators defined'),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._customIndicators.map((indicator) {
+                      return Card(
+                        elevation: 0,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                        child: ListTile(
+                          title: Text(indicator.name),
+                          subtitle: Text(
+                              '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () =>
+                                    _editCustomIndicator(indicator),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () =>
+                                    _removeCustomIndicator(indicator),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
                   const SizedBox(height: 16),
                   // Notification Settings Section
                   Row(

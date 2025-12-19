@@ -12,6 +12,17 @@ export interface IndicatorResult {
   metadata?: Record<string, any>;
 }
 
+export interface CustomIndicatorConfig {
+  id: string;
+  name: string;
+  type: "SMA" | "EMA" | "RSI" | "MACD" |
+  "Bollinger" | "Stochastic" | "ATR" | "OBV";
+  parameters: Record<string, number | string | boolean>;
+  condition: "GreaterThan" | "LessThan" | "CrossOverAbove" | "CrossOverBelow";
+  threshold?: number;
+  compareToPrice?: boolean;
+}
+
 export interface MultiIndicatorResult {
   allGreen: boolean;
   indicators: {
@@ -28,6 +39,7 @@ export interface MultiIndicatorResult {
     adx: IndicatorResult;
     williamsR: IndicatorResult;
   };
+  customIndicators?: Record<string, IndicatorResult>;
   overallSignal: "BUY" | "SELL" | "HOLD";
   reason: string;
   signalStrength: number; // 0-100 score based on indicator alignment
@@ -2048,6 +2060,7 @@ export function evaluateAllIndicators(
     rsiPeriod?: number;
     marketFastPeriod?: number;
     marketSlowPeriod?: number;
+    customIndicators?: CustomIndicatorConfig[];
   } = {}
 ): MultiIndicatorResult {
   logger.info("Evaluating all technical indicators", {
@@ -2133,6 +2146,20 @@ export function evaluateAllIndicators(
     symbolData.closes
   );
 
+  // Custom Indicators
+  const customResults: Record<string, IndicatorResult> = {};
+  if (config.customIndicators) {
+    for (const customConfig of config.customIndicators) {
+      customResults[customConfig.id] = evaluateCustomIndicator(
+        customConfig,
+        symbolData.closes,
+        highs,
+        lows,
+        volumes
+      );
+    }
+  }
+
   const indicators = {
     priceMovement,
     momentum,
@@ -2149,11 +2176,14 @@ export function evaluateAllIndicators(
   };
 
   // Calculate signal strength (0-100)
-  const vals = Object.values(indicators);
-  const buyCount = vals.filter((i) => i.signal === "BUY").length;
-  const sellCount = vals.filter((i) => i.signal === "SELL").length;
-  const holdCount = vals.filter((i) => i.signal === "HOLD").length;
-  const totalIndicators = vals.length;
+  const standardVals = Object.values(indicators);
+  const customVals = Object.values(customResults);
+  const allVals = [...standardVals, ...customVals];
+
+  const buyCount = allVals.filter((i) => i.signal === "BUY").length;
+  const sellCount = allVals.filter((i) => i.signal === "SELL").length;
+  const holdCount = allVals.filter((i) => i.signal === "HOLD").length;
+  const totalIndicators = allVals.length;
 
   // Signal strength calculation:
   // - BUY signals contribute positively
@@ -2164,11 +2194,11 @@ export function evaluateAllIndicators(
     ((buyCount - sellCount + totalIndicators) / (2 * totalIndicators)) * 100
   );
 
-  // Check if all 12 indicators are "green" (BUY signal)
-  const allGreen = vals.every((ind) => ind.signal === "BUY");
+  // Check if all indicators are "green" (BUY signal)
+  const allGreen = allVals.every((ind) => ind.signal === "BUY");
 
-  // Check if all 12 indicators are "red" (SELL signal)
-  const allRed = vals.every((ind) => ind.signal === "SELL");
+  // Check if all indicators are "red" (SELL signal)
+  const allRed = allVals.every((ind) => ind.signal === "SELL");
 
   let overallSignal: "BUY" | "SELL" | "HOLD";
   let reason: string;
@@ -2207,13 +2237,171 @@ export function evaluateAllIndicators(
       adx: adx.signal,
       williamsR: williamsR.signal,
     },
+    customIndicators: Object.keys(customResults).reduce((acc, key) => {
+      acc[key] = customResults[key].signal;
+      return acc;
+    }, {} as Record<string, string>),
   });
 
   return {
     allGreen,
     indicators,
+    customIndicators: customResults,
     overallSignal,
     reason,
     signalStrength,
   };
+}
+
+/**
+ * Evaluate a custom indicator based on configuration.
+ * @param {CustomIndicatorConfig} config - The indicator configuration.
+ * @param {number[]} prices - Array of close prices.
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @return {IndicatorResult} The evaluation result.
+ */
+export function evaluateCustomIndicator(
+  config: CustomIndicatorConfig,
+  prices: number[],
+  highs: number[],
+  lows: number[],
+  volumes: number[]
+): IndicatorResult {
+  let value: number | null = null;
+  let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
+  let reason = "";
+
+  try {
+    const toPeriod = (val: any, defaultVal: number): number => {
+      if (typeof val === "number") return val;
+      if (typeof val === "string") {
+        const parsed = parseInt(val, 10);
+        return isNaN(parsed) ? defaultVal : parsed;
+      }
+      return defaultVal;
+    };
+
+    switch (config.type) {
+    case "SMA": {
+      value = computeSMA(prices, toPeriod(config.parameters.period, 14));
+      break;
+    }
+    case "EMA": {
+      value = computeEMA(prices, toPeriod(config.parameters.period, 14));
+      break;
+    }
+    case "RSI": {
+      value = computeRSI(prices, toPeriod(config.parameters.period, 14));
+      break;
+    }
+    case "MACD": {
+      const macdRes = computeMACD(
+        prices,
+        toPeriod(config.parameters.fastPeriod, 12),
+        toPeriod(config.parameters.slowPeriod, 26),
+        toPeriod(config.parameters.signalPeriod, 9)
+      );
+      value = macdRes ? macdRes.histogram : null;
+      break;
+    }
+    case "Bollinger": {
+      const bbRes = computeBollingerBands(
+        prices,
+        toPeriod(config.parameters.period, 20),
+        toPeriod(config.parameters.stdDev, 2)
+      );
+      value = bbRes ? bbRes.middle : null;
+      break;
+    }
+    case "Stochastic": {
+      const stochRes = computeStochastic(
+        highs,
+        lows,
+        prices,
+        toPeriod(config.parameters.kPeriod, 14),
+        toPeriod(config.parameters.dPeriod, 3)
+      );
+      value = stochRes ? stochRes.k : null;
+      break;
+    }
+    case "ATR": {
+      value = computeATR(
+        highs,
+        lows,
+        prices,
+        toPeriod(config.parameters.period, 14)
+      );
+      break;
+    }
+    case "OBV": {
+      const obvRes = computeOBV(prices, volumes);
+      value = obvRes && obvRes.length > 0 ?
+        obvRes[obvRes.length - 1] : null;
+      break;
+    }
+    }
+
+    if (value === null) {
+      return {
+        value: null,
+        signal: "HOLD",
+        reason: `Could not compute ${config.name}`,
+      };
+    }
+
+    const currentPrice = prices[prices.length - 1];
+    const compareValue = config.compareToPrice ?
+      currentPrice : config.threshold;
+
+    if (compareValue === undefined || compareValue === null) {
+      return {
+        value,
+        signal: "HOLD",
+        reason: `No comparison value for ${config.name}`,
+      };
+    }
+
+    let conditionMet = false;
+
+    switch (config.condition) {
+    case "GreaterThan": {
+      if (value > compareValue) conditionMet = true;
+      break;
+    }
+    case "LessThan": {
+      if (value < compareValue) conditionMet = true;
+      break;
+    }
+    case "CrossOverAbove": {
+      if (value > compareValue) conditionMet = true;
+      break;
+    }
+    case "CrossOverBelow": {
+      if (value < compareValue) conditionMet = true;
+      break;
+    }
+    }
+
+    if (conditionMet) {
+      signal = "BUY";
+      reason = `${config.name}: ${value.toFixed(2)} ` +
+        `met condition ${config.condition} ` +
+        `${compareValue.toFixed(2)}`;
+    } else {
+      signal = "HOLD";
+      reason = `${config.name}: ${value.toFixed(2)} ` +
+        `did not meet condition ${config.condition} ` +
+        `${compareValue.toFixed(2)}`;
+    }
+
+    return { value, signal, reason };
+  } catch (e) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Error computing ${config.name}: ${e}`,
+    };
+  }
 }

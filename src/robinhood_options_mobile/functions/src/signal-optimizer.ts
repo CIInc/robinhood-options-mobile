@@ -39,7 +39,21 @@ export async function optimizeSignal(
 
     const indicators = multiIndicatorResult.indicators;
     const lastPrices = marketData.closes.slice(-10);
+    const lastVolumes = (marketData.volumes || []).slice(-10);
+    const lastHighs = (marketData.highs || []).slice(-10);
+    const lastLows = (marketData.lows || []).slice(-10);
     const marketTrend = marketIndexData.closes.slice(-5);
+    const marketVolTrend = (marketIndexData.volumes || []).slice(-5);
+
+    let customIndicatorsText = "";
+    if (multiIndicatorResult.customIndicators) {
+      customIndicatorsText = "\nCustom Indicators:\n";
+      for (const [name, result] of
+        Object.entries(multiIndicatorResult.customIndicators)) {
+        const res = result as any;
+        customIndicatorsText += `- ${name}: ${res.signal} (${res.reason})\n`;
+      }
+    }
 
     const prompt = `
       You are an expert financial analyst and trading algorithm.
@@ -68,9 +82,13 @@ export async function optimizeSignal(
       - ADX: ${indicators.adx.signal} (${indicators.adx.reason})
       - Williams %R: ${indicators.williamsR.signal} ` +
       `(${indicators.williamsR.reason})
-      
+      ${customIndicatorsText}
       Recent Price Action (last 10 closes): ${lastPrices.join(", ")}
+      Recent Volumes (last 10): ${lastVolumes.join(", ")}
+      Recent Highs (last 10): ${lastHighs.join(", ")}
+      Recent Lows (last 10): ${lastLows.join(", ")}
       Market Index Trend (last 5 closes): ${marketTrend.join(", ")}
+      Market Index Volumes (last 5): ${marketVolTrend.join(", ")}
       
       Task:
       1. Evaluate the coherence of the indicators.

@@ -251,6 +251,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         rsiPeriod,
         marketFastPeriod: smaPeriodFast,
         marketSlowPeriod: smaPeriodSlow,
+        customIndicators: config?.customIndicators as any,
       }
     );
 
