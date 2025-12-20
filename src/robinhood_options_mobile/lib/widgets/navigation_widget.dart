@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -251,6 +252,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                   brokerageService: service,
                   userDocRef: userDoc,
                 );
+
+                // Initialize CopyTradingProvider
+                if (auth.currentUser != null && userStore.currentUser != null) {
+                  final copyTradingProvider =
+                      Provider.of<CopyTradingProvider>(context, listen: false);
+                  copyTradingProvider.initialize(
+                      auth.currentUser!.uid, userStore.currentUser!, service);
+                }
               });
 
               widget.analytics.setUserId(id: userInfo!.username);

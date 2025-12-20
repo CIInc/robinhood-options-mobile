@@ -28,6 +28,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
   String? _selectedTargetUserId;
   final _maxQuantityController = TextEditingController();
   final _maxAmountController = TextEditingController();
+  final _maxDailyAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -39,13 +40,13 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
   void dispose() {
     _maxQuantityController.dispose();
     _maxAmountController.dispose();
+    _maxDailyAmountController.dispose();
     super.dispose();
   }
 
   void _loadSettings() {
     if (auth.currentUser != null) {
-      final settings =
-          widget.group.getCopyTradeSettings(auth.currentUser!.uid);
+      final settings = widget.group.getCopyTradeSettings(auth.currentUser!.uid);
       if (settings != null) {
         setState(() {
           _settings = settings;
@@ -55,6 +56,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
           }
           if (settings.maxAmount != null) {
             _maxAmountController.text = settings.maxAmount.toString();
+          }
+          if (settings.maxDailyAmount != null) {
+            _maxDailyAmountController.text = settings.maxDailyAmount.toString();
           }
         });
       } else {
@@ -80,6 +84,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             : null,
         maxAmount: _maxAmountController.text.isNotEmpty
             ? double.tryParse(_maxAmountController.text)
+            : null,
+        maxDailyAmount: _maxDailyAmountController.text.isNotEmpty
+            ? double.tryParse(_maxDailyAmountController.text)
             : null,
         overridePrice: _settings!.overridePrice,
       );
@@ -193,9 +200,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                               if (user?.photoUrl != null) {
                                 avatar = CircleAvatar(
                                   radius: 20,
-                                  backgroundImage:
-                                      CachedNetworkImageProvider(
-                                          user!.photoUrl!),
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      user!.photoUrl!),
                                 );
                               }
                             }
@@ -280,6 +286,21 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                       decoration: const InputDecoration(
                         labelText: 'Max Amount (optional)',
                         helperText: 'Maximum dollar amount per trade',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _maxDailyAmountController,
+                      decoration: const InputDecoration(
+                        labelText: 'Max Daily Amount (optional)',
+                        helperText: 'Maximum total dollar amount per day',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.attach_money),
                       ),

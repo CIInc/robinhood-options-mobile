@@ -53,6 +53,14 @@ interface CopyTradeRecord {
   copiedQuantity: number;
   price: number;
   strategy?: string;
+  legs?: {
+    expirationDate?: string;
+    strikePrice?: number;
+    optionType?: string;
+    side?: string;
+    positionEffect?: string;
+    ratioQuantity?: number;
+  }[];
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
 }
@@ -298,6 +306,14 @@ export const onOptionOrderCreated = onDocumentCreated(
               copiedQuantity: quantity,
               price: price,
               strategy: orderData.strategy,
+              legs: (orderData.legs || []).map((leg: any) => ({
+                expirationDate: leg.expiration_date,
+                strikePrice: leg.strike_price,
+                optionType: leg.option_type,
+                side: leg.side,
+                positionEffect: leg.position_effect,
+                ratioQuantity: leg.ratio_quantity,
+              })),
               timestamp: FieldValue.serverTimestamp(),
               executed: false, // Would be true after actual order placement
             });

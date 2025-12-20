@@ -7,7 +7,9 @@ class CopyTradeSettings {
   bool autoExecute; // If true, automatically execute trades
   double? maxQuantity; // Maximum quantity to copy
   double? maxAmount; // Maximum dollar amount to copy
-  bool? overridePrice; // If true, use current market price instead of copied price
+  double? maxDailyAmount; // Maximum total dollar amount to copy per day
+  bool?
+      overridePrice; // If true, use current market price instead of copied price
 
   CopyTradeSettings({
     this.enabled = false,
@@ -15,6 +17,7 @@ class CopyTradeSettings {
     this.autoExecute = false,
     this.maxQuantity,
     this.maxAmount,
+    this.maxDailyAmount,
     this.overridePrice = false,
   });
 
@@ -24,6 +27,7 @@ class CopyTradeSettings {
         autoExecute = json['autoExecute'] as bool? ?? false,
         maxQuantity = json['maxQuantity'] as double?,
         maxAmount = json['maxAmount'] as double?,
+        maxDailyAmount = json['maxDailyAmount'] as double?,
         overridePrice = json['overridePrice'] as bool? ?? false;
 
   Map<String, Object?> toJson() {
@@ -33,6 +37,7 @@ class CopyTradeSettings {
       'autoExecute': autoExecute,
       'maxQuantity': maxQuantity,
       'maxAmount': maxAmount,
+      'maxDailyAmount': maxDailyAmount,
       'overridePrice': overridePrice,
     };
   }
@@ -49,7 +54,8 @@ class InvestorGroup {
   DateTime dateCreated;
   DateTime? dateUpdated;
   bool isPrivate; // If true, requires approval to join
-  Map<String, CopyTradeSettings>? memberCopyTradeSettings; // Copy trade settings per member
+  Map<String, CopyTradeSettings>?
+      memberCopyTradeSettings; // Copy trade settings per member
 
   InvestorGroup({
     required this.id,
@@ -78,7 +84,8 @@ class InvestorGroup {
               ? List<String>.from(json['admins'] as Iterable<dynamic>)
               : null,
           pendingInvitations: json['pendingInvitations'] != null
-              ? List<String>.from(json['pendingInvitations'] as Iterable<dynamic>)
+              ? List<String>.from(
+                  json['pendingInvitations'] as Iterable<dynamic>)
               : null,
           dateCreated: (json['dateCreated'] as Timestamp).toDate(),
           dateUpdated: json['dateUpdated'] != null
@@ -89,7 +96,9 @@ class InvestorGroup {
           memberCopyTradeSettings: json['memberCopyTradeSettings'] != null
               ? (json['memberCopyTradeSettings'] as Map<String, dynamic>).map(
                   (key, value) => MapEntry(
-                      key, CopyTradeSettings.fromJson(value as Map<String, Object?>)))
+                      key,
+                      CopyTradeSettings.fromJson(
+                          value as Map<String, Object?>)))
               : null,
         );
 
@@ -105,8 +114,8 @@ class InvestorGroup {
       'dateCreated': dateCreated,
       'dateUpdated': dateUpdated,
       'isPrivate': isPrivate,
-      'memberCopyTradeSettings': memberCopyTradeSettings?.map(
-          (key, value) => MapEntry(key, value.toJson())),
+      'memberCopyTradeSettings': memberCopyTradeSettings
+          ?.map((key, value) => MapEntry(key, value.toJson())),
     };
   }
 
