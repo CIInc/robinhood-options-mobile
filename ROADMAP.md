@@ -14,9 +14,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**
 - 🔥 **In Progress**: Copy Trading Auto-Execute
-- 🎯 **Upcoming**: Strategy Templates, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
+- 🎯 **Upcoming**: Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
 
@@ -69,22 +69,22 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Custom Indicators (create your own indicators)
 - ✅ Advanced Exit Strategies (Partial, Time-Based, Market Close)
 - ✅ Backtesting Templates
+- ✅ Enhanced Strategy Templates (Library Expansion)
 - ✅ Performance Dashboard: Track signal performance metrics (Signal Strength & Indicator Performance)
 - ✅ UI improvements & bug fixes
 
 ### v0.22.0 (Q1 2026 - Early January)
 **Copy Trading Enhancement**
-- Auto-Execute for Copy Trading
+- Auto-Execute for Copy Trading (Client-side implementation)
 - Copy Trade Performance Dashboard
 - Approval workflow for automated copying
 
 ### v0.23.0 (Q1 2026 - Late January)
-**Strategy Optimization & Custom Indicators**
-- Signal Optimization (ML-powered improvements)
-- Custom Indicators (create your own indicators)
-- Strategy Templates library expansion
-- Trade Approval Workflow
-- Advanced backtesting filters
+**Futures Trading & Backtesting Refinement**
+- Futures Margin & Risk Metrics
+- Futures Realized & Day P&L Tracking
+- Futures Roll Assistant
+- Advanced Backtesting Filters (4-way indicator support)
 
 ### v0.24.0 (Q2 2026 - Mid February)
 **Schwab API Integration - Phase 1**
@@ -96,7 +96,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order history from Schwab
 
 ### v0.25.0 (Q2 2026 - Late March)
-**Schwab API Integration - Phase 2 & Futures**
+**Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
 - Futures charts & historical data
@@ -416,19 +416,6 @@ Understanding dependencies helps with sprint planning and resource allocation. B
     - **Mitigation**: Hire early; document onboarding; establish code review process
     - **Timeline Impact**: New team members may reduce velocity by 20% for 2-4 weeks
 
-### Resource Constraints
-
-**Team Requirements by Priority:**
-- **Q1 2026 (Priority 1)**: 3-4 backend engineers, 2-3 frontend engineers, 1 data scientist
-- **Q2 2026 (Priority 2)**: 5-6 backend engineers (brokerage integrations), 3-4 frontend engineers
-- **Q3 2026 (Priority 3-4)**: 4-5 backend engineers, 3-4 frontend engineers, 1 AI engineer, 1 DevOps
-- **Q4 2026 (Priority 5)**: 3-4 backend engineers, 2-3 frontend engineers, 1 QA engineer, 1 security engineer
-
-**Infrastructure Limitations:**
-- Current Firebase tier may need upgrade for Priority 2-3 (estimated cost: $500-1500/month additional)
-- CI/CD pipeline not yet established (needs implementation in Q1 or early Q2)
-- No staging environment - consider setting up in Q1
-
 ### Mitigation Strategies
 
 **Proactive Measures:**
@@ -443,17 +430,6 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - If ML optimization delays: Launch with template-based strategies instead of ML
 - If compliance delays Q4: Release to limited jurisdictions first (CA, NY); expand in 2027
 - If Firebase costs spike: Migrate specific services to self-hosted alternatives
-
-### Success Metrics & Monitoring
-
-**Track These KPIs Monthly:**
-- Development velocity (story points/sprint)
-- Unresolved technical debt count
-- Average PR review time
-- Test coverage percentage (target: >80%)
-- Firebase cost vs budget
-- API response time P95
-- App crash rate (target: <0.1%)
 
 ## Completed Features ✅
 
@@ -496,6 +472,20 @@ Understanding dependencies helps with sprint planning and resource allocation. B
     - [x] Dynamic stop loss adjustment as profit increases
     - [x] Peak price tracking for each trade
     - [x] Configurable trailing distance
+- [x] **Trade Approval Workflow** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Review-before-execute mode for semi-automatic trading
+- [x] **Advanced Risk Controls** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Sector limits, correlation checks, volatility filters, drawdown protection
+- [x] **Advanced Exit Strategies** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Partial Position Exits (staged take profit)
+    - [x] Time-Based Exits (duration limits)
+    - [x] Market Close Exits (avoid overnight risk)
+- [x] **Signal Optimization** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Machine learning-based signal optimization
+- [x] **Custom Indicators** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Create and use custom technical indicators
+- [x] **Performance Dashboard** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
+    - [x] Track signal performance metrics (Signal Strength & Indicator Performance)
 
 ### Backtesting
 - [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):
@@ -508,6 +498,7 @@ Understanding dependencies helps with sprint planning and resource allocation. B
     - [x] Interactive equity curve with trade markers
     - [x] 4-tab result page (Overview, Trades, Equity, Details)
     - [x] Template system to save/reuse configurations
+    - [x] Enhanced Strategy Templates (Library Expansion)
     - [x] Export and share backtest results
     - [x] Real-time Firestore integration
     - [x] User backtest history (last 50 runs)
@@ -551,20 +542,8 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **User Impact:** Very High (core trading experience)
 **Revenue Impact:** Medium (foundational for premium features)
 
-#### Advanced Agentic Trading ([Tracking: #112](https://github.com/CIInc/robinhood-options-mobile/issues/112))
-- [x] **Backtesting Interface**: Backtest strategies with historical data ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)) - ✅ **Completed v0.19.0**
-- [x] **Strategy Templates**: Save and reuse backtest configurations - ✅ **Completed v0.19.0**
-- [x] **Trade Approval Workflow**: Review-before-execute mode for semi-automatic trading - ✅ **Completed v0.20.2**
-- [x] **Advanced Risk Controls**: Sector limits, correlation checks, volatility filters, drawdown protection - ✅ **Completed v0.20.2**
-- [x] **Partial Position Exits**: Take profit in stages (e.g., 50% at +5%, 50% at +10%) - ✅ **Completed v0.21.0**
-- [x] **Time-Based Exits**: Auto-close positions after X hours/days - ✅ **Completed v0.21.0**
-- [x] **Signal Optimization**: Machine learning-based signal optimization - ✅ **Completed v0.21.0**
-- [x] **Custom Indicators**: Custom indicator creation - ✅ **Completed v0.21.0**
-- [ ] **Enhanced Strategy Templates**: Pre-built strategy library expansion - **Medium** (2-4 weeks)
-- [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
-
 #### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
-- [ ] **Auto-Execute**: Client-side automatic execution for flagged copy trades ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)) - **Large** (3-4 weeks)
+- [ ] **Auto-Execute**: Client-side automatic execution for flagged copy trades (Backend ready, Client pending) ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)) - **Large** (3-4 weeks)
 - [ ] **Dashboard**: View history of all copied trades ([#71](https://github.com/CIInc/robinhood-options-mobile/issues/71)) - **Small** (1-2 weeks)
 - [ ] **Approval Workflow**: Review and approve auto-copied trades ([#97](https://github.com/CIInc/robinhood-options-mobile/issues/97)) - **Medium** (2-3 weeks)
 - [ ] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
@@ -695,6 +674,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
 
 #### Social & Community ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
+- [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
 - [ ] **Follow Portfolios** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios - **Small** (1-2 weeks)
 - [ ] **Portfolio Comparison Tools**: Compare performance with other users - **Medium** (2-3 weeks)
 - [ ] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios - **Medium** (2-3 weeks)
