@@ -98,6 +98,30 @@ The system automatically executes trades when auto-trading is enabled:
 6. Calls `autoTrade()` with all parameters
 7. Calls `monitorTakeProfitStopLoss()` for automated trades
 8. Updates countdown timer for next cycle
+
+### Custom Indicators
+
+Users can now define their own technical indicators to be used alongside the standard 12-indicator system.
+
+- **Creation:** Define custom logic based on price action, volume, or other available data points.
+- **Integration:** Custom indicators are evaluated as part of the signal generation process.
+- **Weighting:** Assign specific weights to custom indicators to influence the overall signal strength.
+
+### Advanced Exit Strategies
+
+The system supports sophisticated exit strategies to maximize profits and minimize risks:
+
+- **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%).
+- **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met.
+- **Market Close Exits:** Automatically liquidate positions a set number of minutes before the market closes to avoid overnight risk.
+
+### ML Optimization
+
+Machine Learning models are integrated to continuously optimize trade signals:
+
+- **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
+- **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
+- **Adaptive Logic:** The system adapts to changing market volatility and trends.
 9. Logs execution results
 
 **Location:** `navigation_widget.dart` - Main navigation widget with access to all services and providers

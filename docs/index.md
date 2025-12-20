@@ -21,6 +21,9 @@
 - Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
+- **Custom Indicators:** Create and integrate personalized technical indicators into the trading system.
+- **Advanced Exit Strategies:** Implement Partial, Time-Based, and Market Close exits for precise trade management.
+- **ML Optimization:** Benefit from Machine Learning enhanced signal accuracy.
 
 ## Investment Profile Feature
 

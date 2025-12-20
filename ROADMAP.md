@@ -8,13 +8,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
 
 ### Quick Stats
-- **Completed Features**: 9 major categories (60+ items)
-- **Planned Enhancements**: 15 categories (140+ items)
+- **Completed Features**: 10 major categories (65+ items)
+- **Planned Enhancements**: 14 categories (135+ items)
 - **Open GitHub Issues**: 12 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**
 - 🔥 **In Progress**: Copy Trading Auto-Execute
 - 🎯 **Upcoming**: Strategy Templates, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -63,17 +63,17 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ App Icon Badging (Notification indicators)
 - ✅ Navigation Improvements (Bottom bar refactoring)
 
-### v0.21.0 (Late December 2025)
-**Copy Trading & Signal Optimization**
-- Signal Optimization (ML-powered improvements)
-- Custom Indicators (create your own indicators)
-- UI improvements & bug fixes
+### v0.21.0 ✅ (Released Dec 19, 2025)
+**Signal Optimization & Advanced Exits**
+- ✅ Signal Optimization (ML-powered improvements)
+- ✅ Custom Indicators (create your own indicators)
+- ✅ Advanced Exit Strategies (Partial, Time-Based, Market Close)
+- ✅ Backtesting Templates
+- ✅ UI improvements & bug fixes
 
 ### v0.22.0 (Q1 2026 - Early January)
 **Copy Trading Enhancement**
 - Auto-Execute for Copy Trading
-- Partial Position Exits (take profit in stages)
-- Time-Based Exits (auto-close after X hours/days)
 - Copy Trade Performance Dashboard
 - Approval workflow for automated copying
 
@@ -222,11 +222,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### Trading Automation & Execution
 - **Core Trading**: Stock Orders, Multi-Leg Options, Futures Trading, Crypto/Forex Trading
 - **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute, Trade Approval Workflow (✅)
-- **Advanced Orders**: Trailing Stops, Conditional Orders, Order Templates, Time-Based Exits
+- **Advanced Orders**: Trailing Stops, Conditional Orders, Order Templates, Time-Based Exits (✅)
 - **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
 
 ### Strategy Development & Optimization
-- **Signal Analysis**: 12-Indicator System (✅), Signal Strength Filtering (✅), Custom Indicators, Signal Optimization
+- **Signal Analysis**: 12-Indicator System (✅), Signal Strength Filtering (✅), Custom Indicators (✅), Signal Optimization (✅)
 - **Strategy Management**: Strategy Templates (✅), Social Signal Sharing, Indicator Combo Performance (✅)
 - **Execution Validation**: Backtesting Interface (✅), Trade Approval Workflow (✅), Paper Trading Mode (✅)
 
@@ -250,7 +250,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### AI & Insights
 - **AI Assistant**: Generative AI Assistant, Natural Language Portfolio Queries, Investment Thesis Generation
 - **AI Analysis**: AI Summaries, AI-powered Price Targets, Sentiment Analysis, Insider Tracking
-- **ML Optimization**: Signal Optimization, Custom Indicator Learning, Strategy Backtesting with ML
+- **ML Optimization**: Signal Optimization (✅), Custom Indicator Learning, Strategy Backtesting with ML
 - **Data Intelligence**: Correlation Analysis, Options Flow Analysis, Volatility Overlays
 
 ### Social & Community
@@ -300,8 +300,8 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 
 **Priority 1 Dependencies:**
 - **Backtesting Interface (✅)** ← Requires: Agentic Trading (✅), Trade Signals (✅), Historical Data Access
-- **Signal Optimization** ← Requires: Backtesting Interface (✅), Performance Analytics
-- **Custom Indicators** ← Requires: 12-Indicator System (✅), Signal Analysis Infrastructure
+- **Signal Optimization (✅)** ← Requires: Backtesting Interface (✅), Performance Analytics
+- **Custom Indicators (✅)** ← Requires: 12-Indicator System (✅), Signal Analysis Infrastructure
 - **Trade Approval Workflow (✅)** ← Requires: Agentic Trading (✅), Order Execution Framework
 - **Advanced Risk Controls (✅)** ← Requires: Agentic Trading (✅), Portfolio State Management (✅)
 - **Copy Trading Auto-Execute** ← Requires: Copy Trading Manual (✅), WebSocket/Real-time Updates
@@ -555,10 +555,10 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 - [x] **Strategy Templates**: Save and reuse backtest configurations - ✅ **Completed v0.19.0**
 - [x] **Trade Approval Workflow**: Review-before-execute mode for semi-automatic trading - ✅ **Completed v0.20.2**
 - [x] **Advanced Risk Controls**: Sector limits, correlation checks, volatility filters, drawdown protection - ✅ **Completed v0.20.2**
-- [ ] **Partial Position Exits**: Take profit in stages (e.g., 50% at +5%, 50% at +10%) - **Medium** (2-3 weeks)
-- [ ] **Time-Based Exits**: Auto-close positions after X hours/days - **Small** (1-2 weeks)
-- [ ] **Signal Optimization**: Machine learning-based signal optimization - **Large** (5-8 weeks)
-- [ ] **Custom Indicators**: Custom indicator creation - **Large** (4-6 weeks)
+- [x] **Partial Position Exits**: Take profit in stages (e.g., 50% at +5%, 50% at +10%) - ✅ **Completed v0.21.0**
+- [x] **Time-Based Exits**: Auto-close positions after X hours/days - ✅ **Completed v0.21.0**
+- [x] **Signal Optimization**: Machine learning-based signal optimization - ✅ **Completed v0.21.0**
+- [x] **Custom Indicators**: Custom indicator creation - ✅ **Completed v0.21.0**
 - [ ] **Enhanced Strategy Templates**: Pre-built strategy library expansion - **Medium** (2-4 weeks)
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
 

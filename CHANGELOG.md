@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.21.0] - 2025-12-19
+
+### Added
+- **Custom Indicators:** Added support for defining and using custom indicators within the Agentic Trading system.
+- **ML Optimization:** Integrated Machine Learning models to optimize trade signals and improve decision accuracy.
+- **Advanced Exit Strategies:**
+  - **Partial Exits:** Configure multiple exit stages with specific profit targets and quantity percentages.
+  - **Time-Based Exits:** Option to close positions after a specific duration.
+  - **Market Close Exits:** Automatically close positions a set number of minutes before market close.
+- **Backtesting Templates:** Added ability to save, load, and manage custom backtesting configurations as templates.
+- **AI Enhancements:** Improved AI response handling with editing capabilities and better prompt management.
+
+### Changed
+- **App Badging:** Migrated from `flutter_app_badger` to `app_badge_plus` for improved reliability and platform support.
+- **Login Flow:** Updated login challenge handling to support prompt-based challenges and improved long-running session maintenance.
+- **Performance:** Optimized agentic trading cron jobs with batch processing and better config fetching.
+
+### Removed
+- **AI Prompt:** Removed the manual AI prompt input field from Agentic Trading settings to streamline the configuration interface.
+
 ## [0.20.2] - 2025-12-17
 
 ### Added

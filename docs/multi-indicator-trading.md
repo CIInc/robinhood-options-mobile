@@ -1129,6 +1129,15 @@ The technical indicators module has been improved for accuracy, robustness, and 
 - Consistent metadata output format across all indicators
 - TypeScript strict mode compliant
 
+## Custom Indicators
+
+The system now supports **Custom Indicators**, allowing users to extend the analysis capabilities beyond the core 12 indicators.
+
+- **Definition:** Users can define custom logic using available market data (price, volume, etc.).
+- **Integration:** Custom indicators are evaluated alongside standard indicators and contribute to the overall signal generation.
+- **Weighting:** Custom indicators can be assigned weights to influence the Signal Strength score.
+- **Flexibility:** Enables the implementation of proprietary or niche trading strategies.
+
 ## Support
 
 For questions or issues:
