@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.22.0] - 2025-12-20
+
+### Added
+- **Copy Trading:**
+  - Implemented full copy trading functionality with order execution and data models.
+  - Added Copy Trading Dashboard with trade history and filtering options.
+  - Implemented copy trade request approval and rejection workflow with UI integration.
+- **Backtesting:**
+  - Added new default backtest templates for various trading strategies.
+- **Agentic Trading:**
+  - Added signal strength and individual indicator performance cards to the performance widget.
+
 ## [0.21.0] - 2025-12-19
 
 ### Added

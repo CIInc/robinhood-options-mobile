@@ -91,6 +91,20 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
   - Position size and portfolio concentration limits
   - Real-time status monitoring and trade history
 
+## Backtesting Feature
+
+The Backtesting feature allows users to validate trading strategies on historical data using the same multi-indicator system as live trading.
+
+### Key Capabilities
+- **Historical Simulation:** Test strategies against past market data to gauge potential performance.
+- **Strategy Configuration:** Configure all 12 technical indicators, risk parameters (TP/SL), and capital allocation.
+- **Comprehensive Metrics:** Analyze results with Sharpe ratio, max drawdown, profit factor, and win rates.
+- **Visual Analysis:** View trade-by-trade breakdowns and interactive equity curves.
+- **Template Management:** Save and load successful strategy configurations.
+- **Export & Share:** Export results for further analysis or sharing.
+
+For more details, see the [Backtesting Documentation](backtesting.md).
+
 ### Technical Details
 - Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
 - Firebase Functions for scheduled agent execution
@@ -133,6 +147,19 @@ The Backtesting Interface enables users to test trading strategies on historical
 7. Compare multiple backtests to optimize strategy
 
 For complete documentation, see [Backtesting](backtesting.md).
+
+## Copy Trading Feature
+
+The Copy Trading feature enables collaborative trading by allowing users to copy trades from other members of their investor groups.
+
+### Key Features
+- **Copy Trade Dashboard:** Centralized view for managing copy trade history and requests.
+- **Approval Workflow:** Review and approve/reject copy trade requests before execution.
+- **Manual & Auto Execution:** Choose between manual confirmation or automated workflows.
+- **Settings & Limits:** Configure quantity limits, amount caps, and specific target users.
+- **Audit Trail:** Comprehensive history of all copied trades for transparency.
+
+For complete documentation, see [Copy Trading](copy-trading.md).
 
 ## Futures Positions Feature
 

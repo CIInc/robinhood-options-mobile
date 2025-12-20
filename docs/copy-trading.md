@@ -1,6 +1,6 @@
 # Copy Trading Feature
 
-> Introduced in **v0.16.0**: Manual execution of copied stock/ETF and option trades with per-group settings, push notifications, and Firestore audit trail (`copy_trades`). Auto-execute workflow, dashboard/history, and advanced filtering remain planned enhancements.
+> Introduced in **v0.16.0** and significantly enhanced in **v0.22.0**. Features manual and automated execution, a dedicated dashboard, approval workflows, and comprehensive audit trails.
 
 ## Overview
 
@@ -14,12 +14,34 @@ Members can configure copy trading settings for each investor group they belong 
 
 - **Enable/Disable**: Turn copy trading on or off
 - **Select Target User**: Choose which group member's trades to copy
-- **Auto-Execute**: Automatically execute trades without manual confirmation
+- **Auto-Execute**: Automatically execute trades (subject to approval workflow)
 - **Max Quantity**: Limit the maximum number of shares/contracts to copy
 - **Max Amount**: Limit the maximum dollar amount per trade
 - **Override Price**: Use current market price instead of the copied trade's price
 
-### 2. Manual Copy Trading
+### 2. Copy Trading Dashboard
+
+> **New in v0.22.0**
+
+A centralized hub for managing all copy trading activities:
+
+- **Trade History**: View a comprehensive list of all copied trades with status indicators.
+- **Filtering**: Filter trades by status (Pending, Approved, Rejected, Completed), date range, and symbol.
+- **Performance Metrics**: Track the performance of copied trades (P&L, win rate).
+- **Request Management**: Review and act on pending copy trade requests.
+
+### 3. Approval Workflow
+
+> **New in v0.22.0**
+
+When "Auto-Execute" is enabled, trades may require approval before execution based on configuration:
+
+- **Request System**: New trades from the target user generate a "Copy Trade Request".
+- **Notification**: You receive a notification to review the request.
+- **Action**: Approve or Reject the request directly from the Dashboard or notification.
+- **Execution**: Approved requests are executed immediately via the brokerage API.
+
+### 4. Manual Copy Trading
 
 > **Updated in v0.17.2:** Selection-based workflow with single and batch copy modes.
 
@@ -214,27 +236,23 @@ Firestore rules for `copy_trades` collection:
 
 ### High Priority
 
-1. ~~**Actual Order Execution**: Implement the brokerage API integration to execute copied orders~~ ✅ **COMPLETED**
-2. ~~**Notifications**: Notify users when trades are copied~~ ✅ **COMPLETED**
-3. **Copy Trade Dashboard**: View history of all copied trades
-4. **Approval Workflow**: Review and approve auto-copied trades before execution
-5. **Auto-Execute for Copy Trades**: Implement client-side automatic execution for flagged copy trades
+1. **Auto-Execute for Copy Trades**: Implement client-side automatic execution for flagged copy trades without manual approval (fully autonomous).
+2. **Performance Tracking**: Track success rate of copied trades.
 
 ### Medium Priority
 
-5. **Performance Tracking**: Track success rate of copied trades
-6. **Partial Copying**: Support copying a percentage of the original trade
-7. **Time-based Filtering**: Only copy trades during specific hours
-8. **Symbol Filtering**: Allow/block specific symbols or sectors
-9. **Copy Stop Loss/Take Profit**: Automatically copy exit strategies
+3. **Partial Copying**: Support copying a percentage of the original trade.
+4. **Time-based Filtering**: Only copy trades during specific hours.
+5. **Symbol Filtering**: Allow/block specific symbols or sectors.
+6. **Copy Stop Loss/Take Profit**: Automatically copy exit strategies.
 
 ### Low Priority
 
-10. **Social Features**: See which members are most copied
-11. **Copy Trade Templates**: Save and reuse configuration presets
-12. **Multi-user Copying**: Copy from multiple users simultaneously
-13. **Inverse Copying**: Do the opposite of what someone else does
-14. **Copy Trading Groups**: Create groups specifically for copy trading
+7. **Social Features**: See which members are most copied.
+8. **Copy Trade Templates**: Save and reuse configuration presets.
+9. **Multi-user Copying**: Copy from multiple users simultaneously.
+10. **Inverse Copying**: Do the opposite of what someone else does.
+11. **Copy Trading Groups**: Create groups specifically for copy trading.
 
 ## Testing
 
@@ -315,17 +333,38 @@ Deploy the security rules:
 firebase deploy --only firestore:rules
 ```
 
+### 6. Copy Trading Dashboard
+
+> **New in v0.22.0**
+
+A dedicated dashboard for managing copy trading activities:
+
+- **Trade History**: View a comprehensive list of all copied trades.
+- **Filtering**: Filter trades by status (Pending, Approved, Rejected, Completed), date range, and symbol.
+- **Performance Metrics**: Track the performance of copied trades (P&L, win rate).
+
+### 7. Approval Workflow
+
+> **New in v0.22.0**
+
+When "Auto-Execute" is enabled, trades may require approval before execution based on configuration:
+
+- **Request System**: New trades from the target user generate a "Copy Trade Request".
+- **Notification**: You receive a notification to review the request.
+- **Action**: Approve or Reject the request from the Dashboard.
+- **Execution**: Approved requests are executed immediately via the brokerage API.
+
 ## Limitations
 
 1. ~~**No Actual Execution**: The current implementation creates copy trade records but doesn't execute orders.~~ ✅ **FIXED** - Manual copy trades now execute immediately via brokerage API.
 
-2. **Auto-Execute Not Implemented**: While manual copy trades work, automatic execution when auto-execute is enabled still requires implementation.
+2. **Auto-Execute Client-Side**: Fully automated execution without user intervention requires the app to be running or a background service (planned). Currently uses the Approval Workflow.
 
 3. **Single Target**: Users can only copy from one member per group at a time.
 
 4. **No Inverse Copying**: Cannot automatically do the opposite of another user's trades.
 
-5. **No Filtering**: Cannot filter by symbol, time, or other criteria (yet).
+5. ~~**No Filtering**: Cannot filter by symbol, time, or other criteria (yet).~~ ✅ **FIXED** - Dashboard provides filtering.
 
 6. **Manual Price Override**: The "override price" setting requires fetching current quotes, not yet implemented.
 

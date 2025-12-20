@@ -55,7 +55,7 @@ class CopyTradingProvider with ChangeNotifier {
         .collection('copy_trades')
         .where('targetUserId', isEqualTo: _firebaseUserId)
         .where('executed', isEqualTo: false)
-        .where('status', isEqualTo: 'approved')
+        .where('status', whereIn: ['approved', 'pending_approval'])
         .snapshots()
         .listen(_handleSnapshot);
   }
@@ -117,8 +117,33 @@ class CopyTradingProvider with ChangeNotifier {
       final record = CopyTradeRecord.fromDocument(doc);
       // Double check executed flag to avoid race conditions
       if (!record.executed) {
+        if (record.status == 'approved') {
+          await _executeTrade(record);
+        } else if (record.status == 'pending_approval') {
+          await _checkAndAutoExecute(record);
+        }
+      }
+    }
+  }
+
+  Future<void> _checkAndAutoExecute(CopyTradeRecord record) async {
+    try {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('investor_groups')
+          .doc(record.groupId)
+          .get();
+
+      if (!groupDoc.exists) return;
+
+      final group = InvestorGroup.fromJson(groupDoc.data()!);
+      final settings = group.getCopyTradeSettings(_firebaseUserId!);
+
+      if (settings != null && settings.autoExecute) {
+        debugPrint('Auto-executing copy trade: ${record.id}');
         await _executeTrade(record);
       }
+    } catch (e) {
+      debugPrint('Error checking auto-execute: $e');
     }
   }
 
@@ -288,6 +313,7 @@ class CopyTradingProvider with ChangeNotifier {
           .doc(record.id)
           .update({
         'executed': true,
+        'status': 'approved',
         'executionResult': 'success',
         'executionTime': FieldValue.serverTimestamp(),
         // 'orderId': orderResult['id'], // Assuming orderResult has id, depends on brokerage response

@@ -77,6 +77,26 @@ To prevent conflicting queries, the system enforces exclusivity between high-lev
 - **Server-Side Filtering:** All filtering logic (strength ranges, indicator states, date ranges) is executed on Firestore to minimize data transfer and client-side processing.
 - **Efficient Indexing:** Custom composite indexes support complex queries like "Show me all signals where RSI is BUY and MACD is BUY, sorted by time."
 
+### Paper Trading Mode
+
+The system includes a fully functional **Paper Trading Mode** for risk-free strategy testing and validation.
+
+**Key Features:**
+- **Risk-Free Simulation:** Execute trades without using real capital or making broker API calls.
+- **Realistic Execution:** Simulates realistic order responses, including fills and status updates.
+- **Identical Analytics:** Paper trades are tracked with the same precision as real trades, allowing for direct performance comparison.
+- **Visual Indicators:** "PAPER" badges appear on trade cards and in analytics to clearly distinguish simulated trades.
+- **Separate Tracking:** Paper trades are stored with a `paperMode: true` flag, allowing them to be filtered separately in the analytics dashboard.
+- **Strategy Validation:** Perfect for testing new indicator combinations or risk parameters before going live.
+
+**How to Enable:**
+1. Go to **Agentic Trading Settings**.
+2. Toggle **Paper Trading Mode** to ON.
+3. Configure your trading parameters as usual.
+4. Enable **Auto-Trade**.
+
+*Note: When Paper Trading is enabled, NO real orders will be sent to your brokerage.*
+
 ### Automatic Execution
 
 The system automatically executes trades when auto-trading is enabled:

@@ -14,8 +14,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**
-- 🔥 **In Progress**: Copy Trading Auto-Execute
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**
+- 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
@@ -73,11 +73,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Performance Dashboard: Track signal performance metrics (Signal Strength & Indicator Performance)
 - ✅ UI improvements & bug fixes
 
-### v0.22.0 (Q1 2026 - Early January)
+### v0.22.0 ✅ (Released Dec 20, 2025)
 **Copy Trading Enhancement**
-- Auto-Execute for Copy Trading (Client-side implementation)
-- Copy Trade Performance Dashboard
-- Approval workflow for automated copying
+- ✅ Copy Trading Dashboard (Trade history & filtering)
+- ✅ Approval workflow for copy trade requests
+- ✅ Copy Trading Execution (Manual & Request-based)
+- ✅ Auto-Execute for Copy Trading (Client-side implementation)
 
 ### v0.23.0 (Q1 2026 - Late January)
 **Futures Trading & Backtesting Refinement**
@@ -199,7 +200,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-jurisdiction support
 
 ### Version Statistics
-- **Current**: v0.20.0 (Released Dec 16, 2025)
+- **Current**: v0.22.0 (Released Dec 20, 2025)
 - **Planned Releases**: 14+ versions through 2027
 - **Features Per Release**: 5-8 per minor version
 - **Release Cadence**: Monthly in 2026, bi-weekly starting 2027
@@ -209,7 +210,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 | Feature | v0.19 | v0.20 | v0.21 | v0.22 | v0.23 | v0.24 | v0.25 | v0.26+ |
 |---------|-------|-------|-------|-------|-------|-------|-------|--------|
 | Agentic Trading | ✅ Complete | ✅ Enhanced | Stable | Stable | Stable | Stable | Stable | Mature |
-| Copy Trading | ✅ Manual | ✅ Manual | Approval | Auto | Auto | Auto | Auto | Mature |
+| Copy Trading | ✅ Manual | ✅ Manual | Approval | ✅ Auto | Auto | Auto | Auto | Mature |
 | Backtesting | ✅ Complete | ✅ Stable | Enhanced | Enhanced | Stable | Stable | Stable | Mature |
 | Multi-Brokerage | Robinhood | Robinhood | Robinhood | Robinhood | Schwab+RH | Schwab+RH | 3 Brokers | Mature |
 | Analytics | ✅ Advanced | ✅ Filtered | Advanced | Advanced | Advanced | Advanced | AI+Adv | Mature |
@@ -222,7 +223,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### Trading Automation & Execution
 - **Core Trading**: Stock Orders, Multi-Leg Options, Futures Trading, Crypto/Forex Trading
-- **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute, Trade Approval Workflow (✅)
+- **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute (✅), Trade Approval Workflow (✅)
 - **Advanced Orders**: Trailing Stops, Conditional Orders, Order Templates, Time-Based Exits (✅)
 - **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
 
@@ -483,6 +484,13 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - [x] Push notifications for copyable trades
 - [x] Selection-based UI for batch copying
 - [x] Quantity and amount limits
+- [x] **Copy Trading Dashboard** ([#71](https://github.com/CIInc/robinhood-options-mobile/issues/71)):
+    - [x] Trade history and filtering
+    - [x] Performance metrics
+- [x] **Approval Workflow** ([#97](https://github.com/CIInc/robinhood-options-mobile/issues/97)):
+    - [x] Review and approve auto-copied trades
+- [x] **Auto-Execute** ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)):
+    - [x] Client-side automatic execution for flagged copy trades
 
 ### Futures Trading
 - [x] Futures accounts handling and UI integration ([#39](https://github.com/CIInc/robinhood-options-mobile/issues/39))
@@ -519,9 +527,9 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **Revenue Impact:** Medium (foundational for premium features)
 
 #### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
-- [ ] **Auto-Execute**: Client-side automatic execution for flagged copy trades (Backend ready, Client pending) ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)) - **Large** (3-4 weeks)
-- [ ] **Dashboard**: View history of all copied trades ([#71](https://github.com/CIInc/robinhood-options-mobile/issues/71)) - **Small** (1-2 weeks)
-- [ ] **Approval Workflow**: Review and approve auto-copied trades ([#97](https://github.com/CIInc/robinhood-options-mobile/issues/97)) - **Medium** (2-3 weeks)
+- [x] **Auto-Execute**: Client-side automatic execution for flagged copy trades (Backend ready, Client pending) ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)) - **Large** (3-4 weeks)
+- [x] **Dashboard**: View history of all copied trades ([#71](https://github.com/CIInc/robinhood-options-mobile/issues/71)) - **Small** (1-2 weeks)
+- [x] **Approval Workflow**: Review and approve auto-copied trades ([#97](https://github.com/CIInc/robinhood-options-mobile/issues/97)) - **Medium** (2-3 weeks)
 - [ ] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
 - [ ] **Partial Copying**: Support copying a percentage of the original trade ([#99](https://github.com/CIInc/robinhood-options-mobile/issues/99)) - **Small** (1 week)
 - [ ] **Advanced Filtering**: Filter by symbol, time, or sector ([#101](https://github.com/CIInc/robinhood-options-mobile/issues/101)) - **Small** (1-2 weeks)
