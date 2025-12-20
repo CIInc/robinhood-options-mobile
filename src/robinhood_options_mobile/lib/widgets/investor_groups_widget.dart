@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class InvestorGroupsWidget extends StatelessWidget {
@@ -46,6 +47,18 @@ class InvestorGroupsWidget extends StatelessWidget {
             title:
                 const Text('Investor Groups', style: TextStyle(fontSize: 20.0)),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'Copy Trading History',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CopyTradingDashboardWidget(),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.add),
                 onPressed: () async {

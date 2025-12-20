@@ -50,6 +50,8 @@ class CopyTradeRecord {
   final List<CopyTradeLeg>? legs;
   final DateTime timestamp;
   final bool executed;
+  final String? executionResult;
+  final String? error;
 
   CopyTradeRecord({
     required this.id,
@@ -67,6 +69,8 @@ class CopyTradeRecord {
     this.legs,
     required this.timestamp,
     required this.executed,
+    this.executionResult,
+    this.error,
   });
 
   CopyTradeRecord.fromDocument(DocumentSnapshot doc)
@@ -91,5 +95,7 @@ class CopyTradeRecord {
                 .toList()
             : null,
         timestamp = (json['timestamp'] as Timestamp).toDate(),
-        executed = json['executed'] ?? false;
+        executed = json['executed'] ?? false,
+        executionResult = json['executionResult'],
+        error = json['error'];
 }

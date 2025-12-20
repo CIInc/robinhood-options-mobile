@@ -59,6 +59,19 @@ class CopyTradingProvider with ChangeNotifier {
         .listen(_handleSnapshot);
   }
 
+  Stream<List<CopyTradeRecord>> getTradeHistory() {
+    if (_firebaseUserId == null) return Stream.value([]);
+
+    return FirebaseFirestore.instance
+        .collection('copy_trades')
+        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CopyTradeRecord.fromDocument(doc))
+            .toList());
+  }
+
   Future<void> _handleSnapshot(QuerySnapshot snapshot) async {
     if (_isCircuitBreakerTripped) {
       debugPrint('Copy trading circuit breaker tripped. Skipping execution.');
