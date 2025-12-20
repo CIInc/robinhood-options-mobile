@@ -127,6 +127,10 @@ class _AgenticTradingPerformanceWidgetState
           const SizedBox(height: 16),
           _buildIndicatorComboCard(stats, colorScheme),
           const SizedBox(height: 16),
+          _buildSignalStrengthCard(stats, colorScheme),
+          const SizedBox(height: 16),
+          _buildSignalPerformanceCard(stats, colorScheme),
+          const SizedBox(height: 16),
           _buildSymbolPerformanceCard(stats, colorScheme),
         ],
       ),
@@ -1390,6 +1394,66 @@ class _AgenticTradingPerformanceWidgetState
       }
     }
 
+    // Calculate signal strength and individual indicator stats
+    final Map<String, Map<String, int>> signalStrengthStats = {};
+    final Map<String, Map<String, int>> individualIndicatorStats = {};
+
+    for (final trade in history) {
+      final profitLoss = trade['profitLoss'] as double?;
+      if (profitLoss == null) continue;
+
+      final proposal = trade['proposal'] as Map<String, dynamic>?;
+      if (proposal != null) {
+        final multiIndicatorResult =
+            proposal['multiIndicatorResult'] as Map<String, dynamic>?;
+        if (multiIndicatorResult != null) {
+          // Signal Strength
+          final strength = multiIndicatorResult['signalStrength'] as num?;
+          if (strength != null) {
+            final bucket = (strength / 10).floor() * 10;
+            final key = '$bucket-${bucket + 10}';
+            signalStrengthStats[key] ??= {'wins': 0, 'losses': 0, 'total': 0};
+            signalStrengthStats[key]!['total'] =
+                signalStrengthStats[key]!['total']! + 1;
+            if (profitLoss > 0) {
+              signalStrengthStats[key]!['wins'] =
+                  signalStrengthStats[key]!['wins']! + 1;
+            } else if (profitLoss < 0) {
+              signalStrengthStats[key]!['losses'] =
+                  signalStrengthStats[key]!['losses']! + 1;
+            }
+          }
+
+          // Individual Indicators
+          final indicators =
+              multiIndicatorResult['indicators'] as Map<String, dynamic>?;
+          if (indicators != null) {
+            indicators.forEach((key, value) {
+              if (value is Map<String, dynamic>) {
+                final signal = value['signal'] as String?;
+                if (signal == 'BUY' || signal == 'SELL') {
+                  individualIndicatorStats[key] ??= {
+                    'wins': 0,
+                    'losses': 0,
+                    'total': 0
+                  };
+                  individualIndicatorStats[key]!['total'] =
+                      individualIndicatorStats[key]!['total']! + 1;
+                  if (profitLoss > 0) {
+                    individualIndicatorStats[key]!['wins'] =
+                        individualIndicatorStats[key]!['wins']! + 1;
+                  } else if (profitLoss < 0) {
+                    individualIndicatorStats[key]!['losses'] =
+                        individualIndicatorStats[key]!['losses']! + 1;
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
+    }
+
     return {
       'totalTrades': totalTrades,
       'wins': wins,
@@ -1407,6 +1471,8 @@ class _AgenticTradingPerformanceWidgetState
       'avgHoldTimeMinutes': avgHoldTimeMinutes,
       'timeOfDayStats': timeOfDayStats,
       'indicatorComboStats': indicatorComboStats,
+      'signalStrengthStats': signalStrengthStats,
+      'individualIndicatorStats': individualIndicatorStats,
       'profitFactor': profitFactor,
       'expectancy': expectancy,
       'longestWinStreak': longestWinStreak,
@@ -2059,6 +2125,277 @@ class _AgenticTradingPerformanceWidgetState
                           ),
                         ),
                         const SizedBox(width: 8),
+                        Text(
+                          '${wins}W / ${losses}L',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: winRate,
+                              minHeight: 8,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                winRate >= 0.7
+                                    ? Colors.green
+                                    : winRate >= 0.5
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 50,
+                          child: Text(
+                            _percentFormat.format(winRate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: winRate >= 0.7
+                                  ? Colors.green
+                                  : winRate >= 0.5
+                                      ? Colors.orange
+                                      : Colors.red,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignalStrengthCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final signalStrengthStats =
+        stats['signalStrengthStats'] as Map<String, Map<String, int>>? ?? {};
+
+    if (signalStrengthStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Sort by strength bucket
+    final sortedBuckets = signalStrengthStats.entries.toList()
+      ..sort((a, b) {
+        final aStart = int.tryParse(a.key.split('-')[0]) ?? 0;
+        final bStart = int.tryParse(b.key.split('-')[0]) ?? 0;
+        return bStart.compareTo(aStart); // Higher strength first
+      });
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.signal_cellular_alt, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Performance by Signal Strength',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...sortedBuckets.map((entry) {
+              final bucket = entry.key;
+              final wins = entry.value['wins']!;
+              final losses = entry.value['losses']!;
+              final total = entry.value['total']!;
+              final winRate = total > 0 ? wins / total : 0.0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Strength $bucket',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${wins}W / ${losses}L ($total)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: winRate,
+                              minHeight: 8,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                winRate >= 0.7
+                                    ? Colors.green
+                                    : winRate >= 0.5
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 50,
+                          child: Text(
+                            _percentFormat.format(winRate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: winRate >= 0.7
+                                  ? Colors.green
+                                  : winRate >= 0.5
+                                      ? Colors.orange
+                                      : Colors.red,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignalPerformanceCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final individualIndicatorStats =
+        stats['individualIndicatorStats'] as Map<String, Map<String, int>>? ??
+            {};
+
+    if (individualIndicatorStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Sort by win rate
+    final sortedIndicators = individualIndicatorStats.entries.toList()
+      ..sort((a, b) {
+        final aTotal = a.value['total']!;
+        final bTotal = b.value['total']!;
+        final aWins = a.value['wins']!;
+        final bWins = b.value['wins']!;
+        final aRate = aTotal > 0 ? aWins / aTotal : 0.0;
+        final bRate = bTotal > 0 ? bWins / bTotal : 0.0;
+        if (aRate != bRate) {
+          return bRate.compareTo(aRate);
+        }
+        return bTotal.compareTo(aTotal);
+      });
+
+    // Helper to format indicator names
+    String formatIndicatorName(String key) {
+      const Map<String, String> labels = {
+        'priceMovement': 'Price Movement',
+        'momentum': 'RSI (Momentum)',
+        'marketDirection': 'Market Direction',
+        'volume': 'Volume Analysis',
+        'macd': 'MACD',
+        'bollingerBands': 'Bollinger Bands',
+        'stochastic': 'Stochastic',
+        'atr': 'ATR',
+        'obv': 'OBV',
+        'vwap': 'VWAP',
+        'adx': 'ADX',
+        'williamsR': 'Williams %R',
+      };
+      return labels[key] ?? key;
+    }
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Individual Indicator Performance',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...sortedIndicators.map((entry) {
+              final indicator = entry.key;
+              final wins = entry.value['wins']!;
+              final losses = entry.value['losses']!;
+              final total = entry.value['total']!;
+              final winRate = total > 0 ? wins / total : 0.0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          formatIndicatorName(indicator),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         Text(
                           '${wins}W / ${losses}L',
                           style: TextStyle(

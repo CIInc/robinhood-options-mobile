@@ -69,6 +69,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Custom Indicators (create your own indicators)
 - ✅ Advanced Exit Strategies (Partial, Time-Based, Market Close)
 - ✅ Backtesting Templates
+- ✅ Performance Dashboard: Track signal performance metrics (Signal Strength & Indicator Performance)
 - ✅ UI improvements & bug fixes
 
 ### v0.22.0 (Q1 2026 - Early January)

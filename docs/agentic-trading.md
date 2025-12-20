@@ -1155,6 +1155,12 @@ Navigator.push(
 
 ## Version History
 
+- **v1.4** (2025-12-19): Signal Performance Metrics
+  - Added Signal Strength Performance Card (Win Rate by strength bucket)
+  - Added Individual Indicator Performance Card (Win Rate by indicator)
+  - Enhanced analytics calculation logic
+  - Improved performance dashboard UI
+
 - **v1.3** (2025-12-13): Advanced analytics and paper trading
   - Added Paper Trading Mode for risk-free strategy testing
   - Added 9 comprehensive analytics cards in Performance Widget
