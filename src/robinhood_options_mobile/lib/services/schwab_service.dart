@@ -1353,10 +1353,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       Instrument instrument,
       String symbol,
       String side,
-      double price,
+      double? price,
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce = 'gtc'}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();

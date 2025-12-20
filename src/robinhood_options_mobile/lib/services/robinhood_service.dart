@@ -3222,10 +3222,11 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       Instrument instrument,
       String symbol, // Ticker of the stock to trade.
       String side, // Either 'buy' or 'sell'
-      double price, // Limit price to trigger a buy of the option.
+      double? price, // Limit price to trigger a buy of the option.
       int quantity, // Number of options to buy.
       {String type = 'limit', // market
       String trigger = 'immediate', // stop
+      double? stopPrice,
       String timeInForce =
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       }) async {
@@ -3237,14 +3238,16 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       'type': type,
       'time_in_force': timeInForce,
       'trigger': trigger,
-      'price': price,
-      //'stop_price': stop_price, // when trigger is stop
+      'stop_price': stopPrice, // when trigger is stop
       'quantity': quantity,
       'side': side,
       'override_day_trade_checks': false,
       'override_dtbp_checks': false,
       // 'ref_id': uuid.v4(),
     };
+    if (price != null) {
+      payload['price'] = price;
+    }
     var url = "$endpoint/orders/";
     debugPrint(url);
     var result = await user.oauth2Client!.post(Uri.parse(url),

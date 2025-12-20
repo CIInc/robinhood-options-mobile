@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 
@@ -9,6 +10,7 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeOptionWidget extends StatefulWidget {
   const TradeOptionWidget(this.user, this.service,
@@ -35,194 +37,511 @@ class TradeOptionWidget extends StatefulWidget {
 
 class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   String? positionType;
-
-  //String? optionType = "Call";
-
-  //final List<bool> isSelected = [true, false];
+  String orderType = "Limit"; // Market, Limit, Stop
+  String timeInForce = "gtc";
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
-  var deviceCtl = TextEditingController();
+  var stopPriceCtl = TextEditingController();
 
-  // Loaded with option_positions parent widget
-  //Future<OptionInstrument> futureOptionInstrument;
-
-  _TradeOptionWidgetState();
+  bool placingOrder = false;
+  double estimatedTotal = 0.0;
+  bool _isPreviewing = false;
 
   @override
   void initState() {
     super.initState();
     positionType = widget.positionType;
     widget.analytics.logScreenView(screenName: 'Trade Option');
+
+    double price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0.0;
+    priceCtl.text = price.toString();
+    stopPriceCtl.text = price.toString();
+
+    quantityCtl.addListener(_updateEstimates);
+    priceCtl.addListener(_updateEstimates);
+    stopPriceCtl.addListener(_updateEstimates);
+    _updateEstimates();
+  }
+
+  @override
+  void dispose() {
+    quantityCtl.dispose();
+    priceCtl.dispose();
+    stopPriceCtl.dispose();
+    super.dispose();
+  }
+
+  void _updateEstimates() {
+    if (!mounted) return;
+    setState(() {
+      double qty = double.tryParse(quantityCtl.text) ?? 0;
+      double price = 0;
+      if (orderType == 'Limit') {
+        price = double.tryParse(priceCtl.text) ?? 0;
+      } else if (orderType == 'Stop') {
+        price = double.tryParse(stopPriceCtl.text) ?? 0;
+      } else {
+        // Market
+        price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0;
+      }
+      estimatedTotal = qty * price * 100; // Options multiplier
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    var floatBtn = SizedBox(
-        width: 340.0,
-        child: ElevatedButton.icon(
-          label: Text(positionType!),
-          //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
-          icon: const Icon(Icons.attach_money),
-          onPressed: () async {
-            var accountStore =
-                Provider.of<AccountStore>(context, listen: false);
-            var orderJson = await widget.service.placeOptionsOrder(
-              widget.user,
-              accountStore.items[0],
-              widget.optionInstrument!,
-              positionType == "Buy" ? "buy" : "sell", // side
-              "open", //positionEffect
-              "debit", //creditOrDebit
-              double.parse(priceCtl.text),
-              int.parse(quantityCtl.text),
-            );
+    final theme = Theme.of(context);
+    final option = widget.optionInstrument!;
+    final currentPrice = option.optionMarketData?.markPrice ?? 0.0;
 
-            var newOrder = OptionOrder.fromJson(orderJson);
-
-            // widget.analytics.logPurchase(
-            //     currency: widget.optionInstrument!.chainSymbol,
-            //     value:
-            //         double.parse(priceCtl.text) + int.parse(quantityCtl.text),
-            //     transactionId: newOrder.id,
-            //     affiliation: positionType);
-
-            if (newOrder.state == "confirmed" ||
-                newOrder.state == "unconfirmed") {
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                    content: Text(
-                        "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed."),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-              }
-            } else {
-              setState(() {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                    content: Text("Error placing order. $orderJson"),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-              });
-            }
-          },
-        ));
-    priceCtl.text =
-        widget.optionInstrument!.optionMarketData!.markPrice!.toString();
     return Scaffold(
         appBar: AppBar(
-          title: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 20,
-              //runSpacing: 5,
-              children: [
-                Text(
-                    '${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type}',
-                    style: const TextStyle(fontSize: 20.0)),
-                Text(
-                    formatDate.format(widget.optionInstrument!.expirationDate!),
-                    style: const TextStyle(fontSize: 15.0))
-              ]),
-        ),
-        body: Builder(builder: (context) {
-          return ListView(
-            padding: const EdgeInsets.all(15.0),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ListTile(
-                title: const Text("Position Type"),
-                trailing: ToggleButtons(
-                  onPressed: (int index) {
-                    setState(() {
-                      positionType = index == 0 ? "Buy" : "Sell";
-                      /*
-                      for (int buttonIndex = 0;
-                          buttonIndex < isSelected.length;
-                          buttonIndex++) {
-                        if (buttonIndex == index) {
-                          positionType = buttonIndex
-                          isSelected[buttonIndex] = true;
-                        } else {
-                          isSelected[buttonIndex] = false;
-                        }
-                      }
-                      */
-                    });
-                  },
-                  isSelected: [
-                    positionType == "Buy",
-                    positionType == "Sell"
-                  ], //isSelected,
-                  children: const <Widget>[
-                    Padding(
-                        padding: EdgeInsets.all(14.0),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Buy',
-                              style: TextStyle(fontSize: 16),
-                            )
-                          ],
-                        )),
-                    Padding(
-                      padding: EdgeInsets.all(14.0),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Sell',
-                            style: TextStyle(fontSize: 16),
-                          )
-                        ],
-                      ),
-                    ),
-                    //Icon(Icons.ac_unit),
-                    //Icon(Icons.call),
-                    //Icon(Icons.cake),
-                  ],
-                ),
+              Text(
+                  '${option.chainSymbol} \$${option.strikePrice} ${option.type}'),
+              Text(
+                '${formatDate.format(option.expirationDate!)} • ${formatCurrency.format(currentPrice)}',
+                style: theme.textTheme.labelMedium
+                    ?.copyWith(color: Colors.white70),
               ),
-              ListTile(
-                title: TextField(
-                  controller: quantityCtl,
-                ),
-                subtitle: const Text("Contract"),
-              ),
-              ListTile(
-                title: TextField(
-                  controller: priceCtl,
-                  //obscureText: true,
-                ),
-                subtitle: const Text("Price"),
-              ),
-              Container(
-                height: 20,
-              ),
-              Center(child: floatBtn)
             ],
-          );
-        })
-        /*
-        body: new FutureBuilder(
-            future: futureOptionPosition,
-            builder: (context, AsyncSnapshot<OptionPosition> snapshot) {
-              if (snapshot.hasData) {
-                return _buildPosition(snapshot.data);
-              } else if (snapshot.hasError) {
-                print("${snapshot.error}");
-                return Text("${snapshot.error}");
-              }
-              // By default, show a loading spinner
-              return Center(
-                child: CircularProgressIndicator(),
+          ),
+        ),
+        body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Order Side (Buy/Sell)
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                value: "Buy",
+                label: Text("Buy"),
+                icon: Icon(Icons.add),
+              ),
+              ButtonSegment(
+                value: "Sell",
+                label: Text("Sell"),
+                icon: Icon(Icons.remove),
+              ),
+            ],
+            selected: {positionType ?? "Buy"},
+            onSelectionChanged: (Set<String> newSelection) {
+              setState(() {
+                positionType = newSelection.first;
+              });
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy"
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2);
+                  }
+                  return null;
+                },
+              ),
+              foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                (Set<WidgetState> states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return positionType == "Buy" ? Colors.green : Colors.red;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Order Type
+          DropdownButtonFormField<String>(
+            initialValue: orderType,
+            decoration: const InputDecoration(
+              labelText: "Order Type",
+              border: OutlineInputBorder(),
+              filled: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            onChanged: (String? newValue) {
+              setState(() {
+                orderType = newValue!;
+                _updateEstimates();
+              });
+            },
+            items: <String>['Market', 'Limit', 'Stop']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
               );
-            }));
-            */
-        );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
+          // Contracts
+          TextFormField(
+            controller: quantityCtl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: false),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(
+              labelText: "Contracts",
+              border: OutlineInputBorder(),
+              filled: true,
+              suffixText: "contracts",
+            ),
+            style: const TextStyle(fontSize: 18),
+          ),
+          const SizedBox(height: 16),
+
+          // Limit Price (Conditional)
+          if (orderType == 'Limit') ...[
+            TextFormField(
+              controller: priceCtl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+              ],
+              decoration: const InputDecoration(
+                labelText: "Limit Price",
+                border: OutlineInputBorder(),
+                filled: true,
+                prefixText: "\$",
+              ),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Stop Price (Conditional)
+          if (orderType == 'Stop') ...[
+            TextFormField(
+              controller: stopPriceCtl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+              ],
+              decoration: const InputDecoration(
+                labelText: "Stop Price",
+                border: OutlineInputBorder(),
+                filled: true,
+                prefixText: "\$",
+              ),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Time in Force
+          DropdownButtonFormField<String>(
+            initialValue: timeInForce,
+            decoration: const InputDecoration(
+              labelText: "Time in Force",
+              border: OutlineInputBorder(),
+              filled: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            onChanged: (String? newValue) {
+              setState(() {
+                timeInForce = newValue!;
+              });
+            },
+            items: <String>['gtc', 'gfd', 'ioc', 'opg']
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value.toUpperCase()),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+
+          // Summary Section
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Estimated Total", style: theme.textTheme.bodyLarge),
+                      Text(
+                        formatCurrency.format(estimatedTotal),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Consumer<AccountStore>(
+                    builder: (context, accountStore, child) {
+                      final buyingPower = accountStore.items.isNotEmpty
+                          ? accountStore.items[0].buyingPower
+                          : 0.0;
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Action Button
+          SizedBox(
+            height: 50,
+            child: FilledButton.icon(
+              label: const Text(
+                "Preview Order",
+                style: TextStyle(fontSize: 18),
+              ),
+              icon: placingOrder
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ))
+                  : const Icon(Icons.visibility),
+              onPressed: placingOrder || estimatedTotal <= 0
+                  ? null
+                  : () {
+                      setState(() {
+                        _isPreviewing = true;
+                      });
+                    },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            "Review Order",
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Text(
+                    "$positionType ${quantityCtl.text} contracts",
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type}",
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: theme.colorScheme.secondary),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildPreviewRow("Order Type", orderType),
+                  if (orderType == 'Limit')
+                    _buildPreviewRow("Limit Price", "\$${priceCtl.text}"),
+                  if (orderType == 'Stop')
+                    _buildPreviewRow("Stop Price", "\$${stopPriceCtl.text}"),
+                  _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: Divider(),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Estimated Total", style: theme.textTheme.bodyLarge),
+                      Text(
+                        formatCurrency.format(estimatedTotal),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Consumer<AccountStore>(
+                    builder: (context, accountStore, child) {
+                      final buyingPower = accountStore.items.isNotEmpty
+                          ? accountStore.items[0].buyingPower
+                          : 0.0;
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SlideToConfirm(
+            onConfirmed: () {
+              _placeOrder();
+            },
+            text: "Slide to $positionType",
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            sliderColor: positionType == "Buy" ? Colors.green : Colors.red,
+            iconColor: Colors.white,
+            textColor: theme.colorScheme.onSurface,
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            child: const Text("Edit Order"),
+            onPressed: () {
+              setState(() {
+                _isPreviewing = false;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewRow(String label, String value, {bool isBold = false}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                  color: theme.colorScheme.onSurface)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _placeOrder() async {
+    setState(() {
+      placingOrder = true;
+    });
+    var accountStore = Provider.of<AccountStore>(context, listen: false);
+
+    try {
+      String type = 'market';
+      String trigger = 'immediate';
+      double price = 0;
+      // double? stopPrice;
+
+      if (orderType == 'Limit') {
+        type = 'limit';
+        price = double.parse(priceCtl.text);
+      } else if (orderType == 'Stop') {
+        type = 'market';
+        trigger = 'stop';
+        // stopPrice = double.parse(stopPriceCtl.text);
+        price = double.parse(stopPriceCtl.text);
+      } else {
+        // Market
+        price = double.parse(priceCtl.text);
+      }
+
+      var orderJson = await widget.service.placeOptionsOrder(
+        widget.user,
+        accountStore.items[0],
+        widget.optionInstrument!,
+        positionType == "Buy" ? "buy" : "sell", // side
+        "open", //positionEffect
+        "debit", //creditOrDebit
+        price,
+        int.parse(quantityCtl.text),
+        type: type,
+        trigger: trigger,
+        timeInForce: timeInForce,
+      );
+
+      var newOrder = OptionOrder.fromJson(orderJson);
+
+      if (!mounted) return;
+
+      if (newOrder.state == "confirmed" || newOrder.state == "unconfirmed") {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed."),
+          behavior: SnackBarBehavior.floating,
+        ));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error placing order. State: ${newOrder.state}"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          placingOrder = false;
+        });
+      }
+    }
   }
 }

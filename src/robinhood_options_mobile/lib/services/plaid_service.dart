@@ -508,10 +508,11 @@ class PlaidService implements IBrokerageService {
       Instrument instrument,
       String symbol,
       String side,
-      double price,
+      double? price,
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce = 'gtc'}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();

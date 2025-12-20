@@ -153,10 +153,11 @@ class MockBrokerageService implements IBrokerageService {
       Instrument instrument,
       String symbol,
       String side,
-      double price,
+      double? price,
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce = 'gtc'}) async {
     return {'id': 'mock_order_id', 'state': 'filled'};
   }

@@ -316,7 +316,8 @@ class CopyTradingProvider with ChangeNotifier {
         'status': 'approved',
         'executionResult': 'success',
         'executionTime': FieldValue.serverTimestamp(),
-        // 'orderId': orderResult['id'], // Assuming orderResult has id, depends on brokerage response
+        // TODO: Confirm orderId field name with brokerage response
+        // 'orderId': orderResult.body['id'], // Assuming orderResult has id, depends on brokerage response
       });
 
       debugPrint('Executed copy trade: ${record.id}');

@@ -225,10 +225,11 @@ abstract class IBrokerageService {
       Instrument instrument,
       String symbol, // Ticker of the stock to trade.
       String side, // Either 'buy' or 'sell'
-      double price, // Limit price to trigger a buy of the option.
+      double? price, // Limit price to trigger a buy of the option.
       int quantity, // Number of options to buy.
       {String type = 'limit', // market
       String trigger = 'immediate', // stop
+      double? stopPrice,
       String timeInForce =
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       });
