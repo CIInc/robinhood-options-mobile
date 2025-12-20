@@ -4,6 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
+import 'package:robinhood_options_mobile/model/backtesting_defaults.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
 /// Provider for managing backtesting operations
@@ -23,7 +24,7 @@ class BacktestingProvider with ChangeNotifier {
   String? _errorMessage;
   double _progress = 0.0;
   List<BacktestResult> _backtestHistory = [];
-  List<BacktestTemplate> _templates = [];
+  List<BacktestTemplate> _userTemplates = [];
   DocumentReference<User>? _userDocRef;
   BacktestTemplate? _pendingTemplate; // Template waiting to be loaded
 
@@ -33,7 +34,8 @@ class BacktestingProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double get progress => _progress;
   List<BacktestResult> get backtestHistory => _backtestHistory;
-  List<BacktestTemplate> get templates => _templates;
+  List<BacktestTemplate> get templates =>
+      [...BacktestingDefaults.defaultTemplates, ..._userTemplates];
   BacktestTemplate? get pendingTemplate => _pendingTemplate;
 
   /// Initialize provider with user document reference
@@ -181,7 +183,7 @@ class BacktestingProvider with ChangeNotifier {
           .doc(template.id)
           .set(template.toJson());
 
-      _templates.add(template);
+      _userTemplates.add(template);
       notifyListeners();
 
       await _analytics.logEvent(
@@ -222,7 +224,7 @@ class BacktestingProvider with ChangeNotifier {
           .collection('backtest_templates')
           .get();
 
-      _templates = snapshot.docs
+      _userTemplates = snapshot.docs
           .map((doc) => BacktestTemplate.fromJson(
                 Map<String, dynamic>.from(doc.data()),
               ))
@@ -236,6 +238,11 @@ class BacktestingProvider with ChangeNotifier {
 
   /// Delete a template
   Future<void> deleteTemplate(String templateId) async {
+    if (templateId.startsWith('default_')) {
+      debugPrint('⚠️ Cannot delete default template');
+      return;
+    }
+
     if (_userDocRef == null) return;
 
     try {
@@ -246,7 +253,7 @@ class BacktestingProvider with ChangeNotifier {
           .doc(templateId)
           .delete();
 
-      _templates.removeWhere((t) => t.id == templateId);
+      _userTemplates.removeWhere((t) => t.id == templateId);
       notifyListeners();
 
       await _analytics.logEvent(
@@ -261,6 +268,10 @@ class BacktestingProvider with ChangeNotifier {
 
   /// Update template last used timestamp
   Future<void> updateTemplateUsage(String templateId) async {
+    if (templateId.startsWith('default_')) {
+      return; // Cannot update default templates in Firestore
+    }
+
     if (_userDocRef == null) return;
 
     try {
@@ -272,10 +283,10 @@ class BacktestingProvider with ChangeNotifier {
           .doc(templateId)
           .update({'lastUsedAt': now.toIso8601String()});
 
-      final index = _templates.indexWhere((t) => t.id == templateId);
+      final index = _userTemplates.indexWhere((t) => t.id == templateId);
       if (index != -1) {
-        final template = _templates[index];
-        _templates[index] = BacktestTemplate(
+        final template = _userTemplates[index];
+        _userTemplates[index] = BacktestTemplate(
           id: template.id,
           name: template.name,
           description: template.description,

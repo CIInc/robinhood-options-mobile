@@ -722,11 +722,115 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // Save Template button
+                OutlinedButton.icon(
+                  onPressed: () => _showSaveTemplateDialog(context),
+                  icon: const Icon(Icons.save_alt),
+                  label: const Text('Save Configuration as Template'),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  void _showSaveTemplateDialog(BuildContext context) {
+    if (!_formKey.currentState!.validate()) return;
+
+    final symbol = _symbolController.text.trim().toUpperCase();
+    final defaultName = '$symbol $_interval Strategy';
+    final nameController = TextEditingController(text: defaultName);
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save as Template'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Template Name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a template name')),
+                );
+                return;
+              }
+
+              final config = BacktestConfig(
+                symbol: symbol,
+                startDate: _startDate,
+                endDate: _endDate,
+                initialCapital: double.parse(_initialCapitalController.text),
+                interval: _interval,
+                enabledIndicators: _enabledIndicators,
+                tradeQuantity: int.parse(_tradeQuantityController.text),
+                takeProfitPercent: double.parse(_takeProfitController.text),
+                stopLossPercent: double.parse(_stopLossController.text),
+                trailingStopEnabled: _trailingStopEnabled,
+                trailingStopPercent: double.parse(_trailingStopController.text),
+                rsiPeriod: int.parse(_rsiPeriodController.text),
+                smaPeriodFast: int.parse(_smaFastController.text),
+                smaPeriodSlow: int.parse(_smaSlowController.text),
+                marketIndexSymbol:
+                    _marketIndexController.text.trim().toUpperCase(),
+              );
+
+              final provider =
+                  Provider.of<BacktestingProvider>(context, listen: false);
+              try {
+                await provider.saveConfigAsTemplate(
+                  name: nameController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  config: config,
+                );
+                if (context.mounted) {
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Template saved successfully')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error saving template: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2054,6 +2158,8 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
           itemBuilder: (context, index) {
             final template = provider.templates[index];
 
+            final isDefault = template.id.startsWith('default_');
+
             return Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
@@ -2093,14 +2199,19 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
+                              color: isDefault
+                                  ? Colors.amber.withValues(alpha: 0.15)
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer
+                                      .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              Icons.bookmark,
-                              color: Theme.of(context).colorScheme.primary,
+                              isDefault ? Icons.verified : Icons.bookmark,
+                              color: isDefault
+                                  ? Colors.amber[800]
+                                  : Theme.of(context).colorScheme.primary,
                               size: 24,
                             ),
                           ),
@@ -2109,12 +2220,44 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  template.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        template.name,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isDefault) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber
+                                              .withValues(alpha: 0.2),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                              color: Colors.amber
+                                                  .withValues(alpha: 0.5),
+                                              width: 0.5),
+                                        ),
+                                        child: Text(
+                                          'SYSTEM',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber[900],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 if (template.description.isNotEmpty) ...[
                                   const SizedBox(height: 4),
@@ -2131,50 +2274,51 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                               ],
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 20),
-                            color: Colors.grey,
-                            onPressed: () async {
-                              final confirmed = await showDialog<bool>(
-                                context: context,
-                                builder: (BuildContext dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Delete Template'),
-                                    content: Text(
-                                        'Are you sure you want to delete the template "${template.name}"?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(dialogContext)
-                                                .pop(false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.of(dialogContext)
-                                                .pop(true),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          foregroundColor: Colors.white,
+                          if (!isDefault)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              color: Colors.grey,
+                              onPressed: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (BuildContext dialogContext) {
+                                    return AlertDialog(
+                                      title: const Text('Delete Template'),
+                                      content: Text(
+                                          'Are you sure you want to delete the template "${template.name}"?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(dialogContext)
+                                                  .pop(false),
+                                          child: const Text('Cancel'),
                                         ),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.of(dialogContext)
+                                                  .pop(true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
 
-                              if (confirmed == true) {
-                                await provider.deleteTemplate(template.id);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Template deleted')),
-                                  );
+                                if (confirmed == true) {
+                                  await provider.deleteTemplate(template.id);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Template deleted')),
+                                    );
+                                  }
                                 }
-                              }
-                            },
-                          ),
+                              },
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
