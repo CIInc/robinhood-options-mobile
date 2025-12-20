@@ -1,6 +1,19 @@
 import * as logger from "firebase-functions/logger";
 import { VertexAI } from "@google-cloud/vertexai";
 
+// Initialize VertexAI client outside the function to reuse in warm instances
+const vertexAI = new VertexAI({
+  project: "realizealpha",
+  location: "us-central1",
+});
+
+const model = vertexAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  generationConfig: {
+    responseMimeType: "application/json",
+  },
+});
+
 interface OptimizationResult {
   confidenceScore: number;
   refinedSignal: "BUY" | "SELL" | "HOLD";
@@ -25,18 +38,6 @@ export async function optimizeSignal(
   marketIndexData: any
 ): Promise<OptimizationResult> {
   try {
-    const vertexAI = new VertexAI({
-      project: "realizealpha",
-      location: "us-central1",
-    });
-
-    const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
-    });
-
     const indicators = multiIndicatorResult.indicators;
     const lastPrices = marketData.closes.slice(-10);
     const lastVolumes = (marketData.volumes || []).slice(-10);

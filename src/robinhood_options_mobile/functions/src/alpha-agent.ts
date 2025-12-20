@@ -238,7 +238,7 @@ export async function handleAlphaTask(marketData: any,
     customIndicators: config?.customIndicators || [],
   };
 
-  logger.info("📊 Evaluating indicators with config", {
+  logger.info(`📊 Evaluating indicators for ${symbol} with config`, {
     marketFastPeriod: indicatorConfig.marketFastPeriod,
     marketSlowPeriod: indicatorConfig.marketSlowPeriod,
     configSmaPeriodFast: config?.smaPeriodFast,
@@ -254,34 +254,106 @@ export async function handleAlphaTask(marketData: any,
     indicatorConfig
   );
 
+  // Check if indicators have changed since last run to avoid expensive ML calls
+  const signalDocId = interval === "1d" ?
+    `signals_${symbol}` : `signals_${symbol}_${interval}`;
+  let previousSignalDoc: any = null;
+  try {
+    const doc = await db.doc(`agentic_trading/${signalDocId}`).get();
+    if (doc.exists) {
+      previousSignalDoc = doc.data();
+    }
+  } catch (e) {
+    logger.warn(`Error fetching previous signal for ${symbol}`, e);
+  }
+
+  let optimization: any = null;
+  // let indicatorsChanged = true;
+
+  if (previousSignalDoc && previousSignalDoc.multiIndicatorResult) {
+    // Simple string comparison of indicators object
+    // This assumes key order stability which is generally true in V8
+    const prevIndicators = JSON.stringify(
+      previousSignalDoc.multiIndicatorResult.indicators
+    );
+    const currIndicators = JSON.stringify(multiIndicatorResult.indicators);
+    if (prevIndicators === currIndicators) {
+      // indicatorsChanged = false;
+      logger.info(`Indicators unchanged for ${symbol}, skipping processing`);
+      // Reuse previous optimization if available
+      optimization = previousSignalDoc.optimization;
+
+      // If indicators haven't changed, we can skip the rest of the processing
+      // and return the previous result (or a no-action result)
+      return {
+        status: "no_action",
+        message: "Alpha agent: Indicators unchanged, skipping processing.",
+        reason: previousSignalDoc.reason,
+        signal: previousSignalDoc.signal,
+        interval,
+        multiIndicatorResult: previousSignalDoc.multiIndicatorResult,
+      };
+    }
+  }
+
   // Optimize signal with ML
-  const optimization = await optimizeSignal(
-    symbol,
-    interval,
-    multiIndicatorResult,
-    { opens, highs, lows, closes, volumes },
-    marketIndexData
-  );
+  // Only run optimization if indicators changed
+  // if (indicatorsChanged) {
+  try {
+    optimization = await optimizeSignal(
+      symbol,
+      interval,
+      multiIndicatorResult,
+      { opens, highs, lows, closes, volumes },
+      marketIndexData
+    );
+  } catch (error) {
+    logger.error(`Error running signal optimization for ${symbol}`, error);
+  }
+  // }
 
   let { allGreen, indicators: indicatorResults,
     overallSignal, reason } = multiIndicatorResult;
 
   // Apply ML Optimization (Smart Filter)
-  // If ML strongly disagrees with a trade signal, downgrade to HOLD
-  if (overallSignal !== "HOLD" &&
-    optimization.refinedSignal === "HOLD" &&
-    optimization.confidenceScore > 75) {
-    logger.info(`📉 ML Optimization downgraded ${overallSignal} to HOLD`, {
-      original: overallSignal,
-      mlSignal: optimization.refinedSignal,
-      confidence: optimization.confidenceScore,
-      reason: optimization.reasoning,
-    });
-    overallSignal = "HOLD";
-    reason = `ML Optimization: ${optimization.reasoning}`;
-    // Update the result object for storage consistency
-    multiIndicatorResult.overallSignal = "HOLD";
-    multiIndicatorResult.reason = reason;
+  if (optimization && optimization.confidenceScore > 75) {
+    // If ML strongly disagrees with a trade signal, downgrade to HOLD
+    if (overallSignal !== "HOLD" &&
+      optimization.refinedSignal === "HOLD") {
+      logger.info(
+        `📉 ML Optimization for ${symbol} downgraded ${overallSignal} ` +
+        "to HOLD",
+        {
+          original: overallSignal,
+          mlSignal: optimization.refinedSignal,
+          confidence: optimization.confidenceScore,
+          reason: optimization.reasoning,
+        }
+      );
+      overallSignal = "HOLD";
+      reason = `ML Optimization: ${optimization.reasoning}`;
+      // Update the result object for storage consistency
+      multiIndicatorResult.overallSignal = "HOLD";
+      multiIndicatorResult.reason = reason;
+    } else if (overallSignal === "HOLD" &&
+      optimization.refinedSignal !== "HOLD") {
+      // If ML strongly disagrees with a HOLD signal, upgrade to BUY/SELL
+      logger.info(
+        `📈 ML Optimization for ${symbol} upgraded HOLD to ` +
+        `${optimization.refinedSignal}`,
+        {
+          original: overallSignal,
+          mlSignal: optimization.refinedSignal,
+          confidence: optimization.confidenceScore,
+          reason: optimization.reasoning,
+        }
+      );
+      overallSignal = optimization.refinedSignal;
+      reason = `ML Optimization: ${optimization.reasoning}`;
+      // Update the result object for storage consistency
+      multiIndicatorResult.overallSignal = optimization.refinedSignal;
+      multiIndicatorResult.reason = reason;
+    }
   }
 
   logger.info("Multi-indicator evaluation", {
@@ -330,9 +402,12 @@ export async function handleAlphaTask(marketData: any,
         portfolioState,
       };
       await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-      logger.info(`Alpha agent stored HOLD signal for ${interval}`, signalDoc);
+      logger.info(
+        `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
+        signalDoc
+      );
     } catch (err) {
-      logger.warn("Failed to persist trade signal", err);
+      logger.warn(`Failed to persist trade signal for ${symbol}`, err);
     }
 
     return {
@@ -395,7 +470,7 @@ export async function handleAlphaTask(marketData: any,
     await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
     logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
   } catch (err) {
-    logger.warn("Failed to persist trade signal", err);
+    logger.warn(`Failed to persist trade signal for ${symbol}`, err);
   }
 
   if (!assessment.approved) {

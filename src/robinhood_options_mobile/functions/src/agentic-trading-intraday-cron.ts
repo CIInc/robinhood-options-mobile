@@ -16,7 +16,7 @@ export const agenticTradingIntradayCron = onSchedule(
     // Monday-Friday at 30 minutes past each hour
     schedule: "30 9-16 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
-    memory: "512MiB",
+    memory: "1GiB",
     timeoutSeconds: 540,
   },
   async () => {
@@ -32,25 +32,40 @@ export const agenticTradingIntradayCron = onSchedule(
       }
 
       let processedCount = 0;
+      let skippedCount = 0;
       let errorCount = 0;
 
-      for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_") &&
-          !doc.id.endsWith("_1h") &&
-          !doc.id.endsWith("_15m")) {
+      // Fetch config once
+      let config = {};
+      try {
+        const configDoc = await db.doc("agentic_trading/config").get();
+        if (configDoc.exists) {
+          config = configDoc.data() || {};
+        }
+      } catch (e) {
+        logger.error("Error fetching config", e);
+      }
+
+      const docsToProcess = snapshot.docs.filter((doc) =>
+        doc.id.startsWith("chart_") &&
+        !doc.id.endsWith("_1h") &&
+        !doc.id.endsWith("_15m")
+      );
+
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
+        const batch = docsToProcess.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (doc) => {
           const symbol = doc.id.replace("chart_", "");
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
-            continue;
+            return;
           }
 
           logger.info(
             `Triggering intraday trade proposal for symbol: ${symbol}`
           );
           try {
-            const configDoc = await db.doc("agentic_trading/config").get();
-            const config = configDoc.exists ? configDoc.data() : {};
-
             // Generate hourly signal
             const data = {
               symbol: symbol,
@@ -58,8 +73,12 @@ export const agenticTradingIntradayCron = onSchedule(
               ...config,
               portfolioState: {},
             };
-            await performTradeProposal({ data } as any);
-            processedCount++;
+            const result = await performTradeProposal({ data } as any);
+            if (result && result.status === "no_action") {
+              skippedCount++;
+            } else {
+              processedCount++;
+            }
           } catch (err) {
             errorCount++;
             logger.error(
@@ -68,12 +87,12 @@ export const agenticTradingIntradayCron = onSchedule(
             );
             // Continue processing other symbols even if one fails
           }
-        }
+        }));
       }
 
       logger.info(
         `Intraday Agentic Trading Cron completed: ${processedCount} ` +
-        `processed, ${errorCount} errors`
+        `processed, ${skippedCount} skipped, ${errorCount} errors`
       );
     } catch (err) {
       logger.error("Fatal error in intraday agentic trading cron job:", err);
@@ -92,7 +111,7 @@ export const agenticTrading15mCron = onSchedule(
     // At 15, 30, 45, and 00 minutes past the hour
     schedule: "15,30,45,0 9-16 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
-    memory: "512MiB",
+    memory: "1GiB",
     timeoutSeconds: 540,
   },
   async () => {
@@ -107,25 +126,40 @@ export const agenticTrading15mCron = onSchedule(
       }
 
       let processedCount = 0;
+      let skippedCount = 0;
       let errorCount = 0;
 
-      for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_") &&
-          !doc.id.endsWith("_1h") &&
-          !doc.id.endsWith("_15m")) {
+      // Fetch config once
+      let config = {};
+      try {
+        const configDoc = await db.doc("agentic_trading/config").get();
+        if (configDoc.exists) {
+          config = configDoc.data() || {};
+        }
+      } catch (e) {
+        logger.error("Error fetching config", e);
+      }
+
+      const docsToProcess = snapshot.docs.filter((doc) =>
+        doc.id.startsWith("chart_") &&
+        !doc.id.endsWith("_1h") &&
+        !doc.id.endsWith("_15m")
+      );
+
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
+        const batch = docsToProcess.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (doc) => {
           const symbol = doc.id.replace("chart_", "");
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
-            continue;
+            return;
           }
 
           logger.info(
             `Triggering 15m trade proposal for symbol: ${symbol}`
           );
           try {
-            const configDoc = await db.doc("agentic_trading/config").get();
-            const config = configDoc.exists ? configDoc.data() : {};
-
             // Generate 15-minute signal
             const data = {
               symbol: symbol,
@@ -133,8 +167,12 @@ export const agenticTrading15mCron = onSchedule(
               ...config,
               portfolioState: {},
             };
-            await performTradeProposal({ data } as any);
-            processedCount++;
+            const result = await performTradeProposal({ data } as any);
+            if (result && result.status === "no_action") {
+              skippedCount++;
+            } else {
+              processedCount++;
+            }
           } catch (err) {
             errorCount++;
             logger.error(
@@ -143,12 +181,12 @@ export const agenticTrading15mCron = onSchedule(
             );
             // Continue processing other symbols even if one fails
           }
-        }
+        }));
       }
 
       logger.info(
         `15-minute Agentic Trading Cron completed: ${processedCount} ` +
-        `processed, ${errorCount} errors`
+        `processed, ${skippedCount} skipped, ${errorCount} errors`
       );
     } catch (err) {
       logger.error("Fatal error in 15m agentic trading cron job:", err);
