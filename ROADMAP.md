@@ -280,19 +280,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Developer Tools**: API Documentation, Developer Guide, Architecture Records, Mock Services
 - **Data & Integration**: Historical Data Exports, API Access, Webhook Notifications, Third-Party Integrations
 
-### Capability Maturity by Q
-
-| Capability | Q1 2026 | Q2 2026 | Q3 2026 | Q4 2026 | Status |
-|------------|---------|---------|---------|---------|--------|
-| Trading Automation | Advanced | Advanced | Advanced | Mature | 🟢 |
-| Multi-Brokerage | Foundation | Advanced | Mature | Mature | 🟡 |
-| Analytics | Advanced | Mature | Mature | Mature | 🟢 |
-| Real-Time Monitoring | Foundation | Advanced | Advanced | Mature | 🟡 |
-| AI & Insights | Foundation | Advanced | Mature | Mature | 🟡 |
-| Social & Community | Foundation | Foundation | Advanced | Mature | 🔴 |
-| Security & Compliance | Foundation | Foundation | Advanced | Mature | 🔴 |
-| Mobile Experience | Advanced | Advanced | Mature | Mature | 🟢 |
-
 ## Feature Dependencies & Critical Path
 
 Understanding dependencies helps with sprint planning and resource allocation. Below are key dependencies that affect the critical path:
@@ -331,17 +318,6 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - **End-to-End Encryption** ← Requires: Security Foundation, Key Management, Encryption Library
 - **CI/CD Pipeline** ← Requires: Testing Framework, Build Infrastructure, GitHub Actions Setup
 - **Compliance Automation** ← Requires: Legal Framework, Regulatory Database, Audit Logging
-
-### Blocking Issues & Critical Path
-
-**Current Blockers:**
-- None identified - all critical path items are unblocked
-
-**Critical Path Timeline:**
-1. **Q1 2026**: Complete Backtesting (enables Signal Optimization, Strategy Validation)
-2. **Q2 2026**: Complete Brokerage Integrations (enables Multi-Asset Class Trading)
-3. **Q3 2026**: Complete AI Assistant + Social Platform (enables Community Features)
-4. **Q4 2026**: Security & Compliance (enables App Store Release)
 
 ### Dependency Legend
 - ✅ = Already Completed

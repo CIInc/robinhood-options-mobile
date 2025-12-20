@@ -52,6 +52,7 @@ class CopyTradeRecord {
   final bool executed;
   final String? executionResult;
   final String? error;
+  final String status; // pending_approval, approved, rejected
 
   CopyTradeRecord({
     required this.id,
@@ -71,6 +72,7 @@ class CopyTradeRecord {
     required this.executed,
     this.executionResult,
     this.error,
+    this.status = 'approved',
   });
 
   CopyTradeRecord.fromDocument(DocumentSnapshot doc)
@@ -97,5 +99,6 @@ class CopyTradeRecord {
         timestamp = (json['timestamp'] as Timestamp).toDate(),
         executed = json['executed'] ?? false,
         executionResult = json['executionResult'],
-        error = json['error'];
+        error = json['error'],
+        status = json['status'] ?? 'approved';
 }

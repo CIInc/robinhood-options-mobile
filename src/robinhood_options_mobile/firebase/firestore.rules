@@ -114,7 +114,7 @@ service cloud.firestore {
     match /copy_trades/{tradeId} {
       // Users can read their own copy trades (as source or target)
       allow read: if request.auth.uid != null && (
-        request.auth.uid == resource.data.sourceUserId ||
+        // request.auth.uid == resource.data.sourceUserId ||
         request.auth.uid == resource.data.targetUserId
       );
       // Only the system (backend functions) can create copy trades

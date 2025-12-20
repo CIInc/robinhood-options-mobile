@@ -9,6 +9,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart'
     as pie_chart;
+import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 
 class CopyTradingDashboardWidget extends StatefulWidget {
   const CopyTradingDashboardWidget({super.key});
@@ -40,6 +41,18 @@ class _CopyTradingDashboardWidgetState
           appBar: AppBar(
             title: const Text('Copy Trading Dashboard'),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.pending_actions),
+                tooltip: 'Review Requests',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CopyTradeRequestsWidget(),
+                    ),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.download),
                 onPressed: () => _exportTrades(filteredTrades),

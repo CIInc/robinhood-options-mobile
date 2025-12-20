@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -40,6 +41,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -101,9 +103,36 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   Timer? refreshCredentialsTimer;
   // Moved to AgenticTradingProvider: autoTradeTimer
 
+  Future<void> setupInteractedMessage() async {
+    // Get any messages which caused the application to open from
+    // a terminated state.
+    RemoteMessage? initialMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+
+    if (initialMessage != null) {
+      _handleMessage(initialMessage);
+    }
+
+    // Also handle any interaction when the app is in the background via a
+    // Stream listener
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+  }
+
+  void _handleMessage(RemoteMessage message) {
+    if (message.data['type'] == 'copy_trade') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const CopyTradeRequestsWidget(),
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    setupInteractedMessage();
     WidgetsBinding.instance.addObserver(this);
     _removeBadge();
     _pageController = PageController(initialPage: _pageIndex);

@@ -55,6 +55,7 @@ class CopyTradingProvider with ChangeNotifier {
         .collection('copy_trades')
         .where('targetUserId', isEqualTo: _firebaseUserId)
         .where('executed', isEqualTo: false)
+        .where('status', isEqualTo: 'approved')
         .snapshots()
         .listen(_handleSnapshot);
   }
@@ -70,6 +71,40 @@ class CopyTradingProvider with ChangeNotifier {
         .map((snapshot) => snapshot.docs
             .map((doc) => CopyTradeRecord.fromDocument(doc))
             .toList());
+  }
+
+  Stream<List<CopyTradeRecord>> getRequests() {
+    if (_firebaseUserId == null) return Stream.value([]);
+
+    return FirebaseFirestore.instance
+        .collection('copy_trades')
+        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('status', whereIn: ['pending_approval', 'rejected'])
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CopyTradeRecord.fromDocument(doc))
+            .toList());
+  }
+
+  Future<void> approveRequest(CopyTradeRecord record) async {
+    await FirebaseFirestore.instance
+        .collection('copy_trades')
+        .doc(record.id)
+        .update({
+      'status': 'approved',
+      'actionTime': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> rejectRequest(CopyTradeRecord record) async {
+    await FirebaseFirestore.instance
+        .collection('copy_trades')
+        .doc(record.id)
+        .update({
+      'status': 'rejected',
+      'actionTime': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> _handleSnapshot(QuerySnapshot snapshot) async {

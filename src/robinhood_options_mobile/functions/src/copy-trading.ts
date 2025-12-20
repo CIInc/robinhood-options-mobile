@@ -63,6 +63,7 @@ interface CopyTradeRecord {
   }[];
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
+  status?: "pending_approval" | "approved" | "rejected" | "executed";
 }
 
 /**
@@ -129,7 +130,6 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         )) {
           if (
             settings.enabled &&
-            settings.autoExecute &&
             settings.targetUserId === userId
           ) {
             logger.info(
@@ -138,6 +138,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 sourceUser: userId,
                 targetUser: memberId,
                 groupId: group.id,
+                autoExecute: settings.autoExecute,
               }
             );
 
@@ -156,30 +157,59 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               }
             }
 
-            // Create a copy trade record
-            await createCopyTradeRecord({
-              sourceUserId: userId,
-              targetUserId: memberId,
-              groupId: group.id,
-              orderType: "instrument",
-              originalOrderId: orderId,
-              symbol: orderData.instrumentObj?.symbol || "Unknown",
-              side: orderData.side,
-              originalQuantity: orderData.quantity,
-              copiedQuantity: quantity,
-              price: price,
-              timestamp: FieldValue.serverTimestamp(),
-              executed: false, // Would be true after actual order placement
-            });
+            if (settings.autoExecute) {
+              // Create a copy trade record (auto-execute)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "instrument",
+                originalOrderId: orderId,
+                symbol: orderData.instrumentObj?.symbol || "Unknown",
+                side: orderData.side,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false, // Would be true after actual order placement
+                status: "approved",
+              });
 
-            logger.info(
-              "Copy trade record created",
-              {
-                sourceUser: userId,
-                targetUser: memberId,
-                symbol: orderData.instrumentObj?.symbol,
-              }
-            );
+              logger.info(
+                "Copy trade record created (auto-execute)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.instrumentObj?.symbol,
+                }
+              );
+            } else {
+              // Create a copy trade record (manual approval)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "instrument",
+                originalOrderId: orderId,
+                symbol: orderData.instrumentObj?.symbol || "Unknown",
+                side: orderData.side,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false,
+                status: "pending_approval",
+              });
+
+              logger.info(
+                "Copy trade record created (pending approval)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.instrumentObj?.symbol,
+                }
+              );
+            }
 
             // Get source user name for notification
             const sourceUserDoc = await db.collection("user").doc(userId).get();
@@ -192,7 +222,8 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               orderData.instrumentObj?.symbol || "Unknown",
               orderData.side,
               quantity,
-              "instrument"
+              "instrument",
+              settings.autoExecute
             );
           }
         }
@@ -265,7 +296,6 @@ export const onOptionOrderCreated = onDocumentCreated(
         )) {
           if (
             settings.enabled &&
-            settings.autoExecute &&
             settings.targetUserId === userId
           ) {
             logger.info(
@@ -274,6 +304,7 @@ export const onOptionOrderCreated = onDocumentCreated(
                 sourceUser: userId,
                 targetUser: memberId,
                 groupId: group.id,
+                autoExecute: settings.autoExecute,
               }
             );
 
@@ -293,39 +324,77 @@ export const onOptionOrderCreated = onDocumentCreated(
               }
             }
 
-            // Create a copy trade record
-            await createCopyTradeRecord({
-              sourceUserId: userId,
-              targetUserId: memberId,
-              groupId: group.id,
-              orderType: "option",
-              originalOrderId: orderId,
-              symbol: orderData.chainSymbol || "Unknown",
-              side: orderData.direction,
-              originalQuantity: orderData.quantity,
-              copiedQuantity: quantity,
-              price: price,
-              strategy: orderData.strategy,
-              legs: (orderData.legs || []).map((leg: any) => ({
-                expirationDate: leg.expiration_date,
-                strikePrice: leg.strike_price,
-                optionType: leg.option_type,
-                side: leg.side,
-                positionEffect: leg.position_effect,
-                ratioQuantity: leg.ratio_quantity,
-              })),
-              timestamp: FieldValue.serverTimestamp(),
-              executed: false, // Would be true after actual order placement
-            });
+            if (settings.autoExecute) {
+              // Create a copy trade record (auto-execute)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "option",
+                originalOrderId: orderId,
+                symbol: orderData.chainSymbol || "Unknown",
+                side: orderData.direction,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                strategy: orderData.strategy,
+                legs: (orderData.legs || []).map((leg: any) => ({
+                  expirationDate: leg.expiration_date,
+                  strikePrice: leg.strike_price,
+                  optionType: leg.option_type,
+                  side: leg.side,
+                  positionEffect: leg.position_effect,
+                  ratioQuantity: leg.ratio_quantity,
+                })),
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false, // Would be true after actual order placement
+                status: "approved",
+              });
 
-            logger.info(
-              "Copy trade record created",
-              {
-                sourceUser: userId,
-                targetUser: memberId,
-                symbol: orderData.chainSymbol,
-              }
-            );
+              logger.info(
+                "Copy trade record created (auto-execute)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.chainSymbol,
+                }
+              );
+            } else {
+              // Create a copy trade record (manual approval)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "option",
+                originalOrderId: orderId,
+                symbol: orderData.chainSymbol || "Unknown",
+                side: orderData.direction,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                strategy: orderData.strategy,
+                legs: (orderData.legs || []).map((leg: any) => ({
+                  expirationDate: leg.expiration_date,
+                  strikePrice: leg.strike_price,
+                  optionType: leg.option_type,
+                  side: leg.side,
+                  positionEffect: leg.position_effect,
+                  ratioQuantity: leg.ratio_quantity,
+                })),
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false,
+                status: "pending_approval",
+              });
+
+              logger.info(
+                "Copy trade record created (pending approval)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.chainSymbol,
+                }
+              );
+            }
 
             // Get source user name for notification
             const sourceUserDoc = await db.collection("user").doc(userId).get();
@@ -338,7 +407,8 @@ export const onOptionOrderCreated = onDocumentCreated(
               orderData.chainSymbol || "Unknown",
               orderData.direction,
               quantity,
-              "option"
+              "option",
+              settings.autoExecute
             );
           }
         }
@@ -358,6 +428,8 @@ export const onOptionOrderCreated = onDocumentCreated(
  * @param {string} side Buy/sell side
  * @param {number} quantity Quantity of the trade
  * @param {string} orderType Type of order (instrument or option)
+ * @param {boolean} autoExecute Whether the trade was auto-executed or
+ *   requires approval
  */
 async function sendCopyTradeNotification(
   userId: string,
@@ -365,7 +437,8 @@ async function sendCopyTradeNotification(
   symbol: string,
   side: string,
   quantity: number,
-  orderType: string
+  orderType: string,
+  autoExecute = true
 ): Promise<void> {
   try {
     // Fetch user's FCM tokens from devices
@@ -389,7 +462,7 @@ async function sendCopyTradeNotification(
     }
 
     // Prepare notification
-    const title = "Copy Trade Available";
+    const title = autoExecute ? "Copy Trade Executed" : "Copy Trade Request";
     const body =
       `${sourceUserName} ${side} ${quantity.toFixed(0)} ` +
       `${orderType === "option" ? "contracts" : "shares"} of ${symbol}`;
@@ -407,6 +480,7 @@ async function sendCopyTradeNotification(
         side: side,
         quantity: quantity.toString(),
         orderType: orderType,
+        action: autoExecute ? "executed" : "request",
       },
       android: {
         priority: "high",
