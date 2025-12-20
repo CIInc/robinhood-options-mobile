@@ -47,7 +47,6 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxDrawdownController;
   late TextEditingController _timeBasedExitMinutesController;
   late TextEditingController _marketCloseExitMinutesController;
-  late TextEditingController _promptController;
   late Map<String, bool> _enabledIndicators;
   late List<ExitStage> _exitStages;
   late List<CustomIndicatorConfig> _customIndicators;
@@ -123,8 +122,6 @@ class _AgenticTradingSettingsWidgetState
         text: config['timeBasedExitMinutes']?.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
         text: config['marketCloseExitMinutes']?.toString() ?? '15');
-    _promptController =
-        TextEditingController(text: config['prompt']?.toString() ?? '');
   }
 
   @override
@@ -144,7 +141,6 @@ class _AgenticTradingSettingsWidgetState
     _marketCloseExitMinutesController.dispose();
     _maxVolatilityController.dispose();
     _maxDrawdownController.dispose();
-    _promptController.dispose();
     super.dispose();
   }
 
@@ -388,7 +384,6 @@ class _AgenticTradingSettingsWidgetState
         'enableDrawdownProtection':
             agenticTradingProvider.config['enableDrawdownProtection'] ?? false,
         'maxDrawdown': double.parse(_maxDrawdownController.text),
-        'prompt': _promptController.text,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -471,36 +466,6 @@ class _AgenticTradingSettingsWidgetState
     _saveSettings();
   }
 
-  void _showPromptDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('AI Prompt'),
-        content: TextField(
-          controller: _promptController,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            hintText: 'Enter custom instructions for the AI agent...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              _saveSettings();
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -509,13 +474,6 @@ class _AgenticTradingSettingsWidgetState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Automated Trading'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.psychology),
-            onPressed: _showPromptDialog,
-            tooltip: 'AI Prompt',
-          ),
-        ],
       ),
       body: Consumer<AgenticTradingProvider>(
         builder: (context, agenticTradingProvider, child) {

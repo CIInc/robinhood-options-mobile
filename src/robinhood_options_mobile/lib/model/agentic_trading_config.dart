@@ -68,7 +68,6 @@ class AgenticTradingConfig {
   double maxVolatility; // Max IV rank or similar
   bool enableDrawdownProtection;
   double maxDrawdown; // Max drawdown % before stopping
-  String? prompt;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -113,7 +112,6 @@ class AgenticTradingConfig {
     this.maxVolatility = 100.0,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 10.0,
-    this.prompt,
   })  : exitStages = exitStages ??
             [
               ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
@@ -196,8 +194,7 @@ class AgenticTradingConfig {
         enableDrawdownProtection =
             json['enableDrawdownProtection'] as bool? ?? false,
         maxDrawdown = (json['maxDrawdown'] as num?)?.toDouble() ?? 10.0,
-        prompt = json['prompt'] as String?,
-        enabledIndicators = json['enabledIndicators'] != null
+        enabledIndicators = (json['enabledIndicators'] != null)
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
                 'priceMovement': true,
@@ -258,7 +255,6 @@ class AgenticTradingConfig {
       'maxVolatility': maxVolatility,
       'enableDrawdownProtection': enableDrawdownProtection,
       'maxDrawdown': maxDrawdown,
-      'prompt': prompt,
     };
   }
 
@@ -297,7 +293,6 @@ class AgenticTradingConfig {
     double? maxVolatility,
     bool? enableDrawdownProtection,
     double? maxDrawdown,
-    String? prompt,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -344,7 +339,6 @@ class AgenticTradingConfig {
       enableDrawdownProtection:
           enableDrawdownProtection ?? this.enableDrawdownProtection,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
-      prompt: prompt ?? this.prompt,
     );
   }
 }
