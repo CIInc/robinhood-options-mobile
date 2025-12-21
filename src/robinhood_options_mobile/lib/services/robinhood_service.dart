@@ -3316,6 +3316,43 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   @override
+  Future<dynamic> placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) async {
+    var uuid = const Uuid();
+    var payload = {
+      'account': account.url,
+      'direction': creditOrDebit,
+      'time_in_force': timeInForce,
+      'legs': legs,
+      'type': type,
+      'trigger': trigger,
+      'price': price,
+      'quantity': quantity,
+      'override_day_trade_checks': false,
+      'override_dtbp_checks': false,
+      'ref_id': uuid.v4(),
+    };
+    var url = "$endpoint/options/orders/";
+    debugPrint(url);
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+
+    return result;
+  }
+
+  @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancelUrl) async {
     var result = await user.oauth2Client!.post(
       Uri.parse(cancelUrl),

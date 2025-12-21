@@ -79,8 +79,8 @@ class OptionInstrument {
         shortStrategyCode = json['short_strategy_code'];
 
   // toMarkdownTable generates a markdown table from a list of OptionInstrument populating the table with all the daya including the properties of OptionMarketData.
-  
-    /// Generates a markdown table from a list of OptionInstrument,
+
+  /// Generates a markdown table from a list of OptionInstrument,
   /// including all OptionInstrument fields and the properties of OptionMarketData.
   static String toMarkdownTable(List<OptionInstrument> options) {
     if (options.isEmpty) return 'No option instruments available.';
@@ -145,7 +145,7 @@ class OptionInstrument {
     }
     // Use OptionMarketData.toMarkdownTableRow() if available, else fallback to splitting the markdown row
     // if (data.toMarkdownTableRow != null) {
-      return data.toMarkdownTableRow();
+    return data.toMarkdownTableRow();
     // }
     // fallback: parse the markdown row string
     // final rowString = OptionMarketData.toMarkdownTable([data]).split('\n')[1];
@@ -155,5 +155,4 @@ class OptionInstrument {
     //     .where((s) => s.isNotEmpty)
     //     .toList();
   }
-
 }

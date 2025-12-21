@@ -39,6 +39,7 @@ import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
@@ -1093,8 +1094,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           if (instrument.tradeableChainId != null) ...[
             Expanded(
               child: FilledButton.tonalIcon(
-                icon: const Icon(Icons.list_alt),
-                label: const Text('Option Chain'),
+                style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                icon: const Icon(Icons.list_alt, size: 20),
+                label: const FittedBox(
+                    fit: BoxFit.scaleDown, child: Text('Chain')),
                 onPressed: () {
                   Navigator.push(
                       context,
@@ -1112,13 +1116,41 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 },
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                icon: const Icon(Icons.build, size: 20),
+                label: const FittedBox(
+                    fit: BoxFit.scaleDown, child: Text('Strategy')),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => StrategyBuilderWidget(
+                                user: widget.brokerageUser,
+                                service: widget.service,
+                                instrument: instrument,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                appUser: widget.user,
+                                userDocRef: widget.userDocRef,
+                              )));
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
           ],
           if (instrument.tradeable) ...[
             Expanded(
               child: FilledButton.icon(
-                icon: const Icon(Icons.attach_money),
-                label: const Text('Trade'),
+                style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                icon: const Icon(Icons.attach_money, size: 20),
+                label: const FittedBox(
+                    fit: BoxFit.scaleDown, child: Text('Trade')),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -4384,13 +4416,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             : Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                            color: Theme.of(context)
-                                                        .brightness ==
-                                                    Brightness.dark
-                                                ? Colors.purpleAccent
-                                                    .withOpacity(0.3)
-                                                : Colors.purple
-                                                    .withOpacity(0.2)),
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.purpleAccent
+                                                        .withOpacity(0.3)
+                                                    : Colors.purple
+                                                        .withOpacity(0.2)),
                                       ),
                                       child: Row(
                                         children: [

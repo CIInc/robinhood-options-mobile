@@ -254,6 +254,17 @@ abstract class IBrokerageService {
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       });
 
+  Future<dynamic> placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'});
+
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
     return Future.error(
         'cancelOrder is not implemented for this brokerage service');

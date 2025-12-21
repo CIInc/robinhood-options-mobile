@@ -943,6 +943,27 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   children: <Widget>[
                                     Text(
                                         formatCompactNumber.format(
+                                            optionInstrument
+                                                .optionMarketData!.volume),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("#",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Volume",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatCompactNumber.format(
                                             optionInstrument.optionMarketData!
                                                 .openInterest),
                                         style: const TextStyle(fontSize: 17.0)),

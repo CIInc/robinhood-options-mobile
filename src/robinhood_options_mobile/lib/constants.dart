@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatMonthDayOfWeek = DateFormat.MMMEd();
 final formatCompactDate = DateFormat("MMMd");
 final formatCompactDateYear = DateFormat.yMMM(); // ("MMM d yy");
 final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");

@@ -1347,6 +1347,21 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
+  Future placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) {
+    // TODO: implement placeMultiLegOptionsOrder
+    throw UnimplementedError();
+  }
+
+  @override
   Future placeInstrumentOrder(
       BrokerageUser user,
       Account account,
