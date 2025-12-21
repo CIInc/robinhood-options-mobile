@@ -231,8 +231,8 @@ abstract class IBrokerageService {
       String trigger = 'immediate', // stop
       double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      });
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg});
   Future<dynamic> placeOptionsOrder(
       BrokerageUser user,
       Account account,
@@ -250,9 +250,10 @@ abstract class IBrokerageService {
       //String optionType, // This should be 'call' or 'put'
       {String type = 'limit', // market
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      });
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg});
 
   Future<dynamic> placeMultiLegOptionsOrder(
       BrokerageUser user,

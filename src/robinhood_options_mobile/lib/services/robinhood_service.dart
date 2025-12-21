@@ -3228,8 +3228,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       String trigger = 'immediate', // stop
       double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      }) async {
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg}) async {
     // var uuid = const Uuid();
     var payload = {
       'account': account.url,
@@ -3247,6 +3247,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     };
     if (price != null) {
       payload['price'] = price;
+    }
+    if (trailingPeg != null) {
+      payload['trailing_peg'] = trailingPeg;
     }
     var url = "$endpoint/orders/";
     debugPrint(url);
@@ -3278,9 +3281,10 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       //String optionType, // This should be 'call' or 'put'
       {String type = 'limit', // market
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      }) async {
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg}) async {
     // instrument.tradeableChainId
     var uuid = const Uuid();
     var payload = {
@@ -3298,11 +3302,15 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       'type': type,
       'trigger': trigger,
       'price': price,
+      'stop_price': stopPrice,
       'quantity': quantity,
       'override_day_trade_checks': false,
       'override_dtbp_checks': false,
       'ref_id': uuid.v4(),
     };
+    if (trailingPeg != null) {
+      payload['trailing_peg'] = trailingPeg;
+    }
     var url = "$endpoint/options/orders/";
     debugPrint(url);
     var result = await user.oauth2Client!.post(Uri.parse(url),

@@ -496,7 +496,9 @@ class PlaidService implements IBrokerageService {
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeOptionsOrder
     throw UnimplementedError();
   }
@@ -528,7 +530,8 @@ class PlaidService implements IBrokerageService {
       {String type = 'limit',
       String trigger = 'immediate',
       double? stopPrice,
-      String timeInForce = 'gtc'}) {
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }

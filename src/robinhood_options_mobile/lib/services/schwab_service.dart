@@ -1341,7 +1341,9 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeOptionsOrder
     throw UnimplementedError();
   }
@@ -1373,7 +1375,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       {String type = 'limit',
       String trigger = 'immediate',
       double? stopPrice,
-      String timeInForce = 'gtc'}) {
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }

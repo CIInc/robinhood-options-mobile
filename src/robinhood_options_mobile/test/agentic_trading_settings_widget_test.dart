@@ -158,7 +158,8 @@ class MockBrokerageService implements IBrokerageService {
       {String type = 'limit',
       String trigger = 'immediate',
       double? stopPrice,
-      String timeInForce = 'gtc'}) async {
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) async {
     return {'id': 'mock_order_id', 'state': 'filled'};
   }
 

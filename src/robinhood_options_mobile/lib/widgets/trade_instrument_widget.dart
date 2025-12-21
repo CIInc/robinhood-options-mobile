@@ -37,12 +37,14 @@ class TradeInstrumentWidget extends StatefulWidget {
 
 class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   String? positionType;
-  String orderType = "Market"; // Market, Limit, Stop
+  String orderType = "Market"; // Market, Limit, Stop, Stop Limit, Trailing Stop
   String timeInForce = "gtc";
+  String trailingType = "Percentage"; // Percentage, Amount
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
   var stopPriceCtl = TextEditingController();
+  var trailingAmountCtl = TextEditingController();
 
   bool placingOrder = false;
   bool _isPreviewing = false;
@@ -59,10 +61,12 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         0.0;
     priceCtl.text = price.toString();
     stopPriceCtl.text = price.toString();
+    trailingAmountCtl.text = "5"; // Default 5%
 
     quantityCtl.addListener(_updateEstimates);
     priceCtl.addListener(_updateEstimates);
     stopPriceCtl.addListener(_updateEstimates);
+    trailingAmountCtl.addListener(_updateEstimates);
     _updateEstimates();
   }
 
@@ -71,6 +75,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     quantityCtl.dispose();
     priceCtl.dispose();
     stopPriceCtl.dispose();
+    trailingAmountCtl.dispose();
     super.dispose();
   }
 
@@ -84,6 +89,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       } else if (orderType == 'Stop') {
         // For stop orders, we estimate based on the stop price as a proxy for execution
         price = double.tryParse(stopPriceCtl.text) ?? 0;
+      } else if (orderType == 'Stop Limit') {
+        price = double.tryParse(priceCtl.text) ?? 0;
+      } else if (orderType == 'Trailing Stop') {
+        // Estimate based on current price
+        price = widget.instrument?.quoteObj?.lastTradePrice ?? 0;
       } else {
         // Market
         price = widget.instrument?.quoteObj?.lastTradePrice ?? 0;
@@ -179,8 +189,13 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 _updateEstimates();
               });
             },
-            items: <String>['Market', 'Limit', 'Stop']
-                .map<DropdownMenuItem<String>>((String value) {
+            items: <String>[
+              'Market',
+              'Limit',
+              'Stop',
+              'Stop Limit',
+              'Trailing Stop'
+            ].map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
                 value: value,
                 child: Text(value),
@@ -205,7 +220,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           const SizedBox(height: 16),
 
           // Limit Price (Conditional)
-          if (orderType == 'Limit') ...[
+          if (orderType == 'Limit' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: priceCtl,
               keyboardType:
@@ -225,7 +240,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           ],
 
           // Stop Price (Conditional)
-          if (orderType == 'Stop') ...[
+          if (orderType == 'Stop' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: stopPriceCtl,
               keyboardType:
@@ -238,6 +253,52 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 border: OutlineInputBorder(),
                 filled: true,
                 prefixText: "\$",
+              ),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Trailing Stop Fields
+          if (orderType == 'Trailing Stop') ...[
+            DropdownButtonFormField<String>(
+              initialValue: trailingType,
+              decoration: const InputDecoration(
+                labelText: "Trail Type",
+                border: OutlineInputBorder(),
+                filled: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              onChanged: (String? newValue) {
+                setState(() {
+                  trailingType = newValue!;
+                });
+              },
+              items: <String>['Percentage', 'Amount']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: trailingAmountCtl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+              ],
+              decoration: InputDecoration(
+                labelText: trailingType == 'Percentage'
+                    ? "Trail Percent"
+                    : "Trail Amount",
+                border: const OutlineInputBorder(),
+                filled: true,
+                prefixText: trailingType == 'Amount' ? "\$" : null,
+                suffixText: trailingType == 'Percentage' ? "%" : null,
               ),
               style: const TextStyle(fontSize: 18),
             ),
@@ -383,12 +444,23 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                   ),
                   const SizedBox(height: 24),
                   _buildPreviewRow("Order Type", orderType),
-                  if (orderType == 'Limit')
+                  if (orderType == 'Limit' || orderType == 'Stop Limit')
                     _buildPreviewRow("Limit Price",
                         formatCurrency.format(double.parse(priceCtl.text))),
-                  if (orderType == 'Stop')
+                  if (orderType == 'Stop' || orderType == 'Stop Limit')
                     _buildPreviewRow("Stop Price",
                         formatCurrency.format(double.parse(stopPriceCtl.text))),
+                  if (orderType == 'Trailing Stop') ...[
+                    _buildPreviewRow("Trail Type", trailingType),
+                    _buildPreviewRow(
+                        trailingType == 'Percentage'
+                            ? "Trail Percent"
+                            : "Trail Amount",
+                        trailingType == 'Percentage'
+                            ? "${trailingAmountCtl.text}%"
+                            : formatCurrency
+                                .format(double.parse(trailingAmountCtl.text))),
+                  ],
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.0),
@@ -484,6 +556,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       String trigger = 'immediate';
       double? price;
       double? stopPrice;
+      Map<String, dynamic>? trailingPeg;
 
       if (orderType == 'Limit') {
         type = 'limit';
@@ -492,6 +565,19 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         type = 'market';
         trigger = 'stop';
         stopPrice = double.parse(stopPriceCtl.text);
+        price = null;
+      } else if (orderType == 'Stop Limit') {
+        type = 'limit';
+        trigger = 'stop';
+        stopPrice = double.parse(stopPriceCtl.text);
+        price = double.parse(priceCtl.text);
+      } else if (orderType == 'Trailing Stop') {
+        type = 'market';
+        trigger = 'stop';
+        trailingPeg = {
+          'type': trailingType.toLowerCase(),
+          'value': double.parse(trailingAmountCtl.text)
+        };
         price = null;
       } else {
         // Market
@@ -510,6 +596,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         trigger: trigger,
         stopPrice: stopPrice,
         timeInForce: timeInForce,
+        trailingPeg: trailingPeg,
       );
 
       debugPrint(orderJson.body);
