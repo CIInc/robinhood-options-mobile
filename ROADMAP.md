@@ -80,14 +80,21 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Copy Trading Execution (Manual & Request-based)
 - ✅ Auto-Execute for Copy Trading (Client-side implementation)
 
-### v0.23.0 (Q1 2026 - Late January)
+### v0.23.0 ✅ (Released Dec 22, 2025)
+**Option Chain Screener & Strategy Builder**
+- ✅ Option Chain Screener (Advanced filtering & AI recommendations)
+- ✅ Multi-Leg Strategy Builder (Spreads, Straddles, etc.)
+- ✅ Advanced Order Types (Trailing Stop, Stop-Limit)
+- ✅ Trading UI Refactor (Improved order preview & placement)
+
+### v0.24.0 (Q1 2026 - Late January)
 **Futures Trading & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support)
 
-### v0.24.0 (Q2 2026 - Mid February)
+### v0.25.0 (Q2 2026 - Mid February)
 **Schwab API Integration - Phase 1**
 - Portfolio & position streaming from Schwab
 - Market data & quotes integration
@@ -96,7 +103,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Firestore sync for Schwab positions
 - Order history from Schwab
 
-### v0.25.0 (Q2 2026 - Late March)
+### v0.26.0 (Q2 2026 - Late March)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -105,7 +112,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.26.0 (Q2 2026 - Late April)
+### v0.27.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Multi-leg options (spreads, complex strategies)
@@ -114,7 +121,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.27.0 (Q2-Q3 2026 - Late May)
+### v0.28.0 (Q2-Q3 2026 - Late May)
 **Crypto & Forex Trading**
 - Crypto asset class support
 - Forex trading (currency pairs)
@@ -123,7 +130,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
 
-### v0.28.0 (Q3 2026 - Mid June)
+### v0.29.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
 - Generative AI Assistant (natural language queries)
 - AI-powered portfolio insights
@@ -132,7 +139,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Risk exposure heatmaps
 - Dividend projection & tracking
 
-### v0.29.0 (Q3 2026 - Late July)
+### v0.30.0 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)

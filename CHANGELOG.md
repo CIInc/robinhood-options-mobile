@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.23.0] - 2025-12-22
+
+### Added
+- **Option Chain Screener:**
+  - Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more.
+  - Support for saving, loading, and resetting filter presets.
+  - AI-powered "Find Best Contract" feature that analyzes the chain and suggests options based on risk tolerance and strategy.
+- **Strategy Builder:**
+  - New multi-leg options strategy builder supporting Spreads, Straddles, Iron Condors, and custom combinations.
+  - Visual payoff diagrams and risk/reward analysis for complex strategies.
+- **Advanced Order Types:**
+  - Added support for Trailing Stop and Stop-Limit orders for both stocks and options.
+- **Trading UI:**
+  - Completely refactored trading widgets with improved order preview and placement flow.
+  - Enhanced "Reset" functionality in filter options to correctly clear selected presets.
+
+### Changed
+- **AI Recommendations:** Improved robustness of AI response parsing for option suggestions, ensuring reliable JSON extraction and better error handling.
+- **User Feedback:** Added clearer notifications (SnackBars) when AI recommendations are found or if no options match criteria.
+
 ## [0.22.0] - 2025-12-20
 
 ### Added

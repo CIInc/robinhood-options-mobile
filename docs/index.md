@@ -24,6 +24,9 @@
 - **Custom Indicators:** Create and integrate personalized technical indicators into the trading system.
 - **Advanced Exit Strategies:** Implement Partial, Time-Based, and Market Close exits for precise trade management.
 - **ML Optimization:** Benefit from Machine Learning enhanced signal accuracy.
+- **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
+- **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
+- **Advanced Order Types:** Execute Trailing Stop and Stop-Limit orders for better risk management.
 
 ## Investment Profile Feature
 

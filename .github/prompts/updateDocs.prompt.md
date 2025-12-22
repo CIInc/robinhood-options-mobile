@@ -36,7 +36,7 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Use clear, descriptive bullet points
    - Group related changes together
 
-5. **Update documentation files**:
+5. **Update docs markdown files**:
    - Add or update sections describing new features
    - Document new configuration options or settings
    - Include code examples where applicable
