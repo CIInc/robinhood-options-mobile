@@ -38,6 +38,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
   final _maxMarketCapController = TextEditingController();
   final _startTimeController = TextEditingController();
   final _endTimeController = TextEditingController();
+  final _stopLossAdjustmentController = TextEditingController();
+  final _takeProfitAdjustmentController = TextEditingController();
 
   final List<String> _availableSectors = [
     'Technology',
@@ -76,6 +78,8 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
     _maxMarketCapController.dispose();
     _startTimeController.dispose();
     _endTimeController.dispose();
+    _stopLossAdjustmentController.dispose();
+    _takeProfitAdjustmentController.dispose();
     super.dispose();
   }
 
@@ -126,6 +130,14 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
           }
           if (settings.endTime != null) {
             _endTimeController.text = settings.endTime!;
+          }
+          if (settings.stopLossAdjustment != null) {
+            _stopLossAdjustmentController.text =
+                settings.stopLossAdjustment.toString();
+          }
+          if (settings.takeProfitAdjustment != null) {
+            _takeProfitAdjustmentController.text =
+                settings.takeProfitAdjustment.toString();
           }
         });
       } else {
@@ -188,6 +200,15 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
             : null,
         endTime:
             _endTimeController.text.isNotEmpty ? _endTimeController.text : null,
+        copyStopLoss: _settings!.copyStopLoss,
+        copyTakeProfit: _settings!.copyTakeProfit,
+        copyTrailingStop: _settings!.copyTrailingStop,
+        stopLossAdjustment: _stopLossAdjustmentController.text.isNotEmpty
+            ? double.tryParse(_stopLossAdjustmentController.text)
+            : null,
+        takeProfitAdjustment: _takeProfitAdjustmentController.text.isNotEmpty
+            ? double.tryParse(_takeProfitAdjustmentController.text)
+            : null,
       );
 
       widget.group.setCopyTradeSettings(auth.currentUser!.uid, settings);
@@ -520,6 +541,93 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Exit Strategy',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        title: const Text('Copy Stop Loss'),
+                        subtitle:
+                            const Text('Automatically copy stop loss orders'),
+                        value: _settings!.copyStopLoss ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyStopLoss = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.copyStopLoss ?? false)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: TextFormField(
+                            controller: _stopLossAdjustmentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Stop Loss Adjustment (%)',
+                              helperText:
+                                  'Negative to tighten, positive to loosen',
+                              border: OutlineInputBorder(),
+                              suffixText: '%',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                signed: true, decimal: true),
+                          ),
+                        ),
+                      SwitchListTile(
+                        title: const Text('Copy Take Profit'),
+                        subtitle:
+                            const Text('Automatically copy take profit orders'),
+                        value: _settings!.copyTakeProfit ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyTakeProfit = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.copyTakeProfit ?? false)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: TextFormField(
+                            controller: _takeProfitAdjustmentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Take Profit Adjustment (%)',
+                              helperText:
+                                  'Positive to increase, negative to decrease',
+                              border: OutlineInputBorder(),
+                              suffixText: '%',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                signed: true, decimal: true),
+                          ),
+                        ),
+                      SwitchListTile(
+                        title: const Text('Trailing Stop'),
+                        subtitle: const Text('Copy trailing stop orders'),
+                        value: _settings!.copyTrailingStop ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyTrailingStop = value;
+                          });
+                        },
                       ),
                     ],
                   ),

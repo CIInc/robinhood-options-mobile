@@ -147,7 +147,13 @@ void main() {
     expect(find.text('Crypto'), findsOneWidget);
 
     // Select Equity
-    await tester.tap(find.text('Equity'));
+    final equityChip = find.widgetWithText(FilterChip, 'Equity');
+    await tester.dragUntilVisible(
+      equityChip,
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
+    await tester.tap(equityChip);
     await tester.pump();
   });
 }

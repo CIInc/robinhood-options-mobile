@@ -33,6 +33,11 @@ interface CopyTradeSettings {
   maxMarketCap?: number;
   startTime?: string;
   endTime?: string;
+  copyStopLoss?: boolean;
+  copyTakeProfit?: boolean;
+  copyTrailingStop?: boolean;
+  stopLossAdjustment?: number;
+  takeProfitAdjustment?: number;
 }
 
 /**
@@ -55,12 +60,15 @@ interface CopyTradeRecord {
   targetUserId: string;
   groupId: string;
   orderType: "instrument" | "option";
+  type?: string; // limit, market, stop, etc.
+  trigger?: string; // stop, etc.
   originalOrderId: string;
   symbol: string;
   side: string;
   originalQuantity: number;
   copiedQuantity: number;
   price: number;
+  stopPrice?: number;
   strategy?: string;
   legs?: {
     expirationDate?: string;
@@ -205,14 +213,33 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         }
       );
 
-      // Only process filled orders
+      // Determine if this is an exit order (Stop Loss or Take Profit)
+      const isStopLoss = orderData.trigger === "stop";
+      const isTakeProfit =
+        orderData.type === "limit" &&
+        orderData.side === "sell"; // Simplified assumption
+      const isExitOrder = isStopLoss || isTakeProfit;
+
+      // Only process filled orders, unless it's a confirmed exit order
       if (orderData.state !== "filled") {
-        logger.info("Order not filled, skipping copy trade", {
-          userId,
-          orderId,
-          state: orderData.state,
-        });
-        return;
+        if (
+          !isExitOrder ||
+          (orderData.state !== "confirmed" &&
+            orderData.state !== "queued")
+        ) {
+          logger.info(
+            "Skipping copy trade: Order not filled/confirmed exit",
+            {
+              userId,
+              orderId,
+              state: orderData.state,
+              trigger: orderData.trigger,
+              type: orderData.type,
+              side: orderData.side,
+            }
+          );
+          return;
+        }
       }
 
       // Fetch instrument details to get symbol, sector, and market cap
@@ -291,6 +318,43 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               continue;
             }
 
+            // Check if we should copy this type of order
+            if (isStopLoss && !settings.copyStopLoss) {
+              logger.info("Stop loss copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+            if (
+              isTakeProfit &&
+              !settings.copyTakeProfit &&
+              orderData.state !==
+              "filled"
+            ) {
+              logger.info("Take profit copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            // Trailing Stop Check (Heuristic: stop trigger without fixed stop
+            // price or explicit type)
+            // Note: Adjust logic based on actual Robinhood API response for
+            // trailing stops
+            const isTrailingStop =
+              orderData.type === "market" &&
+              orderData.trigger === "stop" &&
+              !orderData.stop_price;
+            if (isTrailingStop && !settings.copyTrailingStop) {
+              logger.info("Trailing stop copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
             logger.info("Found copy trade target", {
               sourceUser: userId,
               targetUser: memberId,
@@ -300,7 +364,16 @@ export const onInstrumentOrderCreated = onDocumentCreated(
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
-            const price = orderData.price || 0;
+            let price = orderData.price || 0;
+            let stopPrice = orderData.stop_price;
+
+            if (isStopLoss && settings.stopLossAdjustment && stopPrice) {
+              stopPrice = stopPrice * (1 + settings.stopLossAdjustment / 100);
+            }
+
+            if (isTakeProfit && settings.takeProfitAdjustment && price) {
+              price = price * (1 + settings.takeProfitAdjustment / 100);
+            }
 
             if (settings.copyPercentage) {
               quantity = quantity * (settings.copyPercentage / 100);
@@ -326,12 +399,15 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "instrument",
+                type: orderData.type,
+                trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
                 side: orderData.side,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
+                stopPrice: stopPrice,
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false, // Would be true after actual order placement
                 status: "approved",
@@ -352,12 +428,15 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "instrument",
+                type: orderData.type,
+                trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
                 side: orderData.side,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
+                stopPrice: stopPrice,
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false,
                 status: "pending_approval",
@@ -423,14 +502,34 @@ export const onOptionOrderCreated = onDocumentCreated(
         }
       );
 
-      // Only process filled orders
+      // Determine if this is an exit order (Stop Loss or Take Profit)
+      const isStopLoss = orderData.trigger === "stop";
+      const isSell =
+        orderData.legs &&
+        orderData.legs.length > 0 &&
+        orderData.legs[0].side === "sell";
+      const isTakeProfit = orderData.type === "limit" && isSell;
+      const isExitOrder = isStopLoss || isTakeProfit;
+
+      // Only process filled orders, unless it's a confirmed exit order
       if (orderData.state !== "filled") {
-        logger.info("Order not filled, skipping copy trade", {
-          userId,
-          orderId,
-          state: orderData.state,
-        });
-        return;
+        if (
+          !isExitOrder ||
+          (orderData.state !== "confirmed" &&
+            orderData.state !== "queued")
+        ) {
+          logger.info(
+            "Skipping copy trade: Order not filled/confirmed exit",
+            {
+              userId,
+              orderId,
+              state: orderData.state,
+              trigger: orderData.trigger,
+              type: orderData.type,
+            }
+          );
+          return;
+        }
       }
 
       // Fetch instrument details to get sector and market cap
@@ -501,6 +600,43 @@ export const onOptionOrderCreated = onDocumentCreated(
               continue;
             }
 
+            // Check if we should copy this type of order
+            if (isStopLoss && !settings.copyStopLoss) {
+              logger.info("Stop loss copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+            if (
+              isTakeProfit &&
+              !settings.copyTakeProfit &&
+              orderData.state !==
+              "filled"
+            ) {
+              logger.info("Take profit copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            // Trailing Stop Check (Heuristic: stop trigger without fixed stop
+            // price or explicit type)
+            // Note: Adjust logic based on actual Robinhood API response for
+            // trailing stops
+            const isTrailingStop =
+              orderData.type === "market" &&
+              orderData.trigger === "stop" &&
+              !orderData.stop_price;
+            if (isTrailingStop && !settings.copyTrailingStop) {
+              logger.info("Trailing stop copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
             logger.info("Found copy trade target", {
               sourceUser: userId,
               targetUser: memberId,
@@ -510,7 +646,16 @@ export const onOptionOrderCreated = onDocumentCreated(
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
-            const price = orderData.price || 0;
+            let price = orderData.price || 0;
+            let stopPrice = orderData.stop_price;
+
+            if (isStopLoss && settings.stopLossAdjustment && stopPrice) {
+              stopPrice = stopPrice * (1 + settings.stopLossAdjustment / 100);
+            }
+
+            if (isTakeProfit && settings.takeProfitAdjustment && price) {
+              price = price * (1 + settings.takeProfitAdjustment / 100);
+            }
 
             if (settings.copyPercentage) {
               quantity = quantity * (settings.copyPercentage / 100);
@@ -539,12 +684,15 @@ export const onOptionOrderCreated = onDocumentCreated(
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "option",
+                type: orderData.type,
+                trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
                 side: orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
+                stopPrice: stopPrice,
                 strategy: orderData.strategy,
                 legs: (orderData.legs || []).map((leg: any) => ({
                   expirationDate: leg.expiration_date,
@@ -574,12 +722,15 @@ export const onOptionOrderCreated = onDocumentCreated(
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "option",
+                type: orderData.type,
+                trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
                 side: orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
+                stopPrice: stopPrice,
                 strategy: orderData.strategy,
                 legs: (orderData.legs || []).map((leg: any) => ({
                   expirationDate: leg.expiration_date,

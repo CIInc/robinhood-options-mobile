@@ -20,6 +20,11 @@ class CopyTradeSettings {
   double? maxMarketCap;
   String? startTime; // Format "HH:mm"
   String? endTime; // Format "HH:mm"
+  bool? copyStopLoss;
+  bool? copyTakeProfit;
+  bool? copyTrailingStop;
+  double? stopLossAdjustment; // Percentage
+  double? takeProfitAdjustment; // Percentage
 
   CopyTradeSettings({
     this.enabled = false,
@@ -38,6 +43,11 @@ class CopyTradeSettings {
     this.maxMarketCap,
     this.startTime,
     this.endTime,
+    this.copyStopLoss = false,
+    this.copyTakeProfit = false,
+    this.copyTrailingStop = false,
+    this.stopLossAdjustment,
+    this.takeProfitAdjustment,
   });
 
   CopyTradeSettings.fromJson(Map<String, Object?> json)
@@ -64,7 +74,12 @@ class CopyTradeSettings {
         minMarketCap = json['minMarketCap'] as double?,
         maxMarketCap = json['maxMarketCap'] as double?,
         startTime = json['startTime'] as String?,
-        endTime = json['endTime'] as String?;
+        endTime = json['endTime'] as String?,
+        copyStopLoss = json['copyStopLoss'] as bool? ?? false,
+        copyTakeProfit = json['copyTakeProfit'] as bool? ?? false,
+        copyTrailingStop = json['copyTrailingStop'] as bool? ?? false,
+        stopLossAdjustment = json['stopLossAdjustment'] as double?,
+        takeProfitAdjustment = json['takeProfitAdjustment'] as double?;
 
   Map<String, Object?> toJson() {
     return {
@@ -84,6 +99,11 @@ class CopyTradeSettings {
       'maxMarketCap': maxMarketCap,
       'startTime': startTime,
       'endTime': endTime,
+      'copyStopLoss': copyStopLoss,
+      'copyTakeProfit': copyTakeProfit,
+      'copyTrailingStop': copyTrailingStop,
+      'stopLossAdjustment': stopLossAdjustment,
+      'takeProfitAdjustment': takeProfitAdjustment,
     };
   }
 }
