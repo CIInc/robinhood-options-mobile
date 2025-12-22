@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -32,22 +33,30 @@ class InstrumentChartWidget extends StatefulWidget {
 class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   TimeSeriesChart? chart;
   InstrumentHistorical? selection;
+  InstrumentHistoricals? _lastValidHistoricals;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<InstrumentHistoricalsStore>(
       builder: (context, instrumentHistoricalsStore, child) {
-        widget.instrument.instrumentHistoricalsObj =
-            instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
+        var currentHistoricals = instrumentHistoricalsStore.items
+            .firstWhereOrNull((element) =>
                 element.symbol == widget.instrument.symbol &&
                 element.span ==
                     convertChartSpanFilter(widget.chartDateSpanFilter) &&
                 element.bounds ==
                     convertChartBoundsFilter(widget.chartBoundsFilter));
 
-        if (widget.instrument.instrumentHistoricalsObj != null &&
-            widget
-                .instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
+        if (currentHistoricals != null) {
+          widget.instrument.instrumentHistoricalsObj = currentHistoricals;
+          _lastValidHistoricals = currentHistoricals;
+        } else if (_lastValidHistoricals != null &&
+            _lastValidHistoricals!.symbol != widget.instrument.symbol) {
+          _lastValidHistoricals = null;
+        }
+
+        if (_lastValidHistoricals != null &&
+            _lastValidHistoricals!.historicals.isNotEmpty) {
           InstrumentHistorical? firstHistorical;
           InstrumentHistorical? lastHistorical;
           double open = 0;
@@ -55,12 +64,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           double changeInPeriod = 0;
           double changePercentInPeriod = 0;
 
-          firstHistorical =
-              widget.instrument.instrumentHistoricalsObj!.historicals[0];
-          lastHistorical = widget
-                  .instrument.instrumentHistoricalsObj!.historicals[
-              widget.instrument.instrumentHistoricalsObj!.historicals.length -
-                  1];
+          firstHistorical = _lastValidHistoricals!.historicals[0];
+          lastHistorical = _lastValidHistoricals!
+              .historicals[_lastValidHistoricals!.historicals.length - 1];
           open = firstHistorical.openPrice!;
           close = lastHistorical.closePrice!;
           changeInPeriod = close - open;
@@ -81,7 +87,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   Theme.of(context).colorScheme.primary),
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) => history.openPrice,
-              data: widget.instrument.instrumentHistoricalsObj!.historicals,
+              data: _lastValidHistoricals!.historicals,
             ),
             charts.Series<InstrumentHistorical, DateTime>(
               id: 'Close',
@@ -89,7 +95,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) =>
                   history.closePrice,
-              data: widget.instrument.instrumentHistoricalsObj!.historicals,
+              data: _lastValidHistoricals!.historicals,
             ),
             charts.Series<InstrumentHistorical, DateTime>(
                 id: 'Volume',
@@ -97,20 +103,20 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 domainFn: (InstrumentHistorical history, _) =>
                     history.beginsAt!,
                 measureFn: (InstrumentHistorical history, _) => history.volume,
-                data: widget.instrument.instrumentHistoricalsObj!.historicals),
+                data: _lastValidHistoricals!.historicals),
             charts.Series<InstrumentHistorical, DateTime>(
               id: 'Low',
               colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) => history.lowPrice,
-              data: widget.instrument.instrumentHistoricalsObj!.historicals,
+              data: _lastValidHistoricals!.historicals,
             ),
             charts.Series<InstrumentHistorical, DateTime>(
               id: 'High',
               colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) => history.highPrice,
-              data: widget.instrument.instrumentHistoricalsObj!.historicals,
+              data: _lastValidHistoricals!.historicals,
             ),
           ];
           var extents = charts.NumericExtents.fromValues(
@@ -231,9 +237,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                         _buildDateSpanChip(ChartDateSpan.month_3, '3M'),
                         _buildDateSpanChip(ChartDateSpan.year, '1Y'),
                         _buildDateSpanChip(ChartDateSpan.year_5, '5Y'),
-                        Container(width: 10),
-                        _buildBoundsChip(Bounds.regular, 'Regular Hours'),
-                        _buildBoundsChip(Bounds.trading, 'Trading Hours'),
+                        // Container(width: 10),
+                        // _buildBoundsChip(Bounds.regular, 'Regular Hours'),
+                        // _buildBoundsChip(Bounds.trading, 'Trading Hours'),
                       ]);
                     },
                     itemCount: 1,
@@ -241,7 +247,35 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             ],
           ));
         }
-        return SliverToBoxAdapter(child: Container());
+        return SliverToBoxAdapter(
+            child: Column(
+          children: [
+            const SizedBox(
+                height: 340,
+                child: Center(child: CircularProgressIndicator.adaptive())),
+            SizedBox(
+                height: 56,
+                child: ListView.builder(
+                  key: const PageStorageKey<String>('instrumentChartFilters'),
+                  padding: const EdgeInsets.all(5.0),
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return Row(children: [
+                      _buildDateSpanChip(ChartDateSpan.day, '1D'),
+                      _buildDateSpanChip(ChartDateSpan.week, '1W'),
+                      _buildDateSpanChip(ChartDateSpan.month, '1M'),
+                      _buildDateSpanChip(ChartDateSpan.month_3, '3M'),
+                      _buildDateSpanChip(ChartDateSpan.year, '1Y'),
+                      _buildDateSpanChip(ChartDateSpan.year_5, '5Y'),
+                      // Container(width: 10),
+                      // _buildBoundsChip(Bounds.regular, 'Regular Hours'),
+                      // _buildBoundsChip(Bounds.trading, 'Trading Hours'),
+                    ]);
+                  },
+                  itemCount: 1,
+                ))
+          ],
+        ));
       },
     );
   }

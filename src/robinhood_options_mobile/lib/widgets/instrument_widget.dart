@@ -476,7 +476,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     setState(() {
       chartDateSpanFilter = span;
       chartBoundsFilter = bounds;
-      futureHistoricals = null;
+      futureHistoricals = widget.service.getInstrumentHistoricals(
+          widget.brokerageUser,
+          Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+          widget.instrument.symbol,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+      futureHistoricals?.then((value) {
+        if (mounted) {
+          setState(() {
+            widget.instrument.instrumentHistoricalsObj = value;
+          });
+        }
+      });
     });
   }
 
