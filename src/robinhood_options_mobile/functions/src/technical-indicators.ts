@@ -2207,16 +2207,23 @@ export function evaluateAllIndicators(
     overallSignal = "BUY";
     reason = `All ${totalIndicators} indicators are GREEN - ` +
       `Strong BUY signal (strength: ${signalStrength})`;
+  } else if (signalStrength >= 75) {
+    overallSignal = "BUY";
+    reason = `Strong BUY signal (strength: ${signalStrength}). ` +
+      `BUY: ${buyCount}, SELL: ${sellCount}, HOLD: ${holdCount}.`;
   } else if (allRed) {
     overallSignal = "SELL";
     reason = `All ${totalIndicators} indicators are RED - ` +
       `Strong SELL signal (strength: ${signalStrength})`;
+  } else if (signalStrength <= 25) {
+    overallSignal = "SELL";
+    reason = `Strong SELL signal (strength: ${signalStrength}). ` +
+      `BUY: ${buyCount}, SELL: ${sellCount}, HOLD: ${holdCount}.`;
   } else {
     overallSignal = "HOLD";
     reason = `Mixed signals - BUY: ${buyCount}, ` +
       `SELL: ${sellCount}, HOLD: ${holdCount}. ` +
-      `Signal strength: ${signalStrength}/100. ` +
-      `Need all ${totalIndicators} indicators aligned for action.`;
+      `Signal strength: ${signalStrength}/100.`;
   }
 
   logger.info("Multi-indicator evaluation complete", {

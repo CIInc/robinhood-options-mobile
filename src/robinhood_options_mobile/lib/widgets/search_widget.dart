@@ -88,6 +88,7 @@ class _SearchWidgetState extends State<SearchWidget>
   DateTime? tradeSignalStartDate;
   DateTime? tradeSignalEndDate;
   int tradeSignalLimit = 50; // Default limit
+  String sortBy = 'signalStrength'; // 'signalStrength' or 'timestamp'
 
   _SearchWidgetState();
 
@@ -475,6 +476,65 @@ class _SearchWidgetState extends State<SearchWidget>
                                             const SizedBox(width: 4),
                                             PopupMenuButton<String>(
                                               icon: Icon(
+                                                Icons.sort,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                              ),
+                                              tooltip: 'Sort by',
+                                              itemBuilder:
+                                                  (BuildContext context) {
+                                                return [
+                                                  PopupMenuItem<String>(
+                                                    value: 'signalStrength',
+                                                    child: Row(
+                                                      children: [
+                                                        const Text(
+                                                            'Signal Strength'),
+                                                        if (sortBy ==
+                                                            'signalStrength') ...[
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Icon(Icons.check,
+                                                              size: 18,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem<String>(
+                                                    value: 'timestamp',
+                                                    child: Row(
+                                                      children: [
+                                                        const Text('Recent'),
+                                                        if (sortBy ==
+                                                            'timestamp') ...[
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          Icon(Icons.check,
+                                                              size: 18,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ];
+                                              },
+                                              onSelected: (String value) {
+                                                setState(() {
+                                                  sortBy = value;
+                                                });
+                                                _fetchTradeSignalsWithFilters();
+                                              },
+                                            ),
+                                            const SizedBox(width: 4),
+                                            PopupMenuButton<String>(
+                                              icon: Icon(
                                                 isMarketOpen
                                                     ? Icons.access_time
                                                     : Icons.calendar_today,
@@ -631,46 +691,100 @@ class _SearchWidgetState extends State<SearchWidget>
                                     ),
                                   ),
                                 )
-                              : tradeSignals.isEmpty
+                              : tradeSignalsProvider.error != null
                                   ? SliverToBoxAdapter(
                                       child: Padding(
                                         padding: const EdgeInsets.all(16.0),
                                         child: Center(
-                                          child: Text(
-                                            selectedIndicators.isEmpty &&
-                                                    signalStrengthCategory ==
-                                                        null
-                                                ? 'No trade signals available'
-                                                : 'No matching signals found',
-                                            style: TextStyle(
-                                              fontSize: 16.0,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.error_outline,
+                                                  size: 48,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .error),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                'Error loading signals',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .error,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                tradeSignalsProvider.error!,
+                                                textAlign: TextAlign.center,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 16),
+                                              ElevatedButton.icon(
+                                                onPressed: () {
+                                                  _fetchTradeSignalsWithFilters();
+                                                },
+                                                icon: const Icon(Icons.refresh),
+                                                label: const Text('Retry'),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
                                     )
-                                  : SliverPadding(
-                                      padding: const EdgeInsets.all(
-                                          2), // .symmetric(horizontal: 2),
-                                      sliver: SliverGrid(
-                                        gridDelegate:
-                                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: 220.0,
-                                          mainAxisSpacing: 10.0,
-                                          crossAxisSpacing: 10.0,
-                                          childAspectRatio: 1.25,
-                                        ),
-                                        delegate: SliverChildBuilderDelegate(
-                                          (BuildContext context, int index) {
-                                            return _buildTradeSignalGridItem(
-                                                tradeSignals, index);
-                                          },
-                                          childCount: tradeSignals.length,
-                                        ),
-                                      )));
+                                  : tradeSignals.isEmpty
+                                      ? SliverToBoxAdapter(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Center(
+                                              child: Text(
+                                                selectedIndicators.isEmpty &&
+                                                        signalStrengthCategory ==
+                                                            null
+                                                    ? 'No trade signals available'
+                                                    : 'No matching signals found',
+                                                style: TextStyle(
+                                                  fontSize: 16.0,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : SliverPadding(
+                                          padding: const EdgeInsets.all(
+                                              2), // .symmetric(horizontal: 2),
+                                          sliver: SliverGrid(
+                                            gridDelegate:
+                                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                              maxCrossAxisExtent: 220.0,
+                                              mainAxisSpacing: 10.0,
+                                              crossAxisSpacing: 10.0,
+                                              childAspectRatio: 1.25,
+                                            ),
+                                            delegate:
+                                                SliverChildBuilderDelegate(
+                                              (BuildContext context,
+                                                  int index) {
+                                                return _buildTradeSignalGridItem(
+                                                    tradeSignals, index);
+                                              },
+                                              childCount: tradeSignals.length,
+                                            ),
+                                          )));
                     },
                   ),
                   if (movers != null && movers.isNotEmpty) ...[
@@ -1657,6 +1771,7 @@ class _SearchWidgetState extends State<SearchWidget>
       startDate: tradeSignalStartDate,
       endDate: tradeSignalEndDate,
       limit: tradeSignalLimit,
+      sortBy: sortBy,
     );
   }
 
@@ -1691,6 +1806,8 @@ class _SearchWidgetState extends State<SearchWidget>
           return 'Stoch';
         case 'williamsR':
           return 'W%R';
+        case 'volume':
+          return 'Volume';
         default:
           return indicator.toUpperCase();
       }
@@ -1930,14 +2047,17 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   /// Returns color based on signal strength value (0-100).
-  /// 0-33: Red (bearish), 34-66: Grey (neutral), 67-100: Green (bullish)
+  /// Matches filter categories:
+  /// Strong (75-100): Green
+  /// Moderate (50-74): Orange
+  /// Weak (0-49): Red
   Color _getSignalStrengthColor(int strength) {
-    if (strength >= 67) {
+    if (strength >= 75) {
       return Colors.green;
-    } else if (strength <= 33) {
-      return Colors.red;
+    } else if (strength >= 50) {
+      return Colors.orange;
     } else {
-      return Colors.grey;
+      return Colors.red;
     }
   }
 }

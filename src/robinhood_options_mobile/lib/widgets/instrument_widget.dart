@@ -3491,8 +3491,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
           }
         } else {
-          displayAllGreen = false;
-          displayAllRed = false;
+          final overall = multiIndicator['overallSignal'];
+          displayAllGreen = overall == 'BUY';
+          displayAllRed = overall == 'SELL';
         }
 
         // Extract signal strength
@@ -3797,7 +3798,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? 'Overall: BUY'
                           : displayAllRed
                               ? 'Overall: SELL'
-                              : 'Overall: ${multiIndicator['overallSignal'] ?? 'HOLD'}',
+                              : 'Overall: HOLD',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -3901,14 +3902,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   /// Returns color based on signal strength value (0-100).
-  /// 0-33: Red (bearish), 34-66: Grey (neutral), 67-100: Green (bullish)
+  /// Matches filter categories:
+  /// Strong (75-100): Green
+  /// Moderate (50-74): Orange
+  /// Weak (0-49): Red
   Color _getSignalStrengthColor(int strength) {
-    if (strength >= 67) {
+    if (strength >= 75) {
       return Colors.green;
-    } else if (strength <= 33) {
-      return Colors.red;
+    } else if (strength >= 50) {
+      return Colors.orange;
     } else {
-      return Colors.grey;
+      return Colors.red;
     }
   }
 

@@ -306,6 +306,7 @@ class TradeSignalsProvider with ChangeNotifier {
   String? _selectedInterval; // Will be auto-set based on market hours
 
   String? _tradeProposalMessage;
+  String? _error;
   Map<String, dynamic>? _lastTradeProposal;
   Map<String, dynamic>? _lastAssessment;
   bool _isTradeInProgress = false;
@@ -314,6 +315,7 @@ class TradeSignalsProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
   String? get tradeProposalMessage => _tradeProposalMessage;
+  String? get error => _error;
   Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
   Map<String, dynamic>? get lastAssessment => _lastAssessment;
   bool get isTradeInProgress => _isTradeInProgress;
@@ -403,6 +405,7 @@ class TradeSignalsProvider with ChangeNotifier {
     DateTime? endDate,
     List<String>? symbols,
     String? interval,
+    String sortBy = 'signalStrength',
   }) {
     Query<Map<String, dynamic>> query =
         FirebaseFirestore.instance.collection('agentic_trading');
@@ -456,7 +459,15 @@ class TradeSignalsProvider with ChangeNotifier {
       }
     }
 
-    query = query.orderBy('timestamp', descending: true);
+    if (sortBy == 'signalStrength') {
+      query = query.orderBy('multiIndicatorResult.signalStrength',
+          descending: true);
+      query = query.orderBy('timestamp', descending: true);
+    } else {
+      query = query.orderBy('timestamp', descending: true);
+      query = query.orderBy('multiIndicatorResult.signalStrength',
+          descending: true);
+    }
     query = query.limit(queryLimit);
     return query;
   }
@@ -472,8 +483,10 @@ class TradeSignalsProvider with ChangeNotifier {
     List<String>? symbols,
     int? limit,
     String? interval,
+    String sortBy = 'signalStrength',
   }) {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     _currentSymbols = symbols;
@@ -489,6 +502,7 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
     debugPrint('   Limit: $_currentLimit');
+    debugPrint('   Sort by: $sortBy');
 
     // Cancel existing subscription
     _tradeSignalsSubscription?.cancel();
@@ -505,6 +519,7 @@ class TradeSignalsProvider with ChangeNotifier {
         endDate: endDate,
         symbols: symbols,
         interval: effectiveInterval,
+        sortBy: sortBy,
       );
 
       _tradeSignalsSubscription = query.snapshots().listen((snapshot) {
@@ -513,16 +528,14 @@ class TradeSignalsProvider with ChangeNotifier {
             snapshot, _currentSymbols, effectiveInterval);
       }, onError: (e) {
         _tradeSignals = [];
-        _tradeProposalMessage =
-            'Failed to stream trade signals: ${e.toString()}';
+        _error = 'Failed to stream trade signals: ${e.toString()}';
         debugPrint('❌ Error streaming trade signals: ${e.toString()}');
         _isLoading = false;
         notifyListeners();
       });
     } catch (e) {
       _tradeSignals = [];
-      _tradeProposalMessage =
-          'Failed to setup trade signals stream: ${e.toString()}';
+      _error = 'Failed to setup trade signals stream: ${e.toString()}';
       debugPrint('❌ Error setting up trade signals stream: ${e.toString()}');
       _isLoading = false;
       notifyListeners();
@@ -540,8 +553,10 @@ class TradeSignalsProvider with ChangeNotifier {
     List<String>? symbols,
     int? limit,
     String? interval,
+    String sortBy = 'signalStrength',
   }) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     _currentSymbols = symbols;
@@ -557,6 +572,7 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
     debugPrint('   Limit: $_currentLimit');
+    debugPrint('   Sort by: $sortBy');
 
     try {
       final effectiveInterval = interval ?? selectedInterval;
@@ -570,6 +586,7 @@ class TradeSignalsProvider with ChangeNotifier {
         endDate: endDate,
         symbols: symbols,
         interval: effectiveInterval,
+        sortBy: sortBy,
       );
 
       final snapshot = await query.get(const GetOptions(source: Source.server));
@@ -578,7 +595,7 @@ class TradeSignalsProvider with ChangeNotifier {
           snapshot, _currentSymbols, effectiveInterval);
     } catch (e) {
       _tradeSignals = [];
-      _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
+      _error = 'Failed to fetch trade signals: ${e.toString()}';
       debugPrint('❌ Error fetching trade signals: ${e.toString()}');
       _isLoading = false;
       notifyListeners();
