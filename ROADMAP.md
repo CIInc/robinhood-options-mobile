@@ -8,13 +8,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
 
 ### Quick Stats
-- **Completed Features**: 10 major categories (65+ items)
-- **Planned Enhancements**: 14 categories (135+ items)
+- **Completed Features**: 12 major categories (80+ items)
+- **Planned Enhancements**: 12 categories (120+ items)
 - **Open GitHub Issues**: 12 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -85,10 +85,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Option Chain Screener (Advanced filtering & AI recommendations)
 - ✅ Multi-Leg Strategy Builder (Spreads, Straddles, etc.)
 - ✅ Advanced Order Types (Trailing Stop, Stop-Limit)
+- ✅ Time in Force (GTC, GFD, IOC, OPG)
+- ✅ Stock Orders (Direct placement)
 - ✅ Trading UI Refactor (Improved order preview & placement)
 
 ### v0.24.0 (Q1 2026 - Late January)
-**Futures Trading & Backtesting Refinement**
+**Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
@@ -206,33 +208,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Legal documentation
 - Multi-jurisdiction support
 
-### Version Statistics
-- **Current**: v0.22.0 (Released Dec 20, 2025)
-- **Planned Releases**: 14+ versions through 2027
-- **Features Per Release**: 5-8 per minor version
-- **Release Cadence**: Monthly in 2026, bi-weekly starting 2027
-- **Major Features**: Trading, Brokerages, Analytics, Social, Security
-
-### Feature Maturity by Version
-| Feature | v0.19 | v0.20 | v0.21 | v0.22 | v0.23 | v0.24 | v0.25 | v0.26+ |
-|---------|-------|-------|-------|-------|-------|-------|-------|--------|
-| Agentic Trading | ✅ Complete | ✅ Enhanced | Stable | Stable | Stable | Stable | Stable | Mature |
-| Copy Trading | ✅ Manual | ✅ Manual | Approval | ✅ Auto | Auto | Auto | Auto | Mature |
-| Backtesting | ✅ Complete | ✅ Stable | Enhanced | Enhanced | Stable | Stable | Stable | Mature |
-| Multi-Brokerage | Robinhood | Robinhood | Robinhood | Robinhood | Schwab+RH | Schwab+RH | 3 Brokers | Mature |
-| Analytics | ✅ Advanced | ✅ Filtered | Advanced | Advanced | Advanced | Advanced | AI+Adv | Mature |
-| Futures | Enriched | Enriched | Enriched | Trading | Trading | Trading | Stable | Mature |
-| Crypto/Forex | — | — | — | — | — | — | ✅ Launch | Mature |
-| AI Assistant | — | — | — | — | — | — | — | ✅ Launch |
-| Social | — | — | — | — | — | — | — | ✅ Launch |
-
-
-
 ### Trading Automation & Execution
-- **Core Trading**: Stock Orders, Multi-Leg Options, Futures Trading, Crypto/Forex Trading
+- **Core Trading**: Stock Orders (✅), Multi-Leg Options (✅), Futures Trading, Crypto/Forex Trading
 - **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute (✅), Trade Approval Workflow (✅)
-- **Advanced Orders**: Trailing Stops, Conditional Orders, Order Templates, Time-Based Exits (✅)
-- **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops, Partial Position Exits
+- **Advanced Orders**: Trailing Stops (✅), Conditional Orders, Order Templates, Time-Based Exits (✅), Time in Force (✅)
+- **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops (✅), Partial Position Exits (✅)
 
 ### Strategy Development & Optimization
 - **Signal Analysis**: 12-Indicator System (✅), Signal Strength Filtering (✅), Custom Indicators (✅), Signal Optimization (✅)
@@ -287,50 +267,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Code Quality**: Linting Rules, Code Coverage, Performance Budgets, Technical Debt Management
 - **Developer Tools**: API Documentation, Developer Guide, Architecture Records, Mock Services
 - **Data & Integration**: Historical Data Exports, API Access, Webhook Notifications, Third-Party Integrations
-
-## Feature Dependencies & Critical Path
-
-Understanding dependencies helps with sprint planning and resource allocation. Below are key dependencies that affect the critical path:
-
-### Critical Dependencies by Priority
-
-**Priority 1 Dependencies:**
-- **Backtesting Interface (✅)** ← Requires: Agentic Trading (✅), Trade Signals (✅), Historical Data Access
-- **Signal Optimization (✅)** ← Requires: Backtesting Interface (✅), Performance Analytics
-- **Custom Indicators (✅)** ← Requires: 12-Indicator System (✅), Signal Analysis Infrastructure
-- **Trade Approval Workflow (✅)** ← Requires: Agentic Trading (✅), Order Execution Framework
-- **Advanced Risk Controls (✅)** ← Requires: Agentic Trading (✅), Portfolio State Management (✅)
-- **Copy Trading Auto-Execute** ← Requires: Copy Trading Manual (✅), WebSocket/Real-time Updates
-
-**Priority 2 Dependencies:**
-- **Schwab/Fidelity/Plaid/Interactive Brokers APIs** ← Requires: OAuth 2.0 Infrastructure, Multi-Brokerage Architecture
-- **Multi-Brokerage Support** ← Requires: Account Aggregation, Data Normalization Layer
-- **Crypto Trading** ← Requires: Multi-Brokerage Foundation, Asset Type Abstraction
-- **Forex Trading** ← Requires: Multi-Brokerage Foundation, FX-Specific Price Data
-- **Stock Orders** ← Requires: Basic Brokerage Integration (✅), Order Validation
-- **Multi-Leg Options** ← Requires: Options Chain UI (✅), Order Composition UI
-
-**Priority 3 Dependencies:**
-- **Generative AI Assistant** ← Requires: Firebase AI Integration, Portfolio Data API, User Context Threading
-- **Advanced Portfolio Analytics** ← Requires: Historical P&L Tracking, Multi-Position Calculations
-- **Custom Alerts** ← Requires: WebSocket/Real-time Data, Notification Infrastructure (✅)
-- **Risk Exposure Heatmaps** ← Requires: Advanced Analytics, Position Risk Calculations
-
-**Priority 4 Dependencies:**
-- **Group Chat** ← Requires: Investor Groups (✅), Real-time Messaging Infrastructure
-- **Social Platform** ← Requires: Group Features (✅), User Profiles, Activity Tracking
-- **Performance Leaderboards** ← Requires: Performance Analytics (✅), User Comparison Framework
-
-**Priority 5 Dependencies:**
-- **Biometric Authentication** ← Requires: Secure Storage (Flutter Secure Storage ✅), Auth Infrastructure
-- **End-to-End Encryption** ← Requires: Security Foundation, Key Management, Encryption Library
-- **CI/CD Pipeline** ← Requires: Testing Framework, Build Infrastructure, GitHub Actions Setup
-- **Compliance Automation** ← Requires: Legal Framework, Regulatory Database, Audit Logging
-
-### Dependency Legend
-- ✅ = Already Completed
-- → = Depends On / Requires
-- Large blocks can start in parallel once dependencies are met
 
 ## Risks & Blockers
 
@@ -514,6 +450,34 @@ Understanding dependencies helps with sprint planning and resource allocation. B
 - [x] Top 5 holdings display with percentage labels
 - [x] "Others" grouping for remaining positions
 
+### Trading & Execution
+- [x] **Option Chain Screener** ([#12](https://github.com/CIInc/robinhood-options-mobile/issues/12)):
+    - [x] Advanced filtering (Delta, Theta, Gamma, IV, etc.)
+    - [x] AI-powered "Find Best Contract" recommendations
+    - [x] Filter presets (save/load/reset)
+- [x] **Multi-Leg Strategy Builder** ([#68](https://github.com/CIInc/robinhood-options-mobile/issues/68)):
+    - [x] Support for Spreads, Straddles, Iron Condors, Custom
+    - [x] Visual payoff diagrams and risk/reward analysis
+- [x] **Advanced Order Types** ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)):
+    - [x] Trailing Stop and Stop-Limit orders
+    - [x] Time in Force support (GTC, GFD, IOC, OPG)
+- [x] **Trading UI Refactor**:
+    - [x] Improved order preview and placement flow
+- [x] **Stock Orders** ([#107](https://github.com/CIInc/robinhood-options-mobile/issues/107)):
+    - [x] Place stock orders directly from the app
+
+### AI & Insights
+- [x] **Generative AI Assistant** ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)):
+    - [x] Integrate `firebase_ai` for natural language queries
+    - [x] Implement portfolio insights and summaries (via GenerativeActionsWidget)
+
+### Infrastructure & Security
+- [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system
+- [x] **OAuth2 Refresh** ([#14](https://github.com/CIInc/robinhood-options-mobile/issues/14)): Handle token refresh seamlessly
+- [x] **Secure Storage** ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88)): Secure storage for OAuth tokens
+- [x] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon
+- [x] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement
+
 ## Planned Enhancements 🚀
 
 ### Priority 1: Core Trading Features (Q1 2026 - Jan-Mar 2026)
@@ -534,9 +498,6 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **Revenue Impact:** Medium (foundational for premium features)
 
 #### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
-- [x] **Auto-Execute**: Client-side automatic execution for flagged copy trades (Backend ready, Client pending) ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)) - **Large** (3-4 weeks)
-- [x] **Dashboard**: View history of all copied trades ([#71](https://github.com/CIInc/robinhood-options-mobile/issues/71)) - **Small** (1-2 weeks)
-- [x] **Approval Workflow**: Review and approve auto-copied trades ([#97](https://github.com/CIInc/robinhood-options-mobile/issues/97)) - **Medium** (2-3 weeks)
 - [ ] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
 - [ ] **Partial Copying**: Support copying a percentage of the original trade ([#99](https://github.com/CIInc/robinhood-options-mobile/issues/99)) - **Small** (1 week)
 - [ ] **Advanced Filtering**: Filter by symbol, time, or sector ([#101](https://github.com/CIInc/robinhood-options-mobile/issues/101)) - **Small** (1-2 weeks)
@@ -584,10 +545,6 @@ Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing
     - [ ] Add Forex trading UI and order placement
 
 #### Trading Orders & Execution
-- [ ] **Stock Orders**: Place stock orders directly from the app ([#107](https://github.com/CIInc/robinhood-options-mobile/issues/107)) - **Medium** (2-3 weeks)
-- [ ] **Multi-Leg Options**: Support for spreads and complex strategies ([#68](https://github.com/CIInc/robinhood-options-mobile/issues/68)) - **Large** (4-5 weeks)
-- [ ] **Advanced Orders**: Trailing stops, conditional orders ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)) - **Medium** (2-3 weeks)
-- [ ] **Option Screener**: Advanced option filtering and screening ([#12](https://github.com/CIInc/robinhood-options-mobile/issues/12)) - **Large** (3-4 weeks)
 - [ ] **Order Templates**: Save and reuse order templates - **Small** (1 week)
 
 ### Priority 3: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
@@ -624,8 +581,6 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
-    - [x] Integrate `firebase_ai` for natural language queries
-    - [x] Implement portfolio insights and summaries (via GenerativeActionsWidget)
     - [ ] Add chat interface for market questions
     - [ ] Implement `generateInvestmentThesis`
 
@@ -716,7 +671,6 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **CI/CD Pipeline**: Automated testing and deployment - **Large** (3-4 weeks)
 - [ ] **Performance Optimization**: App size and speed improvements - **Medium** (2-3 weeks)
 - [ ] **Mock Brokerage Service** ([#5](https://github.com/CIInc/robinhood-options-mobile/issues/5)): Demo and testing service - **Medium** (2-3 weeks)
-- [x] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)) - **Large** (4-5 weeks)
 - [ ] **AI Summaries** ([#21](https://github.com/CIInc/robinhood-options-mobile/issues/21)): AI-driven portfolio summaries - **Medium** (2-3 weeks)
 - [ ] AI-powered price targets
 - [ ] Fair value calculations
@@ -739,7 +693,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 
 ### Monetization ([Tracking: #120](https://github.com/CIInc/robinhood-options-mobile/issues/120))
 - [ ] **AdMob Integration**: - **Medium** (2-3 weeks)
-    - [ ] Enable banner ads for non-premium users (mobile only)
+    - [x] Enable banner ads for non-premium users (mobile only)
     - [ ] Implement interstitial ads for specific flows
 
 ### Data & Integration ([Tracking: #121](https://github.com/CIInc/robinhood-options-mobile/issues/121))
@@ -795,19 +749,12 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 ### Security & Privacy
 - [ ] **Security**: - **Large** (6-8 weeks)
     - [ ] **Biometric Auth**: FaceID/TouchID integration ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
-    - [x] **Secure Storage**: Secure storage for OAuth tokens ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88))
     - [ ] **2FA**: Two-factor authentication support ([#89](https://github.com/CIInc/robinhood-options-mobile/issues/89))
     - [ ] Implement certificate pinning for API calls
     - [ ] Add data encryption at rest
     - [ ] Security audit and penetration testing
     - [ ] Implement rate limiting for API calls
 - [ ] Add session timeout and auto-logout - **Small** (1 week)
-- [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system - **Medium** (2-3 weeks)
-- [x] **OAuth2 Refresh** ([#14](https://github.com/CIInc/robinhood-options-mobile/issues/14)): Handle token refresh seamlessly - **Small** (1 week)
-
-### Platform & Build
-- [x] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon - **Small** (1 week)
-- [x] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement - **Small** (1 week)
 
 ### Documentation
 - [ ] **API Documentation**: Comprehensive API reference ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94)) - **Medium** (2-3 weeks)
