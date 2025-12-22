@@ -750,7 +750,8 @@ class PlaidService implements IBrokerageService {
       Instrument instrument,
       String? expirationDates,
       String? type,
-      {String? state = "active"}) {
+      {String? state = "active",
+      bool includeMarketData = false}) {
     // TODO: implement streamOptionInstruments
     throw UnimplementedError();
   }

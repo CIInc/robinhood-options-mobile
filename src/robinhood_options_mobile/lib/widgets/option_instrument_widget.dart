@@ -1546,73 +1546,63 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         centerTitle: false,
         title: Opacity(
           opacity: opacity,
-          child: Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(spacing: 20, children: [
-                Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.end,
-                    //runAlignment: WrapAlignment.end,
-                    //alignment: WrapAlignment.end,
-                    spacing: 10,
-                    //runSpacing: 5,
-                    children: [
-                      Text(optionInstrument.chainSymbol,
-                          style: const TextStyle(fontSize: 17.0)),
-                      Text("\$${optionInstrument.strikePrice}",
-                          style: const TextStyle(fontSize: 17.0)),
-                      Text(optionInstrument.type.toUpperCase(),
-                          style: const TextStyle(fontSize: 17.0)),
-                      Text(formatDate.format(optionInstrument.expirationDate!),
-                          style: const TextStyle(fontSize: 17.0)),
-                    ]),
-                if (optionInstrument.optionMarketData != null) ...[
-                  Wrap(spacing: 10, children: [
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  spacing: 5,
+                  children: [
+                    Text(optionInstrument.chainSymbol,
+                        style: const TextStyle(fontSize: 16.0)),
+                    Text("\$${optionInstrument.strikePrice}",
+                        style: const TextStyle(fontSize: 16.0)),
+                    Text(optionInstrument.type.toUpperCase(),
+                        style: const TextStyle(fontSize: 16.0)),
+                    Text(formatDate.format(optionInstrument.expirationDate!),
+                        style: const TextStyle(fontSize: 16.0)),
+                  ]),
+              if (optionInstrument.optionMarketData != null) ...[
+                Wrap(spacing: 10, children: [
+                  Text(
+                      formatCurrency.format(
+                          optionInstrument.optionMarketData!.adjustedMarkPrice),
+                      style: const TextStyle(fontSize: 14.0)),
+                  Wrap(children: [
+                    Icon(
+                        optionInstrument.optionMarketData!.changeToday > 0
+                            ? Icons.trending_up
+                            : (optionInstrument.optionMarketData!.changeToday <
+                                    0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (optionInstrument.optionMarketData!.changeToday >
+                                0
+                            ? Colors.lightGreenAccent
+                            : (optionInstrument.optionMarketData!.changeToday <
+                                    0
+                                ? Colors.red
+                                : Colors.grey)),
+                        size: 16.0),
+                    Container(
+                      width: 2,
+                    ),
                     Text(
-                        formatCurrency.format(optionInstrument.optionMarketData!
-                            .adjustedMarkPrice), //lastTradePrice
-                        //style: const TextStyle(fontSize: 15.0)
-                        style: const TextStyle(
-                            fontSize: 16.0)), //, color: Colors.white70
-                    Wrap(children: [
-                      Icon(
-                          optionInstrument.optionMarketData!.changeToday > 0
-                              ? Icons.trending_up
-                              : (optionInstrument
-                                          .optionMarketData!.changeToday <
-                                      0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color:
-                              (optionInstrument.optionMarketData!.changeToday >
-                                      0
-                                  ? Colors.lightGreenAccent
-                                  : (optionInstrument
-                                              .optionMarketData!.changeToday <
-                                          0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                          size: 20.0),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage.format(optionInstrument
-                              .optionMarketData!.changePercentToday),
-                          //style: const TextStyle(fontSize: 15.0)
-                          style: const TextStyle(
-                              fontSize: 16.0)), // , color: Colors.white70
-                    ]),
-                    Text(
-                        "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
-                        //style: const TextStyle(fontSize: 12.0),
-                        style: const TextStyle(
-                            fontSize: 16.0), // , color: Colors.white70
-                        textAlign: TextAlign.right)
-                  ])
-                ],
-              ])),
+                        formatPercentage.format(optionInstrument
+                            .optionMarketData!.changePercentToday),
+                        style: const TextStyle(fontSize: 14.0)),
+                  ]),
+                  Text(
+                      "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
+                      style: const TextStyle(fontSize: 14.0),
+                      textAlign: TextAlign.right)
+                ])
+              ],
+            ],
+          ),
         ),
-        expandedHeight: optionPosition != null ? 240 : 160,
+        expandedHeight: optionPosition != null ? 240 : 210,
         floating: false,
         snap: false,
         pinned: true,
@@ -1661,6 +1651,268 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Container(
+                              width: 10,
+                            ),
+                            Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      "Symbol",
+                                      style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
+                                    ),
+                                  )
+                                ]),
+                            Container(
+                              width: 5,
+                            ),
+                            SizedBox(
+                                width: 115,
+                                child: Text(optionInstrument!.chainSymbol,
+                                    style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context)
+                                            .appBarTheme
+                                            .foregroundColor),
+                                    textAlign: TextAlign.right)),
+                            Container(
+                              width: 10,
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Container(
+                              width: 10,
+                            ),
+                            Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      "Strike",
+                                      style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
+                                    ),
+                                  )
+                                ]),
+                            Container(
+                              width: 5,
+                            ),
+                            SizedBox(
+                                width: 115,
+                                child: Text(
+                                    "\$${formatCompactNumber.format(optionInstrument!.strikePrice)} ${optionInstrument!.type.toUpperCase()}",
+                                    style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context)
+                                            .appBarTheme
+                                            .foregroundColor),
+                                    textAlign: TextAlign.right)),
+                            Container(
+                              width: 10,
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Container(
+                              width: 10,
+                            ),
+                            Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      "Expiration",
+                                      style: TextStyle(
+                                          fontSize: 10.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
+                                    ),
+                                  )
+                                ]),
+                            Container(
+                              width: 5,
+                            ),
+                            SizedBox(
+                                width: 115,
+                                child: Text(
+                                    formatDate.format(
+                                        optionInstrument!.expirationDate!),
+                                    style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context)
+                                            .appBarTheme
+                                            .foregroundColor),
+                                    textAlign: TextAlign.right)),
+                            Container(
+                              width: 10,
+                            ),
+                          ],
+                        ),
+                        if (optionInstrument!.optionMarketData != null) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Container(
+                                width: 10,
+                              ),
+                              Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 70,
+                                      child: Text(
+                                        "Price",
+                                        style: TextStyle(
+                                            fontSize: 10.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
+                                      ),
+                                    )
+                                  ]),
+                              Container(
+                                width: 5,
+                              ),
+                              SizedBox(
+                                  width: 115,
+                                  child: Text(
+                                      formatCurrency.format(optionInstrument!
+                                          .optionMarketData!.adjustedMarkPrice),
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
+                                      textAlign: TextAlign.right)),
+                              Container(
+                                width: 10,
+                              ),
+                            ],
+                          ),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Container(
+                                  width: 10,
+                                ),
+                                Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 55,
+                                        child: Text(
+                                          "Change",
+                                          style: TextStyle(
+                                              fontSize: 10.0,
+                                              color: Theme.of(context)
+                                                  .appBarTheme
+                                                  .foregroundColor),
+                                        ),
+                                      )
+                                    ]),
+                                Container(
+                                  width: 5,
+                                ),
+                                Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                          width: 65,
+                                          child: Wrap(
+                                              alignment: WrapAlignment.end,
+                                              children: [
+                                                Icon(
+                                                    optionInstrument!
+                                                                .optionMarketData!
+                                                                .changeToday >
+                                                            0
+                                                        ? Icons.trending_up
+                                                        : (optionInstrument!
+                                                                    .optionMarketData!
+                                                                    .changeToday <
+                                                                0
+                                                            ? Icons
+                                                                .trending_down
+                                                            : Icons
+                                                                .trending_flat),
+                                                    color: (optionInstrument!
+                                                                .optionMarketData!
+                                                                .changeToday >
+                                                            0
+                                                        ? Colors
+                                                            .lightGreenAccent
+                                                        : (optionInstrument!
+                                                                    .optionMarketData!
+                                                                    .changeToday <
+                                                                0
+                                                            ? Colors.red
+                                                            : Colors.grey)),
+                                                    size: 14.0),
+                                                Container(
+                                                  width: 2,
+                                                ),
+                                                Text(
+                                                    formatPercentage
+                                                        .format(optionInstrument!
+                                                            .optionMarketData!
+                                                            .changePercentToday
+                                                            .abs()),
+                                                    style: TextStyle(
+                                                        fontSize: 12.0,
+                                                        color: Theme.of(context)
+                                                            .appBarTheme
+                                                            .foregroundColor),
+                                                    textAlign: TextAlign.right),
+                                              ]))
+                                    ]),
+                                Container(
+                                  width: 5,
+                                ),
+                                SizedBox(
+                                    width: 60,
+                                    child: Text(
+                                        "${optionInstrument!.optionMarketData!.changeToday > 0 ? "+" : optionInstrument!.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument!.optionMarketData!.changeToday.abs())}",
+                                        style: TextStyle(
+                                            fontSize: 12.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
+                                        textAlign: TextAlign.right)),
+                                Container(
+                                  width: 10,
+                                ),
+                              ]),
+                        ],
                         if (optionPosition != null) ...[
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,

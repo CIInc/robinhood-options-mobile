@@ -34,6 +34,10 @@ class User {
   // Agentic Trading Configuration
   AgenticTradingConfig? agenticTradingConfig;
 
+  // Option Filter Presets
+  Map<String, Map<String, dynamic>>? optionFilterPresets;
+  String? defaultOptionFilterPreset;
+
   User(
       {this.name,
       this.nameLower,
@@ -52,7 +56,9 @@ class User {
       this.refreshQuotes = false,
       this.investmentProfile,
       this.tradeSignalNotificationSettings,
-      this.agenticTradingConfig});
+      this.agenticTradingConfig,
+      this.optionFilterPresets,
+      this.defaultOptionFilterPreset});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -63,8 +69,8 @@ class User {
             photoUrl: json['photoUrl'] as String?,
             providerId: json['providerId'] as String?,
             location: json['location'] as String?,
-            role: (json['role'] != null ? json['role'] as String : '')
-                .parseEnum(UserRole.values, UserRole.user) as UserRole,
+            role: (json['role'] != null ? json['role'] as String : '').parseEnum(UserRole.values, UserRole.user)
+                as UserRole,
             devices: json.keys.contains('devices')
                 ? Device.fromJsonArray(json['devices'])
                 : [],
@@ -88,16 +94,19 @@ class User {
                 ? InvestmentProfile.fromJson(
                     json['investmentProfile'] as Map<String, Object?>)
                 : null,
-            tradeSignalNotificationSettings:
-                json['tradeSignalNotificationSettings'] != null
-                    ? TradeSignalNotificationSettings.fromJson(
-                        json['tradeSignalNotificationSettings']
-                            as Map<String, dynamic>)
-                    : null,
+            tradeSignalNotificationSettings: json['tradeSignalNotificationSettings'] != null
+                ? TradeSignalNotificationSettings.fromJson(json['tradeSignalNotificationSettings']
+                    as Map<String, dynamic>)
+                : null,
             agenticTradingConfig: json['agenticTradingConfig'] != null
                 ? AgenticTradingConfig.fromJson(
                     json['agenticTradingConfig'] as Map<String, dynamic>)
-                : null);
+                : null,
+            optionFilterPresets: json['optionFilterPresets'] != null
+                ? (json['optionFilterPresets'] as Map<String, dynamic>)
+                    .map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
+                : null,
+            defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?);
 
   Map<String, Object?> toJson() {
     return {
@@ -119,7 +128,9 @@ class User {
       'investmentProfile': investmentProfile?.toJson(),
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
-      'agenticTradingConfig': agenticTradingConfig?.toJson()
+      'agenticTradingConfig': agenticTradingConfig?.toJson(),
+      'optionFilterPresets': optionFilterPresets,
+      'defaultOptionFilterPreset': defaultOptionFilterPreset
     };
   }
 

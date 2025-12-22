@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
@@ -84,6 +87,9 @@ class _InstrumentOptionChainWidgetState
   ScrollController scrollController = ScrollController();
   final ItemScrollController itemScrollController = ItemScrollController();
   int? instrumentPosition;
+  Map<String, List<dynamic>> aiRecommendationsMap = {};
+  bool isGeneratingAI = false;
+  Map<String, dynamic> filterSettings = {};
   //final dataKey = GlobalKey();
 
   _InstrumentOptionChainWidgetState();
@@ -98,9 +104,194 @@ class _InstrumentOptionChainWidgetState
       typeFilter = widget.initialTypeFilter;
     }
 
+    if (widget.user?.defaultOptionFilterPreset != null &&
+        widget.user?.optionFilterPresets != null &&
+        widget.user!.optionFilterPresets!
+            .containsKey(widget.user!.defaultOptionFilterPreset)) {
+      filterSettings = Map.from(widget
+          .user!.optionFilterPresets![widget.user!.defaultOptionFilterPreset]!);
+    }
+
     widget.analytics.logScreenView(
       screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
     );
+  }
+
+  Future<void> _generateAIRecommendations(
+      BuildContext context,
+      GenerativeProvider generativeProvider,
+      List<OptionInstrument>? optionInstruments,
+      Instrument instrument) async {
+    var userSettings = await _showAIOptionsDialog(context);
+    if (userSettings == null) return;
+
+    var prompt = widget.generativeService.prompts
+        .firstWhere((p) => p.key == 'select-option');
+    var historicalDataString =
+        OptionInstrument.toMarkdownTable(optionInstruments ?? []);
+    var historicalDataString2 = Instrument.toMarkdownTable([instrument]);
+    var basePrompt = prompt.prompt
+        .replaceAll("{{symbol}}", instrument.symbol)
+        .replaceAll(
+            "{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '')
+        .replaceAll("{{action}}",
+            actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell');
+
+    var today = DateTime.now();
+    var dateString = DateFormat.yMMMEd().format(today);
+    basePrompt += "\nToday is $dateString.";
+
+    String userContext =
+        "\nUser Preferences:\n- Risk Tolerance: ${userSettings['risk']}\n- Strategy: ${userSettings['strategy']}";
+    if (userSettings['custom'] != null &&
+        userSettings['custom'].toString().isNotEmpty) {
+      userContext += "\n- Custom Instructions: ${userSettings['custom']}";
+    }
+
+    var finalPrompt = '$basePrompt'
+        '$userContext'
+        '\nUse the following stock data: $historicalDataString2'
+        '\nUse the following option chain data:\n$historicalDataString'
+        '\n\nReturn the response as a JSON list of objects with the following fields: '
+        '"strike_price" (number), '
+        '"type" (string, "call" or "put"), '
+        '"expiration_date" (string, YYYY-MM-DD), '
+        '"reason" (string, in markdown format), '
+        '"confidence" (number, 0-100), '
+        '"risk_level" (string, "Low", "Medium", "High"), '
+        '"strategy_type" (string, e.g. "Conservative", "Aggressive", "Speculative"), '
+        '"market_sentiment" (string, "Bullish", "Bearish", "Neutral"), '
+        '"predicted_price_target" (string, e.g. "Rise to \$150").';
+
+    var newPrompt =
+        Prompt(key: prompt.key, title: prompt.title, prompt: finalPrompt);
+
+    if (!context.mounted) return;
+
+    setState(() {
+      isGeneratingAI = true;
+    });
+
+    try {
+      await generateContent(
+          generativeProvider, widget.generativeService, newPrompt, context,
+          showModal: false);
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGeneratingAI = false;
+        });
+      }
+    }
+
+    var response = generativeProvider.promptResponses[newPrompt.prompt];
+    if (response != null) {
+      try {
+        var jsonString = response;
+        // Robust JSON extraction
+        final jsonStart = jsonString.indexOf('[');
+        final jsonEnd = jsonString.lastIndexOf(']');
+        if (jsonStart != -1 && jsonEnd != -1) {
+          jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
+        } else {
+          // Fallback for single object response
+          final objStart = jsonString.indexOf('{');
+          final objEnd = jsonString.lastIndexOf('}');
+          if (objStart != -1 && objEnd != -1) {
+            jsonString = jsonString.substring(objStart, objEnd + 1);
+          }
+        }
+
+        var json = jsonDecode(jsonString);
+        List<dynamic> recommendations = [];
+        if (json is List) {
+          recommendations = json;
+        } else {
+          recommendations = [json];
+        }
+
+        if (recommendations.isNotEmpty) {
+          setState(() {
+            if (expirationDateFilter != null) {
+              aiRecommendationsMap[expirationDateFilter!
+                  .toString()
+                  .substring(0, 10)] = recommendations;
+            }
+          });
+
+          // Find the first option to scroll to
+          var firstRec = recommendations.first;
+          var strikePrice = firstRec['strike_price'];
+          var type = firstRec['type'];
+
+          // Find the option
+          var optionIndex = filteredOptionsInstruments!.indexWhere((oi) =>
+              oi.strikePrice == strikePrice &&
+              oi.type.toLowerCase() == type.toLowerCase());
+
+          if (optionIndex != -1) {
+            // Scroll to option
+            itemScrollController.scrollTo(
+                index: optionIndex > 2 ? optionIndex - 2 : 0,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOutCubic,
+                alignment: 0);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                      "Could not find the suggested option in the current list. Reason: ${firstRec['reason']}")));
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error parsing AI response: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Error parsing AI response. Please try again.")));
+        }
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _showAIOptionsDialog(BuildContext context) {
+    return showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => const AIOptionsSheet(),
+    );
+  }
+
+  Future<void> _showFilterDialog(BuildContext context) async {
+    Map<String, dynamic>? newSettings;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => FilterOptionsSheet(
+        initialSettings: filterSettings,
+        action: actionFilter,
+        user: widget.user,
+        userDocRef: widget.userDocRef,
+        onSettingsChanged: (settings) {
+          newSettings = settings;
+        },
+      ),
+    );
+
+    if (newSettings != null) {
+      setState(() {
+        filterSettings = newSettings!;
+        instrumentPosition = null; // Reset scroll position
+        optionInstrumentStream = null;
+      });
+    }
   }
 
   @override
@@ -141,6 +332,11 @@ class _InstrumentOptionChainWidgetState
               expirationDateFilter = expirationDates!.firstWhereOrNull((d) =>
                   d.isAtSameMomentAs(widget.selectedOption!.expirationDate!));
             }
+            if (expirationDateFilter != null &&
+                !expirationDates!
+                    .any((d) => d.isAtSameMomentAs(expirationDateFilter!))) {
+              expirationDateFilter = null;
+            }
             expirationDateFilter ??= expirationDates!.first;
           }
 
@@ -151,7 +347,8 @@ class _InstrumentOptionChainWidgetState
               expirationDateFilter != null
                   ? formatExpirationDate.format(expirationDateFilter!)
                   : null,
-              null); // 'call'
+              null, // 'call'
+              includeMarketData: filterSettings.isNotEmpty);
 
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
@@ -161,15 +358,149 @@ class _InstrumentOptionChainWidgetState
                 if (optionInstrumentsnapshot.hasData) {
                   optionInstruments = optionInstrumentsnapshot.data!;
 
-                  var newfilteredOptionsInstruments = optionInstruments!
-                      .where((oi) =>
-                          (typeFilter == null ||
-                              typeFilter!.toLowerCase() ==
-                                  oi.type.toLowerCase()) &&
-                          (expirationDateFilter == null ||
-                              expirationDateFilter!
-                                  .isAtSameMomentAs(oi.expirationDate!)))
-                      .toList();
+                  var newfilteredOptionsInstruments =
+                      optionInstruments!.where((oi) {
+                    bool matches = (typeFilter == null ||
+                            typeFilter!.toLowerCase() ==
+                                oi.type.toLowerCase()) &&
+                        (expirationDateFilter == null ||
+                            expirationDateFilter!
+                                .isAtSameMomentAs(oi.expirationDate!));
+
+                    if (!matches) {
+                      return false;
+                    }
+
+                    if (filterSettings.isNotEmpty) {
+                      final marketData = oi.optionMarketData;
+                      // If we are filtering but have no market data, exclude the option
+                      if (marketData == null) {
+                        return false;
+                      }
+
+                      if (filterSettings['minDelta'] != null &&
+                          (marketData.delta == null ||
+                              marketData.delta!.abs() <
+                                  filterSettings['minDelta'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxDelta'] != null &&
+                          (marketData.delta == null ||
+                              marketData.delta!.abs() >
+                                  filterSettings['maxDelta'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minOpenInterest'] != null &&
+                          (marketData.openInterest <
+                              filterSettings['minOpenInterest'])) {
+                        return false;
+                      }
+                      if (filterSettings['minVolume'] != null &&
+                          (marketData.volume < filterSettings['minVolume'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['maxBidAskSpread'] != null) {
+                        if (marketData.askPrice != null &&
+                            marketData.bidPrice != null) {
+                          if ((marketData.askPrice! - marketData.bidPrice!) >
+                              filterSettings['maxBidAskSpread']) {
+                            return false;
+                          }
+                        }
+                      }
+
+                      if (filterSettings['minVega'] != null &&
+                          (marketData.vega == null ||
+                              marketData.vega! < filterSettings['minVega'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxVega'] != null &&
+                          (marketData.vega == null ||
+                              marketData.vega! > filterSettings['maxVega'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minTheta'] != null &&
+                          (marketData.theta == null ||
+                              marketData.theta!.abs() <
+                                  filterSettings['minTheta'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxTheta'] != null &&
+                          (marketData.theta == null ||
+                              marketData.theta!.abs() >
+                                  filterSettings['maxTheta'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minGamma'] != null &&
+                          (marketData.gamma == null ||
+                              marketData.gamma!.abs() <
+                                  filterSettings['minGamma'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxGamma'] != null &&
+                          (marketData.gamma == null ||
+                              marketData.gamma!.abs() >
+                                  filterSettings['maxGamma'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minRho'] != null &&
+                          (marketData.rho == null ||
+                              marketData.rho!.abs() <
+                                  filterSettings['minRho'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxRho'] != null &&
+                          (marketData.rho == null ||
+                              marketData.rho!.abs() >
+                                  filterSettings['maxRho'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minImpliedVolatility'] != null &&
+                          (marketData.impliedVolatility == null ||
+                              marketData.impliedVolatility! <
+                                  filterSettings['minImpliedVolatility'])) {
+                        return false;
+                      }
+                      if (filterSettings['maxImpliedVolatility'] != null &&
+                          (marketData.impliedVolatility == null ||
+                              marketData.impliedVolatility! >
+                                  filterSettings['maxImpliedVolatility'])) {
+                        return false;
+                      }
+
+                      if (filterSettings['minPremiumCollateralPercent'] !=
+                              null &&
+                          actionFilter == 'Sell') {
+                        if (oi.type == 'put' &&
+                            oi.strikePrice != null &&
+                            marketData.markPrice != null) {
+                          double percent =
+                              (marketData.markPrice! / oi.strikePrice!) * 100;
+                          if (percent <
+                              filterSettings['minPremiumCollateralPercent']) {
+                            return false;
+                          }
+                        } else if (oi.type == 'call' &&
+                            instrument.quoteObj?.lastTradePrice != null &&
+                            marketData.markPrice != null) {
+                          double percent = (marketData.markPrice! /
+                                  instrument.quoteObj!.lastTradePrice!) *
+                              100;
+                          if (percent <
+                              filterSettings['minPremiumCollateralPercent']) {
+                            return false;
+                          }
+                        }
+                      }
+                    }
+                    return true;
+                  }).toList();
                   if (newfilteredOptionsInstruments.length !=
                           filteredOptionsInstruments?.length ||
                       instrumentPosition == null) {
@@ -189,10 +520,10 @@ class _InstrumentOptionChainWidgetState
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (itemScrollController.isAttached) {
                             itemScrollController.scrollTo(
-                                index: index,
+                                index: index > 2 ? index - 2 : 0,
                                 duration: const Duration(milliseconds: 250),
                                 curve: Curves.easeInOutCubic,
-                                alignment: 0.5);
+                                alignment: 0);
                           }
                         });
                         break;
@@ -215,10 +546,10 @@ class _InstrumentOptionChainWidgetState
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (itemScrollController.isAttached) {
                             itemScrollController.scrollTo(
-                                index: index,
+                                index: index > 2 ? index - 2 : 0,
                                 duration: const Duration(milliseconds: 250),
                                 curve: Curves.easeInOutCubic,
-                                alignment: 0.5);
+                                alignment: 0);
                           }
                         });
                       }
@@ -262,8 +593,41 @@ class _InstrumentOptionChainWidgetState
       snap: false,
       pinned: true,
       actions: [
+        if (optionInstruments != null)
+          Consumer<GenerativeProvider>(
+              builder: (context, generativeProvider, child) {
+            return IconButton(
+              icon: isGeneratingAI
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.auto_awesome), // recommend_outlined
+              tooltip: 'Find Best Contract',
+              onPressed: () async {
+                await _generateAIRecommendations(
+                    context, generativeProvider, optionInstruments, instrument);
+              },
+            );
+          }),
+        IconButton(
+            icon: Icon(
+              Icons.filter_list,
+              color: filterSettings.isNotEmpty
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
+            ),
+            tooltip: 'Filter Options',
+            onPressed: () {
+              _showFilterDialog(context);
+            }),
         IconButton(
             icon: const Icon(Icons.arrow_downward),
+            tooltip: 'Scroll to Current Price',
             onPressed: () {
               if (instrumentPosition != null) {
                 itemScrollController.scrollTo(
@@ -310,162 +674,6 @@ class _InstrumentOptionChainWidgetState
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Consumer2<OptionPositionStore, GenerativeProvider>(
-                          builder: (context, optionPositionStore,
-                              generativeProvider, child) {
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.fromLTRB(
-                              12.0,
-                              0, // 16.0,
-                              16.0,
-                              0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // const CircleAvatar(
-                              //   child: Icon(Icons.lightbulb_circle_outlined),
-                              // ),
-                              // const SizedBox(width: 10),
-                              // const Text(
-                              //   'AI Insight',
-                              //   style: TextStyle(
-                              //       fontWeight: FontWeight.bold, fontSize: 18),
-                              // ),
-                              // const SizedBox(width: 16),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ActionChip(
-                                  avatar: generativeProvider.generating &&
-                                          generativeProvider.promptResponses
-                                              .containsKey('select-option') &&
-                                          generativeProvider.promptResponses[
-                                                  'select-option'] ==
-                                              null
-                                      ? const CircularProgressIndicator()
-                                      : const Icon(Icons.recommend_outlined),
-                                  label: const Text('Find Best Contract'),
-                                  onPressed: () async {
-                                    var prompt = widget
-                                        .generativeService.prompts
-                                        .firstWhere(
-                                            (p) => p.key == 'select-option');
-                                    var historicalDataString =
-                                        OptionInstrument.toMarkdownTable(
-                                            optionInstruments);
-                                    var historicalDataString2 =
-                                        Instrument.toMarkdownTable(
-                                            [instrument]);
-                                    var newPrompt = Prompt(
-                                        key: prompt.key,
-                                        title: prompt.title,
-                                        prompt:
-                                            '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: $historicalDataString2\nUse the following option chain data:\n$historicalDataString');
-                                    await generateContent(
-                                        generativeProvider,
-                                        widget.generativeService,
-                                        newPrompt,
-                                        context);
-                                  },
-                                ),
-                              ),
-                              // Uncomment below to add 'Ask a question' chip
-                              // Padding(
-                              //   padding: const EdgeInsets.all(4.0),
-                              //   child: ActionChip(
-                              //     avatar: generativeProvider.generating &&
-                              //             generativeProvider.promptResponses.containsKey('ask') &&
-                              //             generativeProvider.promptResponses['ask'] == null
-                              //         ? const CircularProgressIndicator()
-                              //         : const Icon(Icons.question_answer),
-                              //     label: const Text('Ask a question'),
-                              //     onPressed: () async {
-                              //       var prompt = widget.generativeService.prompts.firstWhere((p) => p.key == 'ask');
-                              //       prompt.appendPortfolioToPrompt = false;
-                              //       await generateContent(
-                              //           generativeProvider,
-                              //           widget.generativeService,
-                              //           prompt,
-                              //           context);
-                              //     },
-                              //   ),
-                              // ),
-                            ],
-                          ),
-                        );
-
-                        // return SliverToBoxAdapter(
-                        //   child: Column(children: [
-                        //     // ListTile(
-                        //     //   title: const Text(
-                        //     //     "Assistant",
-                        //     //     style: TextStyle(fontSize: 19.0),
-                        //     //   ),
-                        //     // ),
-                        //     ListTile(
-                        //       title: Text(
-                        //         "Insight",
-                        //         style: TextStyle(fontSize: listTileTitleFontSize),
-                        //       ),
-                        //       trailing: Wrap(
-                        //         children: [
-                        //           TextButton.icon(
-                        //               onPressed: () async {
-                        //                 generativeProvider
-                        //                     .setGenerativePrompt('portfolio-summary');
-                        //                 await widget.generativeService
-                        //                     .generatePortfolioContent(
-                        //                         widget.generativeService.prompts
-                        //                             .firstWhere((p) =>
-                        //                                 p.key == 'portfolio-summary'),
-                        //                         stockPositionStore,
-                        //                         optionPositionStore,
-                        //                         forexHoldingStore,
-                        //                         generativeProvider);
-                        //               },
-                        //               label: Text("Summary"),
-                        //               icon: generativeProvider.generating &&
-                        //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
-                        //                               generativeProvider.promptResponses['portfolio-summary'] == null
-                        //                   ? CircularProgressIndicator.adaptive()
-                        //                   : const Icon(Icons.summarize)),
-                        //           TextButton.icon(
-                        //               onPressed: () async {
-                        //                 generativeProvider.setGenerativePrompt(
-                        //                     'portfolio-recommendations');
-                        //                 await widget.generativeService
-                        //                     .generatePortfolioContent(
-                        //                         widget.generativeService.prompts
-                        //                             .firstWhere((p) =>
-                        //                                 p.key ==
-                        //                                 'portfolio-recommendations'),
-                        //                         stockPositionStore,
-                        //                         optionPositionStore,
-                        //                         forexHoldingStore,
-                        //                         generativeProvider);
-                        //               },
-                        //               label: Text("Recommendations"),
-                        //               icon: generativeProvider.generating &&
-                        //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
-                        //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
-                        //                   ? CircularProgressIndicator.adaptive()
-                        //                   : const Icon(Icons.recommend)),
-                        //         ],
-                        //       ),
-                        //     ),
-                        //     if (generativeProvider.promptResponses != null) ...[
-                        //       Padding(
-                        //         padding: const EdgeInsets.all(8.0),
-                        //         child: Card(
-                        //             child: SizedBox(
-                        //                 height: 280,
-                        //                 child: Markdown(
-                        //                     data: generativeProvider.response!))),
-                        //       ),
-                        //     ],
-                        //   ]),
-                        // );
-                      }),
                       /*
                       Container(
                           //height: 40,
@@ -479,7 +687,7 @@ class _InstrumentOptionChainWidgetState
                                 fontSize: 20.0, fontWeight: FontWeight.bold),
                           )),
                           */
-                      optionChainFilterWidget
+                      optionChainFilterWidget,
                     ],
                   ))),
           sliver: optionInstrumentsWidget(
@@ -499,108 +707,99 @@ class _InstrumentOptionChainWidgetState
       //futureInstrumentOrders = null;
       //futureOptionOrders = null;
       optionInstrumentStream = null;
+      aiRecommendationsMap.clear();
     });
   }
 
   Widget get optionChainFilterWidget {
-    return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      /*
-      const ListTile(
-          title: Text("Option Chain", style: TextStyle(fontSize: 20))),
-          */
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(5.0),
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Buy'),
-                      selected: actionFilter == "Buy",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Buy" : null;
-                          instrumentPosition = null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Sell'),
-                      selected: actionFilter == "Sell",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Sell" : null;
-                          instrumentPosition = null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Call'),
-                      selected: typeFilter == "Call",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Call" : null;
-                          instrumentPosition = null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      //avatar: const Icon(Icons.history_outlined),
-                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      label: const Text('Put'),
-                      selected: typeFilter == "Put",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Put" : null;
-                          instrumentPosition = null;
-                        });
-                      },
-                    ),
-                  )
-                ],
-              );
-            },
-            itemCount: 1,
-          )),
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(5.0),
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(children: expirationDateWidgets.toList());
-            },
-            itemCount: 1,
-          )),
-      /*
-      ActionChip(
-          avatar: CircleAvatar(
-            backgroundColor: Colors.grey.shade800,
-            child: const Text('AB'),
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildFilterChip('Buy', actionFilter == "Buy",
+                      (selected) {
+                    setState(() {
+                      actionFilter = selected ? "Buy" : null;
+                      instrumentPosition = null;
+                    });
+                  }),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildFilterChip('Sell', actionFilter == "Sell",
+                      (selected) {
+                    setState(() {
+                      actionFilter = selected ? "Sell" : null;
+                      instrumentPosition = null;
+                    });
+                  }),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildFilterChip('Call', typeFilter == "Call",
+                      (selected) {
+                    setState(() {
+                      typeFilter = selected ? "Call" : null;
+                      instrumentPosition = null;
+                    });
+                  }),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child:
+                      _buildFilterChip('Put', typeFilter == "Put", (selected) {
+                    setState(() {
+                      typeFilter = selected ? "Put" : null;
+                      instrumentPosition = null;
+                    });
+                  }),
+                ),
+              ],
+            ),
           ),
-          label: const Text('Scroll to current price'),
-          onPressed: () {
-            //_animateToIndex(20);
-            if (dataKey.currentContext != null) {
-              Scrollable.ensureVisible(dataKey.currentContext!);
-            }
-            //print('If you stand for nothing, Burr, what’ll you fall for?');
-          })
-          */
-    ]);
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 8.0),
+            child: Row(children: expirationDateWidgets.toList()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+      String label, bool selected, Function(bool) onSelected) {
+    return FilterChip(
+      label: SizedBox(
+        width: double.infinity,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+        ),
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      showCheckmark: false,
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: selected
+            ? Theme.of(context).colorScheme.onPrimaryContainer
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      labelPadding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
   }
 
   Widget optionInstrumentsWidget(
@@ -608,30 +807,22 @@ class _InstrumentOptionChainWidgetState
       Instrument instrument,
       String actionFilter,
       {OptionAggregatePosition? optionPosition}) {
-    return SliverFillRemaining(
-      child: ScrollablePositionedList.builder(
-        itemCount: filteredOptionsInstruments.length,
-        itemBuilder: (context, index) {
-          var optionInstrument = filteredOptionsInstruments[index];
-          OptionInstrument? prevOptionInstrument;
-          if (index > 0) {
-            prevOptionInstrument = filteredOptionsInstruments[index - 1];
-          }
+    return Consumer<OptionPositionStore>(
+        builder: (context, optionPositionStore, child) {
+      var optionPositions = optionPositionStore.items
+          .where((e) => e.symbol == widget.instrument.symbol)
+          .toList();
 
-          // TODO: Optimize to batch calls for market data.
-          if (optionInstrument.optionMarketData == null) {
-            widget.service
-                .getOptionMarketData(widget.brokerageUser, optionInstrument)
-                .then((value) => setState(() {
-                      optionInstrument.optionMarketData = value;
-                    }));
-          }
+      return SliverFillRemaining(
+        child: ScrollablePositionedList.builder(
+          itemCount: filteredOptionsInstruments.length,
+          itemBuilder: (context, index) {
+            var optionInstrument = filteredOptionsInstruments[index];
+            OptionInstrument? prevOptionInstrument;
+            if (index > 0) {
+              prevOptionInstrument = filteredOptionsInstruments[index - 1];
+            }
 
-          return Consumer<OptionPositionStore>(
-              builder: (context, optionPositionStore, child) {
-            var optionPositions = optionPositionStore.items
-                .where((e) => e.symbol == widget.instrument.symbol)
-                .toList();
             var optionPositionsMatchingInstrument = optionPositions.where((e) =>
                 e.optionInstrument != null &&
                 e.optionInstrument!.id == optionInstrument.id);
@@ -640,451 +831,1619 @@ class _InstrumentOptionChainWidgetState
                     ? optionPositionsMatchingInstrument
                         .map((e) => e.quantity ?? 0)
                         .reduce((a, b) => a + b)
-                    : 0;
-            return Column(
-              children: [
-                if ((instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                            instrument.quoteObj!.lastTradePrice!) <
-                        optionInstrument.strikePrice! &&
-                    (prevOptionInstrument == null ||
-                        (instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                                instrument.quoteObj!.lastTradePrice!) >=
-                            prevOptionInstrument.strikePrice!)) ...[
-                  Card(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Text(
-                              "Quote${instrument.quoteObj!.lastExtendedHoursTradePrice != null ? " - Extended Hours" : ""}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSecondaryContainer,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                priceAndChangeWidget(instrument,
-                                    textStyle: TextStyle(
-                                        fontSize: 20.0,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ))
-                ],
-                Card(
-                    color: widget.selectedOption?.id == optionInstrument.id
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        //.withValues(alpha: 0.35)
-                        : null,
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          ListTile(
-                            //key: index == 0 ? dataKey : null,
-                            /*optionInstrument.id ==
-                            firstOptionsInstrumentsSorted.id
-                        ? dataKey
-                        : null,
-                        */
-                            /*
-                    leading: CircleAvatar(
-                        backgroundColor: optionInstrument.type == 'call'
-                            ? Colors.green
-                            : Colors.amber,
-                        //backgroundImage: AssetImage(user.profilePicture),
-                        child: optionInstrument.type == 'call'
-                            ? const Text('Call')
-                            : const Text('Put')),
-                            */
-                            /*
-                  leading: CircleAvatar(
-                      //backgroundImage: AssetImage(user.profilePicture),
-                      child: Text('${optionOrders[index].quantity!.round()}',
-                          style: const TextStyle(fontSize: 18))),
-                  leading: Icon(Icons.ac_unit),
-                  */
-                            leading: optionInstrumentQuantity > 0
-                                ? CircleAvatar(
-                                    //backgroundImage: AssetImage(user.profilePicture),
-                                    child: Text(
-                                        formatCompactNumber
-                                            .format(optionInstrumentQuantity),
-                                        style: const TextStyle(fontSize: 18)))
-                                : null, //Icon(Icons.ac_unit),
-                            title: Text(
-                                //${optionInstrument.chainSymbol}
-                                '\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type}',
-                                style: TextStyle(
-                                    fontSize: 20.0,
-                                    color: widget.selectedOption?.id ==
-                                            optionInstrument.id
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onPrimaryContainer
-                                        : null)), // , style: TextStyle(fontSize: 18.0)),
-                            subtitle: (widget.subtitleBuilder != null &&
-                                    widget.subtitleBuilder!(optionInstrument) !=
-                                        null)
-                                ? widget.subtitleBuilder!(optionInstrument)!
-                                : Text(
-                                    optionInstrument.optionMarketData != null
-                                        ? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)} (${formatPercentage.format((optionInstrument.optionMarketData!.breakEvenPrice! - (instrument.quoteObj!.lastExtendedHoursTradePrice ?? instrument.quoteObj!.lastTradePrice!)) / (instrument.quoteObj!.lastExtendedHoursTradePrice ?? instrument.quoteObj!.lastTradePrice!))})\n"
-                                            "Chance of profit: ${actionFilter == 'Buy' ? (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-") : (optionInstrument.optionMarketData!.chanceOfProfitShort != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-")}  IV: ${optionInstrument.optionMarketData!.impliedVolatility != null ? formatPercentage.format(optionInstrument.optionMarketData!.impliedVolatility) : "-"}\n"
-                                            "Δ: ${optionInstrument.optionMarketData!.delta?.toStringAsFixed(4) ?? "-"}  Θ: ${optionInstrument.optionMarketData!.theta?.toStringAsFixed(4) ?? "-"}  Vol: ${formatCompactNumber.format(optionInstrument.optionMarketData!.volume)}  OI: ${formatCompactNumber.format(optionInstrument.optionMarketData!.openInterest)}"
-                                        : "",
-                                    style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: widget.selectedOption?.id ==
-                                                optionInstrument.id
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .onPrimaryContainer
-                                            : null)),
-                            enabled: widget.isOptionEnabled != null
-                                ? widget.isOptionEnabled!(optionInstrument)
-                                : true,
-                            //'Issued ${dateFormat.format(optionInstrument.issueDate as DateTime)}'),
-                            trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  optionInstrument.optionMarketData != null
-                                      ? Text(
-                                          formatCurrency.format(optionInstrument
-                                              .optionMarketData!.markPrice),
-                                          //"${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
-                                          style: TextStyle(
-                                              fontSize: 20,
-                                              color:
-                                                  widget.selectedOption?.id ==
-                                                          optionInstrument.id
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimaryContainer
-                                                      : null))
-                                      : const Text(""),
-                                  Wrap(spacing: 8, children: [
-                                    Icon(
-                                        instrument.quoteObj!.changeToday > 0
-                                            ? Icons.trending_up
-                                            : (instrument
-                                                        .quoteObj!.changeToday <
-                                                    0
-                                                ? Icons.trending_down
-                                                : Icons.trending_flat),
-                                        color:
-                                            (instrument.quoteObj!.changeToday >
-                                                    0
-                                                ? Colors.green
-                                                : (instrument.quoteObj!
-                                                            .changeToday <
-                                                        0
-                                                    ? Colors.red
-                                                    : Colors.grey)),
-                                        size: 20),
-                                    Text(
-                                      optionInstrument.optionMarketData != null
-                                          ? formatPercentage.format(
-                                              optionInstrument.optionMarketData!
-                                                  .changePercentToday)
-                                          : "-",
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: widget.selectedOption?.id ==
-                                                  optionInstrument.id
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimaryContainer
-                                              : null),
-                                    )
-                                  ]),
-                                ]),
-                            onTap: (widget.isOptionEnabled != null &&
-                                    !widget.isOptionEnabled!(optionInstrument))
-                                ? null
-                                : () {
-                                    if (widget.onOptionSelected != null) {
-                                      widget.onOptionSelected!(
-                                          optionInstrument, actionFilter);
-                                      Navigator.pop(context);
-                                    } else {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  OptionInstrumentWidget(
-                                                    widget.brokerageUser,
-                                                    widget.service,
-                                                    optionInstrument,
-                                                    optionPosition:
-                                                        optionInstrumentQuantity >
-                                                                0
-                                                            ? optionPosition
-                                                            : null,
-                                                    analytics: widget.analytics,
-                                                    observer: widget.observer,
-                                                    generativeService: widget
-                                                        .generativeService,
-                                                    user: widget.user,
-                                                    userDocRef:
-                                                        widget.userDocRef,
-                                                  )));
-                                    }
-                                  },
-                          )
-                        ]))
-              ],
-            );
-          });
+                        .toDouble()
+                    : 0.0;
 
-          //return Text('\$${optionInstrument.strikePrice}');
-        },
-        itemScrollController: itemScrollController,
-        // itemPositionsListener: itemPositionsListener,
-        // scrollOffsetController: scrollOffsetController,
-        // reverse: reversed,
-        // scrollDirection: orientation == Orientation.portrait
-        //     ? Axis.vertical
-        //     : Axis.horizontal,
-      ),
-    );
+            return OptionInstrumentItem(
+              key: ValueKey(optionInstrument.id),
+              optionInstrument: optionInstrument,
+              prevOptionInstrument: prevOptionInstrument,
+              instrument: instrument,
+              brokerageUser: widget.brokerageUser,
+              service: widget.service,
+              optionInstrumentQuantity: optionInstrumentQuantity,
+              selectedOption: widget.selectedOption,
+              subtitleBuilder: widget.subtitleBuilder,
+              isOptionEnabled: widget.isOptionEnabled,
+              onOptionSelected: widget.onOptionSelected,
+              actionFilter: actionFilter,
+              optionPosition: optionPosition,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: widget.generativeService,
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              aiRecommendationsMap: aiRecommendationsMap,
+              isLast: index == filteredOptionsInstruments.length - 1,
+            );
+          },
+          itemScrollController: itemScrollController,
+        ),
+      );
+    });
   }
 
   Widget headerTitle(Instrument instrument) {
-    return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.end,
-        //runAlignment: WrapAlignment.end,
-        //alignment: WrapAlignment.end,
-        spacing: 20,
-        //runSpacing: 5,
-        children: [
-          Text(
-            widget.title ??
-                instrument
-                    .symbol, // ${optionPosition.strategy.split('_').first}
-            //style: const TextStyle(fontSize: 20.0)
-          ),
-          // if (instrument.quoteObj != null) ...[
-          //   priceAndChangeWidget(instrument)
-          // ],
-        ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.title ?? instrument.symbol,
+          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+        ),
+        if (instrument.quoteObj != null)
+          priceAndChangeWidget(instrument,
+              textStyle: const TextStyle(fontSize: 12.0))
+      ],
+    );
   }
 
   Widget priceAndChangeWidget(Instrument instrument,
       {textStyle = const TextStyle(fontSize: 20.0)}) {
-    // , color: Colors.white70
-    return Wrap(spacing: 10, children: [
-      Text(
-          formatCurrency.format(
-              instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                  instrument.quoteObj!.lastTradePrice),
-          style: textStyle),
-      Wrap(children: [
-        Icon(
-            instrument.quoteObj!.changeToday > 0
-                ? Icons.trending_up
-                : (instrument.quoteObj!.changeToday < 0
-                    ? Icons.trending_down
-                    : Icons.trending_flat),
-            color: (instrument.quoteObj!.changeToday > 0
-                ? Colors.lightGreenAccent
-                : (instrument.quoteObj!.changeToday < 0
-                    ? Colors.red
-                    : Colors.grey)),
-            size: 28.0),
-        Container(
-          width: 2,
-        ),
-        Text(formatPercentage.format(instrument.quoteObj!.changePercentToday),
-            //style: const TextStyle(fontSize: 15.0)
-            style: textStyle),
-      ]),
-      Text(
-          "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
-          //style: const TextStyle(fontSize: 12.0),
-          style: textStyle,
-          textAlign: TextAlign.right)
-    ]);
-  }
+    final change = instrument.quoteObj!.changeToday;
+    final changePercent = instrument.quoteObj!.changePercentToday;
+    final isPositive = change > 0;
+    final isNegative = change < 0;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
 
-  Iterable<Widget> get headerWidgets sync* {
-    var instrument = widget.instrument;
-    // yield Row(children: const [SizedBox(height: 70)]);
-    yield Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Container(
-            width: 10,
-          ),
-          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-            SizedBox(
-                width: 190,
-                child: Text(
-                  '${instrument.name != "" ? instrument.name : instrument.simpleName}',
-                  //instrument.simpleName ?? instrument.name,
-                  style: const TextStyle(fontSize: 16.0),
-                  textAlign: TextAlign.left,
-                  //overflow: TextOverflow.ellipsis
-                ))
-          ]),
-          Container(
-            width: 10,
-          ),
-        ]);
-    /*
-    yield Row(children: const [SizedBox(height: 10)]);
-    */
-    /*
-    yield Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Container(
-            width: 10,
-          ),
-          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-            const SizedBox(
-              width: 70,
-              child: Text(
-                "Extended Hours Price",
-                style: TextStyle(fontSize: 10.0),
-              ),
-            )
-          ]),
-          Container(
-            width: 5,
-          ),
-          SizedBox(
-              width: 115,
-              child: Text(
-                  "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
-                  style: const TextStyle(fontSize: 12.0),
-                  textAlign: TextAlign.right)),
-          Container(
-            width: 10,
-          ),
-        ]);
-        */
-    /*
-      Row(children: [
+    Color color;
+    if (isPositive) {
+      color = isDark ? Colors.greenAccent[400]! : Colors.green[800]!;
+    } else if (isNegative) {
+      color = isDark ? Colors.redAccent[200]! : Colors.red[900]!;
+    } else {
+      color = isDark ? Colors.grey[400]! : Colors.grey[700]!;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Text(
-            '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
-            style: const TextStyle(fontSize: 17.0)),
-      ])
-      */
+            formatCurrency.format(
+                instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice),
+            style: textStyle),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPositive
+                    ? Icons.arrow_drop_up
+                    : (isNegative ? Icons.arrow_drop_down : Icons.remove),
+                color: color,
+                size: 18.0,
+              ),
+              Text(
+                formatPercentage.format(changePercent.abs()),
+                style: textStyle.copyWith(
+                    fontSize: (textStyle.fontSize ?? 14) - 2,
+                    color: color,
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Iterable<Widget> get expirationDateWidgets sync* {
     if (expirationDates != null) {
       for (var expirationDate in expirationDates!) {
         yield Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: ChoiceChip(
-            //avatar: CircleAvatar(child: Text(contractCount.toString())),
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: FilterChip(
             label: Text(expirationDate.year == DateTime.now().year
-                ? formatMonthDayOfWeek.format(expirationDate)
-                : formatDate.format(expirationDate)),
+                ? formatCompactDate.format(expirationDate)
+                : DateFormat.yMMMd().format(expirationDate)),
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {
                 expirationDateFilter = selected ? expirationDate : null;
                 instrumentPosition = null;
+                optionInstrumentStream = null;
               });
-              optionInstrumentStream = null;
             },
+            showCheckmark: false,
+            selectedColor: Theme.of(context).colorScheme.secondaryContainer,
+            labelStyle: TextStyle(
+              color: expirationDateFilter! == expirationDate
+                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: expirationDateFilter! == expirationDate
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
           ),
         );
-        /*        
-        Padding(
-            padding: const EdgeInsets.all(14.0),
-            child: Row(
-              children: [
-                //Icon(Icons.trending_up),
-                SizedBox(width: 10),
-                Text(
-                  "${dateFormat.format(expirationDate)}",
-                  style: TextStyle(fontSize: 16),
-                )
-              ],
-            ));
-            */
+      }
+    }
+  }
+}
+
+class OptionInstrumentItem extends StatefulWidget {
+  final OptionInstrument optionInstrument;
+  final OptionInstrument? prevOptionInstrument;
+  final Instrument instrument;
+  final BrokerageUser brokerageUser;
+  final IBrokerageService service;
+  final double optionInstrumentQuantity;
+  final OptionInstrument? selectedOption;
+  final Widget? Function(OptionInstrument)? subtitleBuilder;
+  final bool Function(OptionInstrument)? isOptionEnabled;
+  final Function(OptionInstrument, String)? onOptionSelected;
+  final String actionFilter;
+  final OptionAggregatePosition? optionPosition;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final GenerativeService generativeService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
+  final Map<String, List<dynamic>> aiRecommendationsMap;
+  final bool isLast;
+
+  const OptionInstrumentItem({
+    super.key,
+    required this.optionInstrument,
+    this.prevOptionInstrument,
+    required this.instrument,
+    required this.brokerageUser,
+    required this.service,
+    required this.optionInstrumentQuantity,
+    this.selectedOption,
+    this.subtitleBuilder,
+    this.isOptionEnabled,
+    this.onOptionSelected,
+    required this.actionFilter,
+    this.optionPosition,
+    required this.analytics,
+    required this.observer,
+    required this.generativeService,
+    this.user,
+    this.userDocRef,
+    required this.aiRecommendationsMap,
+    this.isLast = false,
+  });
+
+  @override
+  State<OptionInstrumentItem> createState() => _OptionInstrumentItemState();
+}
+
+class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.optionInstrument.optionMarketData == null) {
+      _fetchMarketData();
+    }
+  }
+
+  @override
+  void didUpdateWidget(OptionInstrumentItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.optionInstrument != oldWidget.optionInstrument) {
+      if (widget.optionInstrument.optionMarketData == null) {
+        _fetchMarketData();
       }
     }
   }
 
-  Card buildOptions() {
-    return Card(
-        child: ToggleButtons(
-      onPressed: (int index) {
+  void _fetchMarketData() {
+    widget.service
+        .getOptionMarketData(widget.brokerageUser, widget.optionInstrument)
+        .then((value) {
+      if (mounted) {
         setState(() {
-          for (int buttonIndex = 0;
-              buttonIndex < isSelected.length;
-              buttonIndex++) {
-            if (buttonIndex == index) {
-              isSelected[buttonIndex] = true;
-            } else {
-              isSelected[buttonIndex] = false;
-            }
-          }
-          /*
-          if (index == 0 && futureCallOptionInstruments == null) {
-            futureCallOptionInstruments =
-                widget.service.downloadOptionInstruments(
-                    user, instrument, null, 'call');
-          } else if (index == 1 && futurePutOptionInstruments == null) {
-            futurePutOptionInstruments =
-                widget.service.downloadOptionInstruments(
-                    user, instrument, null, 'put');
-          }
-          */
+          widget.optionInstrument.optionMarketData = value;
         });
-      },
-      isSelected: isSelected,
-      children: const <Widget>[
-        Padding(
-            padding: EdgeInsets.all(14.0),
-            child: Row(
-              children: [
-                CircleAvatar(child: Text("C", style: TextStyle(fontSize: 18))),
-                //Icon(Icons.trending_up),
-                SizedBox(width: 10),
-                Text(
-                  'Call',
-                  style: TextStyle(fontSize: 16),
-                )
-              ],
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var expirationDateStr =
+        widget.optionInstrument.expirationDate?.toString().substring(0, 10);
+    var recommendations = expirationDateStr != null
+        ? widget.aiRecommendationsMap[expirationDateStr]
+        : null;
+    var recommendation = recommendations?.firstWhereOrNull((r) =>
+        r['strike_price'] == widget.optionInstrument.strikePrice &&
+        r['type'].toLowerCase() == widget.optionInstrument.type.toLowerCase() &&
+        (r['expiration_date'] == null ||
+            r['expiration_date'] ==
+                widget.optionInstrument.expirationDate
+                    ?.toString()
+                    .substring(0, 10)));
+
+    final currentPrice =
+        widget.instrument.quoteObj!.lastExtendedHoursTradePrice ??
+            widget.instrument.quoteObj!.lastTradePrice!;
+
+    return Column(
+      children: [
+        if (currentPrice < widget.optionInstrument.strikePrice! &&
+            (widget.prevOptionInstrument == null ||
+                currentPrice >= widget.prevOptionInstrument!.strikePrice!)) ...[
+          _buildPriceDivider(context),
+        ],
+        Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.1))),
+            color: widget.selectedOption?.id == widget.optionInstrument.id
+                ? Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.5)
+                : null,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: (widget.isOptionEnabled != null &&
+                      !widget.isOptionEnabled!(widget.optionInstrument))
+                  ? null
+                  : () {
+                      if (widget.onOptionSelected != null) {
+                        widget.onOptionSelected!(
+                            widget.optionInstrument, widget.actionFilter);
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => OptionInstrumentWidget(
+                                      widget.brokerageUser,
+                                      widget.service,
+                                      widget.optionInstrument,
+                                      optionPosition:
+                                          widget.optionInstrumentQuantity > 0
+                                              ? widget.optionPosition
+                                              : null,
+                                      analytics: widget.analytics,
+                                      observer: widget.observer,
+                                      generativeService:
+                                          widget.generativeService,
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                    )));
+                      }
+                    },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.optionInstrumentQuantity > 0)
+                          Padding(
+                              padding: const EdgeInsets.only(right: 12.0),
+                              child: CircleAvatar(
+                                  radius: 16,
+                                  child: Text(
+                                      formatCompactNumber.format(
+                                          widget.optionInstrumentQuantity),
+                                      style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold)))),
+                        Expanded(
+                            child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  '\$${formatCompactNumber.format(widget.optionInstrument.strikePrice)}',
+                                  style: TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: widget.selectedOption?.id ==
+                                              widget.optionInstrument.id
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimaryContainer
+                                          : null),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: widget.optionInstrument.type ==
+                                            'call'
+                                        ? Colors.green.withValues(alpha: 0.1)
+                                        : Colors.red.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    widget.optionInstrument.type.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          widget.optionInstrument.type == 'call'
+                                              ? Colors.green
+                                              : Colors.red,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            (widget.subtitleBuilder != null &&
+                                    widget.subtitleBuilder!(
+                                            widget.optionInstrument) !=
+                                        null)
+                                ? widget
+                                    .subtitleBuilder!(widget.optionInstrument)!
+                                : _buildOptionSubtitle(
+                                    widget.optionInstrument, widget.instrument),
+                          ],
+                        )),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (widget.optionInstrument.optionMarketData !=
+                                null)
+                              Text(
+                                formatCurrency.format(widget.optionInstrument
+                                    .optionMarketData!.markPrice),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: widget.selectedOption?.id ==
+                                            widget.optionInstrument.id
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                        : null),
+                              ),
+                            const SizedBox(height: 4),
+                            if (widget.optionInstrument.optionMarketData !=
+                                null)
+                              _buildChangeBadge(widget.optionInstrument
+                                  .optionMarketData!.changePercentToday),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  if (recommendation != null)
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.auto_awesome,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                "AI Insight",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (recommendation['confidence'] != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (recommendation['confidence'] ?? 0) >
+                                            75
+                                        ? Colors.green.withValues(alpha: 0.1)
+                                        : ((recommendation['confidence'] ?? 0) >
+                                                50
+                                            ? Colors.orange
+                                                .withValues(alpha: 0.1)
+                                            : Colors.red
+                                                .withValues(alpha: 0.1)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "${recommendation['confidence']}% Confidence",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: (recommendation['confidence'] ??
+                                                  0) >
+                                              75
+                                          ? Colors.green
+                                          : ((recommendation['confidence'] ??
+                                                      0) >
+                                                  50
+                                              ? Colors.orange
+                                              : Colors.red),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (recommendation['risk_level'] != null ||
+                              recommendation['strategy_type'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Wrap(
+                                spacing: 8.0,
+                                runSpacing: 8.0,
+                                children: [
+                                  if (recommendation['risk_level'] != null)
+                                    _buildTag(
+                                      context,
+                                      "Risk: ${recommendation['risk_level']}",
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .errorContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onErrorContainer,
+                                    ),
+                                  if (recommendation['strategy_type'] != null)
+                                    _buildTag(
+                                      context,
+                                      recommendation['strategy_type'],
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .secondaryContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    ),
+                                  if (recommendation['market_sentiment'] !=
+                                      null)
+                                    _buildTag(
+                                      context,
+                                      recommendation['market_sentiment'],
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      icon:
+                                          recommendation['market_sentiment'] ==
+                                                  'Bullish'
+                                              ? Icons.trending_up
+                                              : (recommendation[
+                                                          'market_sentiment'] ==
+                                                      'Bearish'
+                                                  ? Icons.trending_down
+                                                  : Icons.trending_flat),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          if (recommendation['predicted_price_target'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.track_changes,
+                                      size: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      "Target: ${recommendation['predicted_price_target']}",
+                                      style: TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          MarkdownBody(
+                            data: recommendation['reason'],
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             )),
-        Padding(
-          padding: EdgeInsets.all(14.0),
+        if (widget.isLast &&
+            currentPrice >= widget.optionInstrument.strikePrice!) ...[
+          _buildPriceDivider(context),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPriceDivider(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        children: [
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: Column(
+              children: [
+                if (widget.instrument.quoteObj!.lastExtendedHoursTradePrice !=
+                    null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2.0),
+                    child: Text(
+                      "Extended Hours",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSecondaryContainer
+                            .withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _priceAndChangeWidget(widget.instrument,
+                        textStyle: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+              child:
+                  Divider(color: Theme.of(context).colorScheme.outlineVariant)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChangeBadge(double changePercent) {
+    final isPositive = changePercent > 0;
+    final isNegative = changePercent < 0;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    Color color;
+    if (isPositive) {
+      color = isDark ? Colors.greenAccent[400]! : Colors.green[800]!;
+    } else if (isNegative) {
+      color = isDark ? Colors.redAccent[200]! : Colors.red[900]!;
+    } else {
+      color = isDark ? Colors.grey[400]! : Colors.grey[700]!;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive
+                ? Icons.arrow_drop_up
+                : (isNegative ? Icons.arrow_drop_down : Icons.remove),
+            color: color,
+            size: 16,
+          ),
+          Text(
+            formatPercentage.format(changePercent.abs()),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionSubtitle(
+      OptionInstrument optionInstrument, Instrument instrument) {
+    if (optionInstrument.optionMarketData == null) {
+      return const SizedBox.shrink();
+    }
+
+    final data = optionInstrument.optionMarketData!;
+    // final currentPrice = instrument.quoteObj!.lastExtendedHoursTradePrice ??
+    //    instrument.quoteObj!.lastTradePrice!;
+    final breakEven = data.breakEvenPrice;
+    // final breakEvenPercent =
+    //     breakEven != null ? (breakEven - currentPrice) / currentPrice : 0.0;
+    final chanceOfProfit = widget.actionFilter == 'Buy'
+        ? data.chanceOfProfitLong
+        : data.chanceOfProfitShort;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              CircleAvatar(child: Text("P", style: TextStyle(fontSize: 18))),
-              // Icon(Icons.trending_down),
-              SizedBox(width: 10),
-              Text(
-                'Put',
-                style: TextStyle(fontSize: 16),
-              )
+              if (breakEven != null) ...[
+                _buildInfoBadge(
+                    context,
+                    "BE: ${formatCurrency.format(breakEven)}",
+                    Colors.teal.withValues(alpha: 0.1),
+                    Colors.teal),
+                const SizedBox(width: 8),
+              ],
+              if (chanceOfProfit != null) ...[
+                _buildInfoBadge(
+                    context,
+                    "Prob: ${formatPercentage.format(chanceOfProfit)}",
+                    Colors.blue.withValues(alpha: 0.1),
+                    Colors.blue),
+                const SizedBox(width: 8),
+              ],
+              if (data.impliedVolatility != null)
+                _buildInfoBadge(
+                    context,
+                    "IV: ${formatPercentage.format(data.impliedVolatility)}",
+                    Colors.purple.withValues(alpha: 0.1),
+                    Colors.purple),
             ],
           ),
         ),
-        //Icon(Icons.ac_unit),
-        //Icon(Icons.call),
-        //Icon(Icons.cake),
+        const SizedBox(height: 4),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildInfoBadge(
+                  context,
+                  "Vol: ${formatCompactNumber.format(data.volume)}",
+                  Colors.grey.withValues(alpha: 0.1),
+                  Colors.grey),
+              const SizedBox(width: 8),
+              _buildInfoBadge(
+                  context,
+                  "OI: ${formatCompactNumber.format(data.openInterest)}",
+                  Colors.grey.withValues(alpha: 0.1),
+                  Colors.grey),
+              const SizedBox(width: 8),
+              if (data.delta != null) ...[
+                _buildInfoBadge(context, "Δ ${data.delta?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
+                const SizedBox(width: 8),
+              ],
+              if (data.theta != null) ...[
+                _buildInfoBadge(context, "Θ ${data.theta?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
+                const SizedBox(width: 8),
+              ],
+              if (data.gamma != null) ...[
+                _buildInfoBadge(context, "Γ ${data.gamma?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
+                const SizedBox(width: 8),
+              ],
+              if (data.vega != null) ...[
+                _buildInfoBadge(context, "V ${data.vega?.toStringAsFixed(3)}",
+                    Colors.blueGrey.withValues(alpha: 0.1), Colors.blueGrey),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
       ],
-    ));
+    );
+  }
+
+  Widget _buildInfoBadge(
+      BuildContext context, String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text,
+          style:
+              TextStyle(fontSize: 11, color: fg, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  Widget _buildTag(BuildContext context, String label, Color bg, Color fg,
+      {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: fg),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style:
+                TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _priceAndChangeWidget(Instrument instrument,
+      {textStyle = const TextStyle(fontSize: 20.0)}) {
+    final change = instrument.quoteObj!.changeToday;
+    final changePercent = instrument.quoteObj!.changePercentToday;
+    final isPositive = change > 0;
+    final isNegative = change < 0;
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
+    Color color;
+    if (isPositive) {
+      color = isDark ? Colors.greenAccent[400]! : Colors.green[800]!;
+    } else if (isNegative) {
+      color = isDark ? Colors.redAccent[200]! : Colors.red[900]!;
+    } else {
+      color = isDark ? Colors.grey[400]! : Colors.grey[700]!;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+            formatCurrency.format(
+                instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice),
+            style: textStyle),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPositive
+                    ? Icons.arrow_drop_up
+                    : (isNegative ? Icons.arrow_drop_down : Icons.remove),
+                color: color,
+                size: 18.0,
+              ),
+              Text(
+                formatPercentage.format(changePercent.abs()),
+                style: textStyle.copyWith(
+                    fontSize: (textStyle.fontSize ?? 14) - 2,
+                    color: color,
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class AIOptionsSheet extends StatefulWidget {
+  const AIOptionsSheet({super.key});
+
+  @override
+  State<AIOptionsSheet> createState() => _AIOptionsSheetState();
+}
+
+class _AIOptionsSheetState extends State<AIOptionsSheet> {
+  String risk = 'Medium';
+  String strategy = 'Balanced';
+  final TextEditingController customController = TextEditingController();
+
+  @override
+  void dispose() {
+    customController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'AI Recommendation Settings',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 24),
+          Text('Risk Tolerance',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8.0,
+            children: ['Low', 'Medium', 'High'].map((r) {
+              return FilterChip(
+                label: Text(r),
+                selected: risk == r,
+                onSelected: (selected) {
+                  if (selected) setState(() => risk = r);
+                },
+                showCheckmark: false,
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: risk == r
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Text('Strategy', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8.0,
+            children: ['Conservative', 'Balanced', 'Aggressive'].map((s) {
+              return FilterChip(
+                label: Text(s),
+                selected: strategy == s,
+                onSelected: (selected) {
+                  if (selected) setState(() => strategy = s);
+                },
+                showCheckmark: false,
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: strategy == s
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Text('Custom Instructions (Optional)',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          TextField(
+            controller: customController,
+            decoration: InputDecoration(
+              hintText: 'e.g., Focus on high volume...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+            ),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'risk': risk,
+                  'strategy': strategy,
+                  'custom': customController.text,
+                });
+              },
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Generate Recommendations'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class FilterOptionsSheet extends StatefulWidget {
+  final Map<String, dynamic> initialSettings;
+  final String? action;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
+  final ValueChanged<Map<String, dynamic>>? onSettingsChanged;
+
+  const FilterOptionsSheet({
+    super.key,
+    required this.initialSettings,
+    this.action,
+    this.user,
+    this.userDocRef,
+    this.onSettingsChanged,
+  });
+
+  @override
+  State<FilterOptionsSheet> createState() => _FilterOptionsSheetState();
+}
+
+class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
+  late Map<String, dynamic> settings;
+  final Map<String, TextEditingController> _controllers = {};
+  Map<String, Map<String, dynamic>> presets = {};
+  String? selectedPreset;
+
+  @override
+  void initState() {
+    super.initState();
+    settings = Map.from(widget.initialSettings);
+    if (widget.user?.optionFilterPresets != null) {
+      presets = Map.from(widget.user!.optionFilterPresets!);
+    }
+    if (widget.user?.defaultOptionFilterPreset != null &&
+        presets.containsKey(widget.user!.defaultOptionFilterPreset)) {
+      selectedPreset = widget.user!.defaultOptionFilterPreset;
+    }
+  }
+
+  Future<void> _savePreset(String name) async {
+    if (presets.containsKey(name)) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Overwrite Preset?'),
+          content: Text('Preset "$name" already exists. Overwrite?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Overwrite'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
+    presets[name] = Map.from(settings);
+    if (widget.user != null && widget.userDocRef != null) {
+      widget.user!.optionFilterPresets = presets;
+      try {
+        await widget.userDocRef!.update({'optionFilterPresets': presets});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Preset "$name" saved.')),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error saving preset: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error saving preset: $e')),
+          );
+        }
+      }
+    }
+    setState(() {
+      selectedPreset = name;
+    });
+  }
+
+  Future<void> _deletePreset(String name) async {
+    presets.remove(name);
+    if (widget.user != null && widget.userDocRef != null) {
+      widget.user!.optionFilterPresets = presets;
+      try {
+        await widget.userDocRef!.update({'optionFilterPresets': presets});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Preset "$name" deleted.')),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error deleting preset: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting preset: $e')),
+          );
+        }
+      }
+    }
+    setState(() {
+      if (selectedPreset == name) {
+        selectedPreset = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  bool get _hasChanges {
+    if (selectedPreset != null && presets.containsKey(selectedPreset)) {
+      return !const DeepCollectionEquality()
+          .equals(settings, presets[selectedPreset]);
+    }
+    return !const DeepCollectionEquality()
+        .equals(settings, widget.initialSettings);
+  }
+
+  TextEditingController _getController(String key) {
+    if (!_controllers.containsKey(key)) {
+      _controllers[key] =
+          TextEditingController(text: settings[key]?.toString() ?? '');
+    }
+    return _controllers[key]!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      // initialChildSize: 1,
+      // minChildSize: 0.5,
+      // maxChildSize: 1,
+      snap: true,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filter Options',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          selectedPreset = null;
+                          settings.clear();
+                          widget.user!.defaultOptionFilterPreset = null;
+                          widget.userDocRef!
+                              .update({'defaultOptionFilterPreset': null});
+                          _controllers.forEach((key, controller) {
+                            controller.clear();
+                          });
+                          widget.onSettingsChanged?.call(settings);
+                        });
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reset'),
+                    ),
+                  ],
+                ),
+                if (presets.isNotEmpty || widget.user != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: selectedPreset,
+                          decoration: const InputDecoration(
+                            labelText: 'Load Preset',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('None'),
+                            ),
+                            ...presets.keys.map((name) {
+                              return DropdownMenuItem<String>(
+                                value: name,
+                                child: Text(name),
+                              );
+                            }),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              selectedPreset = value;
+                              if (value != null && presets.containsKey(value)) {
+                                settings = Map.from(presets[value]!);
+                                _controllers.clear();
+                                widget.onSettingsChanged?.call(settings);
+
+                                if (widget.user != null &&
+                                    widget.userDocRef != null) {
+                                  widget.user!.defaultOptionFilterPreset =
+                                      value;
+                                  widget.userDocRef!.update(
+                                      {'defaultOptionFilterPreset': value});
+                                }
+                              } else if (value == null) {
+                                if (widget.user != null &&
+                                    widget.userDocRef != null) {
+                                  widget.user!.defaultOptionFilterPreset = null;
+                                  widget.userDocRef!.update(
+                                      {'defaultOptionFilterPreset': null});
+                                }
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.save),
+                        tooltip: 'Save Preset',
+                        onPressed: !_hasChanges
+                            ? null
+                            : () async {
+                                final name = await showDialog<String>(
+                                  context: context,
+                                  builder: (context) {
+                                    final controller = TextEditingController(
+                                        text: selectedPreset);
+                                    return AlertDialog(
+                                      title: const Text('Save Preset'),
+                                      content: TextField(
+                                        controller: controller,
+                                        decoration: const InputDecoration(
+                                            labelText: 'Preset Name'),
+                                        autofocus: true,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(
+                                              context, controller.text),
+                                          child: const Text('Save'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                                if (name != null && name.isNotEmpty) {
+                                  _savePreset(name);
+                                }
+                              },
+                      ),
+                      if (selectedPreset != null)
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          tooltip: 'Delete Preset',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Preset'),
+                                content: Text(
+                                    'Are you sure you want to delete "$selectedPreset"?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _deletePreset(selectedPreset!);
+                                    },
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                ],
+                const SizedBox(height: 16),
+                _buildSectionHeader('Liquidity'),
+                _buildInput('Min Open Interest', 'minOpenInterest',
+                    isInt: true, icon: Icons.groups),
+                _buildInput('Min Volume', 'minVolume',
+                    isInt: true, icon: Icons.bar_chart),
+                _buildInput('Max Bid/Ask Spread', 'maxBidAskSpread',
+                    icon: Icons.compare_arrows),
+                const SizedBox(height: 16),
+                _buildSectionHeader('Greeks'),
+                _buildRangeInput('Delta (Risk)', 'minDelta', 'maxDelta',
+                    step: 0.01, iconText: 'Δ', minLimit: 0.0, maxLimit: 1.0),
+                _buildRangeInput('Gamma (Acceleration)', 'minGamma', 'maxGamma',
+                    step: 0.01, iconText: 'Γ', minLimit: 0.0, maxLimit: 1.0),
+                _buildRangeInput('Theta (Time Decay)', 'minTheta', 'maxTheta',
+                    step: 0.01, iconText: 'Θ', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Vega (Volatility)', 'minVega', 'maxVega',
+                    step: 0.01, iconText: 'ν', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Rho (Interest Rate)', 'minRho', 'maxRho',
+                    step: 0.01, iconText: 'ρ', minLimit: 0.0, maxLimit: 5.0),
+                _buildRangeInput('Implied Volatility', 'minImpliedVolatility',
+                    'maxImpliedVolatility',
+                    step: 0.01,
+                    icon: Icons.waves,
+                    minLimit: 0.0,
+                    maxLimit: 5.0),
+                if (widget.action == 'Sell') ...[
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Strategy'),
+                  _buildInput(
+                      'Min Premium/Collateral %', 'minPremiumCollateralPercent',
+                      suffix: '%', icon: Icons.percent),
+                ],
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Divider(
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+              thickness: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInput(String label, String key,
+      {bool isInt = false, String? suffix, IconData? icon}) {
+    final controller = _getController(key);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
+                const SizedBox(width: 8),
+              ],
+              Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            decoration: InputDecoration(
+              labelText: label,
+              isDense: true,
+              suffixText: suffix,
+              suffixIcon: controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          controller.clear();
+                          settings.remove(key);
+                          widget.onSettingsChanged?.call(settings);
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+            ),
+            keyboardType:
+                TextInputType.numberWithOptions(decimal: !isInt, signed: true),
+            textInputAction: TextInputAction.next,
+            controller: controller,
+            onChanged: (value) {
+              setState(() {});
+              if (value.isEmpty) {
+                settings.remove(key);
+              } else {
+                if (isInt) {
+                  settings[key] = int.tryParse(value);
+                } else {
+                  settings[key] = double.tryParse(value);
+                }
+              }
+              widget.onSettingsChanged?.call(settings);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRangeInput(String label, String minKey, String maxKey,
+      {double step = 1.0,
+      IconData? icon,
+      String? iconText,
+      double minLimit = 0.0,
+      double maxLimit = 1.0}) {
+    final minController = _getController(minKey);
+    final maxController = _getController(maxKey);
+
+    double currentMin = double.tryParse(minController.text) ?? minLimit;
+    double currentMax = double.tryParse(maxController.text) ?? maxLimit;
+
+    // Ensure values are within slider bounds
+    double sliderMin = currentMin.clamp(minLimit, maxLimit);
+    double sliderMax = currentMax.clamp(minLimit, maxLimit);
+    if (sliderMin > sliderMax) sliderMin = sliderMax;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
+                const SizedBox(width: 8),
+              ] else if (iconText != null) ...[
+                SizedBox(
+                  width: 24,
+                  child: Center(
+                    child: Text(iconText,
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Min',
+                    isDense: true,
+                    suffixIcon: minController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                minController.clear();
+                                settings.remove(minKey);
+                                widget.onSettingsChanged?.call(settings);
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.next,
+                  controller: minController,
+                  onChanged: (value) {
+                    setState(() {});
+                    if (value.isEmpty) {
+                      settings.remove(minKey);
+                    } else {
+                      settings[minKey] = double.tryParse(value);
+                    }
+                    widget.onSettingsChanged?.call(settings);
+                  },
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text("-",
+                    style: TextStyle(fontSize: 20, color: Colors.grey)),
+              ),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Max',
+                    isDense: true,
+                    suffixIcon: maxController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                maxController.clear();
+                                settings.remove(maxKey);
+                                widget.onSettingsChanged?.call(settings);
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.next,
+                  controller: maxController,
+                  onChanged: (value) {
+                    setState(() {});
+                    if (value.isEmpty) {
+                      settings.remove(maxKey);
+                    } else {
+                      settings[maxKey] = double.tryParse(value);
+                    }
+                    widget.onSettingsChanged?.call(settings);
+                  },
+                ),
+              ),
+            ],
+          ),
+          RangeSlider(
+            values: RangeValues(sliderMin, sliderMax),
+            min: minLimit,
+            max: maxLimit,
+            divisions: (maxLimit - minLimit) ~/ step,
+            labels: RangeLabels(
+              sliderMin.toStringAsFixed(2),
+              sliderMax.toStringAsFixed(2),
+            ),
+            onChanged: (RangeValues values) {
+              setState(() {
+                settings[minKey] = values.start;
+                settings[maxKey] = values.end;
+                minController.text = values.start.toStringAsFixed(2);
+                maxController.text = values.end.toStringAsFixed(2);
+                widget.onSettingsChanged?.call(settings);
+              });
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

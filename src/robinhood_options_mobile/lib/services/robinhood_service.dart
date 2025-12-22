@@ -2753,7 +2753,8 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       Instrument instrument,
       String? expirationDates, // 2021-03-05
       String? type, // call or put
-      {String? state = "active"}) async* {
+      {String? state = "active",
+      bool includeMarketData = false}) async* {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/collateral/?account_number=1AB23456
     // {"collateral":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]},"collateral_held_for_orders":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]}}
     var url =
@@ -2773,15 +2774,33 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
 
     var pageStream = streamedGet(user, url);
     await for (final results in pageStream) {
+      List<OptionInstrument> newInstruments = [];
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
         var op = OptionInstrument.fromJson(result);
         if (!optionInstruments.any((element) => element.id == op.id)) {
           optionInstruments.add(op);
           store.addOrUpdate(op);
-          yield optionInstruments;
+          newInstruments.add(op);
         }
       }
+
+      if (includeMarketData && newInstruments.isNotEmpty) {
+        var ids = newInstruments.map((e) => e.id).toList();
+        try {
+          var marketDataList = await getOptionMarketDataByIds(user, ids);
+          for (var md in marketDataList) {
+            var oi =
+                newInstruments.firstWhereOrNull((e) => e.url == md.instrument);
+            if (oi != null) {
+              oi.optionMarketData = md;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching market data: $e');
+        }
+      }
+
       optionInstruments
           .sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
       yield optionInstruments;

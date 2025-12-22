@@ -88,7 +88,8 @@ abstract class IBrokerageService {
       Instrument instrument,
       String? expirationDates, // 2021-03-05
       String? type, // call or put
-      {String? state = "active"});
+      {String? state = "active",
+      bool includeMarketData = false});
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
       BrokerageUser user, List<String> ids);
   Future<OptionMarketData?> getOptionMarketData(

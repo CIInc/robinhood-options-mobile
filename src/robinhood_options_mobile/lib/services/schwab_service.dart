@@ -1726,7 +1726,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       Instrument instrument,
       String? expirationDates,
       String? type,
-      {String? state = "active"}) {
+      {String? state = "active",
+      bool includeMarketData = false}) {
     // TODO: implement streamOptionInstruments
     throw UnimplementedError();
   }
