@@ -37,6 +37,13 @@ Each notification includes:
 - Confidence level (if available)
 - Data payload for app navigation
 
+### App Navigation
+
+When a user taps on a trade signal notification, the app will:
+1. Open the app (if not already open)
+2. Navigate directly to the **Instrument Details** page for the symbol in the signal
+3. Load the relevant instrument data and chart
+
 ## Technical Implementation
 
 ### Backend (Firebase Functions)

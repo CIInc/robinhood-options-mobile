@@ -13,6 +13,7 @@ Comprehensive backtesting interface for testing trading strategies on historical
 ### Strategy Builder
 - Configure all 12 technical indicators independently (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R)
 - Match live trading configuration exactly
+- **Default Templates**: Access a library of pre-configured strategies (e.g., "Conservative Growth", "Aggressive Momentum") to get started quickly.
 - Advanced parameter tuning:
   - RSI period
   - Fast/Slow SMA periods

@@ -40,6 +40,8 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
@@ -126,6 +128,44 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           builder: (context) => const CopyTradeRequestsWidget(),
         ),
       );
+    } else if (message.data['type'] == 'trade_signal') {
+      final symbol = message.data['symbol'];
+      if (symbol != null) {
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
+        if (userStore.items.isNotEmpty) {
+          var brokerageUser = userStore.currentUser ?? userStore.items.first;
+          service = brokerageUser.source == BrokerageSource.robinhood
+              ? RobinhoodService()
+              : brokerageUser.source == BrokerageSource.schwab
+                  ? SchwabService()
+                  : brokerageUser.source == BrokerageSource.plaid
+                      ? PlaidService()
+                      : DemoService();
+
+          service
+              .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
+              .then((instrument) {
+            if (instrument != null) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => InstrumentWidget(
+                            brokerageUser,
+                            service,
+                            instrument,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: _generativeService,
+                            user: user,
+                            userDocRef: userDoc,
+                          )));
+            }
+          });
+        }
+      }
     }
   }
 
@@ -133,6 +173,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   void initState() {
     super.initState();
     setupInteractedMessage();
+    // Used to detect app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
     _removeBadge();
     _pageController = PageController(initialPage: _pageIndex);

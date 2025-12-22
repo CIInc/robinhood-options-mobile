@@ -23,7 +23,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Futures Positions:** Live futures position enrichment with contract & product metadata (root symbol, expiration, currency, multiplier) plus real-time quote integration and Open P&L calculation using `(lastTradePrice - avgTradePrice) * quantity * multiplier`. (Realized/day P&L, margin metrics, and roll detection planned.)
 *   **[Option Chain Screener](docs/option-strategy-builder.md#option-chain-screener):** Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more. Features AI-powered "Find Best Contract" suggestions based on risk tolerance and strategy.
 *   **[Strategy Builder](docs/option-strategy-builder.md#multi-leg-strategy-builder):** Multi-leg options strategy builder supporting Spreads, Straddles, Iron Condors, and custom combinations with visual payoff diagrams and risk/reward analysis.
-*   **[Advanced Order Types](docs/advanced-order-types.md):** Support for Trailing Stop and Stop-Limit orders for both stocks and options.
+*   **[Advanced Order Types](docs/advanced-order-types.md):** Support for Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for both stocks and options.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 
 

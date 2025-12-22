@@ -35,6 +35,21 @@ A Stop-Limit order combines the features of a stop order and a limit order. Once
 5. Enter Quantity and other details.
 6. Swipe to submit the order.
 
+## Time in Force
+
+You can now specify how long your order remains active before it is cancelled.
+
+### Supported Options
+- **GFD (Good For Day)**: The order remains active until the market closes on the current trading day. This is the default.
+- **GTC (Good Till Cancelled)**: The order remains active until you manually cancel it or it is filled (typically up to 90 days).
+- **IOC (Immediate Or Cancel)**: Any portion of the order that cannot be filled immediately is cancelled.
+- **OPG (At The Open)**: The order is executed at the opening of the market.
+
+### How to Use
+1. In the Trade screen, tap **More Options** (or the settings icon).
+2. Select your desired **Time in Force** option.
+3. Proceed with placing your order.
+
 ## Trading UI Refactor
 
 The trading interface has been completely redesigned for clarity and ease of use.

@@ -102,250 +102,114 @@ Users can explore trade signals in the **Search** tab using advanced filtering o
 **Implementation:** `evaluateMarketDirection()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Fast MA crosses above slow MA (bullish crossover) or trend strength > 2%
-- **SELL**: Fast MA crosses below slow MA (bearish crossover) or trend strength < -2%
-- **HOLD**: No crossover and trend strength between -2% and 2%
+- **BUY**: Fast SMA (10) > Slow SMA (30) (Bullish trend)
+- **SELL**: Fast SMA (10) < Slow SMA (30) (Bearish trend)
+- **HOLD**: SMAs are equal or insufficient data
 
 **Configuration:**
-- Default market index: SPY (can be changed to QQQ)
-- Default fast period: 10
-- Default slow period: 30
-- Configurable via `marketIndexSymbol`, `smaPeriodFast`, `smaPeriodSlow`
+- Default Fast SMA: 10
+- Default Slow SMA: 30
+- Default Index: SPY
+- Configurable via `fastSmaPeriod`, `slowSmaPeriod`, and `marketIndex` parameters
 
-**Technical Details:**
-- Fetches market index data from Yahoo Finance
-- Detects crossovers by comparing current and previous MA values
-- Calculates trend strength as percentage spread between fast and slow MA
+### 4. Volume (Volume Oscillator)
 
-### 4. Volume
-
-**Purpose:** Confirms price movements with volume analysis.
+**Purpose:** Confirms price moves with volume analysis.
 
 **Implementation:** `evaluateVolume()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: High volume (>150% of average) with price increase (>0.5%) or normal volume with strong price increase (>1%)
-- **SELL**: High volume (>150% of average) with price decrease (<-0.5%)
-- **HOLD**: Low volume (<70% of average) or neutral volume with small price changes
-
-**Technical Details:**
-- Compares current volume to 20-period average
-- Correlates volume with price change
-- Identifies accumulation (high volume + price up) and distribution (high volume + price down)
+- **BUY**: Volume > 120% of 20-period average (Strong buying pressure)
+- **SELL**: Volume > 150% of 20-period average on down day (Panic selling)
+- **HOLD**: Volume within normal range
 
 ### 5. MACD (Moving Average Convergence Divergence)
 
-**Purpose:** Identifies trend following momentum through the relationship between two exponential moving averages.
+**Purpose:** Trend-following momentum indicator.
 
-**Implementation:** `evaluateMACD()` and `computeMACD()` in `technical-indicators.ts`
+**Implementation:** `evaluateMACD()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: MACD histogram crosses above zero (bullish crossover) or positive histogram (bullish momentum)
-- **SELL**: MACD histogram crosses below zero (bearish crossover) or negative histogram (bearish momentum)
-- **HOLD**: Histogram near zero (neutral)
-
-**Configuration:**
-- Fast EMA period: 12
-- Slow EMA period: 26
-- Signal line period: 9
-
-**Technical Details:**
-- MACD Line = Fast EMA - Slow EMA
-- Signal Line = EMA of MACD Line
-- Histogram = MACD Line - Signal Line
-- Crossovers detected by comparing current and previous histogram values
+- **BUY**: MACD line crosses above Signal line (Bullish crossover)
+- **SELL**: MACD line crosses below Signal line (Bearish crossover)
+- **HOLD**: No crossover
 
 ### 6. Bollinger Bands
 
-**Purpose:** Measures price volatility and identifies overbought/oversold conditions relative to recent price range.
+**Purpose:** Measures volatility and potential overbought/oversold conditions.
 
-**Implementation:** `evaluateBollingerBands()` and `computeBollingerBands()` in `technical-indicators.ts`
+**Implementation:** `evaluateBollingerBands()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Price at or below lower band (oversold), or in lower third of bands
-- **SELL**: Price at or above upper band (overbought), or in upper third of bands
-- **HOLD**: Price in middle region of bands
-
-**Configuration:**
-- Period: 20 (SMA)
-- Standard deviations: 2
-
-**Technical Details:**
-- Middle Band = 20-period SMA
-- Upper Band = Middle + (2 × Standard Deviation)
-- Lower Band = Middle - (2 × Standard Deviation)
-- Position calculated as percentage between lower and upper bands
-- **Improved (v2)**: Uses sample standard deviation (N−1) instead of population (N) for more accurate band width, matching industry-standard BB implementations
-- Variance denominator = `period > 1 ? (period - 1) : period`
+- **BUY**: Price touches or crosses below Lower Band (Oversold/Bounce candidate)
+- **SELL**: Price touches or crosses above Upper Band (Overbought/Reversal candidate)
+- **HOLD**: Price within bands
 
 ### 7. Stochastic Oscillator
 
-**Purpose:** Compares closing price to price range over a period to identify momentum and overbought/oversold conditions.
+**Purpose:** Momentum indicator comparing a particular closing price of a security to a range of its prices over a certain period of time.
 
-**Implementation:** `evaluateStochastic()` and `computeStochastic()` in `technical-indicators.ts`
+**Implementation:** `evaluateStochastic()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: %K < 20 (oversold), or bullish crossover (%K crosses above %D) in oversold region
-- **SELL**: %K > 80 (overbought), or bearish crossover (%K crosses below %D) in overbought region
-- **HOLD**: %K between 20-80 (neutral zone)
-
-**Configuration:**
-- %K period: 14
-- %D period: 3 (SMA of %K)
-- Oversold threshold: 20
-- Overbought threshold: 80
-
-**Technical Details:**
-- %K = ((Current Close - Lowest Low) / (Highest High - Lowest Low)) × 100
-- %D = 3-period SMA of %K
-- Uses high, low, and close prices
+- **BUY**: %K crosses above %D and both are < 20 (Oversold crossover)
+- **SELL**: %K crosses below %D and both are > 80 (Overbought crossover)
+- **HOLD**: No crossover or within neutral range
 
 ### 8. ATR (Average True Range)
 
-**Purpose:** Measures market volatility to assess risk and potential breakout conditions.
+**Purpose:** Measures market volatility.
 
-**Implementation:** `evaluateATR()` and `computeATR()` in `technical-indicators.ts`
+**Implementation:** `evaluateATR()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Low volatility (ATR < 60% of average) suggests potential breakout setup
-- **SELL**: Never issues SELL signal (volatility is not directional)
-- **HOLD**: Normal or high volatility
-
-**Configuration:**
-- Period: 14
-
-**Technical Details:**
-- True Range = max(High - Low, |High - Previous Close|, |Low - Previous Close|)
-- ATR = Smoothed average of True Range values
-- Compared to 14-period historical ATR average
-- High volatility (>150% of avg) = caution
-- Low volatility (<60% of avg) = potential breakout
+- **BUY**: ATR is increasing (Volatility expansion, often accompanies trend starts)
+- **SELL**: ATR is extremely high (Potential exhaustion)
+- **HOLD**: ATR is stable or decreasing
 
 ### 9. OBV (On-Balance Volume)
 
-**Purpose:** Tracks volume flow to confirm price trends and detect divergences between price and volume.
+**Purpose:** Uses volume flow to predict changes in stock price.
 
-**Implementation:** `evaluateOBV()` and `computeOBV()` in `technical-indicators.ts`
+**Implementation:** `evaluateOBV()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Bullish divergence (OBV rising while price falling), or OBV uptrend confirms price rise
-- **SELL**: Bearish divergence (OBV falling while price rising), or OBV downtrend confirms price decline
-- **HOLD**: OBV trend neutral or not significant
-
-**Configuration:**
-- Lookback period: 20 (for trend calculation)
-- Divergence threshold: ±5%
-- Strong trend threshold: ±10%
-
-**Technical Details:**
-- OBV starts at 0 (not first volume) to avoid first-bar scale bias
-- OBV increases by volume on up days
-- OBV decreases by volume on down days
-- OBV unchanged when price unchanged
-- Compares recent 10-period OBV average vs previous 10-period average
-- Detects divergences by comparing OBV trend with price change
-- **Improved (v2)**: Division-by-zero guard when older average ≈ 0; returns `obvTrend = 0` if denominator < 1e-9 to prevent spurious infinite signals
+- **BUY**: OBV is rising (Volume confirming price increase)
+- **SELL**: OBV is falling (Volume confirming price decrease)
+- **HOLD**: OBV is flat
 
 ### 10. VWAP (Volume Weighted Average Price)
 
-**Purpose:** Identifies fair value price levels based on volume distribution. Institutional traders use VWAP as a benchmark for trade execution quality.
+**Purpose:** Provides the average price a stock has traded at throughout the day, based on both volume and price.
 
-**Implementation:** `evaluateVWAP()` and `computeVWAP()` in `technical-indicators.ts`
+**Implementation:** `evaluateVWAP()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Price at or below VWAP -2σ (strong oversold), or VWAP -1σ to -2σ (moderately oversold)
-- **SELL**: Price at or above VWAP +2σ (strong overbought), or VWAP +1σ to +2σ (moderately overbought)
-- **HOLD**: Price within ±1σ of VWAP (fair value zone)
-
-**Configuration:**
-- Uses intraday typical price: (High + Low + Close) / 3
-- Standard deviation bands: 1σ and 2σ
-
-**Technical Details:**
-- VWAP = Σ(Typical Price × Volume) / Σ(Volume)
-- Typical Price = (High + Low + Close) / 3
-- Standard deviation calculated from typical prices
-- Price deviation expressed as percentage from VWAP
-
-**Metadata Returned:**
-```json
-{
-  "vwap": 152.35,
-  "currentPrice": 151.20,
-  "deviation": -0.75,
-  "upperBand1": 153.50,
-  "lowerBand1": 151.20,
-  "upperBand2": 154.65,
-  "lowerBand2": 150.05,
-  "interpretation": "below_vwap"
-}
-```
+- **BUY**: Price crosses above VWAP (Bullish sentiment)
+- **SELL**: Price crosses below VWAP (Bearish sentiment)
+- **HOLD**: Price near VWAP
 
 ### 11. ADX (Average Directional Index)
 
-**Purpose:** Measures trend strength regardless of direction. High ADX indicates a strong trend (up or down), while low ADX indicates a weak or range-bound market.
+**Purpose:** Measures the strength of a trend.
 
-**Implementation:** `evaluateADX()` and `computeADX()` in `technical-indicators.ts`
+**Implementation:** `evaluateADX()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: ADX > 25 with +DI > -DI (strong bullish trend)
-- **SELL**: ADX > 25 with -DI > +DI (strong bearish trend)
-- **HOLD**: ADX < 20 (weak/no trend, range-bound) or ADX 20-25 (moderate, unclear direction)
-
-**Configuration:**
-- Period: 14 (default)
-- Strong trend threshold: ADX > 25
-- Very strong trend threshold: ADX > 40
-- Weak trend threshold: ADX < 20
-
-**Technical Details:**
-- Uses Wilder's smoothing method for +DM, -DM, and TR
-- +DI = Smoothed +DM / Smoothed TR × 100
-- -DI = Smoothed -DM / Smoothed TR × 100
-- DX = |+DI - -DI| / (+DI + -DI) × 100
-- ADX = Smoothed average of DX values
-
-**Metadata Returned:**
-```json
-{
-  "adx": 32.5,
-  "plusDI": 28.3,
-  "minusDI": 15.7,
-  "trendStrength": "strong",
-  "interpretation": "bullish_trend"
-}
-```
+- **BUY**: ADX > 25 and +DI > -DI (Strong Bullish Trend)
+- **SELL**: ADX > 25 and -DI > +DI (Strong Bearish Trend)
+- **HOLD**: ADX < 25 (Weak or No Trend)
 
 ### 12. Williams %R
 
-**Purpose:** Momentum oscillator that identifies overbought/oversold levels and potential reversals. Similar to Stochastic but inverted scale (-100 to 0).
+**Purpose:** Momentum indicator that measures overbought and oversold levels.
 
-**Implementation:** `evaluateWilliamsR()` and `computeWilliamsR()` in `technical-indicators.ts`
+**Implementation:** `evaluateWilliamsR()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: %R ≤ -80 (oversold), or rising from oversold with upward momentum
-- **SELL**: %R ≥ -20 (overbought), or falling from overbought with downward momentum
-- **HOLD**: -80 < %R < -20 (neutral zone)
-
-**Configuration:**
-- Period: 14 (default)
-- Oversold threshold: -80
-- Overbought threshold: -20
-
-**Technical Details:**
-- Williams %R = (Highest High - Close) / (Highest High - Lowest Low) × -100
-- Range: -100 (most oversold) to 0 (most overbought)
-- Momentum detection: Compares current vs previous %R for reversal confirmation
-- Reversal signals (rising from oversold, falling from overbought) are stronger than static threshold signals
-
-**Metadata Returned:**
-```json
-{
-  "williamsR": -85.2,
-  "prevWilliamsR": -92.1,
-  "interpretation": "oversold_reversal"
-}
-```
+- **BUY**: %R < -80 (Oversold)
+- **SELL**: %R > -20 (Overbought)
+- **HOLD**: %R between -20 and -80
 
 ## Signal Strength Score
 

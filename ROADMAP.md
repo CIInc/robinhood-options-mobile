@@ -117,9 +117,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.27.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
-- Multi-leg options (spreads, complex strategies)
-- Stock order placement (currently options-only)
-- Advanced order types (trailing stops, conditional)
+- Fidelity Multi-leg options execution
+- Fidelity Stock order placement
+- Fidelity Advanced order types
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 

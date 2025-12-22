@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file.
   - Visual payoff diagrams and risk/reward analysis for complex strategies.
 - **Advanced Order Types:**
   - Added support for Trailing Stop and Stop-Limit orders for both stocks and options.
+  - Added Time in Force options: GTC (Good Till Cancelled), GFD (Good For Day), IOC (Immediate Or Cancel), OPG (At The Open).
+- **Stock Orders:**
+  - Enabled direct stock order placement from the new trading UI.
 - **Trading UI:**
   - Completely refactored trading widgets with improved order preview and placement flow.
   - Enhanced "Reset" functionality in filter options to correctly clear selected presets.

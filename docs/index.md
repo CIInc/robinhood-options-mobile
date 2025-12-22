@@ -26,7 +26,7 @@
 - **ML Optimization:** Benefit from Machine Learning enhanced signal accuracy.
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
-- **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop and Stop-Limit orders for better risk management.
+- **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
 
 ## Investment Profile Feature
 
