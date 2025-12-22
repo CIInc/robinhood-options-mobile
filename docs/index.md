@@ -21,9 +21,11 @@
 - Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
-- **Custom Indicators:** Create and integrate personalized technical indicators into the trading system.
-- **Advanced Exit Strategies:** Implement Partial, Time-Based, and Market Close exits for precise trade management.
-- **ML Optimization:** Benefit from Machine Learning enhanced signal accuracy.
+- **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
+- **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
+- **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
+- **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
+- **[Approval Workflow](copy-trading.md#3-approval-workflow):** Review and approve auto-generated copy trade requests.
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.

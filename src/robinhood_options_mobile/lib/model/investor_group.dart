@@ -12,6 +12,14 @@ class CopyTradeSettings {
   double? maxDailyAmount; // Maximum total dollar amount to copy per day
   bool?
       overridePrice; // If true, use current market price instead of copied price
+  List<String>? symbolWhitelist;
+  List<String>? symbolBlacklist;
+  List<String>? sectorWhitelist;
+  List<String>? assetClassWhitelist; // 'equity', 'option', 'crypto'
+  double? minMarketCap;
+  double? maxMarketCap;
+  String? startTime; // Format "HH:mm"
+  String? endTime; // Format "HH:mm"
 
   CopyTradeSettings({
     this.enabled = false,
@@ -22,6 +30,14 @@ class CopyTradeSettings {
     this.maxAmount,
     this.maxDailyAmount,
     this.overridePrice = false,
+    this.symbolWhitelist,
+    this.symbolBlacklist,
+    this.sectorWhitelist,
+    this.assetClassWhitelist,
+    this.minMarketCap,
+    this.maxMarketCap,
+    this.startTime,
+    this.endTime,
   });
 
   CopyTradeSettings.fromJson(Map<String, Object?> json)
@@ -32,7 +48,23 @@ class CopyTradeSettings {
         maxQuantity = json['maxQuantity'] as double?,
         maxAmount = json['maxAmount'] as double?,
         maxDailyAmount = json['maxDailyAmount'] as double?,
-        overridePrice = json['overridePrice'] as bool? ?? false;
+        overridePrice = json['overridePrice'] as bool? ?? false,
+        symbolWhitelist = (json['symbolWhitelist'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList(),
+        symbolBlacklist = (json['symbolBlacklist'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList(),
+        sectorWhitelist = (json['sectorWhitelist'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList(),
+        assetClassWhitelist = (json['assetClassWhitelist'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList(),
+        minMarketCap = json['minMarketCap'] as double?,
+        maxMarketCap = json['maxMarketCap'] as double?,
+        startTime = json['startTime'] as String?,
+        endTime = json['endTime'] as String?;
 
   Map<String, Object?> toJson() {
     return {
@@ -44,6 +76,14 @@ class CopyTradeSettings {
       'maxAmount': maxAmount,
       'maxDailyAmount': maxDailyAmount,
       'overridePrice': overridePrice,
+      'symbolWhitelist': symbolWhitelist,
+      'symbolBlacklist': symbolBlacklist,
+      'sectorWhitelist': sectorWhitelist,
+      'assetClassWhitelist': assetClassWhitelist,
+      'minMarketCap': minMarketCap,
+      'maxMarketCap': maxMarketCap,
+      'startTime': startTime,
+      'endTime': endTime,
     };
   }
 }
@@ -137,7 +177,7 @@ class InvestorGroup {
   }
 
   bool isAdmin(String userId) {
-    return admins?.contains(userId) ?? false || createdBy == userId;
+    return (admins?.contains(userId) ?? false) || createdBy == userId;
   }
 
   bool hasPendingInvitation(String userId) {

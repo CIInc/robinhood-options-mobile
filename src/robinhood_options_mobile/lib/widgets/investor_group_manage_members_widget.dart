@@ -113,8 +113,9 @@ class _InvestorGroupManageMembersWidgetState
 
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName =
-                      user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                  displayName = user?.name ??
+                      // user?.providerId?.capitalize() ??
+                      'Guest';
                   subtitle = user?.email ?? user?.phoneNumber ?? '';
                   if (user?.photoUrl != null) {
                     avatar = CircleAvatar(
@@ -230,8 +231,9 @@ class _InvestorGroupManageMembersWidgetState
 
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName =
-                      user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                  displayName = user?.name ??
+                      // user?.providerId?.capitalize() ??
+                      'Guest';
                   subtitle = user?.email ?? user?.phoneNumber ?? '';
                   if (user?.photoUrl != null) {
                     avatar = CircleAvatar(

@@ -314,8 +314,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
 
               if (snapshot.hasData && snapshot.data!.exists) {
                 final user = snapshot.data!.data();
-                displayName =
-                    user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                displayName = user?.name ??
+                    // user?.providerId?.capitalize() ??
+                    'Guest';
                 if (user?.photoUrl != null) {
                   avatar = CircleAvatar(
                     radius: 20,

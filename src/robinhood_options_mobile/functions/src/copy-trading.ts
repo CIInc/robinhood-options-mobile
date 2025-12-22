@@ -24,7 +24,15 @@ interface CopyTradeSettings {
   copyPercentage?: number;
   maxQuantity?: number;
   maxAmount?: number;
+  maxDailyAmount?: number;
   overridePrice?: boolean;
+  symbolWhitelist?: string[];
+  symbolBlacklist?: string[];
+  sectorWhitelist?: string[];
+  minMarketCap?: number;
+  maxMarketCap?: number;
+  startTime?: string;
+  endTime?: string;
 }
 
 /**
@@ -68,6 +76,107 @@ interface CopyTradeRecord {
 }
 
 /**
+ * Interface for fundamentals
+ */
+interface Fundamentals {
+  sector?: string;
+  market_cap?: number;
+}
+
+/**
+ * Interface for instrument
+ */
+interface Instrument {
+  symbol: string;
+  fundamentalsObj?: Fundamentals;
+}
+
+/**
+ * Checks if current time is within the specified range
+ * @param {string} startTime - Start time in HH:mm format
+ * @param {string} endTime - End time in HH:mm format
+ * @return {boolean} True if current time is within range
+ */
+function isTimeInRange(startTime: string, endTime: string): boolean {
+  // Convert current time to EST/EDT as market hours are in ET
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  // EDT (UTC-4) - simplified, ideally use a library for timezone
+  const etOffset = -4;
+  const etDate = new Date(utc + 3600000 * etOffset);
+
+  const currentMinutes = etDate.getHours() * 60 + etDate.getMinutes();
+
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+  const endMinutes = endHour * 60 + endMinute;
+
+  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+}
+
+/**
+ * Checks if a trade should be copied based on settings
+ * @param {CopyTradeSettings} settings - Copy trade settings
+ * @param {string} symbol - Symbol of the trade
+ * @param {string} [sector] - Sector of the symbol
+ * @param {number} [marketCap] - Market cap of the symbol
+ * @return {boolean} True if trade should be copied
+ */
+function shouldCopyTrade(
+  settings: CopyTradeSettings,
+  symbol: string,
+  sector?: string,
+  marketCap?: number
+): boolean {
+  if (!settings.enabled) return false;
+
+  // Symbol Whitelist
+  if (
+    settings.symbolWhitelist &&
+    settings.symbolWhitelist.length > 0 &&
+    !settings.symbolWhitelist.includes(symbol)
+  ) {
+    return false;
+  }
+
+  // Symbol Blacklist
+  if (settings.symbolBlacklist && settings.symbolBlacklist.includes(symbol)) {
+    return false;
+  }
+
+  // Sector Whitelist
+  if (
+    sector &&
+    settings.sectorWhitelist &&
+    settings.sectorWhitelist.length > 0 &&
+    !settings.sectorWhitelist.includes(sector)
+  ) {
+    return false;
+  }
+
+  // Market Cap
+  if (marketCap) {
+    if (settings.minMarketCap && marketCap < settings.minMarketCap) {
+      return false;
+    }
+    if (settings.maxMarketCap && marketCap > settings.maxMarketCap) {
+      return false;
+    }
+  }
+
+  // Time Filters
+  if (settings.startTime && settings.endTime) {
+    if (!isTimeInRange(settings.startTime, settings.endTime)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Processes new instrument orders for copy trading
  *
  * Triggered when a new instrument order is created in any user's collection.
@@ -106,6 +215,48 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
+      // Fetch instrument details to get symbol, sector, and market cap
+      let symbol = "Unknown";
+      let sector: string | undefined;
+      let marketCap: number | undefined;
+
+      const instrumentId = orderData.instrument_id;
+      if (instrumentId) {
+        try {
+          const instrumentDoc = await db
+            .collection("instrument")
+            .doc(instrumentId)
+            .get();
+
+          if (instrumentDoc.exists) {
+            const instrumentData = instrumentDoc.data() as Instrument;
+            symbol = instrumentData.symbol || "Unknown";
+            sector = instrumentData.fundamentalsObj?.sector;
+            marketCap = instrumentData.fundamentalsObj?.market_cap;
+
+            logger.info("Fetched instrument details", {
+              instrumentId,
+              symbol,
+              sector,
+              marketCap,
+            });
+          } else {
+            logger.warn("Instrument document not found", { instrumentId });
+          }
+        } catch (error) {
+          logger.error("Error fetching instrument details", {
+            instrumentId,
+            error,
+          });
+        }
+      } else {
+        logger.warn("No instrument_id in order data", { orderId });
+        // Fallback to existing symbol if available
+        if (orderData.instrumentObj?.symbol) {
+          symbol = orderData.instrumentObj.symbol;
+        }
+      }
+
       // Find investor groups where this user is a member
       const groupsSnapshot = await db
         .collection("investor_groups")
@@ -129,19 +280,23 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         for (const [memberId, settings] of Object.entries(
           group.memberCopyTradeSettings
         )) {
-          if (
-            settings.enabled &&
-            settings.targetUserId === userId
-          ) {
-            logger.info(
-              "Found copy trade target",
-              {
-                sourceUser: userId,
+          if (settings.enabled && settings.targetUserId === userId) {
+            // Use fetched symbol, sector, and marketCap
+            if (!shouldCopyTrade(settings, symbol, sector, marketCap)) {
+              logger.info("Trade filtered out by settings", {
+                userId,
                 targetUser: memberId,
-                groupId: group.id,
-                autoExecute: settings.autoExecute,
-              }
-            );
+                symbol,
+              });
+              continue;
+            }
+
+            logger.info("Found copy trade target", {
+              sourceUser: userId,
+              targetUser: memberId,
+              groupId: group.id,
+              autoExecute: settings.autoExecute,
+            });
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
@@ -226,7 +381,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
             await sendCopyTradeNotification(
               memberId,
               sourceUserName,
-              orderData.instrumentObj?.symbol || "Unknown",
+              symbol,
               orderData.side,
               quantity,
               "instrument",
@@ -278,6 +433,40 @@ export const onOptionOrderCreated = onDocumentCreated(
         return;
       }
 
+      // Fetch instrument details to get sector and market cap
+      const symbol = orderData.chain_symbol || "Unknown";
+      let sector: string | undefined;
+      let marketCap: number | undefined;
+
+      if (symbol !== "Unknown") {
+        try {
+          const instrumentQuery = await db
+            .collection("instrument")
+            .where("symbol", "==", symbol)
+            .limit(1)
+            .get();
+
+          if (!instrumentQuery.empty) {
+            const instrumentData = instrumentQuery.docs[0].data() as Instrument;
+            sector = instrumentData.fundamentalsObj?.sector;
+            marketCap = instrumentData.fundamentalsObj?.market_cap;
+
+            logger.info("Fetched instrument details for option", {
+              symbol,
+              sector,
+              marketCap,
+            });
+          } else {
+            logger.warn("Instrument not found for symbol", { symbol });
+          }
+        } catch (error) {
+          logger.error("Error fetching instrument details", {
+            symbol,
+            error,
+          });
+        }
+      }
+
       // Find investor groups where this user is a member
       const groupsSnapshot = await db
         .collection("investor_groups")
@@ -301,19 +490,23 @@ export const onOptionOrderCreated = onDocumentCreated(
         for (const [memberId, settings] of Object.entries(
           group.memberCopyTradeSettings
         )) {
-          if (
-            settings.enabled &&
-            settings.targetUserId === userId
-          ) {
-            logger.info(
-              "Found copy trade target",
-              {
-                sourceUser: userId,
+          if (settings.enabled && settings.targetUserId === userId) {
+            // Use fetched symbol, sector, and marketCap
+            if (!shouldCopyTrade(settings, symbol, sector, marketCap)) {
+              logger.info("Trade filtered out by settings", {
+                userId,
                 targetUser: memberId,
-                groupId: group.id,
-                autoExecute: settings.autoExecute,
-              }
-            );
+                symbol,
+              });
+              continue;
+            }
+
+            logger.info("Found copy trade target", {
+              sourceUser: userId,
+              targetUser: memberId,
+              groupId: group.id,
+              autoExecute: settings.autoExecute,
+            });
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
@@ -347,7 +540,7 @@ export const onOptionOrderCreated = onDocumentCreated(
                 groupId: group.id,
                 orderType: "option",
                 originalOrderId: orderId,
-                symbol: orderData.chainSymbol || "Unknown",
+                symbol: symbol,
                 side: orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
@@ -382,7 +575,7 @@ export const onOptionOrderCreated = onDocumentCreated(
                 groupId: group.id,
                 orderType: "option",
                 originalOrderId: orderId,
-                symbol: orderData.chainSymbol || "Unknown",
+                symbol: symbol,
                 side: orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
@@ -419,7 +612,7 @@ export const onOptionOrderCreated = onDocumentCreated(
             await sendCopyTradeNotification(
               memberId,
               sourceUserName,
-              orderData.chainSymbol || "Unknown",
+              symbol,
               orderData.direction,
               quantity,
               "option",
