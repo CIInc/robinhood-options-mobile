@@ -178,7 +178,32 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                           ),
                         ],
                       ),
-                      _buildStatusChip(request.status),
+                      Row(
+                        children: [
+                          if (request.isInverse)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.purple),
+                                ),
+                                child: const Text(
+                                  'Inverse',
+                                  style: TextStyle(
+                                    color: Colors.purple,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          _buildStatusChip(request.status),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),

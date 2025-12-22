@@ -456,6 +456,19 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                               }
                             : null,
                       ),
+                      SwitchListTile(
+                        title: const Text('Inverse Copying'),
+                        subtitle: const Text(
+                            'Take opposite positions (e.g. Buy -> Sell)'),
+                        value: _settings!.inverse ?? false,
+                        onChanged: _selectedTargetUserId != null
+                            ? (value) {
+                                setState(() {
+                                  _settings!.inverse = value;
+                                });
+                              }
+                            : null,
+                      ),
                       const SizedBox(height: 16),
                       Row(
                         children: [

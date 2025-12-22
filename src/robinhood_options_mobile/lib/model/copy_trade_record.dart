@@ -53,6 +53,7 @@ class CopyTradeRecord {
   final String? executionResult;
   final String? error;
   final String status; // pending_approval, approved, rejected
+  final bool isInverse;
 
   CopyTradeRecord({
     required this.id,
@@ -73,6 +74,7 @@ class CopyTradeRecord {
     this.executionResult,
     this.error,
     this.status = 'approved',
+    this.isInverse = false,
   });
 
   CopyTradeRecord.fromDocument(DocumentSnapshot doc)
@@ -100,5 +102,6 @@ class CopyTradeRecord {
         executed = json['executed'] ?? false,
         executionResult = json['executionResult'],
         error = json['error'],
-        status = json['status'] ?? 'approved';
+        status = json['status'] ?? 'approved',
+        isInverse = json['isInverse'] ?? false;
 }

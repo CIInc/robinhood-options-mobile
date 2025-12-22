@@ -23,6 +23,7 @@ class CopyTradeSettings {
   bool? copyStopLoss;
   bool? copyTakeProfit;
   bool? copyTrailingStop;
+  bool? inverse; // If true, take opposite position
   double? stopLossAdjustment; // Percentage
   double? takeProfitAdjustment; // Percentage
 
@@ -46,6 +47,7 @@ class CopyTradeSettings {
     this.copyStopLoss = false,
     this.copyTakeProfit = false,
     this.copyTrailingStop = false,
+    this.inverse = false,
     this.stopLossAdjustment,
     this.takeProfitAdjustment,
   });
@@ -78,6 +80,7 @@ class CopyTradeSettings {
         copyStopLoss = json['copyStopLoss'] as bool? ?? false,
         copyTakeProfit = json['copyTakeProfit'] as bool? ?? false,
         copyTrailingStop = json['copyTrailingStop'] as bool? ?? false,
+        inverse = json['inverse'] as bool? ?? false,
         stopLossAdjustment = json['stopLossAdjustment'] as double?,
         takeProfitAdjustment = json['takeProfitAdjustment'] as double?;
 
@@ -102,6 +105,7 @@ class CopyTradeSettings {
       'copyStopLoss': copyStopLoss,
       'copyTakeProfit': copyTakeProfit,
       'copyTrailingStop': copyTrailingStop,
+      'inverse': inverse,
       'stopLossAdjustment': stopLossAdjustment,
       'takeProfitAdjustment': takeProfitAdjustment,
     };

@@ -36,6 +36,7 @@ interface CopyTradeSettings {
   copyStopLoss?: boolean;
   copyTakeProfit?: boolean;
   copyTrailingStop?: boolean;
+  inverse?: boolean;
   stopLossAdjustment?: number;
   takeProfitAdjustment?: number;
 }
@@ -81,6 +82,7 @@ interface CopyTradeRecord {
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
   status?: "pending_approval" | "approved" | "rejected" | "executed";
+  isInverse?: boolean;
 }
 
 /**
@@ -403,7 +405,9 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
-                side: orderData.side,
+                side: settings.inverse ?
+                  (orderData.side === "buy" ? "sell" : "buy") :
+                  orderData.side,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -411,6 +415,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false, // Would be true after actual order placement
                 status: "approved",
+                isInverse: settings.inverse || false,
               });
 
               logger.info(
@@ -432,7 +437,9 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
-                side: orderData.side,
+                side: settings.inverse ?
+                  (orderData.side === "buy" ? "sell" : "buy") :
+                  orderData.side,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -440,6 +447,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false,
                 status: "pending_approval",
+                isInverse: settings.inverse || false,
               });
 
               logger.info(
@@ -688,7 +696,9 @@ export const onOptionOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
-                side: orderData.direction,
+                side: settings.inverse ?
+                  (orderData.direction === "debit" ? "credit" : "debit") :
+                  orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -698,13 +708,16 @@ export const onOptionOrderCreated = onDocumentCreated(
                   expirationDate: leg.expiration_date,
                   strikePrice: leg.strike_price,
                   optionType: leg.option_type,
-                  side: leg.side,
+                  side: settings.inverse ?
+                    (leg.side === "buy" ? "sell" : "buy") :
+                    leg.side,
                   positionEffect: leg.position_effect,
                   ratioQuantity: leg.ratio_quantity,
                 })),
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false, // Would be true after actual order placement
                 status: "approved",
+                isInverse: settings.inverse || false,
               });
 
               logger.info(
@@ -726,7 +739,9 @@ export const onOptionOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
-                side: orderData.direction,
+                side: settings.inverse ?
+                  (orderData.direction === "debit" ? "credit" : "debit") :
+                  orderData.direction,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -736,13 +751,16 @@ export const onOptionOrderCreated = onDocumentCreated(
                   expirationDate: leg.expiration_date,
                   strikePrice: leg.strike_price,
                   optionType: leg.option_type,
-                  side: leg.side,
+                  side: settings.inverse ?
+                    (leg.side === "buy" ? "sell" : "buy") :
+                    leg.side,
                   positionEffect: leg.position_effect,
                   ratioQuantity: leg.ratio_quantity,
                 })),
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false,
                 status: "pending_approval",
+                isInverse: settings.inverse || false,
               });
 
               logger.info(
