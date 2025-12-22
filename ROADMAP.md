@@ -79,6 +79,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Approval workflow for copy trade requests
 - ✅ Copy Trading Execution (Manual & Request-based)
 - ✅ Auto-Execute for Copy Trading (Client-side implementation)
+- ✅ Performance Tracking (Win/Loss, P&L, Trader Comparison)
 
 ### v0.23.0 ✅ (Released Dec 22, 2025)
 **Option Chain Screener & Strategy Builder**
@@ -498,7 +499,7 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 **Revenue Impact:** Medium (foundational for premium features)
 
 #### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
-- [ ] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
+- [x] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
 - [ ] **Partial Copying**: Support copying a percentage of the original trade ([#99](https://github.com/CIInc/robinhood-options-mobile/issues/99)) - **Small** (1 week)
 - [ ] **Advanced Filtering**: Filter by symbol, time, or sector ([#101](https://github.com/CIInc/robinhood-options-mobile/issues/101)) - **Small** (1-2 weeks)
 - [ ] **Exit Strategy**: Automatically copy stop loss/take profit ([#100](https://github.com/CIInc/robinhood-options-mobile/issues/100)) - **Medium** (2-3 weeks)

@@ -28,7 +28,10 @@ A centralized hub for managing all copy trading activities:
 - **Trade History**: View a comprehensive list of all copied trades with status indicators.
 - **Filtering**: Filter trades by status (Pending, Approved, Rejected, Completed), date range, and symbol.
 - **Performance Metrics**: Track the performance of copied trades (P&L, win rate).
+- **Trader Comparison**: Compare performance across different traders you are copying.
+- **Time-Based Analysis**: Visualize cumulative P&L growth over time.
 - **Request Management**: Review and act on pending copy trade requests.
+- **Export**: Download trade history and performance reports as CSV.
 
 ### 3. Approval Workflow
 

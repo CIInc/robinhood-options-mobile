@@ -37,6 +37,8 @@ class _CopyTradingDashboardWidgetState
         final uniqueTraders =
             allTrades.map((t) => t.sourceUserId).toSet().toList();
 
+        final completedTrades = _processTrades(filteredTrades);
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Copy Trading Dashboard'),
@@ -55,7 +57,7 @@ class _CopyTradingDashboardWidgetState
               ),
               IconButton(
                 icon: const Icon(Icons.download),
-                onPressed: () => _exportTrades(filteredTrades),
+                onPressed: () => _exportTrades(filteredTrades, completedTrades),
               ),
             ],
           ),
@@ -63,24 +65,201 @@ class _CopyTradingDashboardWidgetState
               ? Center(child: Text('Error: ${snapshot.error}'))
               : snapshot.connectionState == ConnectionState.waiting
                   ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                      children: [
-                        _buildSummary(filteredTrades),
-                        _buildCharts(filteredTrades),
-                        _buildFilters(context, uniqueTraders),
-                        Expanded(
-                          child: ListView.builder(
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildSummary(filteredTrades, completedTrades),
+                          _buildPerformanceChart(completedTrades),
+                          _buildTraderComparison(completedTrades),
+                          _buildCharts(filteredTrades),
+                          _buildFilters(context, uniqueTraders),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
                             itemCount: filteredTrades.length,
                             itemBuilder: (context, index) {
                               final trade = filteredTrades[index];
                               return _buildTradeItem(trade);
                             },
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
         );
       },
+    );
+  }
+
+  List<CompletedTrade> _processTrades(List<CopyTradeRecord> trades) {
+    final sortedTrades = List<CopyTradeRecord>.from(trades)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    final Map<String, List<OpenPosition>> openPositions = {};
+    final List<CompletedTrade> completedTrades = [];
+
+    for (var trade in sortedTrades) {
+      if (!trade.executed) continue;
+
+      final key = '${trade.sourceUserId}_${trade.symbol}_${trade.orderType}';
+
+      bool isOpening = trade.side.toLowerCase().contains('buy') &&
+          !trade.side.toLowerCase().contains('close');
+      if (trade.side.toLowerCase().contains('open')) isOpening = true;
+
+      bool isClosing = trade.side.toLowerCase().contains('sell') &&
+          !trade.side.toLowerCase().contains('open');
+      if (trade.side.toLowerCase().contains('close')) isClosing = true;
+
+      if (isOpening) {
+        openPositions.putIfAbsent(key, () => []).add(OpenPosition(trade));
+      } else if (isClosing) {
+        if (openPositions.containsKey(key) && openPositions[key]!.isNotEmpty) {
+          var remainingQty = trade.copiedQuantity;
+          final positions = openPositions[key]!;
+
+          int i = 0;
+          while (remainingQty > 0 && i < positions.length) {
+            final openPos = positions[i];
+            final matchQty = (openPos.remainingQuantity < remainingQty)
+                ? openPos.remainingQuantity
+                : remainingQty;
+
+            final multiplier = (trade.orderType == 'option') ? 100 : 1;
+
+            double pnl;
+            if (openPos.record.side.toLowerCase().contains('buy')) {
+              pnl =
+                  (trade.price - openPos.record.price) * matchQty * multiplier;
+            } else {
+              pnl =
+                  (openPos.record.price - trade.price) * matchQty * multiplier;
+            }
+
+            final costBasis = openPos.record.price * matchQty * multiplier;
+            final returnPct = (costBasis != 0) ? (pnl / costBasis) : 0.0;
+
+            completedTrades.add(CompletedTrade(
+              symbol: trade.symbol,
+              sourceUserId: trade.sourceUserId,
+              entryDate: openPos.record.timestamp,
+              exitDate: trade.timestamp,
+              quantity: matchQty,
+              entryPrice: openPos.record.price,
+              exitPrice: trade.price,
+              pnl: pnl,
+              returnPct: returnPct,
+              assetType: trade.orderType,
+            ));
+
+            remainingQty -= matchQty;
+            openPos.remainingQuantity -= matchQty;
+
+            if (openPos.remainingQuantity <= 0.0001) {
+              positions.removeAt(i);
+            } else {
+              i++;
+            }
+          }
+        }
+      }
+    }
+    return completedTrades;
+  }
+
+  Widget _buildTraderComparison(List<CompletedTrade> completedTrades) {
+    if (completedTrades.isEmpty) return const SizedBox.shrink();
+
+    final Map<String, List<CompletedTrade>> tradesByTrader = {};
+    for (var t in completedTrades) {
+      tradesByTrader.putIfAbsent(t.sourceUserId, () => []).add(t);
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Trader Performance',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: tradesByTrader.length,
+            itemBuilder: (context, index) {
+              final traderId = tradesByTrader.keys.elementAt(index);
+              final trades = tradesByTrader[traderId]!;
+              final pnl = trades.fold<double>(0, (sum, t) => sum + t.pnl);
+              final wins = trades.where((t) => t.pnl > 0).length;
+              final winRate = wins / trades.length;
+
+              return ListTile(
+                title: Text('Trader: ${traderId.substring(0, 8)}...'),
+                subtitle: Text('${trades.length} completed trades'),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(NumberFormat.simpleCurrency().format(pnl),
+                        style: TextStyle(
+                            color: pnl >= 0 ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold)),
+                    Text('Win Rate: ${(winRate * 100).toStringAsFixed(1)}%'),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceChart(List<CompletedTrade> completedTrades) {
+    if (completedTrades.isEmpty) return const SizedBox.shrink();
+
+    final sorted = List<CompletedTrade>.from(completedTrades)
+      ..sort((a, b) => a.exitDate.compareTo(b.exitDate));
+
+    double cumPnl = 0;
+    final data = <_TimeSeriesSales>[];
+
+    for (var t in sorted) {
+      cumPnl += t.pnl;
+      data.add(_TimeSeriesSales(t.exitDate, cumPnl));
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Cumulative P&L',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(
+              height: 200,
+              child: charts.TimeSeriesChart(
+                [
+                  charts.Series<_TimeSeriesSales, DateTime>(
+                    id: 'PnL',
+                    colorFn: (_, __) =>
+                        charts.MaterialPalette.blue.shadeDefault,
+                    domainFn: (_TimeSeriesSales sales, _) => sales.time,
+                    measureFn: (_TimeSeriesSales sales, _) => sales.sales,
+                    data: data,
+                  )
+                ],
+                animate: true,
+                dateTimeFactory: const charts.LocalDateTimeFactory(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -104,7 +283,8 @@ class _CopyTradingDashboardWidgetState
     }).toList();
   }
 
-  void _exportTrades(List<CopyTradeRecord> trades) {
+  void _exportTrades(
+      List<CopyTradeRecord> trades, List<CompletedTrade> completedTrades) {
     List<List<dynamic>> rows = [];
     rows.add([
       'Date',
@@ -115,10 +295,26 @@ class _CopyTradingDashboardWidgetState
       'Price',
       'Executed',
       'Result',
-      'Error'
+      'Error',
+      'P&L',
+      'Return %'
     ]);
 
     for (var trade in trades) {
+      double? pnl;
+      double? returnPct;
+
+      try {
+        final completed = completedTrades.firstWhere((c) =>
+            c.exitDate == trade.timestamp &&
+            c.symbol == trade.symbol &&
+            c.assetType == trade.orderType);
+        pnl = completed.pnl;
+        returnPct = completed.returnPct;
+      } catch (e) {
+        // Not a closing trade or not matched
+      }
+
       rows.add([
         trade.timestamp.toIso8601String(),
         trade.symbol,
@@ -128,7 +324,9 @@ class _CopyTradingDashboardWidgetState
         trade.price,
         trade.executed,
         trade.executionResult ?? '',
-        trade.error ?? ''
+        trade.error ?? '',
+        pnl != null ? pnl.toStringAsFixed(2) : '',
+        returnPct != null ? '${(returnPct * 100).toStringAsFixed(2)}%' : ''
       ]);
     }
 
@@ -136,9 +334,9 @@ class _CopyTradingDashboardWidgetState
     Share.share(csv, subject: 'Copy Trade History.csv');
   }
 
-  Widget _buildSummary(List<CopyTradeRecord> trades) {
+  Widget _buildSummary(
+      List<CopyTradeRecord> trades, List<CompletedTrade> completedTrades) {
     final totalTrades = trades.length;
-    // Placeholder for P&L calculation as we don't have P&L data in CopyTradeRecord yet
     final totalVolume = trades.fold<double>(
         0,
         (sum, trade) =>
@@ -147,17 +345,37 @@ class _CopyTradingDashboardWidgetState
                 trade.copiedQuantity *
                 (trade.orderType == 'option' ? 100 : 1)));
 
+    final totalPnL = completedTrades.fold<double>(0, (sum, t) => sum + t.pnl);
+    final winningTrades = completedTrades.where((t) => t.pnl > 0).length;
+    final winRate = completedTrades.isNotEmpty
+        ? (winningTrades / completedTrades.length)
+        : 0.0;
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            _buildSummaryItem('Total Trades', totalTrades.toString()),
-            _buildSummaryItem('Total Volume',
-                NumberFormat.simpleCurrency().format(totalVolume)),
-            // _buildSummaryItem('Win Rate', 'N/A'), // Needs P&L
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Total Trades', totalTrades.toString()),
+                _buildSummaryItem('Total Volume',
+                    NumberFormat.simpleCurrency().format(totalVolume)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem(
+                    'Total P&L', NumberFormat.simpleCurrency().format(totalPnL),
+                    color: totalPnL >= 0 ? Colors.green : Colors.red),
+                _buildSummaryItem(
+                    'Win Rate', '${(winRate * 100).toStringAsFixed(1)}%'),
+              ],
+            ),
           ],
         ),
       ),
@@ -205,11 +423,12 @@ class _CopyTradingDashboardWidgetState
     );
   }
 
-  Widget _buildSummaryItem(String label, String value) {
+  Widget _buildSummaryItem(String label, String value, {Color? color}) {
     return Column(
       children: [
         Text(value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: color)),
         Text(label, style: const TextStyle(color: Colors.grey)),
       ],
     );
@@ -335,4 +554,44 @@ class _CopyTradingDashboardWidgetState
       },
     );
   }
+}
+
+class OpenPosition {
+  final CopyTradeRecord record;
+  double remainingQuantity;
+
+  OpenPosition(this.record) : remainingQuantity = record.copiedQuantity;
+}
+
+class CompletedTrade {
+  final String symbol;
+  final String sourceUserId;
+  final DateTime entryDate;
+  final DateTime exitDate;
+  final double quantity;
+  final double entryPrice;
+  final double exitPrice;
+  final double pnl;
+  final double returnPct;
+  final String assetType;
+
+  CompletedTrade({
+    required this.symbol,
+    required this.sourceUserId,
+    required this.entryDate,
+    required this.exitDate,
+    required this.quantity,
+    required this.entryPrice,
+    required this.exitPrice,
+    required this.pnl,
+    required this.returnPct,
+    required this.assetType,
+  });
+}
+
+class _TimeSeriesSales {
+  final DateTime time;
+  final double sales;
+
+  _TimeSeriesSales(this.time, this.sales);
 }
