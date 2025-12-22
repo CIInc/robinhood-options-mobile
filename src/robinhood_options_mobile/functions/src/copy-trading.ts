@@ -21,6 +21,7 @@ interface CopyTradeSettings {
   enabled: boolean;
   targetUserId?: string;
   autoExecute: boolean;
+  copyPercentage?: number;
   maxQuantity?: number;
   maxAmount?: number;
   overridePrice?: boolean;
@@ -145,6 +146,12 @@ export const onInstrumentOrderCreated = onDocumentCreated(
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
             const price = orderData.price || 0;
+
+            if (settings.copyPercentage) {
+              quantity = quantity * (settings.copyPercentage / 100);
+              // Round to 4 decimal places for instruments (fractional shares)
+              quantity = Math.round(quantity * 10000) / 10000;
+            }
 
             if (settings.maxQuantity && quantity > settings.maxQuantity) {
               quantity = settings.maxQuantity;
@@ -311,6 +318,14 @@ export const onOptionOrderCreated = onDocumentCreated(
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
             const price = orderData.price || 0;
+
+            if (settings.copyPercentage) {
+              quantity = quantity * (settings.copyPercentage / 100);
+              // Options must be integers, floor to be safe
+              quantity = Math.floor(quantity);
+              // Ensure at least 1 contract if copying
+              if (quantity < 1) quantity = 1;
+            }
 
             if (settings.maxQuantity && quantity > settings.maxQuantity) {
               quantity = settings.maxQuantity;

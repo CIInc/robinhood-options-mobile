@@ -26,6 +26,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
   bool _isLoading = false;
   CopyTradeSettings? _settings;
   String? _selectedTargetUserId;
+  final _copyPercentageController = TextEditingController();
   final _maxQuantityController = TextEditingController();
   final _maxAmountController = TextEditingController();
   final _maxDailyAmountController = TextEditingController();
@@ -38,6 +39,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
 
   @override
   void dispose() {
+    _copyPercentageController.dispose();
     _maxQuantityController.dispose();
     _maxAmountController.dispose();
     _maxDailyAmountController.dispose();
@@ -51,6 +53,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         setState(() {
           _settings = settings;
           _selectedTargetUserId = settings.targetUserId;
+          if (settings.copyPercentage != null) {
+            _copyPercentageController.text = settings.copyPercentage.toString();
+          }
           if (settings.maxQuantity != null) {
             _maxQuantityController.text = settings.maxQuantity.toString();
           }
@@ -79,6 +84,9 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         enabled: _settings!.enabled,
         targetUserId: _selectedTargetUserId,
         autoExecute: _settings!.autoExecute,
+        copyPercentage: _copyPercentageController.text.isNotEmpty
+            ? double.tryParse(_copyPercentageController.text)
+            : null,
         maxQuantity: _maxQuantityController.text.isNotEmpty
             ? double.tryParse(_maxQuantityController.text)
             : null,
@@ -263,6 +271,22 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                     Text(
                       'Trade Limits',
                       style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _copyPercentageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Copy Percentage (optional)',
+                        helperText:
+                            'Percentage of original trade size to copy (e.g. 50 for 50%)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.percent),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextField(

@@ -5,6 +5,8 @@ class CopyTradeSettings {
   bool enabled;
   String? targetUserId; // User whose trades to copy
   bool autoExecute; // If true, automatically execute trades
+  double?
+      copyPercentage; // Percentage of the original trade size to copy (0-100)
   double? maxQuantity; // Maximum quantity to copy
   double? maxAmount; // Maximum dollar amount to copy
   double? maxDailyAmount; // Maximum total dollar amount to copy per day
@@ -15,6 +17,7 @@ class CopyTradeSettings {
     this.enabled = false,
     this.targetUserId,
     this.autoExecute = false,
+    this.copyPercentage,
     this.maxQuantity,
     this.maxAmount,
     this.maxDailyAmount,
@@ -25,6 +28,7 @@ class CopyTradeSettings {
       : enabled = json['enabled'] as bool? ?? false,
         targetUserId = json['targetUserId'] as String?,
         autoExecute = json['autoExecute'] as bool? ?? false,
+        copyPercentage = json['copyPercentage'] as double?,
         maxQuantity = json['maxQuantity'] as double?,
         maxAmount = json['maxAmount'] as double?,
         maxDailyAmount = json['maxDailyAmount'] as double?,
@@ -35,6 +39,7 @@ class CopyTradeSettings {
       'enabled': enabled,
       'targetUserId': targetUserId,
       'autoExecute': autoExecute,
+      'copyPercentage': copyPercentage,
       'maxQuantity': maxQuantity,
       'maxAmount': maxAmount,
       'maxDailyAmount': maxDailyAmount,

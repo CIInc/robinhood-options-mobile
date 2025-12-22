@@ -15,6 +15,7 @@ Members can configure copy trading settings for each investor group they belong 
 - **Enable/Disable**: Turn copy trading on or off
 - **Select Target User**: Choose which group member's trades to copy
 - **Auto-Execute**: Automatically execute trades (subject to approval workflow)
+- **Copy Percentage**: Copy a percentage of the original trade size (e.g., 50%). Supports fractional shares for stocks and rounds down to nearest integer for options (min 1 contract).
 - **Max Quantity**: Limit the maximum number of shares/contracts to copy
 - **Max Amount**: Limit the maximum dollar amount per trade
 - **Override Price**: Use current market price instead of the copied trade's price
