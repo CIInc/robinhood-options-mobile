@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.24.0] - 2025-12-22
+
+### Added
+- **Copy Trading Enhancements:**
+  - **Inverse Copying:** Added option to copy trades in the opposite direction (e.g., buy when the leader sells).
+  - **Exit Strategies:** Implemented exit strategies for copied trades to manage risk and profit taking.
+  - **Copy Percentage:** Added ability to set a specific percentage of the portfolio or trade amount to allocate for copy trading.
+  - **Advanced Filtering:** Enhanced copy trade settings with more granular filtering options.
+  - **Performance Dashboard:** Updated dashboard with performance tracking and trader comparison features.
+- **Trade Signals:**
+  - **Enhanced Handling:** Improved trade signal processing with new sorting options and better error management.
+  - **Navigation Integration:** Direct integration of trade signals into the navigation widget for seamless instrument display.
+
+### Changed
+- **Instrument Chart:** Improved robustness of the instrument chart widget when handling historical data.
+- **Documentation:** Updated documentation for Advanced Order Types.
+
 ## [0.23.0] - 2025-12-22
 
 ### Added

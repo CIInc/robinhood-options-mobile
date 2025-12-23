@@ -994,9 +994,6 @@ Immediately halts all auto-trading.
 #### `deactivateEmergencyStop()`
 Resumes auto-trading functionality.
 
-#### `toggleAgenticTrading(bool? value)`
-Enables/disables the agentic trading system.
-
 #### `loadConfigFromUser(dynamic agenticTradingConfig)`
 Loads configuration from User model.
 

@@ -26,6 +26,7 @@
 - **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
 - **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
 - **[Approval Workflow](copy-trading.md#3-approval-workflow):** Review and approve auto-generated copy trade requests.
+- **[Inverse Copying & Exit Strategies](copy-trading.md):** Contrarian copy mode and automated risk management (TP/SL) for copied trades.
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.

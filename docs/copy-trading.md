@@ -19,6 +19,8 @@ Members can configure copy trading settings for each investor group they belong 
 - **Max Quantity**: Limit the maximum number of shares/contracts to copy
 - **Max Amount**: Limit the maximum dollar amount per trade
 - **Override Price**: Use current market price instead of the copied trade's price
+- **Inverse Copying**: Copy trades in the opposite direction (e.g., buy when the leader sells). Useful for hedging or contrarian strategies.
+- **Exit Strategies**: Define automatic exit conditions for copied trades (e.g., Take Profit, Stop Loss) to manage risk independent of the leader's actions.
 
 ### 2. Copy Trading Dashboard
 

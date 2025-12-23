@@ -14,7 +14,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -89,14 +89,22 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Stock Orders (Direct placement)
 - ✅ Trading UI Refactor (Improved order preview & placement)
 
-### v0.24.0 (Q1 2026 - Late January)
+### v0.24.0 ✅ (Released Dec 22, 2025)
+**Copy Trading Enhancements & Trade Signals**
+- ✅ Inverse Copying (Contrarian Mode)
+- ✅ Copy Trading Exit Strategies (TP/SL)
+- ✅ Copy Percentage & Advanced Filtering
+- ✅ Trade Signal Navigation Integration
+- ✅ Instrument Chart Robustness
+
+### v0.25.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support)
 
-### v0.25.0 (Q2 2026 - Mid February)
+### v0.26.0 (Q2 2026 - Mid February)
 **Schwab API Integration - Phase 1**
 - Portfolio & position streaming from Schwab
 - Market data & quotes integration
@@ -105,7 +113,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Firestore sync for Schwab positions
 - Order history from Schwab
 
-### v0.26.0 (Q2 2026 - Late March)
+### v0.27.0 (Q2 2026 - Late March)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -114,7 +122,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.27.0 (Q2 2026 - Late April)
+### v0.28.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Fidelity Multi-leg options execution
@@ -123,7 +131,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.28.0 (Q2-Q3 2026 - Late May)
+### v0.29.0 (Q2-Q3 2026 - Late May)
 **Crypto & Forex Trading**
 - Crypto asset class support
 - Forex trading (currency pairs)
@@ -132,7 +140,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
 
-### v0.29.0 (Q3 2026 - Mid June)
+### v0.30.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
 - Generative AI Assistant (natural language queries)
 - AI-powered portfolio insights
@@ -434,6 +442,12 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Review and approve auto-copied trades
 - [x] **Auto-Execute** ([#66](https://github.com/CIInc/robinhood-options-mobile/issues/66)):
     - [x] Client-side automatic execution for flagged copy trades
+- [x] **Copy Trading Enhancements** ([#110](https://github.com/CIInc/robinhood-options-mobile/issues/110)):
+    - [x] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98))
+    - [x] **Partial Copying**: Support copying a percentage of the original trade ([#99](https://github.com/CIInc/robinhood-options-mobile/issues/99))
+    - [x] **Advanced Filtering**: Filter by symbol, time, or sector ([#101](https://github.com/CIInc/robinhood-options-mobile/issues/101))
+    - [x] **Exit Strategy**: Automatically copy stop loss/take profit ([#100](https://github.com/CIInc/robinhood-options-mobile/issues/100))
+    - [x] **Inverse Copying**: Contra-trading functionality ([#110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
 
 ### Futures Trading
 - [x] Futures accounts handling and UI integration ([#39](https://github.com/CIInc/robinhood-options-mobile/issues/39))
@@ -480,29 +494,21 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ## Planned Enhancements 🚀
 
-### Priority 1: Core Trading Features (Q1 2026 - Jan-Mar 2026)
+### Priority 1: Core Trading & Brokerage Expansion (Q1-Q2 2026)
 
-**Target:** Enhance autonomous trading with backtesting, advanced risk controls, and improved copy trading
+**Target:** Enhance autonomous trading with futures and expand to multiple brokerages
 
 **Why This Priority Matters:**
-Q1 2026 focuses on deepening the trading capability that differentiates RealizeAlpha. Backtesting is the foundation that enables users to validate strategies before risking capital—this is critical for user trust and retention. Copy trading automation transforms it from manual to truly autonomous, increasing engagement and feature stickiness. Advanced risk controls address the #1 user concern: "How do I manage risk?" These features directly impact user DAU and retention metrics. Strategic importance: **User Trust & Differentiation**
+Q1-Q2 2026 focuses on deepening the trading capability and expanding market reach. Futures trading expands the asset class coverage, attracting sophisticated traders. Brokerage integration (Schwab, Fidelity, etc.) unlocks the enterprise market and reduces platform dependency. This dual focus ensures we capture both depth (advanced features) and breadth (market access). Strategic importance: **Market Expansion & Differentiation**
 
 **Business Impact:**
-- Backtesting reduces user churn (less losses = more engagement)
-- Copy Trading Auto-Execute increases daily active users
-- Advanced Risk Controls reduce support tickets
-- Combined: Expected 40% increase in feature adoption
+- Futures Trading attracts high-value users
+- Brokerage Integration expands TAM by 300%
+- Combined: Expected 60% increase in user base
 
-**Technical Complexity:** High (ML models, backtesting engine, complex calculations)
-**User Impact:** Very High (core trading experience)
-**Revenue Impact:** Medium (foundational for premium features)
-
-#### Copy Trading Enhancements ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
-- [x] **Performance Tracking**: Track success rate of copied trades ([#98](https://github.com/CIInc/robinhood-options-mobile/issues/98)) - **Small** (1-2 weeks)
-- [x] **Partial Copying**: Support copying a percentage of the original trade ([#99](https://github.com/CIInc/robinhood-options-mobile/issues/99)) - **Small** (1 week)
-- [ ] **Advanced Filtering**: Filter by symbol, time, or sector ([#101](https://github.com/CIInc/robinhood-options-mobile/issues/101)) - **Small** (1-2 weeks)
-- [ ] **Exit Strategy**: Automatically copy stop loss/take profit ([#100](https://github.com/CIInc/robinhood-options-mobile/issues/100)) - **Medium** (2-3 weeks)
-- [ ] **Inverse Copying**: Contra-trading functionality ([#110](https://github.com/CIInc/robinhood-options-mobile/issues/110)) - **Small** (1-2 weeks)
+**Technical Complexity:** Very High (API integrations, complex calculations)
+**User Impact:** Very High (core trading experience & access)
+**Revenue Impact:** High (unlocks enterprise partnerships)
 
 #### Futures Positions ([Tracking: #111](https://github.com/CIInc/robinhood-options-mobile/issues/111))
 - [ ] **Margin & Risk**: SPAN-style margin metrics and risk layer ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67)) - **Large** (4-6 weeks)
@@ -514,23 +520,6 @@ Q1 2026 focuses on deepening the trading capability that differentiates RealizeA
 - [ ] **Analytics**: Greeks, term structure, and volatility surfaces ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)) - **Large** (4-6 weeks)
 - [ ] **Seasonality**: Volatility overlays and seasonal tendencies ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (3-4 weeks)
 - [ ] **Portfolio Risk**: Aggregated VaR and expected shortfall ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (4-5 weeks)
-
-### Priority 2: Brokerage Integration (Q2 2026 - Apr-Jun 2026)
-
-**Target:** Expand to multiple brokerages and asset classes (stocks, crypto, forex)
-
-**Why This Priority Matters:**
-Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing ~70% of market. Schwab/Fidelity/Plaid/Interactive Brokers integration opens enterprise users and wealth management firms. Multi-asset support (crypto/forex) addresses trending asset classes and younger users. This is also the highest engineering effort—starting early ensures Q2 delivery. Strategic importance: **Market Expansion & Revenue Growth**
-
-**Business Impact:**
-- Schwab integration: 5M+ potential users
-- Fidelity integration: 10M+ potential users
-- Crypto/Forex: Captures trending assets
-- Expected TAM expansion: 300% increase
-
-**Technical Complexity:** Very High (API differences, data normalization, account linking)
-**User Impact:** Very High (enables Schwab/Fidelity users to adopt)
-**Revenue Impact:** Very High (unlocks enterprise partnerships)
 
 #### Brokerage Expansion
 - [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
@@ -547,7 +536,7 @@ Q2 is the critical expansion phase. Currently locked to Robinhood, we're missing
 #### Trading Orders & Execution
 - [ ] **Order Templates**: Save and reuse order templates - **Small** (1 week)
 
-### Priority 3: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
+### Priority 2: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
 
 **Target:** Advanced analytics, AI insights, and comprehensive alert system
 
@@ -596,7 +585,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Unusual Activity Alerts**: Unusual volume/price movement detection
 - [ ] **Group Activity Notifications**: Investor group trade updates
 
-### Priority 4: Investor Groups & Social (Q3 2026 - Jul-Sep 2026)
+### Priority 3: Investor Groups & Social (Q3 2026 - Jul-Sep 2026)
 
 **Target:** Community features with chat, leaderboards, and social engagement
 
@@ -634,7 +623,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Comprehensive social features - **Large** (4-5 weeks)
 - [ ] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance - **Small** (1 week)
 
-### Priority 5: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
+### Priority 4: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
 
 **Target:** Polish UI/UX, enhance security, and prepare for app store releases
 
