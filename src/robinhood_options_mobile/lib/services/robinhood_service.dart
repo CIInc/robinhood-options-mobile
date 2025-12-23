@@ -617,10 +617,42 @@ Response: {
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
+
+    // Override span for unsupported years to fetch larger dataset
+    if (chartDateSpanFilter == ChartDateSpan.year_2 ||
+        chartDateSpanFilter == ChartDateSpan.year_3 ||
+        chartDateSpanFilter == ChartDateSpan.year_5) {
+      span = "all"; // 5year // Fetch 5 years and filter later
+    }
+
     var url =
         "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
     var result = await RobinhoodService.getJson(user, url);
     var historicals = PortfolioHistoricals.fromPerformanceJson(result);
+
+    // Filter data if we fetched more than needed
+    if (chartDateSpanFilter == ChartDateSpan.year_2 ||
+        chartDateSpanFilter == ChartDateSpan.year_3 ||
+        chartDateSpanFilter == ChartDateSpan.year_5) {
+      var years = chartDateSpanFilter == ChartDateSpan.year_2
+          ? 2
+          : chartDateSpanFilter == ChartDateSpan.year_3
+              ? 3
+              : 5;
+      var cutoff = DateTime.now().subtract(Duration(days: 365 * years));
+      historicals.equityHistoricals = historicals.equityHistoricals
+          .where((e) => e.beginsAt != null && e.beginsAt!.isAfter(cutoff))
+          .toList();
+
+      if (historicals.equityHistoricals.isNotEmpty) {
+        var first = historicals.equityHistoricals.first;
+        // Update open equity to the first item of the filtered list
+        historicals.openEquity = first.openEquity ?? first.adjustedOpenEquity;
+        historicals.adjustedOpenEquity =
+            first.adjustedOpenEquity ?? first.openEquity;
+      }
+    }
+
     store.set(historicals);
     return historicals;
   }

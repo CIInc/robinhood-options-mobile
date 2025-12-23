@@ -1,10 +1,10 @@
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
 class PortfolioHistoricals {
-  final double? adjustedOpenEquity;
-  final double? adjustedPreviousCloseEquity;
-  final double? openEquity;
-  final double? previousCloseEquity;
+  double? adjustedOpenEquity;
+  double? adjustedPreviousCloseEquity;
+  double? openEquity;
+  double? previousCloseEquity;
   final String? openTime;
   final String interval;
   final String span;
@@ -355,7 +355,8 @@ class PortfolioHistoricals {
             for (var point in points) {
               var cursorData = point['cursor_data'];
               if (cursorData != null) {
-                equityHistoricals.add(EquityHistorical.fromPerformanceJson(cursorData));
+                equityHistoricals
+                    .add(EquityHistorical.fromPerformanceJson(cursorData));
               }
             }
           }

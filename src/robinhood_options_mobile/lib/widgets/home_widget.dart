@@ -144,6 +144,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Bounds chartBoundsFilter = Bounds.t24_7;
   ChartDateSpan prevChartDateSpanFilter = ChartDateSpan.day;
   Bounds prevChartBoundsFilter = Bounds.t24_7;
+  ChartDateSpan benchmarkChartDateSpanFilter = ChartDateSpan.ytd;
   // EquityHistorical? selection;
   bool animateChart = true;
 
@@ -452,7 +453,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         listen: false),
                     account!.accountNumber,
                     chartBoundsFilter: chartBoundsFilter,
-                    chartDateSpanFilter: ChartDateSpan.ytd);
+                    chartDateSpanFilter: benchmarkChartDateSpanFilter);
 
             // Future.delayed(Duration(seconds: 1), () {
             //   if (mounted) {
@@ -540,12 +541,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       bool done = false}) {
     // var indices = RobinhoodService().getMarketIndices(user: widget.user);
     final yahooService = YahooService();
-    futureMarketIndexHistoricalsSp500 =
-        yahooService.getMarketIndexHistoricals(symbol: '^GSPC'); // ^IXIC
+    String range = "ytd";
+    switch (benchmarkChartDateSpanFilter) {
+      case ChartDateSpan.year:
+        range = "1y";
+        break;
+      case ChartDateSpan.year_2:
+        range = "2y";
+        break;
+      case ChartDateSpan.year_3:
+        range = "5y"; // Yahoo doesn't support 3y
+        break;
+      case ChartDateSpan.year_5:
+        range = "5y";
+        break;
+      default:
+        range = "ytd";
+    }
+    futureMarketIndexHistoricalsSp500 = yahooService.getMarketIndexHistoricals(
+        symbol: '^GSPC', range: range); // ^IXIC
     futureMarketIndexHistoricalsNasdaq =
-        yahooService.getMarketIndexHistoricals(symbol: '^IXIC');
+        yahooService.getMarketIndexHistoricals(symbol: '^IXIC', range: range);
     futureMarketIndexHistoricalsDow =
-        yahooService.getMarketIndexHistoricals(symbol: '^DJI');
+        yahooService.getMarketIndexHistoricals(symbol: '^DJI', range: range);
     //debugPrint('_buildPage');
     return RefreshIndicator(
       onRefresh: _pullRefresh,
@@ -2222,8 +2240,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
                     var regularsp500 = sp500['chart']['result'][0]['meta']
                         ['currentTradingPeriod']['regular'];
-                    // var postsp500 = sp500['chart']['result'][0]['meta']
-                    //     ['currentTradingPeriod']['post'];
                     var sp500PreviousClose = sp500['chart']['result'][0]['meta']
                         ['chartPreviousClose'];
                     var nasdaqPreviousClose = nasdaq['chart']['result'][0]
@@ -2232,63 +2248,72 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         dow['chart']['result'][0]['meta']['chartPreviousClose'];
                     var enddiffsp500 =
                         regularsp500['end'] - regularsp500['start'];
-                    // var enddiffsp500 = postsp500['end'] - regularsp500['start'];
-                    // var quotesp500 =
-                    //     sp500['chart']['result'][0]['indicators']['quote'][0];
-                    // var quotenasdaq =
-                    //     nasdaq['chart']['result'][0]['indicators']['quote'][0];
-                    // var seriesOpensp500 = quotesp500['open'][0];
-                    // var seriesOpennasdaq = quotenasdaq['open'][0];
+
+                    DateTime? cutoff;
+                    if (benchmarkChartDateSpanFilter == ChartDateSpan.year_2) {
+                      cutoff = DateTime.now()
+                          .subtract(const Duration(days: 365 * 2));
+                    } else if (benchmarkChartDateSpanFilter ==
+                        ChartDateSpan.year_3) {
+                      cutoff = DateTime.now()
+                          .subtract(const Duration(days: 365 * 3));
+                    } else if (benchmarkChartDateSpanFilter ==
+                        ChartDateSpan.year_5) {
+                      cutoff = DateTime.now()
+                          .subtract(const Duration(days: 365 * 5));
+                    }
+
+                    List<Map<String, dynamic>> processMarketData(
+                        dynamic data, double previousClose) {
+                      var timestamps =
+                          (data['chart']['result'][0]['timestamp'] as List);
+                      var adjcloses = (data['chart']['result'][0]['indicators']
+                          ['adjclose'][0]['adjclose'] as List);
+
+                      var list = timestamps.mapIndexed((index, e) {
+                        final numerator = adjcloses[index];
+                        final close = (numerator as num?)?.toDouble();
+                        return {
+                          'date': DateTime.fromMillisecondsSinceEpoch(
+                              (e + enddiffsp500) * 1000),
+                          'close': close
+                        };
+                      }).toList();
+
+                      if (cutoff != null) {
+                        list = list
+                            .where(
+                                (e) => (e['date'] as DateTime).isAfter(cutoff!))
+                            .toList();
+                      }
+
+                      double basePrice = previousClose;
+                      if (cutoff != null && list.isNotEmpty) {
+                        basePrice = list.first['close'] as double;
+                      }
+
+                      var result = list.map((e) {
+                        var close = e['close'] as double?;
+                        return {
+                          'date': e['date'],
+                          'value':
+                              close == null ? 0.0 : (close / basePrice) - 1.0,
+                        };
+                      }).toList();
+
+                      if (benchmarkChartDateSpanFilter == ChartDateSpan.ytd) {
+                        result.insert(0, {'date': newYearsDay, 'value': 0.0});
+                      }
+                      return result;
+                    }
+
                     var seriesDatasp500 =
-                        (sp500['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      final numerator = (sp500['chart']['result'][0]
-                              ['indicators']['adjclose'][0]['adjclose']
-                          as List)[index];
-                      final close = (numerator as num?)?.toDouble();
-                      return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': close == null
-                            ? 0.0
-                            : (close / sp500PreviousClose) - 1.0,
-                      };
-                    }).toList();
-                    seriesDatasp500
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
+                        processMarketData(sp500, sp500PreviousClose);
                     var seriesDatanasdaq =
-                        (nasdaq['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      final numerator = (nasdaq['chart']['result'][0]
-                              ['indicators']['adjclose'][0]['adjclose']
-                          as List)[index];
-                      final close = (numerator as num?)?.toDouble();
-                      return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': close == null
-                            ? 0.0
-                            : (close / nasdaqPreviousClose) - 1.0,
-                      };
-                    }).toList();
-                    seriesDatanasdaq
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
+                        processMarketData(nasdaq, nasdaqPreviousClose);
                     var seriesDatadow =
-                        (dow['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) {
-                      final numerator = (dow['chart']['result'][0]['indicators']
-                          ['adjclose'][0]['adjclose'] as List)[index];
-                      final close = (numerator as num?)?.toDouble();
-                      return {
-                        'date': DateTime.fromMillisecondsSinceEpoch(
-                            (e + enddiffsp500) * 1000),
-                        'value': close == null
-                            ? 0.0
-                            : (close / dowPreviousClose) - 1.0,
-                      };
-                    }).toList();
-                    seriesDatadow
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
+                        processMarketData(dow, dowPreviousClose);
+
                     var seriesOpenportfolio = portfolioHistoricals
                         .equityHistoricals[0].adjustedOpenEquity;
                     var seriesDataportfolio =
@@ -2471,7 +2496,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
-                                  "Compare market indices and benchmarks (YTD)"),
+                                  "Compare market indices and benchmarks (${convertChartSpanFilter(benchmarkChartDateSpanFilter).toUpperCase()})"),
                               // trailing: Wrap(spacing: 8, children: [
                               //   Text(
                               //     '${portfoliodiffsp500 > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffsp500)}  ${portfoliodiffnasdaq > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffnasdaq)}', // seriesDataportfolio.last['value']
@@ -2480,6 +2505,91 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //   )
                               // ]),
                             ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                                height: 56,
+                                child: ListView(
+                                  padding: const EdgeInsets.all(5.0),
+                                  scrollDirection: Axis.horizontal,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        label: const Text('YTD'),
+                                        selected:
+                                            benchmarkChartDateSpanFilter ==
+                                                ChartDateSpan.ytd,
+                                        onSelected: (bool value) {
+                                          if (value) {
+                                            resetBenchmarkChart(
+                                                ChartDateSpan.ytd);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        label: const Text('1Y'),
+                                        selected:
+                                            benchmarkChartDateSpanFilter ==
+                                                ChartDateSpan.year,
+                                        onSelected: (bool value) {
+                                          if (value) {
+                                            resetBenchmarkChart(
+                                                ChartDateSpan.year);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        label: const Text('2Y'),
+                                        selected:
+                                            benchmarkChartDateSpanFilter ==
+                                                ChartDateSpan.year_2,
+                                        onSelected: (bool value) {
+                                          if (value) {
+                                            resetBenchmarkChart(
+                                                ChartDateSpan.year_2);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        label: const Text('3Y'),
+                                        selected:
+                                            benchmarkChartDateSpanFilter ==
+                                                ChartDateSpan.year_3,
+                                        onSelected: (bool value) {
+                                          if (value) {
+                                            resetBenchmarkChart(
+                                                ChartDateSpan.year_3);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        label: const Text('5Y'),
+                                        selected:
+                                            benchmarkChartDateSpanFilter ==
+                                                ChartDateSpan.year_5,
+                                        onSelected: (bool value) {
+                                          if (value) {
+                                            resetBenchmarkChart(
+                                                ChartDateSpan.year_5);
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                )),
                           ),
                           SliverToBoxAdapter(
                             child: SizedBox(
@@ -2842,6 +2952,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     //     chartBoundsFilter,
     //     chartDateSpanFilter);
     portfolioHistoricalStore.notify();
+  }
+
+  void resetBenchmarkChart(ChartDateSpan span) async {
+    setState(() {
+      benchmarkChartDateSpanFilter = span;
+      // Force re-fetch by setting futures to null or just calling setState
+      // Since _buildScaffold and _buildPage re-fetch, setState is enough
+      // provided we update the logic there to use benchmarkChartDateSpanFilter
+    });
   }
 
   Future<void> _pullRefresh() async {
