@@ -3,10 +3,10 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 void main() {
   group('AgenticTradingConfig Tests', () {
-    test('AgenticTradingConfig should serialize and deserialize all fields', () {
+    test('AgenticTradingConfig should serialize and deserialize all fields',
+        () {
       // Create a config with all fields set
       final config = AgenticTradingConfig(
-        enabled: true,
         smaPeriodFast: 12,
         smaPeriodSlow: 26,
         tradeQuantity: 10,
@@ -37,7 +37,6 @@ void main() {
       final json = config.toJson();
 
       // Verify JSON contains all fields
-      expect(json['enabled'], equals(true));
       expect(json['smaPeriodFast'], equals(12));
       expect(json['smaPeriodSlow'], equals(26));
       expect(json['tradeQuantity'], equals(10));
@@ -58,7 +57,6 @@ void main() {
       final deserializedConfig = AgenticTradingConfig.fromJson(json);
 
       // Verify all fields are correctly deserialized
-      expect(deserializedConfig.enabled, equals(true));
       expect(deserializedConfig.smaPeriodFast, equals(12));
       expect(deserializedConfig.smaPeriodSlow, equals(26));
       expect(deserializedConfig.tradeQuantity, equals(10));
@@ -72,7 +70,8 @@ void main() {
       expect(deserializedConfig.maxDailyLossPercent, equals(1.5));
       expect(deserializedConfig.takeProfitPercent, equals(15.0));
       expect(deserializedConfig.stopLossPercent, equals(7.5));
-      expect(deserializedConfig.enabledIndicators['priceMovement'], equals(true));
+      expect(
+          deserializedConfig.enabledIndicators['priceMovement'], equals(true));
       expect(deserializedConfig.enabledIndicators['momentum'], equals(false));
     });
 
@@ -80,7 +79,6 @@ void main() {
       final config = AgenticTradingConfig();
 
       // Verify default values
-      expect(config.enabled, equals(false));
       expect(config.smaPeriodFast, equals(10));
       expect(config.smaPeriodSlow, equals(30));
       expect(config.tradeQuantity, equals(1));
@@ -94,7 +92,7 @@ void main() {
       expect(config.maxDailyLossPercent, equals(2.0));
       expect(config.takeProfitPercent, equals(10.0));
       expect(config.stopLossPercent, equals(5.0));
-      
+
       // Verify all indicators are enabled by default
       expect(config.enabledIndicators['priceMovement'], equals(true));
       expect(config.enabledIndicators['momentum'], equals(true));
@@ -107,10 +105,11 @@ void main() {
       expect(config.enabledIndicators['obv'], equals(true));
     });
 
-    test('AgenticTradingConfig fromJson should handle missing auto-trade fields', () {
+    test(
+        'AgenticTradingConfig fromJson should handle missing auto-trade fields',
+        () {
       // Create JSON without auto-trade fields (simulating old config)
       final json = {
-        'enabled': true,
         'smaPeriodFast': 10,
         'smaPeriodSlow': 30,
         'tradeQuantity': 5,
@@ -134,10 +133,9 @@ void main() {
       final config = AgenticTradingConfig.fromJson(json);
 
       // Verify existing fields are preserved
-      expect(config.enabled, equals(true));
       expect(config.tradeQuantity, equals(5));
       expect(config.maxPositionSize, equals(150));
-      
+
       // Verify auto-trade fields use defaults when missing
       expect(config.autoTradeEnabled, equals(false));
       expect(config.dailyTradeLimit, equals(5));
@@ -147,29 +145,28 @@ void main() {
 
     test('AgenticTradingConfig copyWith should work correctly', () {
       final original = AgenticTradingConfig(
-        enabled: false,
         autoTradeEnabled: false,
         dailyTradeLimit: 5,
       );
 
       // Copy with some fields changed
       final updated = original.copyWith(
-        enabled: true,
         autoTradeEnabled: true,
         dailyTradeLimit: 10,
       );
 
       // Verify changed fields
-      expect(updated.enabled, equals(true));
       expect(updated.autoTradeEnabled, equals(true));
       expect(updated.dailyTradeLimit, equals(10));
-      
+
       // Verify unchanged fields remain the same
       expect(updated.smaPeriodFast, equals(original.smaPeriodFast));
-      expect(updated.autoTradeCooldownMinutes, equals(original.autoTradeCooldownMinutes));
+      expect(updated.autoTradeCooldownMinutes,
+          equals(original.autoTradeCooldownMinutes));
     });
 
-    test('AgenticTradingConfig should validate risk management constraints', () {
+    test('AgenticTradingConfig should validate risk management constraints',
+        () {
       // Create config with various risk settings
       final config = AgenticTradingConfig(
         autoTradeEnabled: true,

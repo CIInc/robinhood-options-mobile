@@ -3851,14 +3851,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     return Opacity(
-      opacity: isEnabled ? 1.0 : 0.4,
+      opacity: isEnabled ? 1.0 : 0.5,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              isEnabled ? signalIcon : Icons.remove_circle_outline,
+              signalIcon,
               color: isEnabled
                   ? signalColor
                   : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
@@ -3869,18 +3869,46 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$name: ${isEnabled ? signal : 'DISABLED'}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isEnabled
-                          ? signalColor
-                          : (isDark
-                              ? Colors.grey.shade500
-                              : Colors.grey.shade600),
-                    ),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    children: [
+                      Text(
+                        '$name: $signal',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isEnabled
+                              ? signalColor
+                              : (isDark
+                                  ? Colors.grey.shade500
+                                  : Colors.grey.shade600),
+                        ),
+                      ),
+                      if (!isEnabled)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.grey.shade800
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'DISABLED',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  if (reason.isNotEmpty && isEnabled)
+                  if (reason.isNotEmpty)
                     Text(
                       reason,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -14,8 +15,10 @@ import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 class BacktestingWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final String? prefilledSymbol;
+  final AgenticTradingConfig? prefilledConfig;
 
-  const BacktestingWidget({super.key, this.userDocRef, this.prefilledSymbol});
+  const BacktestingWidget(
+      {super.key, this.userDocRef, this.prefilledSymbol, this.prefilledConfig});
 
   @override
   State<BacktestingWidget> createState() => _BacktestingWidgetState();
@@ -66,6 +69,7 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
             userDocRef: widget.userDocRef,
             tabController: _tabController,
             prefilledSymbol: widget.prefilledSymbol,
+            prefilledConfig: widget.prefilledConfig,
           ),
           const _BacktestHistoryTab(),
           _BacktestTemplatesTab(
@@ -83,9 +87,15 @@ class _BacktestRunTab extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final TabController? tabController;
   final String? prefilledSymbol;
+  final AgenticTradingConfig? prefilledConfig;
 
-  const _BacktestRunTab(
-      {super.key, this.userDocRef, this.tabController, this.prefilledSymbol});
+  const _BacktestRunTab({
+    super.key,
+    this.userDocRef,
+    this.tabController,
+    this.prefilledSymbol,
+    this.prefilledConfig,
+  });
 
   @override
   State<_BacktestRunTab> createState() => _BacktestRunTabState();
@@ -129,6 +139,20 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     _symbolController = TextEditingController(
       text: widget.prefilledSymbol ?? 'AAPL',
     );
+
+    if (widget.prefilledConfig != null) {
+      final config = widget.prefilledConfig!;
+      _tradeQuantityController.text = config.tradeQuantity.toString();
+      _takeProfitController.text = config.takeProfitPercent.toString();
+      _stopLossController.text = config.stopLossPercent.toString();
+      _trailingStopEnabled = config.trailingStopEnabled;
+      _trailingStopController.text = config.trailingStopPercent.toString();
+      _rsiPeriodController.text = config.rsiPeriod.toString();
+      _smaFastController.text = config.smaPeriodFast.toString();
+      _smaSlowController.text = config.smaPeriodSlow.toString();
+      _marketIndexController.text = config.marketIndexSymbol;
+      _enabledIndicators.addAll(config.enabledIndicators);
+    }
   }
 
   @override

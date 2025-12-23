@@ -55,7 +55,6 @@ class AgenticTradingProvider with ChangeNotifier {
     );
   }
 
-  bool _isAgenticTradingEnabled = false;
   Map<String, dynamic> _config = {};
 
   // Auto-trade state tracking
@@ -81,8 +80,12 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Last auto-trade execution result
   Map<String, dynamic>? _lastAutoTradeResult;
+  List<Map<String, dynamic>> _lastProcessedSignals = [];
 
-  bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
+  // Signal processing tracking
+  DateTime? _lastSignalCheckTime;
+  final Map<String, int> _processedSignalTimestamps = {};
+
   Map<String, dynamic> get config => _config;
 
   // Auto-trade getters
@@ -97,6 +100,7 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
   int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
+  List<Map<String, dynamic>> get lastProcessedSignals => _lastProcessedSignals;
 
   AgenticTradingProvider();
 
@@ -143,7 +147,10 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Update the last auto-trade execution result
   void updateLastAutoTradeResult(Map<String, dynamic> result) {
-    _lastAutoTradeResult = result;
+    _lastAutoTradeResult = Map<String, dynamic>.from(result);
+    if (!_lastAutoTradeResult!.containsKey('timestamp')) {
+      _lastAutoTradeResult!['timestamp'] = DateTime.now().toIso8601String();
+    }
     notifyListeners();
   }
 
@@ -185,113 +192,187 @@ class AgenticTradingProvider with ChangeNotifier {
       final countdownReachedZero = tickAutoTradeCountdown();
       if (!countdownReachedZero) return;
 
-      try {
-        // Gather required providers from context lazily
-        final userStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
-        final accountStore = Provider.of<AccountStore>(context, listen: false);
-        final instrumentStore =
-            Provider.of<InstrumentStore>(context, listen: false);
-        final portfolioStore =
-            Provider.of<PortfolioStore>(context, listen: false);
-        final tradeSignalsProvider =
-            Provider.of<TradeSignalsProvider>(context, listen: false);
-
-        // Check auto-trade enabled
-        final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
-        if (!autoTradeEnabled) {
-          debugPrint('🤖 Auto-trade check: disabled in config');
-          return;
-        }
-
-        // Validate user/account
-        if (userStore.items.isEmpty ||
-            userStore.currentUser == null ||
-            accountStore.items.isEmpty) {
-          debugPrint('🤖 Auto-trade check: missing user or account data');
-          return;
-        }
-
-        final currentUser = userStore.currentUser;
-        final firstAccount = accountStore.items.first;
-        if (currentUser == null) {
-          debugPrint('🤖 Auto-trade check: currentUser is null');
-          return;
-        }
-
-        // Build portfolio state
-        final portfolioState = {
-          'portfolioValue': portfolioStore.items.isNotEmpty
-              ? portfolioStore.items.first.equity
-              : 0.0,
-          'cashAvailable': firstAccount.portfolioCash,
-          'positions': portfolioStore.items.length,
-        };
-
-        debugPrint('🤖 Auto-trade check: executing auto-trade...');
-
-        final tradeSignals = tradeSignalsProvider.tradeSignals;
-
-        final result = await autoTrade(
-          tradeSignals: tradeSignals,
-          tradeSignalsProvider: tradeSignalsProvider,
-          portfolioState: portfolioState,
-          brokerageUser: currentUser,
-          account: firstAccount,
-          brokerageService: brokerageService,
-          instrumentStore: instrumentStore,
-          userDocRef: userDocRef,
-        );
-
-        updateLastAutoTradeResult(result);
-
-        // Monitor TP/SL when positions exist
-        final instrumentPositionStore =
-            Provider.of<InstrumentPositionStore>(context, listen: false);
-        if (instrumentPositionStore.items.isNotEmpty) {
-          debugPrint(
-              '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
-          final tpSlResult = await monitorTakeProfitStopLoss(
-            positions: instrumentPositionStore.items,
-            brokerageUser: currentUser,
-            account: firstAccount,
-            brokerageService: brokerageService,
-            instrumentStore: instrumentStore,
-            userDocRef: userDocRef,
-          );
-          debugPrint(
-              '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
-        } else {
-          debugPrint('📊 No positions to monitor for TP/SL');
-        }
-      } catch (e) {
-        debugPrint('❌ Auto-trade timer error: $e');
-      }
+      await runAutoTradeCycle(
+        context: context,
+        brokerageService: brokerageService,
+        userDocRef: userDocRef,
+      );
     });
 
     debugPrint(
         '🤖 Auto-trade timer started (provider-owned, 5-minute cadence)');
   }
 
-  void toggleAgenticTrading(bool? value) {
-    _isAgenticTradingEnabled = value ?? false;
-    _config['enabled'] = _isAgenticTradingEnabled;
-    _analytics.logEvent(
-      name: 'agentic_trading_toggled',
-      parameters: {'enabled': _isAgenticTradingEnabled.toString()},
-    );
-    notifyListeners();
+  /// Manually triggers an auto-trade cycle
+  Future<void> runAutoTradeCycle({
+    required BuildContext context,
+    required dynamic brokerageService,
+    DocumentReference? userDocRef,
+  }) async {
+    if (_isAutoTrading) {
+      debugPrint('⚠️ Auto-trade cycle already in progress');
+      return;
+    }
+
+    try {
+      // Gather required providers from context lazily
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final portfolioStore =
+          Provider.of<PortfolioStore>(context, listen: false);
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+
+      // Check auto-trade enabled
+      final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+      if (!autoTradeEnabled) {
+        debugPrint('🤖 Auto-trade check: disabled in config');
+        return;
+      }
+
+      // Validate user/account
+      if (userStore.items.isEmpty ||
+          userStore.currentUser == null ||
+          accountStore.items.isEmpty) {
+        debugPrint('🤖 Auto-trade check: missing user or account data');
+        return;
+      }
+
+      final currentUser = userStore.currentUser;
+      final firstAccount = accountStore.items.first;
+      if (currentUser == null) {
+        debugPrint('🤖 Auto-trade check: currentUser is null');
+        return;
+      }
+
+      // Build portfolio state
+      final portfolioState = {
+        'portfolioValue': portfolioStore.items.isNotEmpty
+            ? portfolioStore.items.first.equity
+            : 0.0,
+        'cashAvailable': firstAccount.portfolioCash,
+        'positions': portfolioStore.items.length,
+      };
+
+      debugPrint('🤖 Auto-trade check: executing auto-trade...');
+
+      // Capture start time for next cycle's reference
+      final cycleStartTime = DateTime.now();
+
+      // Fetch recent signals based on strategy
+      final enabledIndicators =
+          _config['enabledIndicators'] as Map<String, dynamic>? ?? {};
+      final activeIndicators = enabledIndicators.entries
+          .where((entry) => entry.value == true)
+          .map((entry) => entry.key)
+          .toList();
+
+      final requireAllIndicatorsGreen =
+          _config['requireAllIndicatorsGreen'] as bool? ?? true;
+
+      Map<String, String>? indicatorFilters;
+      if (requireAllIndicatorsGreen && activeIndicators.isNotEmpty) {
+        indicatorFilters = {for (var i in activeIndicators) i: 'BUY'};
+      }
+
+      // Determine start date for signal fetch (since last run or recent window)
+      // Default to 60 minutes lookback on first run to avoid processing ancient signals
+      final startDate = _lastSignalCheckTime ??
+          DateTime.now().subtract(const Duration(minutes: 60));
+
+      debugPrint(
+          '🤖 Auto-trade check: fetching signals since $startDate (Strategy: ${requireAllIndicatorsGreen ? "All Green" : "Min Strength"})...');
+
+      var tradeSignals = await tradeSignalsProvider.fetchSignals(
+        indicatorFilters: indicatorFilters,
+        sortBy: 'timestamp',
+        startDate: startDate,
+      );
+
+      // Filter out already processed signals (deduplication)
+      final originalCount = tradeSignals.length;
+      tradeSignals = tradeSignals.where((s) {
+        final symbol = s['symbol'] as String?;
+        final timestamp = s['timestamp'] as int?;
+        if (symbol == null || timestamp == null) return false;
+
+        final signalId = '${symbol}_$timestamp';
+        return !_processedSignalTimestamps.containsKey(signalId);
+      }).toList();
+
+      if (originalCount != tradeSignals.length) {
+        debugPrint(
+            '🤖 Auto-trade check: filtered ${originalCount - tradeSignals.length} duplicate signals');
+      }
+
+      debugPrint(
+          '🤖 Auto-trade check: processing ${tradeSignals.length} new signals');
+
+      // Mark signals as processed to prevent duplicates
+      for (final signal in tradeSignals) {
+        final symbol = signal['symbol'] as String?;
+        final timestamp = signal['timestamp'] as int?;
+        if (symbol != null && timestamp != null) {
+          final signalId = '${symbol}_$timestamp';
+          _processedSignalTimestamps[signalId] = timestamp;
+        }
+      }
+
+      final result = await autoTrade(
+        tradeSignals: tradeSignals,
+        tradeSignalsProvider: tradeSignalsProvider,
+        portfolioState: portfolioState,
+        brokerageUser: currentUser,
+        account: firstAccount,
+        brokerageService: brokerageService,
+        instrumentStore: instrumentStore,
+        userDocRef: userDocRef,
+      );
+
+      updateLastAutoTradeResult(result);
+
+      // Update last check time and prune processed history
+      _lastSignalCheckTime = cycleStartTime;
+
+      // Prune processed signals older than 24 hours
+      final cutoff = DateTime.now()
+          .subtract(const Duration(hours: 24))
+          .millisecondsSinceEpoch;
+      _processedSignalTimestamps.removeWhere((_, ts) => ts < cutoff);
+
+      // Monitor TP/SL when positions exist
+      final instrumentPositionStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      if (instrumentPositionStore.items.isNotEmpty) {
+        debugPrint(
+            '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+        final tpSlResult = await monitorTakeProfitStopLoss(
+          positions: instrumentPositionStore.items,
+          brokerageUser: currentUser,
+          account: firstAccount,
+          brokerageService: brokerageService,
+          instrumentStore: instrumentStore,
+          userDocRef: userDocRef,
+        );
+        debugPrint(
+            '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+      } else {
+        debugPrint('📊 No positions to monitor for TP/SL');
+      }
+    } catch (e) {
+      debugPrint('❌ Auto-trade timer error: $e');
+    }
   }
 
   /// Load configuration from User model
   void loadConfigFromUser(dynamic agenticTradingConfig) {
     if (agenticTradingConfig != null) {
       _config = agenticTradingConfig.toJson();
-      _isAgenticTradingEnabled = agenticTradingConfig.enabled;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_from_user');
     } else {
       _config = {
-        'enabled': false,
         'smaPeriodFast': 10,
         'smaPeriodSlow': 30,
         'tradeQuantity': 1,
@@ -317,8 +398,9 @@ class AgenticTradingProvider with ChangeNotifier {
         'paperTradingMode': false,
         'timeBasedExitEnabled': false,
         'timeBasedExitMinutes': 0,
+        'requireAllIndicatorsGreen': true,
+        'minSignalStrength': 70.0,
       };
-      _isAgenticTradingEnabled = false;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
     }
     notifyListeners();
@@ -522,7 +604,8 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Checks if auto-trading can proceed based on configured limits
-  bool _canAutoTrade() {
+  /// Returns null if allowed, or a reason string if not allowed
+  String? _checkAutoTradeConditions() {
     // Reset daily counters if needed
     _resetDailyCounters();
 
@@ -530,13 +613,13 @@ class AgenticTradingProvider with ChangeNotifier {
     final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
     if (!autoTradeEnabled) {
       debugPrint('❌ Auto-trade not enabled in config');
-      return false;
+      return 'Auto-trade disabled in settings';
     }
 
     // Check emergency stop
     if (_emergencyStopActivated) {
       debugPrint('🛑 Emergency stop activated');
-      return false;
+      return 'Emergency stop is activated';
     }
 
     // Check if market is open (including extended hours if enabled)
@@ -547,14 +630,14 @@ class AgenticTradingProvider with ChangeNotifier {
     if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
       debugPrint(
           '🏦 Market is closed (Extended hours enabled: $includeExtended)');
-      return false;
+      return 'Market is closed';
     }
 
     // Check daily trade limit
     final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
     if (_dailyTradeCount >= dailyLimit) {
       debugPrint('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
-      return false;
+      return 'Daily trade limit reached ($_dailyTradeCount/$dailyLimit)';
     }
 
     // Check cooldown period
@@ -567,11 +650,11 @@ class AgenticTradingProvider with ChangeNotifier {
         final remainingMinutes =
             (cooldownDuration - timeSinceLastTrade).inMinutes;
         debugPrint('⏰ Cooldown active: $remainingMinutes minutes remaining');
-        return false;
+        return 'Cooldown active ($remainingMinutes min remaining)';
       }
     }
 
-    return true;
+    return null;
   }
 
   /// Executes automatic trading based on current signals
@@ -624,14 +707,15 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Check if auto-trading can proceed
-      if (!_canAutoTrade()) {
+      final conditionCheck = _checkAutoTradeConditions();
+      if (conditionCheck != null) {
         _isAutoTrading = false;
         _scheduleVisualStateReset();
         notifyListeners();
         return {
           'success': false,
           'tradesExecuted': 0,
-          'message': 'Auto-trade conditions not met',
+          'message': 'Auto-trade conditions not met: $conditionCheck',
           'trades': [],
         };
       }
@@ -644,47 +728,136 @@ class AgenticTradingProvider with ChangeNotifier {
           .map((entry) => entry.key)
           .toList();
 
+      final requireAllIndicatorsGreen =
+          _config['requireAllIndicatorsGreen'] as bool? ?? true;
+      final minSignalStrength =
+          (_config['minSignalStrength'] as num?)?.toDouble() ?? 70.0;
+
       debugPrint(
           '📊 Active indicators for auto-trade filtering: $activeIndicators');
+      debugPrint(
+          '📊 Strategy: ${requireAllIndicatorsGreen ? "All Indicators Green" : "Min Signal Strength ($minSignalStrength)"}');
 
       // Get current signals - filter for BUY signals that pass enabled indicators
-      final buySignals = tradeSignals.where((signal) {
-        // final signalType = signal['signal'] as String?;
-        // if (signalType != 'BUY') return false;
+      final processedSignals = <Map<String, dynamic>>[];
+      final buySignals = <Map<String, dynamic>>[];
 
-        // If no indicators are enabled, don't accept any BUY signals
-        if (activeIndicators.isEmpty) {
-          return false;
-        }
+      for (final signal in tradeSignals) {
+        // final signalType = signal['signal'] as String?;
+        // if (signalType != 'BUY') continue;
+
+        String? rejectionReason;
+        bool isAccepted = false;
 
         // Check if all enabled indicators agree with BUY signal
         final multiIndicatorResult =
             signal['multiIndicatorResult'] as Map<String, dynamic>?;
+
         if (multiIndicatorResult == null) {
-          return false;
-        }
+          rejectionReason = 'Missing multi-indicator result';
+        } else {
+          final indicators =
+              multiIndicatorResult['indicators'] as Map<String, dynamic>?;
 
-        final indicators =
-            multiIndicatorResult['indicators'] as Map<String, dynamic>?;
-        if (indicators == null || indicators.isEmpty) {
-          return false;
-        }
+          if (indicators == null || indicators.isEmpty) {
+            rejectionReason = 'No indicators data';
+          } else if (activeIndicators.isEmpty) {
+            rejectionReason = 'No active indicators configured';
+          } else {
+            if (requireAllIndicatorsGreen) {
+              // Verify that all enabled indicators have BUY signals
+              for (final indicator in activeIndicators) {
+                final indicatorData =
+                    indicators[indicator] as Map<String, dynamic>?;
+                if (indicatorData == null) {
+                  rejectionReason = 'Indicator $indicator missing';
+                  break;
+                }
+                final indicatorSignal = indicatorData['signal'] as String?;
+                if (indicatorSignal != 'BUY') {
+                  rejectionReason =
+                      '$indicator is ${indicatorSignal ?? "Neutral"}';
+                  break;
+                }
+              }
+              if (rejectionReason == null) {
+                isAccepted = true;
+              }
+            } else {
+              // Calculate signal strength based on enabled indicators
+              int buyCount = 0;
+              int sellCount = 0;
+              int totalEnabled = 0;
 
-        // Verify that all enabled indicators have BUY signals
-        for (final indicator in activeIndicators) {
-          final indicatorData = indicators[indicator] as Map<String, dynamic>?;
-          if (indicatorData == null) {
-            debugPrint('⚠️ Indicator $indicator not found in signal');
-            return false;
+              // Standard indicators
+              for (final indicator in activeIndicators) {
+                final indicatorData =
+                    indicators[indicator] as Map<String, dynamic>?;
+                if (indicatorData != null) {
+                  totalEnabled++;
+                  final signal = indicatorData['signal'] as String?;
+                  if (signal == 'BUY') {
+                    buyCount++;
+                  } else if (signal == 'SELL') {
+                    sellCount++;
+                  }
+                }
+              }
+
+              // Custom indicators
+              final customIndicatorsResult =
+                  multiIndicatorResult['customIndicators']
+                      as Map<String, dynamic>?;
+              if (customIndicatorsResult != null) {
+                for (final key in customIndicatorsResult.keys) {
+                  totalEnabled++;
+                  final indicatorData =
+                      customIndicatorsResult[key] as Map<String, dynamic>?;
+                  if (indicatorData != null) {
+                    final signal = indicatorData['signal'] as String?;
+                    if (signal == 'BUY') {
+                      buyCount++;
+                    } else if (signal == 'SELL') {
+                      sellCount++;
+                    }
+                  }
+                }
+              }
+
+              if (totalEnabled == 0) {
+                rejectionReason = 'No enabled indicators found in signal';
+              } else {
+                final calculatedStrength =
+                    ((buyCount - sellCount + totalEnabled) /
+                            (2 * totalEnabled)) *
+                        100;
+
+                if (calculatedStrength < minSignalStrength) {
+                  rejectionReason =
+                      'Strength ${calculatedStrength.toStringAsFixed(1)}% < $minSignalStrength%';
+                } else {
+                  isAccepted = true;
+                }
+              }
+            }
           }
-          final indicatorSignal = indicatorData['signal'] as String?;
-          if (indicatorSignal != 'BUY') {
-            return false;
-          }
         }
 
-        return true;
-      }).toList();
+        // Create a copy of the signal with processing info
+        final processedSignal = Map<String, dynamic>.from(signal);
+        processedSignal['processedStatus'] =
+            isAccepted ? 'Accepted' : 'Rejected';
+        if (rejectionReason != null) {
+          processedSignal['rejectionReason'] = rejectionReason;
+        }
+        processedSignals.add(processedSignal);
+
+        if (isAccepted) {
+          buySignals.add(signal);
+        }
+      }
+
+      _lastProcessedSignals = processedSignals;
 
       if (buySignals.isEmpty) {
         debugPrint('📭 No BUY signals available matching enabled indicators');

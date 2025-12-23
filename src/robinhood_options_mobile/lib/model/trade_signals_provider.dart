@@ -306,6 +306,7 @@ class TradeSignalsProvider with ChangeNotifier {
   String? _selectedInterval; // Will be auto-set based on market hours
 
   String? _tradeProposalMessage;
+  String? _lastTradeProposalStatus;
   String? _error;
   Map<String, dynamic>? _lastTradeProposal;
   Map<String, dynamic>? _lastAssessment;
@@ -315,6 +316,7 @@ class TradeSignalsProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
   String? get tradeProposalMessage => _tradeProposalMessage;
+  String? get lastTradeProposalStatus => _lastTradeProposalStatus;
   String? get error => _error;
   Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
   Map<String, dynamic>? get lastAssessment => _lastAssessment;
@@ -472,6 +474,56 @@ class TradeSignalsProvider with ChangeNotifier {
     return query;
   }
 
+  Future<List<Map<String, dynamic>>> fetchSignals({
+    String? signalType,
+    List<String>? indicators,
+    Map<String, String>? indicatorFilters,
+    int? minSignalStrength,
+    int? maxSignalStrength,
+    DateTime? startDate,
+    DateTime? endDate,
+    List<String>? symbols,
+    String? interval,
+    String sortBy = 'signalStrength',
+    int limit = 200,
+  }) async {
+    try {
+      final effectiveInterval = interval ?? selectedInterval;
+      final query = _buildQuery(
+        signalType: signalType,
+        indicators: indicators,
+        indicatorFilters: indicatorFilters,
+        minSignalStrength: minSignalStrength,
+        maxSignalStrength: maxSignalStrength,
+        startDate: startDate,
+        endDate: endDate,
+        symbols: symbols,
+        interval: effectiveInterval,
+        sortBy: sortBy,
+      );
+
+      // Note: _buildQuery applies a limit of 200.
+      // If we want to support custom limit, we might need to modify _buildQuery or apply it here if _buildQuery didn't.
+      // _buildQuery applies .limit(200).
+
+      final snapshot = await query.get();
+
+      return snapshot.docs
+          // .where((doc) {
+          //   final data = doc.data();
+          //   final docInterval = data['interval'] as String?;
+          //   return effectiveInterval == '1d'
+          //       ? (docInterval == null || docInterval == '1d')
+          //       : (docInterval == effectiveInterval);
+          // })
+          .map((doc) => doc.data())
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching signals: $e');
+      return [];
+    }
+  }
+
   void streamTradeSignals({
     String? signalType,
     List<String>? indicators,
@@ -542,65 +594,65 @@ class TradeSignalsProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchAllTradeSignals({
-    String? signalType,
-    List<String>? indicators,
-    Map<String, String>? indicatorFilters,
-    int? minSignalStrength,
-    int? maxSignalStrength,
-    DateTime? startDate,
-    DateTime? endDate,
-    List<String>? symbols,
-    int? limit,
-    String? interval,
-    String sortBy = 'signalStrength',
-  }) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  // Future<void> fetchAllTradeSignals({
+  //   String? signalType,
+  //   List<String>? indicators,
+  //   Map<String, String>? indicatorFilters,
+  //   int? minSignalStrength,
+  //   int? maxSignalStrength,
+  //   DateTime? startDate,
+  //   DateTime? endDate,
+  //   List<String>? symbols,
+  //   int? limit,
+  //   String? interval,
+  //   String sortBy = 'signalStrength',
+  // }) async {
+  //   _isLoading = true;
+  //   _error = null;
+  //   notifyListeners();
 
-    _currentSymbols = symbols;
-    _currentLimit = limit ?? 50;
+  //   _currentSymbols = symbols;
+  //   _currentLimit = limit ?? 50;
 
-    debugPrint('🚀 Setting up new trade signals subscription with filters:');
-    debugPrint('   Signal type: $signalType');
-    debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
-    debugPrint('   Indicator Filters: $indicatorFilters');
-    debugPrint('   Min signal strength: $minSignalStrength');
-    debugPrint('   Max signal strength: $maxSignalStrength');
-    debugPrint('   Start date: $startDate');
-    debugPrint('   End date: $endDate');
-    debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
-    debugPrint('   Limit: $_currentLimit');
-    debugPrint('   Sort by: $sortBy');
+  //   debugPrint('🚀 Setting up new trade signals subscription with filters:');
+  //   debugPrint('   Signal type: $signalType');
+  //   debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
+  //   debugPrint('   Indicator Filters: $indicatorFilters');
+  //   debugPrint('   Min signal strength: $minSignalStrength');
+  //   debugPrint('   Max signal strength: $maxSignalStrength');
+  //   debugPrint('   Start date: $startDate');
+  //   debugPrint('   End date: $endDate');
+  //   debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
+  //   debugPrint('   Limit: $_currentLimit');
+  //   debugPrint('   Sort by: $sortBy');
 
-    try {
-      final effectiveInterval = interval ?? selectedInterval;
-      final query = _buildQuery(
-        signalType: signalType,
-        indicators: indicators,
-        indicatorFilters: indicatorFilters,
-        minSignalStrength: minSignalStrength,
-        maxSignalStrength: maxSignalStrength,
-        startDate: startDate,
-        endDate: endDate,
-        symbols: symbols,
-        interval: effectiveInterval,
-        sortBy: sortBy,
-      );
+  //   try {
+  //     final effectiveInterval = interval ?? selectedInterval;
+  //     final query = _buildQuery(
+  //       signalType: signalType,
+  //       indicators: indicators,
+  //       indicatorFilters: indicatorFilters,
+  //       minSignalStrength: minSignalStrength,
+  //       maxSignalStrength: maxSignalStrength,
+  //       startDate: startDate,
+  //       endDate: endDate,
+  //       symbols: symbols,
+  //       interval: effectiveInterval,
+  //       sortBy: sortBy,
+  //     );
 
-      final snapshot = await query.get(const GetOptions(source: Source.server));
-      debugPrint('📥 Server fetch completed: ${snapshot.docs.length} docs');
-      _updateTradeSignalsFromSnapshot(
-          snapshot, _currentSymbols, effectiveInterval);
-    } catch (e) {
-      _tradeSignals = [];
-      _error = 'Failed to fetch trade signals: ${e.toString()}';
-      debugPrint('❌ Error fetching trade signals: ${e.toString()}');
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  //     final snapshot = await query.get(const GetOptions(source: Source.server));
+  //     debugPrint('📥 Server fetch completed: ${snapshot.docs.length} docs');
+  //     _updateTradeSignalsFromSnapshot(
+  //         snapshot, _currentSymbols, effectiveInterval);
+  //   } catch (e) {
+  //     _tradeSignals = [];
+  //     _error = 'Failed to fetch trade signals: ${e.toString()}';
+  //     debugPrint('❌ Error fetching trade signals: ${e.toString()}');
+  //     _isLoading = false;
+  //     notifyListeners();
+  //   }
+  // }
 
   void _updateTradeSignalsFromSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
@@ -695,7 +747,9 @@ class TradeSignalsProvider with ChangeNotifier {
                   : effectiveInterval == '15m'
                       ? '15-min'
                       : effectiveInterval;
+      _lastTradeProposalStatus = status;
       if (status == 'approved') {
+        // _lastTradeProposalStatus = 'approved';
         final proposal =
             Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
         _lastTradeProposal = proposal;
@@ -710,6 +764,7 @@ class TradeSignalsProvider with ChangeNotifier {
             name: 'trade_signals_trade_approved',
             parameters: {'interval': effectiveInterval});
       } else {
+        // _lastTradeProposalStatus = 'rejected';
         _lastTradeProposal = null;
         _lastAssessment = null;
         final message = data['message']?.toString() ?? 'Rejected by agent';
@@ -723,6 +778,7 @@ class TradeSignalsProvider with ChangeNotifier {
         });
       }
     } catch (e) {
+      _lastTradeProposalStatus = 'error';
       _tradeProposalMessage =
           'Function call failed, falling back to local simulation: ${e.toString()}';
       await Future.delayed(const Duration(seconds: 1));

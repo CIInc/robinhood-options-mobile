@@ -6,11 +6,13 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -45,6 +47,7 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _minVolatilityController;
   late TextEditingController _maxVolatilityController;
   late TextEditingController _maxDrawdownController;
+  late TextEditingController _minSignalStrengthController;
   late TextEditingController _timeBasedExitMinutesController;
   late TextEditingController _marketCloseExitMinutesController;
   late Map<String, bool> _enabledIndicators;
@@ -118,6 +121,8 @@ class _AgenticTradingSettingsWidgetState
         text: config['maxVolatility']?.toString() ?? '100.0');
     _maxDrawdownController = TextEditingController(
         text: config['maxDrawdown']?.toString() ?? '10.0');
+    _minSignalStrengthController = TextEditingController(
+        text: config['minSignalStrength']?.toString() ?? '75.0');
     _timeBasedExitMinutesController = TextEditingController(
         text: config['timeBasedExitMinutes']?.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
@@ -141,6 +146,7 @@ class _AgenticTradingSettingsWidgetState
     _marketCloseExitMinutesController.dispose();
     _maxVolatilityController.dispose();
     _maxDrawdownController.dispose();
+    _minSignalStrengthController.dispose();
     super.dispose();
   }
 
@@ -149,6 +155,7 @@ class _AgenticTradingSettingsWidgetState
     String title,
     String description, {
     List<Widget>? settings,
+    IconData? icon,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -170,6 +177,25 @@ class _AgenticTradingSettingsWidgetState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SwitchListTile(
+            secondary: icon != null
+                ? Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isEnabled
+                          ? colorScheme.primary.withOpacity(0.1)
+                          : colorScheme.surfaceContainerHighest
+                              .withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isEnabled
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  )
+                : null,
             title: Text(
               title,
               style: TextStyle(
@@ -313,7 +339,6 @@ class _AgenticTradingSettingsWidgetState
       final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final newConfig = {
-        'enabled': agenticTradingProvider.isAgenticTradingEnabled,
         'smaPeriodFast': agenticTradingProvider.config['smaPeriodFast'] ?? 10,
         'smaPeriodSlow': agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
         'tradeQuantity': int.parse(_tradeQuantityController.text),
@@ -383,6 +408,9 @@ class _AgenticTradingSettingsWidgetState
         'maxVolatility': double.parse(_maxVolatilityController.text),
         'enableDrawdownProtection':
             agenticTradingProvider.config['enableDrawdownProtection'] ?? false,
+        'minSignalStrength': double.parse(_minSignalStrengthController.text),
+        'requireAllIndicatorsGreen':
+            agenticTradingProvider.config['requireAllIndicatorsGreen'] ?? true,
         'maxDrawdown': double.parse(_maxDrawdownController.text),
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
@@ -468,9 +496,6 @@ class _AgenticTradingSettingsWidgetState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Automated Trading'),
@@ -482,1918 +507,2545 @@ class _AgenticTradingSettingsWidgetState
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                // Main toggle card
-                Card(
-                  elevation: 0,
-                  color: colorScheme.primaryContainer.withOpacity(0.3),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SwitchListTile(
-                      title: Text(
-                        'Enable Agentic Trading',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'Let the automated trading system analyze signals and place trades for you',
-                        style: TextStyle(fontSize: 13),
-                      ),
-                      value: agenticTradingProvider.isAgenticTradingEnabled,
-                      onChanged: (value) {
-                        agenticTradingProvider.toggleAgenticTrading(value);
-                        if (value == false
-                            // && agenticTradingProvider.emergencyStopActivated
-                            ) {
-                          // agenticTradingProvider.deactivateEmergencyStop();
-                          agenticTradingProvider.config['autoTradeEnabled'] =
-                              value;
-                        }
-                        _saveSettings();
-                      },
-                      activeThumbColor: colorScheme.primary,
-                    ),
-                  ),
-                ),
+                _buildStatusHeader(context, agenticTradingProvider),
                 const SizedBox(height: 16),
-                if (agenticTradingProvider.isAgenticTradingEnabled) ...[
-                  // Auto-Trade Section
-                  Row(
-                    children: [
-                      Icon(
+                _buildPendingOrders(context, agenticTradingProvider),
+                _buildExecutionSettings(context, agenticTradingProvider),
+                _buildRiskManagement(context, agenticTradingProvider),
+                _buildExitStrategies(context, agenticTradingProvider),
+                _buildEntryStrategies(context, agenticTradingProvider),
+                _buildNotificationSettings(context, agenticTradingProvider),
+                _buildBacktesting(context, agenticTradingProvider),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon, {
+    Color? valueColor,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              size: 12,
+              color: colorScheme.onSurface.withOpacity(0.6),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVerticalDivider(ColorScheme colorScheme) {
+    return Container(
+      height: 24,
+      width: 1,
+      color: colorScheme.outlineVariant.withOpacity(0.5),
+    );
+  }
+
+  Widget _buildStatusHeader(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isEnabled =
+        agenticTradingProvider.config['autoTradeEnabled'] as bool? ?? false;
+
+    return Column(
+      children: [
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isEnabled
+                  ? colorScheme.primary.withOpacity(0.5)
+                  : colorScheme.outline.withOpacity(0.2),
+              width: isEnabled ? 2 : 1,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              // Header with Toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isEnabled
+                      ? colorScheme.primaryContainer.withOpacity(0.3)
+                      : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isEnabled
+                            ? colorScheme.primary
+                            : colorScheme.onSurface.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
                         Icons.smart_toy,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Automated Trading',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
+                        color: isEnabled
+                            ? colorScheme.onPrimary
+                            : colorScheme.onSurfaceVariant,
+                        size: 24,
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                    const SizedBox(width: 16),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSwitchListTile(
-                            'autoTradeEnabled',
-                            'Enable Auto-Trade',
-                            'Automatically execute approved trades',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            onChanged: (bool value) {
-                              setState(() {
-                                agenticTradingProvider
-                                    .config['autoTradeEnabled'] = value;
-                                if (value) {
-                                  final nextTradeTime = DateTime.now()
-                                      .add(const Duration(minutes: 5));
-                                  final countdownSeconds = 5 * 60;
-                                  agenticTradingProvider
-                                      .updateAutoTradeCountdown(
-                                          nextTradeTime, countdownSeconds);
-                                }
-                              });
-                              _saveSettings();
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          // Status indicators
-                          if (agenticTradingProvider.emergencyStopActivated)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.warning,
-                                    color: colorScheme.error,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Emergency Stop Activated',
-                                      style: TextStyle(
-                                        color: colorScheme.onErrorContainer,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      agenticTradingProvider
-                                          .deactivateEmergencyStop();
-                                    },
-                                    child: const Text('Resume'),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else if (agenticTradingProvider.isAutoTrading)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Auto-trading in progress...',
-                                    style: TextStyle(
-                                      color: colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest
-                                    .withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Daily Trades:',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: colorScheme.onSurface
-                                              .withOpacity(0.7),
-                                        ),
-                                      ),
-                                      Text(
-                                        '${agenticTradingProvider.dailyTradeCount}/${int.tryParse(_dailyTradeLimitController.text) ?? 5}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (agenticTradingProvider
-                                          .lastAutoTradeTime !=
-                                      null) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Last Trade:',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: colorScheme.onSurface
-                                                .withOpacity(0.7),
-                                          ),
-                                        ),
-                                        Text(
-                                          _formatTime(agenticTradingProvider
-                                              .lastAutoTradeTime!),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: colorScheme.onSurface,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                  if (agenticTradingProvider
-                                              .config['autoTradeEnabled']
-                                          as bool? ??
-                                      false) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Next Trade:',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: colorScheme.onSurface
-                                                .withOpacity(0.7),
-                                          ),
-                                        ),
-                                        Text(
-                                          '${agenticTradingProvider.autoTradeCountdownSeconds ~/ 60}:${(agenticTradingProvider.autoTradeCountdownSeconds % 60).toString().padLeft(2, '0')}',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: colorScheme.primary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                  if (agenticTradingProvider
-                                          .lastAutoTradeResult !=
-                                      null) ...[
-                                    const SizedBox(height: 8),
-                                    const Divider(height: 1),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          agenticTradingProvider
-                                                          .lastAutoTradeResult![
-                                                      'success'] ==
-                                                  true
-                                              ? Icons.check_circle
-                                              : Icons.info,
-                                          size: 16,
-                                          color: agenticTradingProvider
-                                                          .lastAutoTradeResult![
-                                                      'success'] ==
-                                                  true
-                                              ? Colors.green
-                                              : colorScheme.onSurface
-                                                  .withOpacity(0.6),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Last Execution:',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: colorScheme.onSurface
-                                                      .withOpacity(0.7),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                agenticTradingProvider
-                                                        .lastAutoTradeResult![
-                                                            'message']
-                                                        ?.toString() ??
-                                                    'No message',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: colorScheme.onSurface
-                                                      .withOpacity(0.8),
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              if (agenticTradingProvider
-                                                          .lastAutoTradeResult![
-                                                      'tradesExecuted'] !=
-                                                  null) ...[
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  'Trades: ${agenticTradingProvider.lastAutoTradeResult!['tradesExecuted']}',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: colorScheme.primary,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          const SizedBox(height: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: (agenticTradingProvider
-                                            .config['autoTradeEnabled'] ==
-                                        true)
-                                    ? (agenticTradingProvider
-                                            .emergencyStopActivated
-                                        ? null
-                                        : () {
-                                            agenticTradingProvider
-                                                .activateEmergencyStop(
-                                              userDocRef: widget.userDocRef,
-                                            );
-                                          })
-                                    : null,
-                                icon: const Icon(Icons.stop, size: 18),
-                                label: const Text('Emergency Stop'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: colorScheme.error,
-                                  side: BorderSide(
-                                      color: (agenticTradingProvider
-                                                  .config['autoTradeEnabled'] ==
-                                              true)
-                                          ? colorScheme.error
-                                          : colorScheme.error.withOpacity(0.3)),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                    horizontal: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const AgenticTradingPerformanceWidget(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.analytics, size: 18),
-                                label: const Text('View Performance'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primaryContainer,
-                                  foregroundColor:
-                                      colorScheme.onPrimaryContainer,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                    horizontal: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Pending Orders Section
-                  if (agenticTradingProvider.pendingOrders.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.pending_actions,
-                          size: 20,
-                          color: colorScheme.tertiary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Pending Approvals',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: colorScheme.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${agenticTradingProvider.pendingOrders.length}',
-                            style: TextStyle(
-                              color: colorScheme.onTertiaryContainer,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ...agenticTradingProvider.pendingOrders.map((order) {
-                      final symbol = order['symbol'] as String;
-                      final action = order['action'] as String;
-                      final quantity = order['quantity'] as int;
-                      final price = order['price'] as double;
-                      final timestamp = DateTime.parse(order['timestamp']);
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: action.toUpperCase() == 'BUY'
-                                              ? Colors.green.withOpacity(0.2)
-                                              : Colors.red.withOpacity(0.2),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          action.toUpperCase(),
-                                          style: TextStyle(
-                                            color: action.toUpperCase() == 'BUY'
-                                                ? Colors.green
-                                                : Colors.red,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        symbol,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    _formatTime(timestamp),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onSurface
-                                          .withOpacity(0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '$quantity shares @ \$${price.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton(
-                                    onPressed: () {
-                                      agenticTradingProvider.rejectOrder(order);
-                                    },
-                                    child: const Text('Reject'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  FilledButton(
-                                    onPressed: () {
-                                      _approveOrder(context,
-                                          agenticTradingProvider, order);
-                                    },
-                                    child: const Text('Approve'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 16),
-                  ],
-                  // Auto-Trade Configuration
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.tune,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Auto-Trade Configuration',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          // Paper Trading Mode
-                          Container(
-                            decoration: BoxDecoration(
-                              color: (agenticTradingProvider
-                                              .config['paperTradingMode']
-                                          as bool? ??
-                                      false)
-                                  ? Colors.blue.withOpacity(0.1)
-                                  : colorScheme.surfaceContainerHighest
-                                      .withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: (agenticTradingProvider
-                                                .config['paperTradingMode']
-                                            as bool? ??
-                                        false)
-                                    ? Colors.blue.withOpacity(0.5)
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: SwitchListTile(
-                              title: Row(
-                                children: [
-                                  const Text(
-                                    'Paper Trading Mode',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  if (agenticTradingProvider
-                                              .config['paperTradingMode']
-                                          as bool? ??
-                                      false)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Text(
-                                        'PAPER',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              subtitle: const Text(
-                                'Simulate trades without real money - Test strategies risk-free',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              value: agenticTradingProvider
-                                      .config['paperTradingMode'] as bool? ??
-                                  false,
-                              onChanged: (value) {
-                                setState(() {
-                                  agenticTradingProvider
-                                      .config['paperTradingMode'] = value;
-                                });
-                                _saveSettings();
-                              },
-                              activeThumbColor: Colors.blue,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
-                                vertical: 4.0,
-                              ),
-                            ),
-                          ),
-                          // const SizedBox(height: 24),
-                          const SizedBox(height: 16),
-                          _buildSwitchListTile(
-                            'requireApproval',
-                            'Require Approval',
-                            'Review trades before execution',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _tradeQuantityController,
-                            decoration: InputDecoration(
-                              labelText: 'Trade Quantity',
-                              helperText: 'Number of shares per trade',
-                              prefixIcon: const Icon(Icons.shopping_cart),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              if (int.tryParse(value) == null) {
-                                return 'Please enter a valid number';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _dailyTradeLimitController,
-                            decoration: InputDecoration(
-                              labelText: 'Daily Trade Limit',
-                              helperText: 'Maximum trades per day',
-                              prefixIcon: const Icon(Icons.calendar_today),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = int.tryParse(value);
-                              if (parsed == null || parsed < 1) {
-                                return 'Must be at least 1';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _autoTradeCooldownController,
-                            decoration: InputDecoration(
-                              labelText: 'Cooldown Period (minutes)',
-                              helperText: 'Minimum time between trades',
-                              prefixIcon: const Icon(Icons.timer),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = int.tryParse(value);
-                              if (parsed == null || parsed < 1) {
-                                return 'Must be at least 1';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          // Extended Trading Hours Section
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.schedule,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Extended Trading Hours',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildSwitchListTile(
-                                  'allowPreMarketTrading',
-                                  'Pre-Market Trading',
-                                  '4:00 AM - 9:30 AM ET',
-                                  agenticTradingProvider,
-                                  defaultValue: false,
-                                  titleFontSize: 14,
-                                  subtitleFontSize: 12,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0,
-                                    vertical: 4.0,
-                                  ),
-                                ),
-                                _buildSwitchListTile(
-                                  'allowAfterHoursTrading',
-                                  'After-Hours Trading',
-                                  '4:00 PM - 8:00 PM ET',
-                                  agenticTradingProvider,
-                                  defaultValue: false,
-                                  titleFontSize: 14,
-                                  subtitleFontSize: 12,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0,
-                                    vertical: 4.0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: colorScheme.outline.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 16,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Regular market hours: 9:30 AM - 4:00 PM ET (Mon-Fri)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Risk Management Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.security,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Risk Management',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _maxPositionSizeController,
-                            decoration: InputDecoration(
-                              labelText: 'Max Position Size',
-                              helperText: 'Maximum shares for any position',
-                              prefixIcon: const Icon(Icons.horizontal_rule),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              if (int.tryParse(value) == null) {
-                                return 'Please enter a valid number';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _maxPortfolioConcentrationController,
-                            decoration: InputDecoration(
-                              labelText: 'Max Portfolio Concentration',
-                              helperText: 'Max % of portfolio (0.0 - 1.0)',
-                              prefixIcon: const Icon(Icons.pie_chart),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null) {
-                                return 'Please enter a valid number';
-                              }
-                              if (parsed < 0 || parsed > 1) {
-                                return 'Must be between 0.0 and 1.0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _maxDailyLossPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Max Daily Loss %',
-                              helperText: 'Stop trading if loss exceeds this %',
-                              prefixIcon: const Icon(Icons.trending_down),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Exit Strategies Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.exit_to_app,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Exit Strategies',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _takeProfitPercentController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Take Profit %',
-                                    helperText: 'Sell when gains > %',
-                                    prefixIcon: const Icon(Icons.trending_up),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    filled: true,
-                                    fillColor: colorScheme.surface,
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  onChanged: (_) => _saveSettings(),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final parsed = double.tryParse(value);
-                                    if (parsed == null || parsed <= 0) {
-                                      return '> 0';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _stopLossPercentController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Stop Loss %',
-                                    helperText: 'Sell when loss > %',
-                                    prefixIcon: const Icon(Icons.warning),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    filled: true,
-                                    fillColor: colorScheme.surface,
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                          decimal: true),
-                                  onChanged: (_) => _saveSettings(),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Required';
-                                    }
-                                    final parsed = double.tryParse(value);
-                                    if (parsed == null || parsed <= 0) {
-                                      return '> 0';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          _buildSwitchListTile(
-                            'trailingStopEnabled',
-                            'Trailing Stop Loss',
-                            'Trail a stop below the highest price since entry',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      initialValue:
-                                          (agenticTradingProvider.config[
-                                                          'trailingStopPercent']
-                                                      as double? ??
-                                                  3.0)
-                                              .toStringAsFixed(1),
-                                      decoration: InputDecoration(
-                                        labelText: 'Trailing Stop %',
-                                        helperText:
-                                            'Sell if price falls by this % from the peak',
-                                        prefixIcon: const Icon(Icons.percent),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        filled: true,
-                                        fillColor: colorScheme.surface,
-                                      ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      validator: (value) {
-                                        final v = double.tryParse(value ?? '');
-                                        if (v == null || v <= 0 || v > 50) {
-                                          return 'Enter a percent between 0 and 50';
-                                        }
-                                        return null;
-                                      },
-                                      onChanged: (value) {
-                                        final v = double.tryParse(value);
-                                        if (v != null) {
-                                          agenticTradingProvider.config[
-                                              'trailingStopPercent'] = v;
-                                          _saveSettings();
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildSwitchListTile(
-                            'enablePartialExits',
-                            'Partial Exits',
-                            'Take profit in stages (e.g. 50% at +5%, 50% at +10%)',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Column(
-                              children: [
-                                if (_exitStages.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'No exit stages configured. Add a stage to take profit incrementally.',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ..._exitStages.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final stage = entry.value;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest
-                                          .withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline
-                                            .withOpacity(0.1),
-                                      ),
-                                    ),
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Stage ${index + 1}',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                              ),
-                                            ),
-                                            InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  _exitStages.removeAt(index);
-                                                });
-                                                _saveSettings();
-                                              },
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(4.0),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  size: 18,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withOpacity(0.5),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: TextFormField(
-                                                initialValue: stage
-                                                    .profitTargetPercent
-                                                    .toString(),
-                                                decoration: InputDecoration(
-                                                  labelText: 'Profit Target',
-                                                  suffixText: '%',
-                                                  prefixIcon: const Icon(
-                                                      Icons.trending_up,
-                                                      size: 16),
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  contentPadding:
-                                                      const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 12,
-                                                          vertical: 8),
-                                                  isDense: true,
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
-                                                onChanged: (value) {
-                                                  final val =
-                                                      double.tryParse(value);
-                                                  if (val != null) {
-                                                    setState(() {
-                                                      _exitStages[index] =
-                                                          ExitStage(
-                                                        profitTargetPercent:
-                                                            val,
-                                                        quantityPercent: stage
-                                                            .quantityPercent,
-                                                      );
-                                                    });
-                                                    _saveSettings();
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: TextFormField(
-                                                initialValue:
-                                                    (stage.quantityPercent *
-                                                            100)
-                                                        .toString(),
-                                                decoration: InputDecoration(
-                                                  labelText: 'Sell Amount',
-                                                  suffixText: '%',
-                                                  prefixIcon: const Icon(
-                                                      Icons.pie_chart,
-                                                      size: 16),
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  contentPadding:
-                                                      const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 12,
-                                                          vertical: 8),
-                                                  isDense: true,
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                        decimal: true),
-                                                onChanged: (value) {
-                                                  final val =
-                                                      double.tryParse(value);
-                                                  if (val != null) {
-                                                    setState(() {
-                                                      _exitStages[index] =
-                                                          ExitStage(
-                                                        profitTargetPercent: stage
-                                                            .profitTargetPercent,
-                                                        quantityPercent:
-                                                            val / 100.0,
-                                                      );
-                                                    });
-                                                    _saveSettings();
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}% of position when profit reaches ${stage.profitTargetPercent}%',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.6),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      setState(() {
-                                        _exitStages.add(ExitStage(
-                                            profitTargetPercent:
-                                                _exitStages.isEmpty
-                                                    ? 5.0
-                                                    : 10.0,
-                                            quantityPercent: 0.5));
-                                      });
-                                      _saveSettings();
-                                    },
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Add Exit Stage'),
-                                    style: OutlinedButton.styleFrom(
-                                      minimumSize:
-                                          const Size(double.infinity, 40),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildSwitchListTile(
-                            'timeBasedExitEnabled',
-                            'Time-Based Exits',
-                            'Auto-close positions after a set time',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller:
-                                          _timeBasedExitMinutesController,
-                                      decoration: InputDecoration(
-                                        labelText: 'Exit After (minutes)',
-                                        helperText:
-                                            'Close position after X minutes',
-                                        prefixIcon: const Icon(Icons.timer),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        filled: true,
-                                        fillColor: colorScheme.surface,
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => _saveSettings(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter a value';
-                                        }
-                                        final parsed = int.tryParse(value);
-                                        if (parsed == null || parsed < 0) {
-                                          return 'Must be >= 0';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildSwitchListTile(
-                            'marketCloseExitEnabled',
-                            'Exit at Market Close',
-                            'Auto-close positions before market close',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller:
-                                          _marketCloseExitMinutesController,
-                                      decoration: InputDecoration(
-                                        labelText: 'Minutes Before Close',
-                                        helperText:
-                                            'Close X minutes before 4:00 PM ET',
-                                        prefixIcon: const Icon(Icons.schedule),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        filled: true,
-                                        fillColor: colorScheme.surface,
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => _saveSettings(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter a value';
-                                        }
-                                        final parsed = int.tryParse(value);
-                                        if (parsed == null || parsed < 0) {
-                                          return 'Must be >= 0';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Advanced Risk Controls Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.shield,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Advanced Risk Controls',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildSwitchListTile(
-                            'enableSectorLimits',
-                            'Sector Limits',
-                            'Limit exposure to specific sectors',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: TextFormField(
-                              controller: _maxSectorExposureController,
-                              decoration: InputDecoration(
-                                labelText: 'Max Sector Exposure %',
-                                helperText: 'Max allocation per sector',
-                                prefixIcon: const Icon(Icons.pie_chart),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                filled: true,
-                                fillColor: colorScheme.surface,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              onChanged: (_) => _saveSettings(),
-                              validator: (value) {
-                                final v = double.tryParse(value ?? '');
-                                if (v == null || v <= 0 || v > 100) {
-                                  return 'Enter a percent between 0 and 100';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Divider(),
-                          _buildSwitchListTile(
-                            'enableCorrelationChecks',
-                            'Correlation Checks',
-                            'Avoid highly correlated positions',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: TextFormField(
-                              controller: _maxCorrelationController,
-                              decoration: InputDecoration(
-                                labelText: 'Max Correlation',
-                                helperText: 'Max correlation coefficient (0-1)',
-                                prefixIcon: const Icon(Icons.compare_arrows),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                filled: true,
-                                fillColor: colorScheme.surface,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              onChanged: (_) => _saveSettings(),
-                              validator: (value) {
-                                final v = double.tryParse(value ?? '');
-                                if (v == null || v < 0 || v > 1) {
-                                  return 'Enter a value between 0 and 1';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Divider(),
-                          _buildSwitchListTile(
-                            'enableVolatilityFilters',
-                            'Volatility Filters',
-                            'Filter trades based on volatility (IV Rank)',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _minVolatilityController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Min Volatility',
-                                      helperText: 'Min IV Rank',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      filled: true,
-                                      fillColor: colorScheme.surface,
-                                    ),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    onChanged: (_) => _saveSettings(),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _maxVolatilityController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Max Volatility',
-                                      helperText: 'Max IV Rank',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      filled: true,
-                                      fillColor: colorScheme.surface,
-                                    ),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    onChanged: (_) => _saveSettings(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Divider(),
-                          _buildSwitchListTile(
-                            'enableDrawdownProtection',
-                            'Drawdown Protection',
-                            'Stop trading if drawdown exceeds limit',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: TextFormField(
-                              controller: _maxDrawdownController,
-                              decoration: InputDecoration(
-                                labelText: 'Max Drawdown %',
-                                helperText: 'Stop trading at this drawdown',
-                                prefixIcon: const Icon(Icons.trending_down),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                filled: true,
-                                fillColor: colorScheme.surface,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              onChanged: (_) => _saveSettings(),
-                              validator: (value) {
-                                final v = double.tryParse(value ?? '');
-                                if (v == null || v <= 0 || v > 100) {
-                                  return 'Enter a percent between 0 and 100';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Technical Indicators Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.show_chart,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Entry Strategies',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.info_outline,
-                          size: 22,
-                          color: colorScheme.primary,
-                        ),
-                        tooltip: 'Indicator Documentation',
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: Row(
-                                children: [
-                                  Icon(
-                                    Icons.analytics,
-                                    color: colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('Technical Indicators'),
-                                ],
-                              ),
-                              content: SizedBox(
-                                width: double.maxFinite,
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _buildDocSection('priceMovement'),
-                                      _buildDocSection('momentum'),
-                                      _buildDocSection('marketDirection'),
-                                      _buildDocSection('volume'),
-                                      _buildDocSection('macd'),
-                                      _buildDocSection('bollingerBands'),
-                                      _buildDocSection('stochastic'),
-                                      _buildDocSection('atr'),
-                                      _buildDocSection('obv'),
-                                      _buildDocSection('vwap'),
-                                      _buildDocSection('adx'),
-                                      _buildDocSection('williamsR'),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.secondaryContainer.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: colorScheme.secondary.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 18,
-                          color: colorScheme.secondary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'All enabled indicators must be GREEN for a trade signal',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontStyle: FontStyle.italic,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildIndicatorToggle(
-                    'priceMovement',
-                    'Price Movement',
-                    'Chart patterns and trend analysis',
-                  ),
-                  _buildIndicatorToggle(
-                    'momentum',
-                    'Momentum (RSI)',
-                    'Relative Strength Index - overbought/oversold conditions',
-                  ),
-                  _buildIndicatorToggle(
-                    'marketDirection',
-                    'Market Direction',
-                    'Moving averages on market index (SPY)', // (SPY/QQQ)
-                  ),
-                  _buildIndicatorToggle(
-                    'volume',
-                    'Volume',
-                    'Volume confirmation with price movement',
-                  ),
-                  _buildIndicatorToggle(
-                    'macd',
-                    'MACD',
-                    'Moving Average Convergence Divergence',
-                  ),
-                  _buildIndicatorToggle(
-                    'bollingerBands',
-                    'Bollinger Bands',
-                    'Volatility and price level analysis',
-                  ),
-                  _buildIndicatorToggle(
-                    'stochastic',
-                    'Stochastic Oscillator',
-                    'Momentum indicator comparing closing price to price range',
-                  ),
-                  _buildIndicatorToggle(
-                    'atr',
-                    'ATR',
-                    'Average True Range - volatility measurement',
-                  ),
-                  _buildIndicatorToggle(
-                    'obv',
-                    'OBV',
-                    'On-Balance Volume - volume flow indicator',
-                  ),
-                  _buildIndicatorToggle(
-                    'vwap',
-                    'VWAP',
-                    'Volume Weighted Average Price - institutional price level',
-                  ),
-                  _buildIndicatorToggle(
-                    'adx',
-                    'ADX',
-                    'Average Directional Index - trend strength measurement',
-                  ),
-                  _buildIndicatorToggle(
-                    'williamsR',
-                    'Williams %R',
-                    'Momentum oscillator - overbought/oversold conditions',
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.build,
-                            size: 20,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
                           Text(
-                            'Custom Indicators',
+                            'Auto-Trading',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: colorScheme.onSurface,
                             ),
                           ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: _addCustomIndicator,
-                        tooltip: 'Add Custom Indicator',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (_customIndicators.isEmpty)
-                    Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: colorScheme.outline.withOpacity(0.2),
-                        ),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Text('No custom indicators defined'),
-                        ),
-                      ),
-                    )
-                  else
-                    ..._customIndicators.map((indicator) {
-                      return Card(
-                        elevation: 0,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: colorScheme.outline.withOpacity(0.2),
-                          ),
-                        ),
-                        child: ListTile(
-                          title: Text(indicator.name),
-                          subtitle: Text(
-                              '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () =>
-                                    _editCustomIndicator(indicator),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () =>
-                                    _removeCustomIndicator(indicator),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  const SizedBox(height: 16),
-                  // Notification Settings Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.notifications_active,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Push Notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(
-                        color: colorScheme.outline.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildSwitchListTile(
-                            'notifyOnBuy',
-                            'Notify on Buy Orders',
-                            'Get notified when auto-trade executes a buy',
-                            agenticTradingProvider,
-                          ),
-                          _buildSwitchListTile(
-                            'notifyOnTakeProfit',
-                            'Notify on Take Profit',
-                            'Get notified when take profit target is hit',
-                            agenticTradingProvider,
-                          ),
-                          _buildSwitchListTile(
-                            'notifyOnStopLoss',
-                            'Notify on Stop Loss',
-                            'Get notified when stop loss is triggered',
-                            agenticTradingProvider,
-                          ),
-                          _buildSwitchListTile(
-                            'notifyOnEmergencyStop',
-                            'Notify on Emergency Stop',
-                            'Get notified when emergency stop is activated',
-                            agenticTradingProvider,
-                          ),
-                          _buildSwitchListTile(
-                            'notifyDailySummary',
-                            'Daily Summary',
-                            'Receive end-of-day trading summary',
-                            agenticTradingProvider,
-                            defaultValue: false,
-                            extraContent: Align(
-                              alignment: Alignment.centerLeft,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  agenticTradingProvider
-                                      .sendDailySummary(widget.userDocRef);
-                                },
-                                icon: const Icon(Icons.summarize, size: 18),
-                                label: const Text('Send Daily Summary Now'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primaryContainer,
-                                  foregroundColor:
-                                      colorScheme.onPrimaryContainer,
-                                ),
-                              ),
+                          Text(
+                            isEnabled ? 'Active & Monitoring' : 'Paused',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isEnabled
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: isEnabled ? FontWeight.w600 : null,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    Switch(
+                      value: isEnabled,
+                      onChanged: (bool value) {
+                        setState(() {
+                          agenticTradingProvider.config['autoTradeEnabled'] =
+                              value;
+                          if (value) {
+                            final nextTradeTime =
+                                DateTime.now().add(const Duration(minutes: 5));
+                            final countdownSeconds = 5 * 60;
+                            agenticTradingProvider.updateAutoTradeCountdown(
+                                nextTradeTime, countdownSeconds);
+                          }
+                        });
+                        _saveSettings();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Status Content
+              if (agenticTradingProvider.emergencyStopActivated)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  color: colorScheme.errorContainer,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: colorScheme.error, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Emergency Stop Active',
+                                  style: TextStyle(
+                                    color: colorScheme.onErrorContainer,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Text(
+                                  'Trading halted manually.',
+                                  style: TextStyle(
+                                    color: colorScheme.onErrorContainer
+                                        .withOpacity(0.8),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            agenticTradingProvider.deactivateEmergencyStop();
+                          },
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Resume Trading'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: colorScheme.error,
+                            foregroundColor: colorScheme.onError,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                )
+              else if (agenticTradingProvider.isAutoTrading)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Analyzing Market...',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Checking indicators and executing trades',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Config Summary
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest
+                              .withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildSummaryItem(
+                              context,
+                              'Strategy',
+                              (agenticTradingProvider.config[
+                                              'requireAllIndicatorsGreen']
+                                          as bool? ??
+                                      true)
+                                  ? 'All Green'
+                                  : 'Min Strength',
+                              Icons.psychology,
+                            ),
+                            _buildVerticalDivider(colorScheme),
+                            _buildSummaryItem(
+                              context,
+                              'Take Profit',
+                              '${agenticTradingProvider.config['takeProfitPercent'] ?? 10}%',
+                              Icons.trending_up,
+                              valueColor: Colors.green,
+                            ),
+                            _buildVerticalDivider(colorScheme),
+                            _buildSummaryItem(
+                              context,
+                              'Stop Loss',
+                              '${agenticTradingProvider.config['stopLossPercent'] ?? 5}%',
+                              Icons.trending_down,
+                              valueColor: Colors.red,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Metrics Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildMetricCard(
+                              context,
+                              'Daily Trades',
+                              '${agenticTradingProvider.dailyTradeCount}/${int.tryParse(_dailyTradeLimitController.text) ?? 5}',
+                              Icons.receipt_long,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildMetricCard(
+                              context,
+                              'Last Trade',
+                              agenticTradingProvider.lastAutoTradeTime != null
+                                  ? _formatTime(
+                                      agenticTradingProvider.lastAutoTradeTime!)
+                                  : '--:--',
+                              Icons.history,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Countdown & Run Now
+                      if (isEnabled) ...[
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Next Run In',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text(
+                                        '${agenticTradingProvider.autoTradeCountdownSeconds ~/ 60}',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.primary,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures()
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        'm ',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: colorScheme.primary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        (agenticTradingProvider
+                                                    .autoTradeCountdownSeconds %
+                                                60)
+                                            .toString()
+                                            .padLeft(2, '0'),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.primary,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures()
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        's',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: colorScheme.primary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Run Auto-Trade?'),
+                                    content: const Text(
+                                        'This will immediately analyze the market and execute trades based on your strategy. Are you sure?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text('Run Now'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  agenticTradingProvider.runAutoTradeCycle(
+                                    context: context,
+                                    brokerageService: widget.service,
+                                    userDocRef: widget.userDocRef,
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Auto-trade cycle triggered manually'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: const Text('Run Now'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: 1.0 -
+                              (agenticTradingProvider
+                                      .autoTradeCountdownSeconds /
+                                  (5 * 60)),
+                          backgroundColor: colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(2),
+                          minHeight: 4,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // Last Execution Result
+        Consumer<TradeSignalsProvider>(
+          builder: (context, tradeSignalsProvider, child) {
+            final hasAutoTradeResult =
+                agenticTradingProvider.lastAutoTradeResult != null;
+            final hasTradeProposal =
+                tradeSignalsProvider.tradeProposalMessage != null;
+
+            if (!hasAutoTradeResult && !hasTradeProposal) {
+              return const SizedBox.shrink();
+            }
+
+            final result = agenticTradingProvider.lastAutoTradeResult;
+            final isSuccess = (hasAutoTradeResult &&
+                    result!['success'] == true) ||
+                (!hasAutoTradeResult &&
+                    hasTradeProposal &&
+                    tradeSignalsProvider.lastTradeProposalStatus == 'approved');
+
+            DateTime? executionTime;
+            if (hasAutoTradeResult && result!.containsKey('timestamp')) {
+              final ts = result['timestamp'];
+              if (ts is String) {
+                executionTime = DateTime.tryParse(ts);
+              } else if (ts is int) {
+                executionTime = DateTime.fromMillisecondsSinceEpoch(ts);
+              }
+            }
+            // Fallback to now if no timestamp
+            executionTime ??= DateTime.now();
+
+            final message = hasAutoTradeResult
+                ? result!['message']?.toString() ?? 'No message'
+                : tradeSignalsProvider.tradeProposalMessage ?? 'No message';
+
+            final trades = hasAutoTradeResult && result!['trades'] is List
+                ? result['trades'] as List
+                : [];
+
+            return Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSuccess
+                        ? Colors.green.withOpacity(0.1)
+                        : colorScheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSuccess
+                          ? Colors.green.withOpacity(0.3)
+                          : colorScheme.error.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            isSuccess
+                                ? Icons.check_circle
+                                : Icons.error_outline,
+                            size: 18,
+                            color: isSuccess ? Colors.green : colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Last Execution',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          if (agenticTradingProvider.isAutoTrading) ...[
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Text(
+                            _formatTime(executionTime),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Tooltip(
+                        message: tradeSignalsProvider.tradeProposalMessage ??
+                            message,
+                        triggerMode: TooltipTriggerMode.tap,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                message,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            if (tradeSignalsProvider.tradeProposalMessage !=
+                                null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: colorScheme.primary.withOpacity(0.7),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (trades.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Executed Trades:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        ...trades.map((trade) {
+                          final symbol = trade['symbol'] ?? 'Unknown';
+                          final side = trade['side'] ?? 'Unknown';
+                          final quantity = trade['quantity'] ?? 0;
+                          final price = trade['price'];
+                          return Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        side.toString().toLowerCase() == 'buy'
+                                            ? Colors.green.withOpacity(0.2)
+                                            : Colors.red.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    side.toString().toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          side.toString().toLowerCase() == 'buy'
+                                              ? Colors.green
+                                              : Colors.red,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$quantity $symbol',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                if (price != null) ...[
+                                  const Spacer(),
+                                  Text(
+                                    '@ \$${price.toString()}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontFamily: 'RobotoMono',
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                      if (agenticTradingProvider
+                          .lastProcessedSignals.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text(
+                              'Processed Signals:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${agenticTradingProvider.lastProcessedSignals.length} total',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: colorScheme.onSurfaceVariant
+                                    .withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: agenticTradingProvider.lastProcessedSignals
+                              .take(12)
+                              .map((s) {
+                            final symbol = s['symbol'] as String?;
+                            final strength = s['multiIndicatorResult']
+                                ?['signalStrength'] as int?;
+                            final isAccepted =
+                                s['processedStatus'] == 'Accepted';
+                            final rejectionReason =
+                                s['rejectionReason'] as String?;
+                            final optimization =
+                                s['optimization'] as Map<String, dynamic>?;
+
+                            String tooltipMessage = rejectionReason ??
+                                (isAccepted
+                                    ? 'Accepted for trade'
+                                    : 'Rejected');
+
+                            if (optimization != null) {
+                              tooltipMessage += '\n\nAI Optimization:\n'
+                                  'Signal: ${optimization['refinedSignal']}\n'
+                                  'Confidence: ${optimization['confidenceScore']}%\n'
+                                  'Reason: ${optimization['reasoning']}';
+                            }
+
+                            return Tooltip(
+                              message: tooltipMessage,
+                              triggerMode: TooltipTriggerMode.tap,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isAccepted
+                                      ? Colors.green.withOpacity(0.15)
+                                      : colorScheme.surfaceContainerHighest
+                                          .withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isAccepted
+                                        ? Colors.green.withOpacity(0.4)
+                                        : colorScheme.outline.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      symbol ?? 'Unknown',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isAccepted
+                                            ? Colors.green.shade700
+                                            : colorScheme.onSurface
+                                                .withOpacity(0.7),
+                                      ),
+                                    ),
+                                    if (strength != null) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 3, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: isAccepted
+                                              ? Colors.green.withOpacity(0.2)
+                                              : colorScheme.onSurface
+                                                  .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(3),
+                                        ),
+                                        child: Text(
+                                          '$strength%',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: isAccepted
+                                                ? Colors.green.shade800
+                                                : colorScheme.onSurface
+                                                    .withOpacity(0.6),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    if (optimization != null) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.auto_awesome,
+                                        size: 12,
+                                        color: Colors.purple.shade300,
+                                      ),
+                                    ],
+                                    if (!isAccepted &&
+                                        optimization == null) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.block,
+                                        size: 12,
+                                        color:
+                                            colorScheme.error.withOpacity(0.6),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        if (agenticTradingProvider.lastProcessedSignals.length >
+                            12)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Center(
+                              child: Text(
+                                '+${agenticTradingProvider.lastProcessedSignals.length - 12} more signals processed',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontStyle: FontStyle.italic,
+                                  color: colorScheme.onSurface.withOpacity(0.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                      if (hasTradeProposal && !hasAutoTradeResult) ...[
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color:
+                                colorScheme.primaryContainer.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: colorScheme.primary.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.lightbulb_outline,
+                                    size: 14,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Trade Proposal',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                tradeSignalsProvider.tradeProposalMessage!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.onSurface,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
+            );
+          },
+        ),
+
+        const SizedBox(height: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              onPressed: (isEnabled)
+                  ? (agenticTradingProvider.emergencyStopActivated
+                      ? null
+                      : () {
+                          agenticTradingProvider.activateEmergencyStop(
+                            userDocRef: widget.userDocRef,
+                          );
+                        })
+                  : null,
+              icon: const Icon(Icons.stop_circle_outlined),
+              label: const Text('Emergency Stop'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(
+                    color: isEnabled
+                        ? colorScheme.error
+                        : colorScheme.error.withOpacity(0.3)),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const AgenticTradingPerformanceWidget(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.analytics_outlined),
+              label: const Text('View Performance'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPendingOrders(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    if (agenticTradingProvider.pendingOrders.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.pending_actions,
+              size: 20,
+              color: colorScheme.tertiary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Pending Approvals',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${agenticTradingProvider.pendingOrders.length}',
+                style: TextStyle(
+                  color: colorScheme.onTertiaryContainer,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...agenticTradingProvider.pendingOrders.map((order) {
+          final symbol = order['symbol'] as String;
+          final action = order['action'] as String;
+          final quantity = order['quantity'] as int;
+          final price = order['price'] as double;
+          final timestamp = DateTime.parse(order['timestamp']);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: action.toUpperCase() == 'BUY'
+                                  ? Colors.green.withOpacity(0.2)
+                                  : Colors.red.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              action.toUpperCase(),
+                              style: TextStyle(
+                                color: action.toUpperCase() == 'BUY'
+                                    ? Colors.green
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            symbol,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        _formatTime(timestamp),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$quantity shares @ \$${price.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          agenticTradingProvider.rejectOrder(order);
+                        },
+                        child: const Text('Reject'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: () {
+                          _approveOrder(context, agenticTradingProvider, order);
+                        },
+                        child: const Text('Approve'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
-        },
+        }),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildExecutionSettings(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _buildSection(
+      context: context,
+      title: 'Execution Settings',
+      icon: Icons.settings,
+      initiallyExpanded: true,
+      children: [
+        // Paper Trading Mode
+        Container(
+          decoration: BoxDecoration(
+            color:
+                (agenticTradingProvider.config['paperTradingMode'] as bool? ??
+                        false)
+                    ? Colors.blue.withOpacity(0.1)
+                    : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color:
+                  (agenticTradingProvider.config['paperTradingMode'] as bool? ??
+                          false)
+                      ? Colors.blue.withOpacity(0.5)
+                      : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: SwitchListTile(
+            title: Row(
+              children: [
+                const Text(
+                  'Paper Trading Mode',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (agenticTradingProvider.config['paperTradingMode']
+                        as bool? ??
+                    false)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'PAPER',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            subtitle: const Text(
+              'Simulate trades without real money - Test strategies risk-free',
+              style: TextStyle(fontSize: 12),
+            ),
+            value: agenticTradingProvider.config['paperTradingMode'] as bool? ??
+                false,
+            onChanged: (value) {
+              setState(() {
+                agenticTradingProvider.config['paperTradingMode'] = value;
+              });
+              _saveSettings();
+            },
+            activeThumbColor: Colors.blue,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSwitchListTile(
+          'requireApproval',
+          'Require Approval',
+          'Review trades before execution',
+          agenticTradingProvider,
+          defaultValue: false,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _tradeQuantityController,
+          decoration: InputDecoration(
+            labelText: 'Trade Quantity',
+            helperText: 'Number of shares per trade',
+            prefixIcon: const Icon(Icons.shopping_cart),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            if (int.tryParse(value) == null) {
+              return 'Please enter a valid number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _dailyTradeLimitController,
+          decoration: InputDecoration(
+            labelText: 'Daily Trade Limit',
+            helperText: 'Maximum trades per day',
+            prefixIcon: const Icon(Icons.calendar_today),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            final parsed = int.tryParse(value);
+            if (parsed == null || parsed < 1) {
+              return 'Must be at least 1';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _autoTradeCooldownController,
+          decoration: InputDecoration(
+            labelText: 'Cooldown Period (minutes)',
+            helperText: 'Minimum time between trades',
+            prefixIcon: const Icon(Icons.timer),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            final parsed = int.tryParse(value);
+            if (parsed == null || parsed < 1) {
+              return 'Must be at least 1';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        // Extended Trading Hours Section
+        Row(
+          children: [
+            Icon(
+              Icons.schedule,
+              size: 16,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Extended Trading Hours',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              _buildSwitchListTile(
+                'allowPreMarketTrading',
+                'Pre-Market Trading',
+                '4:00 AM - 9:30 AM ET',
+                agenticTradingProvider,
+                defaultValue: false,
+                titleFontSize: 14,
+                subtitleFontSize: 12,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
+                ),
+              ),
+              _buildSwitchListTile(
+                'allowAfterHoursTrading',
+                'After-Hours Trading',
+                '4:00 PM - 8:00 PM ET',
+                agenticTradingProvider,
+                defaultValue: false,
+                titleFontSize: 14,
+                subtitleFontSize: 12,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: colorScheme.outline.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Regular market hours: 9:30 AM - 4:00 PM ET (Mon-Fri)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRiskManagement(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _buildSection(
+      context: context,
+      title: 'Risk Management',
+      icon: Icons.security,
+      children: [
+        TextFormField(
+          controller: _maxPositionSizeController,
+          decoration: InputDecoration(
+            labelText: 'Max Position Size',
+            helperText: 'Maximum shares for any position',
+            prefixIcon: const Icon(Icons.horizontal_rule),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            if (int.tryParse(value) == null) {
+              return 'Please enter a valid number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _maxPortfolioConcentrationController,
+          decoration: InputDecoration(
+            labelText: 'Max Portfolio Concentration',
+            helperText: 'Max % of portfolio (0.0 - 1.0)',
+            prefixIcon: const Icon(Icons.pie_chart),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            final parsed = double.tryParse(value);
+            if (parsed == null) {
+              return 'Please enter a valid number';
+            }
+            if (parsed < 0 || parsed > 1) {
+              return 'Must be between 0.0 and 1.0';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _maxDailyLossPercentController,
+          decoration: InputDecoration(
+            labelText: 'Max Daily Loss %',
+            helperText: 'Stop trading if loss exceeds this %',
+            prefixIcon: const Icon(Icons.trending_down),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            final parsed = double.tryParse(value);
+            if (parsed == null || parsed <= 0) {
+              return 'Must be greater than 0';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
+        Text(
+          'Advanced Controls',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildSwitchListTile(
+          'enableSectorLimits',
+          'Sector Limits',
+          'Limit exposure to specific sectors',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: TextFormField(
+            controller: _maxSectorExposureController,
+            decoration: InputDecoration(
+              labelText: 'Max Sector Exposure %',
+              helperText: 'Max allocation per sector',
+              prefixIcon: const Icon(Icons.pie_chart),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              filled: true,
+              fillColor: colorScheme.surface,
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => _saveSettings(),
+            validator: (value) {
+              final v = double.tryParse(value ?? '');
+              if (v == null || v <= 0 || v > 100) {
+                return 'Enter a percent between 0 and 100';
+              }
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        _buildSwitchListTile(
+          'enableCorrelationChecks',
+          'Correlation Checks',
+          'Avoid highly correlated positions',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: TextFormField(
+            controller: _maxCorrelationController,
+            decoration: InputDecoration(
+              labelText: 'Max Correlation',
+              helperText: 'Max correlation coefficient (0-1)',
+              prefixIcon: const Icon(Icons.compare_arrows),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              filled: true,
+              fillColor: colorScheme.surface,
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => _saveSettings(),
+            validator: (value) {
+              final v = double.tryParse(value ?? '');
+              if (v == null || v < 0 || v > 1) {
+                return 'Enter a value between 0 and 1';
+              }
+              return null;
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        _buildSwitchListTile(
+          'enableVolatilityFilters',
+          'Volatility Filters',
+          'Filter trades based on volatility (IV Rank)',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _minVolatilityController,
+                  decoration: InputDecoration(
+                    labelText: 'Min Volatility',
+                    helperText: 'Min IV Rank',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surface,
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => _saveSettings(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _maxVolatilityController,
+                  decoration: InputDecoration(
+                    labelText: 'Max Volatility',
+                    helperText: 'Max IV Rank',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surface,
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => _saveSettings(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        _buildSwitchListTile(
+          'enableDrawdownProtection',
+          'Drawdown Protection',
+          'Stop trading if drawdown exceeds limit',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: TextFormField(
+            controller: _maxDrawdownController,
+            decoration: InputDecoration(
+              labelText: 'Max Drawdown %',
+              helperText: 'Stop trading at this drawdown',
+              prefixIcon: const Icon(Icons.trending_down),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              filled: true,
+              fillColor: colorScheme.surface,
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => _saveSettings(),
+            validator: (value) {
+              final v = double.tryParse(value ?? '');
+              if (v == null || v <= 0 || v > 100) {
+                return 'Enter a percent between 0 and 100';
+              }
+              return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExitStrategies(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _buildSection(
+      context: context,
+      title: 'Exit Strategies',
+      icon: Icons.exit_to_app,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _takeProfitPercentController,
+                decoration: InputDecoration(
+                  labelText: 'Take Profit %',
+                  helperText: 'Sell when gains > %',
+                  prefixIcon: const Icon(Icons.trending_up),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: colorScheme.surface,
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _saveSettings(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Required';
+                  }
+                  final parsed = double.tryParse(value);
+                  if (parsed == null || parsed <= 0) {
+                    return '> 0';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                controller: _stopLossPercentController,
+                decoration: InputDecoration(
+                  labelText: 'Stop Loss %',
+                  helperText: 'Sell when loss > %',
+                  prefixIcon: const Icon(Icons.warning),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: colorScheme.surface,
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _saveSettings(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Required';
+                  }
+                  final parsed = double.tryParse(value);
+                  if (parsed == null || parsed <= 0) {
+                    return '> 0';
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          'trailingStopEnabled',
+          'Trailing Stop Loss',
+          'Trail a stop below the highest price since entry',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: (agenticTradingProvider
+                                .config['trailingStopPercent'] as double? ??
+                            3.0)
+                        .toStringAsFixed(1),
+                    decoration: InputDecoration(
+                      labelText: 'Trailing Stop %',
+                      helperText: 'Sell if price falls by this % from the peak',
+                      prefixIcon: const Icon(Icons.percent),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      final v = double.tryParse(value ?? '');
+                      if (v == null || v <= 0 || v > 50) {
+                        return 'Enter a percent between 0 and 50';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      final v = double.tryParse(value);
+                      if (v != null) {
+                        agenticTradingProvider.config['trailingStopPercent'] =
+                            v;
+                        _saveSettings();
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          'enablePartialExits',
+          'Partial Exits',
+          'Take profit in stages (e.g. 50% at +5%, 50% at +10%)',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Column(
+            children: [
+              if (_exitStages.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'No exit stages configured. Add a stage to take profit incrementally.',
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ..._exitStages.asMap().entries.map((entry) {
+                final index = entry.key;
+                final stage = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outline
+                          .withOpacity(0.1),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Stage ${index + 1}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _exitStages.removeAt(index);
+                              });
+                              _saveSettings();
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue:
+                                  stage.profitTargetPercent.toString(),
+                              decoration: InputDecoration(
+                                labelText: 'Profit Target',
+                                suffixText: '%',
+                                prefixIcon:
+                                    const Icon(Icons.trending_up, size: 16),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              onChanged: (value) {
+                                final val = double.tryParse(value);
+                                if (val != null) {
+                                  setState(() {
+                                    _exitStages[index] = ExitStage(
+                                      profitTargetPercent: val,
+                                      quantityPercent: stage.quantityPercent,
+                                    );
+                                  });
+                                  _saveSettings();
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue:
+                                  (stage.quantityPercent * 100).toString(),
+                              decoration: InputDecoration(
+                                labelText: 'Sell Amount',
+                                suffixText: '%',
+                                prefixIcon:
+                                    const Icon(Icons.pie_chart, size: 16),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              onChanged: (value) {
+                                final val = double.tryParse(value);
+                                if (val != null) {
+                                  setState(() {
+                                    _exitStages[index] = ExitStage(
+                                      profitTargetPercent:
+                                          stage.profitTargetPercent,
+                                      quantityPercent: val / 100.0,
+                                    );
+                                  });
+                                  _saveSettings();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}% of position when profit reaches ${stage.profitTargetPercent}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _exitStages.add(ExitStage(
+                          profitTargetPercent: _exitStages.isEmpty ? 5.0 : 10.0,
+                          quantityPercent: 0.5));
+                    });
+                    _saveSettings();
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Exit Stage'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 40),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          'timeBasedExitEnabled',
+          'Time-Based Exits',
+          'Auto-close positions after a set time',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _timeBasedExitMinutesController,
+                    decoration: InputDecoration(
+                      labelText: 'Exit After (minutes)',
+                      helperText: 'Close position after X minutes',
+                      prefixIcon: const Icon(Icons.timer),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => _saveSettings(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a value';
+                      }
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0) {
+                        return 'Must be >= 0';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          'marketCloseExitEnabled',
+          'Exit at Market Close',
+          'Auto-close positions before market close',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _marketCloseExitMinutesController,
+                    decoration: InputDecoration(
+                      labelText: 'Minutes Before Close',
+                      helperText: 'Close X minutes before 4:00 PM ET',
+                      prefixIcon: const Icon(Icons.schedule),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => _saveSettings(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a value';
+                      }
+                      final parsed = int.tryParse(value);
+                      if (parsed == null || parsed < 0) {
+                        return 'Must be >= 0';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEntryStrategies(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _buildSection(
+      context: context,
+      title: 'Entry Strategies',
+      icon: Icons.show_chart,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              icon: Icon(
+                Icons.info_outline,
+                size: 18,
+                color: colorScheme.primary,
+              ),
+              label: const Text('Indicator Documentation'),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        Icon(
+                          Icons.analytics,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Technical Indicators'),
+                      ],
+                    ),
+                    content: SizedBox(
+                      width: double.maxFinite,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDocSection('priceMovement'),
+                            _buildDocSection('momentum'),
+                            _buildDocSection('marketDirection'),
+                            _buildDocSection('volume'),
+                            _buildDocSection('macd'),
+                            _buildDocSection('bollingerBands'),
+                            _buildDocSection('stochastic'),
+                            _buildDocSection('atr'),
+                            _buildDocSection('obv'),
+                            _buildDocSection('vwap'),
+                            _buildDocSection('adx'),
+                            _buildDocSection('williamsR'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: colorScheme.outline.withOpacity(0.2),
+            ),
+          ),
+          child: Column(
+            children: [
+              RadioListTile<bool>(
+                title: const Text('Require All Indicators Green'),
+                subtitle: const Text(
+                    'All enabled indicators must be BUY for a signal'),
+                value: true,
+                groupValue: agenticTradingProvider
+                        .config['requireAllIndicatorsGreen'] ??
+                    true,
+                onChanged: (value) {
+                  setState(() {
+                    agenticTradingProvider.config['requireAllIndicatorsGreen'] =
+                        value;
+                  });
+                  _saveSettings();
+                },
+              ),
+              RadioListTile<bool>(
+                title: const Text('Minimum Signal Strength'),
+                subtitle: const Text('Use a score threshold (0-100)'),
+                value: false,
+                groupValue: agenticTradingProvider
+                        .config['requireAllIndicatorsGreen'] ??
+                    true,
+                onChanged: (value) {
+                  setState(() {
+                    agenticTradingProvider.config['requireAllIndicatorsGreen'] =
+                        value;
+                  });
+                  _saveSettings();
+                },
+              ),
+              if (agenticTradingProvider.config['requireAllIndicatorsGreen'] ==
+                  false)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: TextFormField(
+                    controller: _minSignalStrengthController,
+                    decoration: InputDecoration(
+                      labelText: 'Min Signal Strength',
+                      helperText: 'Default: 75',
+                      suffixText: '/ 100',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => _saveSettings(),
+                    validator: (value) {
+                      final v = double.tryParse(value ?? '');
+                      if (v == null || v < 0 || v > 100) {
+                        return 'Enter a value between 0 and 100';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  for (var key in _enabledIndicators.keys) {
+                    _enabledIndicators[key] = true;
+                  }
+                });
+                _saveSettings();
+              },
+              child: const Text('Select All'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  for (var key in _enabledIndicators.keys) {
+                    _enabledIndicators[key] = false;
+                  }
+                });
+                _saveSettings();
+              },
+              child: const Text('Deselect All'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _buildIndicatorToggle(
+          'priceMovement',
+          'Price Movement',
+          'Chart patterns and trend analysis',
+          icon: Icons.show_chart,
+        ),
+        _buildIndicatorToggle(
+          'momentum',
+          'Momentum (RSI)',
+          'Relative Strength Index - overbought/oversold conditions',
+          icon: Icons.speed,
+        ),
+        _buildIndicatorToggle(
+          'marketDirection',
+          'Market Direction',
+          'Moving averages on market index (SPY)', // (SPY/QQQ)
+          icon: Icons.trending_up,
+        ),
+        _buildIndicatorToggle(
+          'volume',
+          'Volume',
+          'Volume confirmation with price movement',
+          icon: Icons.bar_chart,
+        ),
+        _buildIndicatorToggle(
+          'macd',
+          'MACD',
+          'Moving Average Convergence Divergence',
+          icon: Icons.compare_arrows,
+        ),
+        _buildIndicatorToggle(
+          'bollingerBands',
+          'Bollinger Bands',
+          'Volatility and price level analysis',
+          icon: Icons.waves,
+        ),
+        _buildIndicatorToggle(
+          'stochastic',
+          'Stochastic Oscillator',
+          'Momentum indicator comparing closing price to price range',
+          icon: Icons.swap_vert,
+        ),
+        _buildIndicatorToggle(
+          'atr',
+          'ATR',
+          'Average True Range - volatility measurement',
+          icon: Icons.height,
+        ),
+        _buildIndicatorToggle(
+          'obv',
+          'OBV',
+          'On-Balance Volume - volume flow indicator',
+          icon: Icons.waterfall_chart,
+        ),
+        _buildIndicatorToggle(
+          'vwap',
+          'VWAP',
+          'Volume Weighted Average Price - institutional price level',
+          icon: Icons.money,
+        ),
+        _buildIndicatorToggle(
+          'adx',
+          'ADX',
+          'Average Directional Index - trend strength measurement',
+          icon: Icons.directions,
+        ),
+        _buildIndicatorToggle(
+          'williamsR',
+          'Williams %R',
+          'Momentum oscillator - overbought/oversold conditions',
+          icon: Icons.percent,
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.build,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Custom Indicators',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: _addCustomIndicator,
+              tooltip: 'Add Custom Indicator',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_customIndicators.isEmpty)
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: Text('No custom indicators defined'),
+              ),
+            ),
+          )
+        else
+          ..._customIndicators.map((indicator) {
+            return Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: ListTile(
+                title: Text(indicator.name),
+                subtitle: Text(
+                    '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _editCustomIndicator(indicator),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _removeCustomIndicator(indicator),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  Widget _buildNotificationSettings(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    return _buildSection(
+      context: context,
+      title: 'Notifications',
+      icon: Icons.notifications,
+      children: [
+        _buildSwitchListTile(
+          'notifyOnBuy',
+          'Notify on Buy Orders',
+          'Get notified when auto-trade executes a buy',
+          agenticTradingProvider,
+        ),
+        _buildSwitchListTile(
+          'notifyOnTakeProfit',
+          'Notify on Take Profit',
+          'Get notified when take profit target is hit',
+          agenticTradingProvider,
+        ),
+        _buildSwitchListTile(
+          'notifyOnStopLoss',
+          'Notify on Stop Loss',
+          'Get notified when stop loss is triggered',
+          agenticTradingProvider,
+        ),
+        _buildSwitchListTile(
+          'notifyOnEmergencyStop',
+          'Notify on Emergency Stop',
+          'Get notified when emergency stop is activated',
+          agenticTradingProvider,
+        ),
+        _buildSwitchListTile(
+          'notifyDailySummary',
+          'Daily Summary',
+          'Receive end-of-day trading summary',
+          agenticTradingProvider,
+          defaultValue: false,
+          extraContent: Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                agenticTradingProvider.sendDailySummary(widget.userDocRef);
+              },
+              icon: const Icon(Icons.summarize, size: 18),
+              label: const Text('Send Daily Summary Now'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                foregroundColor:
+                    Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBacktesting(
+      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+    return _buildSection(
+      context: context,
+      title: 'Backtesting',
+      icon: Icons.history,
+      children: [
+        const Text(
+          'Test your current configuration against historical data to verify strategy performance.',
+          style: TextStyle(fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              // Create config from current settings
+              final configMap = {
+                'smaPeriodFast':
+                    agenticTradingProvider.config['smaPeriodFast'] ?? 10,
+                'smaPeriodSlow':
+                    agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
+                'tradeQuantity':
+                    int.tryParse(_tradeQuantityController.text) ?? 1,
+                'maxPositionSize':
+                    int.tryParse(_maxPositionSizeController.text) ?? 100,
+                'maxPortfolioConcentration': double.tryParse(
+                        _maxPortfolioConcentrationController.text) ??
+                    0.5,
+                'rsiPeriod': agenticTradingProvider.config['rsiPeriod'] ?? 14,
+                'marketIndexSymbol':
+                    agenticTradingProvider.config['marketIndexSymbol'] ?? 'SPY',
+                'enabledIndicators': _enabledIndicators,
+                'autoTradeEnabled':
+                    agenticTradingProvider.config['autoTradeEnabled'] ?? false,
+                'dailyTradeLimit':
+                    int.tryParse(_dailyTradeLimitController.text) ?? 5,
+                'autoTradeCooldownMinutes':
+                    int.tryParse(_autoTradeCooldownController.text) ?? 60,
+                'maxDailyLossPercent':
+                    double.tryParse(_maxDailyLossPercentController.text) ?? 2.0,
+                'takeProfitPercent':
+                    double.tryParse(_takeProfitPercentController.text) ?? 10.0,
+                'stopLossPercent':
+                    double.tryParse(_stopLossPercentController.text) ?? 5.0,
+                'allowPreMarketTrading':
+                    agenticTradingProvider.config['allowPreMarketTrading'] ??
+                        false,
+                'allowAfterHoursTrading':
+                    agenticTradingProvider.config['allowAfterHoursTrading'] ??
+                        false,
+                'notifyOnBuy':
+                    agenticTradingProvider.config['notifyOnBuy'] ?? true,
+                'notifyOnTakeProfit':
+                    agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
+                'notifyOnStopLoss':
+                    agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
+                'notifyOnEmergencyStop':
+                    agenticTradingProvider.config['notifyOnEmergencyStop'] ??
+                        true,
+                'notifyDailySummary':
+                    agenticTradingProvider.config['notifyDailySummary'] ??
+                        false,
+                'trailingStopEnabled':
+                    agenticTradingProvider.config['trailingStopEnabled'] ??
+                        false,
+                'trailingStopPercent':
+                    agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
+                'enablePartialExits':
+                    agenticTradingProvider.config['enablePartialExits'] ??
+                        false,
+                'exitStages': _exitStages.map((e) => e.toJson()).toList(),
+                'customIndicators':
+                    _customIndicators.map((e) => e.toJson()).toList(),
+                'timeBasedExitEnabled':
+                    agenticTradingProvider.config['timeBasedExitEnabled'] ??
+                        false,
+                'timeBasedExitMinutes':
+                    int.tryParse(_timeBasedExitMinutesController.text) ?? 30,
+                'marketCloseExitEnabled':
+                    agenticTradingProvider.config['marketCloseExitEnabled'] ??
+                        false,
+                'marketCloseExitMinutes':
+                    int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
+                'paperTradingMode':
+                    agenticTradingProvider.config['paperTradingMode'] ?? false,
+                'requireApproval':
+                    agenticTradingProvider.config['requireApproval'] ?? true,
+                'enableSectorLimits':
+                    agenticTradingProvider.config['enableSectorLimits'] ??
+                        false,
+                'maxSectorExposure':
+                    double.tryParse(_maxSectorExposureController.text) ?? 0.2,
+                'enableCorrelationChecks':
+                    agenticTradingProvider.config['enableCorrelationChecks'] ??
+                        false,
+                'maxCorrelation':
+                    double.tryParse(_maxCorrelationController.text) ?? 0.7,
+                'enableVolatilityFilters':
+                    agenticTradingProvider.config['enableVolatilityFilters'] ??
+                        false,
+                'minVolatility':
+                    double.tryParse(_minVolatilityController.text) ?? 0.0,
+                'maxVolatility':
+                    double.tryParse(_maxVolatilityController.text) ?? 100.0,
+                'enableDrawdownProtection':
+                    agenticTradingProvider.config['enableDrawdownProtection'] ??
+                        false,
+                'maxDrawdown':
+                    double.tryParse(_maxDrawdownController.text) ?? 10.0,
+                'minSignalStrength':
+                    double.tryParse(_minSignalStrengthController.text) ?? 70.0,
+                'requireAllIndicatorsGreen': agenticTradingProvider
+                        .config['requireAllIndicatorsGreen'] ??
+                    false,
+              };
+
+              final config = AgenticTradingConfig.fromJson(configMap);
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BacktestingWidget(
+                    userDocRef: widget.userDocRef,
+                    prefilledConfig: config,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Run Backtest with Current Settings'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSection({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+    bool initiallyExpanded = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          leading: Icon(icon, color: colorScheme.primary),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          children: children,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(
+      BuildContext context, String label, String value, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

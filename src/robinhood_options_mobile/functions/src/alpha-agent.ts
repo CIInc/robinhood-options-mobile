@@ -411,13 +411,14 @@ export async function handleAlphaTask(marketData: any,
     }
 
     return {
-      status: "no_action",
+      status: "rejected",
       message: "Alpha agent: Multi-indicator analysis shows " +
         `HOLD (${interval}).`,
       reason,
       signal: overallSignal,
       interval,
       multiIndicatorResult,
+      optimization,
     };
   }
 
@@ -481,6 +482,7 @@ export async function handleAlphaTask(marketData: any,
       assessment: assessment,
       interval,
       multiIndicatorResult,
+      optimization,
     };
   }
 
@@ -492,6 +494,7 @@ export async function handleAlphaTask(marketData: any,
     assessment: assessment,
     interval,
     multiIndicatorResult,
+    optimization,
   };
 }
 

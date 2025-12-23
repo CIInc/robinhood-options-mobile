@@ -15,7 +15,6 @@ void main() {
     });
 
     test('Initial state should have correct default values', () {
-      expect(provider.isAgenticTradingEnabled, equals(false));
       expect(provider.isAutoTrading, equals(false));
       expect(provider.dailyTradeCount, equals(0));
       expect(provider.lastAutoTradeTime, isNull);
@@ -23,34 +22,10 @@ void main() {
       expect(provider.autoTradeHistory, isEmpty);
     });
 
-    test('toggleAgenticTrading should update enabled state', () {
-      var notified = false;
-      provider.addListener(() {
-        notified = true;
-      });
-
-      // Initially false
-      expect(provider.isAgenticTradingEnabled, equals(false));
-
-      // Toggle to true
-      provider.toggleAgenticTrading(true);
-      expect(provider.isAgenticTradingEnabled, equals(true));
-      expect(notified, equals(true));
-
-      // Reset notification flag
-      notified = false;
-
-      // Toggle to false
-      provider.toggleAgenticTrading(false);
-      expect(provider.isAgenticTradingEnabled, equals(false));
-      expect(notified, equals(true));
-    });
-
     test('loadConfigFromUser should load configuration correctly', () {
       // Load with null config (should use defaults)
       provider.loadConfigFromUser(null);
 
-      expect(provider.config['enabled'], equals(false));
       expect(provider.config['autoTradeEnabled'], equals(false));
       expect(provider.config['dailyTradeLimit'], equals(5));
       expect(provider.config['autoTradeCooldownMinutes'], equals(60));

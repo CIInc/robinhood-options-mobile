@@ -22,7 +22,6 @@ class ExitStage {
 ///
 /// Stores per-user configuration for agentic trading system.
 class AgenticTradingConfig {
-  bool enabled;
   int smaPeriodFast;
   int smaPeriodSlow;
   int tradeQuantity;
@@ -68,9 +67,11 @@ class AgenticTradingConfig {
   double maxVolatility; // Max IV rank or similar
   bool enableDrawdownProtection;
   double maxDrawdown; // Max drawdown % before stopping
+  double minSignalStrength; // Min signal strength (0-100) for BUY
+  bool
+      requireAllIndicatorsGreen; // If true, ignores minSignalStrength and requires all enabled to be BUY
 
   AgenticTradingConfig({
-    this.enabled = false,
     this.smaPeriodFast = 10,
     this.smaPeriodSlow = 30,
     this.tradeQuantity = 1,
@@ -112,6 +113,8 @@ class AgenticTradingConfig {
     this.maxVolatility = 100.0,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 10.0,
+    this.minSignalStrength = 75.0,
+    this.requireAllIndicatorsGreen = true,
   })  : exitStages = exitStages ??
             [
               ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
@@ -135,8 +138,7 @@ class AgenticTradingConfig {
             };
 
   AgenticTradingConfig.fromJson(Map<String, dynamic> json)
-      : enabled = json['enabled'] as bool? ?? false,
-        smaPeriodFast = json['smaPeriodFast'] as int? ?? 10,
+      : smaPeriodFast = json['smaPeriodFast'] as int? ?? 10,
         smaPeriodSlow = json['smaPeriodSlow'] as int? ?? 30,
         tradeQuantity = json['tradeQuantity'] as int? ?? 1,
         maxPositionSize = json['maxPositionSize'] as int? ?? 100,
@@ -194,6 +196,10 @@ class AgenticTradingConfig {
         enableDrawdownProtection =
             json['enableDrawdownProtection'] as bool? ?? false,
         maxDrawdown = (json['maxDrawdown'] as num?)?.toDouble() ?? 10.0,
+        minSignalStrength =
+            (json['minSignalStrength'] as num?)?.toDouble() ?? 75.0,
+        requireAllIndicatorsGreen =
+            json['requireAllIndicatorsGreen'] as bool? ?? true,
         enabledIndicators = (json['enabledIndicators'] != null)
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -213,7 +219,6 @@ class AgenticTradingConfig {
 
   Map<String, dynamic> toJson() {
     return {
-      'enabled': enabled,
       'smaPeriodFast': smaPeriodFast,
       'smaPeriodSlow': smaPeriodSlow,
       'tradeQuantity': tradeQuantity,
@@ -254,12 +259,13 @@ class AgenticTradingConfig {
       'minVolatility': minVolatility,
       'maxVolatility': maxVolatility,
       'enableDrawdownProtection': enableDrawdownProtection,
+      'requireAllIndicatorsGreen': requireAllIndicatorsGreen,
       'maxDrawdown': maxDrawdown,
+      'minSignalStrength': minSignalStrength,
     };
   }
 
   AgenticTradingConfig copyWith({
-    bool? enabled,
     int? smaPeriodFast,
     int? smaPeriodSlow,
     int? tradeQuantity,
@@ -292,10 +298,11 @@ class AgenticTradingConfig {
     double? minVolatility,
     double? maxVolatility,
     bool? enableDrawdownProtection,
+    double? minSignalStrength,
     double? maxDrawdown,
+    bool? requireAllIndicatorsGreen,
   }) {
     return AgenticTradingConfig(
-      enabled: enabled ?? this.enabled,
       smaPeriodFast: smaPeriodFast ?? this.smaPeriodFast,
       smaPeriodSlow: smaPeriodSlow ?? this.smaPeriodSlow,
       tradeQuantity: tradeQuantity ?? this.tradeQuantity,
@@ -338,7 +345,10 @@ class AgenticTradingConfig {
       maxVolatility: maxVolatility ?? this.maxVolatility,
       enableDrawdownProtection:
           enableDrawdownProtection ?? this.enableDrawdownProtection,
+      minSignalStrength: minSignalStrength ?? this.minSignalStrength,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
+      requireAllIndicatorsGreen:
+          requireAllIndicatorsGreen ?? this.requireAllIndicatorsGreen,
     );
   }
 }
