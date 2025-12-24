@@ -12,6 +12,7 @@ Users can explore trade signals in the **Search** tab using advanced filtering o
 
 1.  **Signal Strength**: Filter by **Strong** (75-100), **Moderate** (50-74), or **Weak** (0-49) signals.
 2.  **Indicator States**: Filter by specific indicator states using a 4-way toggle (Off/BUY/SELL/HOLD). For example, you can search for "RSI: BUY" and "MACD: BUY" to find specific momentum setups.
+3.  **Sorting**: Sort results by **Signal Strength** (default) or **Timestamp** to find the most relevant or most recent signals.
 
 *Note: Signal Strength and Indicator filters are exclusive. Selecting one type clears the other to ensure clear, non-conflicting results.*
 

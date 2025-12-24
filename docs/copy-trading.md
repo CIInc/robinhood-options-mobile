@@ -20,11 +20,16 @@ Members can configure copy trading settings for each investor group they belong 
 - **Max Amount**: Limit the maximum dollar amount per trade
 - **Override Price**: Use current market price instead of the copied trade's price
 - **Inverse Copying**: Copy trades in the opposite direction (e.g., buy when the leader sells). Useful for hedging or contrarian strategies.
-- **Exit Strategies**: Define automatic exit conditions for copied trades (e.g., Take Profit, Stop Loss) to manage risk independent of the leader's actions.
+- **Exit Strategies**:
+  - **Copy Stop Loss**: Automatically copy stop loss orders placed by the leader.
+  - **Stop Loss Adjustment**: Adjust the copied stop loss percentage (e.g., -1% to tighten, +1% to loosen).
+  - **Copy Take Profit**: Automatically copy take profit orders placed by the leader.
+  - **Take Profit Adjustment**: Adjust the copied take profit percentage.
+  - **Copy Trailing Stop**: Automatically copy trailing stop orders.
 
 ### 2. Copy Trading Dashboard
 
-> **New in v0.22.0**
+> **New in v0.22.0, Enhanced in v0.24.0**
 
 A centralized hub for managing all copy trading activities:
 

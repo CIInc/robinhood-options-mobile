@@ -17,7 +17,7 @@
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
-- **Instrument Charting:** Advanced charting capabilities on instrument details pages.
+- **Instrument Charting:** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges.
 - Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
@@ -30,6 +30,7 @@
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
+- **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence.
 
 ## Investment Profile Feature
 

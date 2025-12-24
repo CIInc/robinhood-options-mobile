@@ -31,6 +31,7 @@ import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
@@ -1786,7 +1787,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   Future<Instrument> getInstrument(
       BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
     // var cached =
-    //     await FirestoreService().searchInstruments(url: instrumentUrl).first;
+    //     await _firestoreService.searchInstruments(url: instrumentUrl).first;
     var cached =
         store.items.where((element) => element.url == instrumentUrl).toList();
     if (cached.isNotEmpty) {
@@ -1796,7 +1797,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
 
     var cachedFirestore =
-        await FirestoreService().getInstrument(url: instrumentUrl);
+        await _firestoreService.getInstrument(url: instrumentUrl);
     if (cachedFirestore != null) {
       cached.add(cachedFirestore);
       store.add(cachedFirestore);
@@ -1824,8 +1825,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       return Future.value(cached.first);
     }
 
-    var cachedFirestore =
-        await FirestoreService().getInstrument(symbol: symbol);
+    var cachedFirestore = await _firestoreService.getInstrument(symbol: symbol);
     if (cachedFirestore != null) {
       cached.add(cachedFirestore);
       store.add(cachedFirestore);
@@ -1866,7 +1866,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       return Future.value(cached);
     }
     var cachedFirestore =
-        await FirestoreService().searchInstruments(ids: remainingIds).first;
+        await _firestoreService.searchInstruments(ids: remainingIds).first;
     cached.addAll(cachedFirestore);
     for (var item in cachedFirestore) {
       store.add(item);
@@ -3315,6 +3315,60 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   }
 
   @override
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user) async {
+    var url = '$robinHoodNummusEndpoint/orders/';
+    var result = await getJson(user, url);
+    List<ForexOrder> list = [];
+    for (var item in result['results']) {
+      list.add(ForexOrder.fromJson(item));
+    }
+    return list;
+  }
+
+  @override
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) async {
+    var accounts = await getNummusAccounts(user);
+    var accountId = accounts['results'][0]['id'];
+
+    var payload = {
+      "account_id": accountId,
+      "currency_pair_id": pairId,
+      "ref_id": const Uuid().v4(),
+      "side": side,
+      "time_in_force": timeInForce,
+      "type": type
+    };
+
+    if (type == 'market') {
+      payload['quantity'] = quantity.toString();
+    } else {
+      payload['price'] = price.toString();
+      payload['quantity'] = quantity.toString();
+    }
+
+    if (stopPrice != null) {
+      payload['stop_price'] = stopPrice.toString();
+    }
+
+    var url = '$robinHoodNummusEndpoint/orders/';
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+    return result;
+  }
+
+  @override
   Future<dynamic> placeOptionsOrder(
       BrokerageUser user,
       Account account,
@@ -3709,7 +3763,9 @@ WATCHLIST
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
-    String responseStr = await user.oauth2Client!.read(Uri.parse(url));
+    String responseStr = await user.oauth2Client!
+        .read(Uri.parse(url))
+        .timeout(const Duration(seconds: 30));
     debugPrint(
         "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
     dynamic responseJson = jsonDecode(responseStr);

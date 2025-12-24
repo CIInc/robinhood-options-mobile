@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -266,6 +267,18 @@ abstract class IBrokerageService {
       {String type = 'limit',
       String trigger = 'immediate',
       String timeInForce = 'gtc'});
+
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user);
+
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice});
 
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
     return Future.error(

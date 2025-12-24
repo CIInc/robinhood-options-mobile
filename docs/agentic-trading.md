@@ -36,9 +36,10 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 
 5. **AgenticTradingSettingsWidget** (`lib/widgets/agentic_trading_settings_widget.dart`)
    - User interface for configuration
-   - Real-time status monitoring with countdown timer
+   - Real-time status monitoring with countdown timer, market analysis status, and emergency stop indicators
    - Auto-save functionality (no manual save button)
-   - **Emergency Stop:** Long-press the auto-trade toggle to immediately stop all automated trading activities.
+   - **Manual Execution:** Use the "Run Now" button to immediately trigger a market analysis and trade execution cycle.
+   - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
 
 6. **Backend Functions** (`functions/src/`)
@@ -96,6 +97,32 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 4. Enable **Auto-Trade**.
 
 *Note: When Paper Trading is enabled, NO real orders will be sent to your brokerage.*
+
+### Custom Indicators
+
+Users can now define their own technical indicators to be used alongside the standard 12-indicator system.
+
+- **Creation:** Define custom logic based on price action, volume, or other available data points.
+- **Integration:** Custom indicators are evaluated as part of the signal generation process.
+- **Weighting:** Assign specific weights to custom indicators to influence the overall signal strength.
+- **Flexibility:** Supports a wide range of mathematical functions and logic operators.
+
+### ML Optimization
+
+Machine Learning models are integrated to continuously optimize trade signals:
+
+- **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
+- **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
+- **Adaptive Logic:** The system adapts to changing market volatility and trends.
+- **Continuous Learning:** The models are retrained periodically with new market data to ensure relevance.
+
+### Advanced Exit Strategies
+
+In addition to standard Stop Loss and Take Profit, the system supports sophisticated exit strategies:
+
+- **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%). This allows locking in profits while keeping a portion of the position open for potential further gains.
+- **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met. This helps free up capital from stagnant trades.
+- **Market Close Exits:** Automatically liquidate positions a set number of minutes before the market closes to avoid overnight risk (gap risk).
 
 ### Automatic Execution
 

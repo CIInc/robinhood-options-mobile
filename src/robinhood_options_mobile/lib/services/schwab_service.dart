@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -1750,6 +1751,24 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
     // TODO: implement
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) {
     throw UnimplementedError();
   }
 }

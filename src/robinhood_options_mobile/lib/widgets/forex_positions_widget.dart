@@ -340,7 +340,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   navigateToFullPage(context);
                 },
         ),
-        buildDetailScrollView(
+        buildSummaryScrollView(
             todayIcon,
             todayReturnText,
             todayReturnPercentText,
@@ -606,32 +606,134 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         },
       ),
       if (widget.brokerageUser.showPositionDetails) ...[
-        buildDetailScrollView(
-            todayIcon,
-            todayReturnText,
-            todayReturnPercentText,
-            totalIcon,
-            totalReturnText,
-            totalReturnPercentText,
-            todayReturn,
-            todayReturnPercent,
-            totalReturn,
-            totalReturnPercent)
+        buildDetailScrollView(holdings[index])
       ]
     ]));
   }
 
-  SingleChildScrollView buildDetailScrollView(
+  SingleChildScrollView buildSummaryScrollView(
       Icon todayIcon,
       String todayReturnText,
       String todayReturnPercentText,
       Icon totalIcon,
       String totalReturnText,
       String totalReturnPercentText,
-      double? todayReturn,
-      double? todayReturnPercent,
-      double? totalReturn,
-      double? totalReturnPercent) {
+      double todayReturn,
+      double todayReturnPercent,
+      double totalReturn,
+      double totalReturnPercent) {
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturn;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    PnlBadge(text: todayReturnText, value: todayReturn),
+                    const SizedBox(height: 4),
+                    const Text("Return Today",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
+                  ]),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturnPercent;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    PnlBadge(
+                        text: todayReturnPercentText,
+                        value: todayReturnPercent),
+                    const SizedBox(height: 4),
+                    const Text("Return Today %",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
+                  ]),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturn;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child: Column(
+                    children: <Widget>[
+                      PnlBadge(text: totalReturnText, value: totalReturn),
+                      const SizedBox(height: 4),
+                      const Text("Total Return",
+                          style: TextStyle(fontSize: summaryLabelFontSize)),
+                    ],
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturnPercent;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    PnlBadge(
+                        text: totalReturnPercentText,
+                        value: totalReturnPercent),
+                    const SizedBox(height: 4),
+                    const Text("Total Return %",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
+                  ]),
+                ),
+              ),
+            ])));
+  }
+
+  SingleChildScrollView buildDetailScrollView(ForexHolding holding) {
+    double? totalReturn = widget.brokerageUser.getDisplayValueForexHolding(
+        holding,
+        displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
+        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHolding(holding,
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
+        totalReturnPercent,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = widget.brokerageUser.getDisplayValueForexHolding(
+        holding,
+        displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
+        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHolding(holding,
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
+        todayReturnPercent,
+        displayValue: DisplayValue.todayReturnPercent);
+
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
@@ -734,6 +836,40 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   ]),
                 ),
               ),
+              Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(
+                        holding.averageCost < 0.001
+                            ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                                .format(holding.averageCost)
+                            : formatCurrency.format(holding.averageCost),
+                        style: const TextStyle(fontSize: summaryValueFontSize)),
+                    const SizedBox(height: 4),
+                    const Text("Average Cost",
+                        style: TextStyle(fontSize: summaryLabelFontSize))
+                  ])),
+              Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(formatCurrency.format(holding.totalCost),
+                        style: const TextStyle(fontSize: summaryValueFontSize)),
+                    const SizedBox(height: 4),
+                    const Text("Total Cost",
+                        style: TextStyle(fontSize: summaryLabelFontSize))
+                  ])),
+              if (holding.quoteObj != null) ...[
+                Padding(
+                    padding: const EdgeInsets.all(summaryEgdeInset),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(formatCurrency.format(holding.quoteObj!.markPrice),
+                          style:
+                              const TextStyle(fontSize: summaryValueFontSize)),
+                      const SizedBox(height: 4),
+                      const Text("Mark Price",
+                          style: TextStyle(fontSize: summaryLabelFontSize))
+                    ])),
+              ]
             ])));
   }
 }

@@ -98,6 +98,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Instrument Chart Robustness
 - ✅ Automated Trading Status Display & Emergency Stop
 - ✅ Performance Benchmark Chart Date Range Selection
+- ✅ Trade Signal Notifications (Push notifications with filtering)
 
 ### v0.25.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
@@ -425,6 +426,10 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Create and use custom technical indicators
 - [x] **Performance Dashboard** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
     - [x] Track signal performance metrics (Signal Strength & Indicator Performance)
+- [x] **Trade Signal Notifications** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):
+    - [x] Configurable push notifications for trade signals
+    - [x] Filtering by signal type, symbol, and confidence
+    - [x] Deep linking to instrument details
 
 ### Backtesting
 - [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):

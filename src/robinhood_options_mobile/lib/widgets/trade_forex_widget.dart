@@ -1,0 +1,582 @@
+import 'dart:convert';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
+
+class TradeForexWidget extends StatefulWidget {
+  const TradeForexWidget(this.brokerageUser, this.service,
+      {super.key,
+      required this.analytics,
+      required this.observer,
+      required this.holding,
+      this.positionType = "Buy"});
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final BrokerageUser brokerageUser;
+  final IBrokerageService service;
+  final ForexHolding holding;
+  final String? positionType;
+
+  @override
+  State<TradeForexWidget> createState() => _TradeForexWidgetState();
+}
+
+class _TradeForexWidgetState extends State<TradeForexWidget> {
+  final _formKey = GlobalKey<FormState>();
+  String? positionType;
+  String orderType = "Market"; // Market, Limit
+  String timeInForce = "gtc";
+
+  var quantityCtl = TextEditingController(text: '1');
+  var priceCtl = TextEditingController();
+  var stopPriceCtl = TextEditingController();
+
+  bool placingOrder = false;
+  bool _isPreviewing = false;
+  double estimatedTotal = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    positionType = widget.positionType;
+    widget.analytics.logScreenView(screenName: 'Trade Forex');
+
+    double price = widget.holding.quoteObj?.markPrice ?? 0.0;
+    priceCtl.text = price.toString();
+    stopPriceCtl.text = price.toString();
+
+    quantityCtl.addListener(_updateEstimates);
+    priceCtl.addListener(_updateEstimates);
+    stopPriceCtl.addListener(_updateEstimates);
+    _updateEstimates();
+  }
+
+  @override
+  void dispose() {
+    quantityCtl.dispose();
+    priceCtl.dispose();
+    stopPriceCtl.dispose();
+    super.dispose();
+  }
+
+  void _updateEstimates() {
+    if (!mounted) return;
+    setState(() {
+      double qty = double.tryParse(quantityCtl.text) ?? 0;
+      double price = 0;
+      if (orderType == 'Limit') {
+        price = double.tryParse(priceCtl.text) ?? 0;
+      } else {
+        // Market
+        price = widget.holding.quoteObj?.markPrice ?? 0;
+      }
+      estimatedTotal = qty * price;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final quote = widget.holding.quoteObj;
+    final currentPrice = quote?.markPrice ?? 0.0;
+
+    return Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${widget.holding.currencyCode} Crypto'),
+              Text(formatCurrency.format(currentPrice),
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: Colors.white70)),
+            ],
+          ),
+        ),
+        body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Balance Info
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Consumer<AccountStore>(
+                  builder: (context, accountStore, child) {
+                    final buyingPower = accountStore.items.isNotEmpty
+                        ? accountStore.items.first.buyingPower
+                        : null;
+                    return Text(
+                      buyingPower != null
+                          ? "Buying Power: ${formatCurrency.format(buyingPower)}"
+                          : "",
+                      style: theme.textTheme.bodySmall,
+                    );
+                  },
+                ),
+                Text(
+                  "Available: ${formatNumber.format(widget.holding.quantity ?? 0)} ${widget.holding.currencyCode}",
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Order Side (Buy/Sell)
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: "Buy",
+                  label: Text("Buy"),
+                  icon: Icon(Icons.add),
+                ),
+                ButtonSegment(
+                  value: "Sell",
+                  label: Text("Sell"),
+                  icon: Icon(Icons.remove),
+                ),
+              ],
+              selected: {positionType ?? "Buy"},
+              onSelectionChanged: (Set<String> newSelection) {
+                setState(() {
+                  positionType = newSelection.first;
+                });
+              },
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                  (Set<WidgetState> states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return positionType == "Buy"
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : Colors.red.withValues(alpha: 0.2);
+                    }
+                    return null;
+                  },
+                ),
+                foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                  (Set<WidgetState> states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return positionType == "Buy" ? Colors.green : Colors.red;
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Order Type
+            DropdownButtonFormField<String>(
+              initialValue: orderType,
+              decoration: const InputDecoration(
+                labelText: "Order Type",
+                border: OutlineInputBorder(),
+                filled: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              onChanged: (String? newValue) {
+                setState(() {
+                  orderType = newValue!;
+                  _updateEstimates();
+                });
+              },
+              items: <String>[
+                'Market',
+                'Limit',
+              ].map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // Units
+            TextFormField(
+              controller: quantityCtl,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter quantity';
+                }
+                final qty = double.tryParse(value);
+                if (qty == null || qty <= 0) {
+                  return 'Invalid quantity';
+                }
+                if (positionType == 'Sell') {
+                  if (qty > (widget.holding.quantity ?? 0)) {
+                    return 'Not enough units to sell';
+                  }
+                } else {
+                  // Check buying power
+                  final accountStore =
+                      Provider.of<AccountStore>(context, listen: false);
+                  if (accountStore.items.isNotEmpty) {
+                    final buyingPower = accountStore.items.first.buyingPower;
+                    if (buyingPower != null && estimatedTotal > buyingPower) {
+                      return 'Not enough buying power';
+                    }
+                  }
+                }
+                return null;
+              },
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,8}'))
+              ],
+              decoration: const InputDecoration(
+                labelText: "Units",
+                border: OutlineInputBorder(),
+                filled: true,
+                suffixText: "units",
+              ),
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+
+            // Limit Price (Conditional)
+            if (orderType == 'Limit') ...[
+              TextFormField(
+                controller: priceCtl,
+                validator: (value) {
+                  if (orderType == 'Limit') {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter limit price';
+                    }
+                    final price = double.tryParse(value);
+                    if (price == null || price <= 0) {
+                      return 'Invalid price';
+                    }
+                  }
+                  return null;
+                },
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                ],
+                decoration: const InputDecoration(
+                  labelText: "Limit Price",
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  prefixText: "\$",
+                ),
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Time in Force
+            DropdownButtonFormField<String>(
+              initialValue: timeInForce,
+              decoration: const InputDecoration(
+                labelText: "Time in Force",
+                border: OutlineInputBorder(),
+                filled: true,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              onChanged: (String? newValue) {
+                setState(() {
+                  timeInForce = newValue!;
+                });
+              },
+              items: <String>['gtc', 'gfd', 'ioc', 'opg']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value.toUpperCase()),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+
+            // Summary Section
+            Card(
+              elevation: 0,
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Estimated Total",
+                            style: theme.textTheme.bodyLarge),
+                        Text(
+                          formatCurrency.format(estimatedTotal),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Consumer<AccountStore>(
+                      builder: (context, accountStore, child) {
+                        final buyingPower = accountStore.items.isNotEmpty
+                            ? accountStore.items[0].buyingPower
+                            : 0.0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text("Buying Power",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant)),
+                            Text(formatCurrency.format(buyingPower),
+                                style: theme.textTheme.bodyMedium),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Action Button
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                label: const Text(
+                  "Preview Order",
+                  style: TextStyle(fontSize: 18),
+                ),
+                icon: placingOrder
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ))
+                    : const Icon(Icons.visibility),
+                onPressed: placingOrder || estimatedTotal <= 0
+                    ? null
+                    : () {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isPreviewing = true;
+                          });
+                        }
+                      },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            "Review Order",
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Text(
+                    "$positionType ${quantityCtl.text} units",
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.holding.currencyCode,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: theme.colorScheme.secondary),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildPreviewRow("Order Type", orderType),
+                  if (orderType == 'Limit')
+                    _buildPreviewRow("Limit Price",
+                        formatCurrency.format(double.parse(priceCtl.text))),
+                  _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: Divider(),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Estimated Total", style: theme.textTheme.bodyLarge),
+                      Text(
+                        formatCurrency.format(estimatedTotal),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Consumer<AccountStore>(
+                    builder: (context, accountStore, child) {
+                      final buyingPower = accountStore.items.isNotEmpty
+                          ? accountStore.items[0].buyingPower
+                          : 0.0;
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SlideToConfirm(
+            onConfirmed: () {
+              _placeOrder();
+            },
+            text: "Slide to $positionType",
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            sliderColor: positionType == "Buy" ? Colors.green : Colors.red,
+            iconColor: Colors.white,
+            textColor: theme.colorScheme.onSurface,
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            child: const Text("Edit Order"),
+            onPressed: () {
+              setState(() {
+                _isPreviewing = false;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviewRow(String label, String value, {bool isBold = false}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                  color: theme.colorScheme.onSurface)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _placeOrder() async {
+    setState(() {
+      placingOrder = true;
+    });
+
+    try {
+      String type = 'market';
+      double? price;
+
+      if (orderType == 'Limit') {
+        type = 'limit';
+        price = double.parse(priceCtl.text);
+      } else {
+        // Market
+        price = null;
+      }
+
+      var orderJson = await widget.service.placeForexOrder(
+        widget.brokerageUser,
+        widget.holding.quoteObj!.id, // pairId
+        positionType == "Buy" ? "buy" : "sell",
+        price,
+        double.parse(quantityCtl.text),
+        type: type,
+        timeInForce: timeInForce,
+      );
+
+      debugPrint(orderJson.body);
+
+      if (!mounted) return;
+
+      if (orderJson.statusCode != 200 && orderJson.statusCode != 201) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: ${jsonEncode(orderJson.body)}"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      } else {
+        // var newOrder = InstrumentOrder.fromJson(jsonDecode(orderJson.body));
+        // Crypto orders might have different structure.
+        // For now just show success.
+
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Order placed successfully!"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          placingOrder = false;
+        });
+      }
+    }
+  }
+}

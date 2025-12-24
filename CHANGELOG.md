@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Automated Trading:**
-  - **Emergency Stop:** Added long-press functionality to the auto-trade toggle for immediate emergency stop.
+  - **Emergency Stop:** Added "Emergency Stop" button for immediate cessation of automated trading.
   - **Status Display:** Updated auto-trade status display for better visibility of system state.
 - **Benchmark Chart:**
   - **Date Range Selection:** Added ability to select different date ranges (1W, 1M, 3M, YTD, 1Y, ALL) for benchmark performance comparison.
