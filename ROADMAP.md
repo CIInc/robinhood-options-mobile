@@ -9,14 +9,14 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ### Quick Stats
 - **Completed Features**: 12 major categories (80+ items)
-- **Planned Enhancements**: 12 categories (120+ items)
+- **Planned Enhancements**: 16 categories (140+ items)
 - **Open GitHub Issues**: 12 tracked features
-- **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features
+- **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
 - ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
-- 🎯 **Upcoming**: Plaid/Schwab/Fidelity/Interactive Brokers Integrations
+- 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
 ## Release Versions & Timeline
 
@@ -218,6 +218,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Legal documentation
 - Multi-jurisdiction support
 
+### v0.40.0+ (2027+)
+**Future Vision & Frontier Tech**
+- Multi-Agent Collaboration Systems
+- Zero-Knowledge Proof Portfolio Verification
+- Decentralized Identity (DID) Integration
+- AR/VR Spatial Trading Interface
+- Voice-Activated Trading
+- DeFi Protocol Integration
+
 ### Trading Automation & Execution
 - **Core Trading**: Stock Orders (✅), Multi-Leg Options (✅), Futures Trading, Crypto/Forex Trading
 - **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute (✅), Trade Approval Workflow (✅)
@@ -296,9 +305,9 @@ Mapping features to specific versions helps users anticipate releases and unders
    - **Timeline Impact**: Could delay Custom Alerts by 2-4 weeks if not architected correctly
    - **Mitigation Owner**: Backend + DevOps Team
 
-3. **Machine Learning Signal Optimization** (Impacts: Q1 2026 - Priority 1, 5-8 weeks)
-   - **Challenge**: Building effective ML models requires significant historical data and tuning
-   - **Mitigation**: Start with simple statistical models; consider Firebase ML or TensorFlow Lite; A/B test
+3. **Advanced Machine Learning Models** (Impacts: Q1 2026 - Priority 1, 5-8 weeks)
+   - **Challenge**: Building effective Deep Learning/RL models requires significant historical data and tuning
+   - **Mitigation**: Start with simple statistical models (done); consider Firebase ML or TensorFlow Lite; A/B test
    - **Timeline Impact**: Could slip 2-3 weeks due to model training/validation cycles
    - **Mitigation Owner**: Data Science + AI Engineering Team
 
@@ -486,6 +495,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Generative AI Assistant** ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)):
     - [x] Integrate `firebase_ai` for natural language queries
     - [x] Implement portfolio insights and summaries (via GenerativeActionsWidget)
+- [x] **Investment Profile** ([#128](https://github.com/CIInc/robinhood-options-mobile/issues/128)):
+    - [x] User settings for Investment Goals, Time Horizon, Risk Tolerance
+    - [x] Integration with AI prompts for personalized advice
 
 ### Infrastructure & Security
 - [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system
@@ -516,6 +528,7 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
 - [ ] **Margin & Risk**: SPAN-style margin metrics and risk layer ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67)) - **Large** (4-6 weeks)
 - [ ] **P&L Tracking**: Realized P&L and Day P&L using settlement price ([#102](https://github.com/CIInc/robinhood-options-mobile/issues/102)) - **Medium** (2-3 weeks)
 - [ ] **Roll Assistant**: Alerts near expiration and auto-suggest roll strikes ([#103](https://github.com/CIInc/robinhood-options-mobile/issues/103)) - **Medium** (2-3 weeks)
+- [ ] **Futures Roll Logic**: Automated detection and execution of contract rolls - **Medium** (2-3 weeks)
 - [ ] **Futures Detail Page**: Navigate to individual futures contract details ([#104](https://github.com/CIInc/robinhood-options-mobile/issues/104)) - **Small** (1 week)
 - [ ] **Futures Trading**: Place futures orders directly from the app ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72)) - **Large** (3-4 weeks)
 - [ ] **Futures Charts**: Historical price charts for futures contracts ([#106](https://github.com/CIInc/robinhood-options-mobile/issues/106)) - **Medium** (2-3 weeks)
@@ -537,6 +550,7 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
 
 #### Trading Orders & Execution
 - [ ] **Order Templates**: Save and reuse order templates - **Small** (1 week)
+- [ ] **Dynamic Position Sizing**: Adjust trade size based on ATR volatility (RiskGuard expansion) - **Medium** (2-3 weeks)
 
 ### Priority 2: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
 
@@ -561,6 +575,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Dividend Tracking**: Track and project dividend income - **Small** (1-2 weeks)
 - [ ] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
 - [ ] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
+- [ ] **ESG Scoring**: Portfolio Environmental, Social, and Governance analysis - **Small** (1-2 weeks)
 - [ ] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
 - [ ] **Import/Export**: Import from other brokerages, export to Excel/CSV - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
@@ -574,6 +589,13 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
     - [ ] Add chat interface for market questions
     - [ ] Implement `generateInvestmentThesis`
+    - [ ] **Personalized AI Coach**: Analyze user's manual trading history to identify biases and suggest improvements - **Large** (5-7 weeks)
+    - [ ] **Natural Language Interface**: "Chat with your Portfolio" feature to ask questions about performance and risk - **Large** (6-8 weeks)
+- [ ] **Sentiment Analysis 2.0**: Real-time video/audio sentiment analysis (e.g., Fed speeches) - **Large** (4-5 weeks)
+- [ ] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
+- [ ] **Specialized AI Agents**:
+    - [ ] **Sentiment Agent**: Dedicated agent for analyzing news/social sentiment and adjusting trade confidence - **Medium** (3-4 weeks)
+    - [ ] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [ ] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
@@ -609,6 +631,15 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Performance Analytics**: Group leaderboards and performance tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77)) - **Medium** (2-3 weeks)
 - [ ] **Activity Feed**: Real-time feed of member trades ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78)) - **Medium** (2-3 weeks)
 - [ ] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
+- [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
+- [ ] **Public Leaderboards**: Ranked lists of top-performing public investor groups and strategies - **Medium** (2-3 weeks)
+- [ ] **Verified Track Records**: Cryptographic proof of historical performance for public profiles - **Medium** (3-4 weeks)
+
+#### Copy Trading Evolution
+- [ ] **Trader Comparison**: Side-by-side performance comparison of potential leaders - **Medium** (2-3 weeks)
+- [ ] **Time-Based Analysis**: Cumulative P&L growth visualization over time - **Medium** (2-3 weeks)
+- [ ] **Export History**: CSV export of copy trade history and performance - **Small** (1 week)
+- [ ] **Server-Side Auto-Execute**: Secure server-side execution to reduce latency and remove client dependency (requires secure key management) - **Large** (4-6 weeks)
 
 #### Social & Community ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [ ] **Social Signal Sharing**: Share strategies with community - **Medium** (2-3 weeks)
@@ -645,6 +676,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 #### Mobile Experience ([Tracking: #117](https://github.com/CIInc/robinhood-options-mobile/issues/117))
 - [ ] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
 - [ ] **Home Screen Widgets**: iOS and Android home screen widgets ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86)) - **Medium** (2-3 weeks)
+- [ ] **Smart Watch App**: Apple Watch and Wear OS companion apps - **Large** (4-5 weeks)
 - [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) - **Medium** (2-3 weeks)
 - [ ] **Siri/Google Assistant**: Voice command integration - **Medium** (2-3 weeks)
 - [ ] **Dark Mode Customization**: Advanced theme controls - **Small** (1 week)
@@ -714,19 +746,27 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Robinhood Crypto** ([#65](https://github.com/CIInc/robinhood-options-mobile/issues/65)): Crypto trading support - **Medium** (2-3 weeks)
 
 ### Technical Debt & UI Improvements ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
-- [ ] **Web Support**: Introduce web banners across widgets (Home, Search, UserInfo, etc.) - **Medium** (2-3 weeks)
+- [ ] **Web Support**: - **Medium** (2-3 weeks)
+    - [ ] Introduce web banners across widgets (Home, Search, UserInfo, etc.)
+    - [ ] Optimize layout for larger screens (Web/Tablet)
 - [ ] **Performance**: Optimize market data batch calls in `InstrumentOptionChainWidget` - **Small** (1-2 weeks)
 - [ ] **State Management**: Fix `setState` usage in position widgets (`ForexPositions`, `OptionPositions`, `InstrumentPositions`) - **Medium** (2-3 weeks)
 - [ ] **Charts**: Fix viewport and selection issues in `IncomeTransactionsWidget` - **Small** (1-2 weeks)
 - [ ] **Chart Value Display** ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)): Combine $ and % values in bar charts - **Small** (1 week)
 - [ ] **Animated Price Updates** ([#9](https://github.com/CIInc/robinhood-options-mobile/issues/9)): Animate price change labels on market data refresh - **Small** (1 week)
 - [ ] **Synchronized Scroll** ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)): Synchronize scrolling of portfolio position rows - **Small** (1 week)
+- [ ] **User Preferences**: Migrate user preferences to `FutureBuilder` in `UserWidget` - **Small** (1 week)
+- [ ] **Copy Trading**: Show detailed trade info in `CopyTradingDashboardWidget` - **Small** (1 week)
+- [ ] **Cash Balance**: Investigate and fix cash balance refresh bug in `home_widget.dart` - **Small** (1 week)
 
 ### Code Quality & Maintenance ([Tracking: #125](https://github.com/CIInc/robinhood-options-mobile/issues/125))
 - [ ] **Code Quality**: - **Medium** (2-3 weeks)
     - [ ] Enable stricter linting rules in `analysis_options.yaml`
     - [ ] Resolve `deprecated_member_use` warnings (e.g., `marketValue` in `InstrumentPosition`)
     - [ ] Migrate deprecated API endpoints (e.g., Robinhood search)
+    - [ ] **Migrate to Dart 3**: Update SDK constraints and fix breaking changes - **Medium** (2-3 weeks)
+    - [ ] **Complete Plaid Service**: Implement missing methods (`getPortfolios`, `getNummusHoldings`, `getInstrumentBySymbol`, `getOptionInstrumentByIds`, `getOptionMarketDataByIds`, `streamDividends`, `streamLists`) - **Large** (3-4 weeks)
+    - [ ] **Complete Schwab Service**: Implement missing methods (`getPortfolios`, `getNummusHoldings`, `getInstrumentBySymbol`, `getOptionInstrumentByIds`, `getOptionMarketDataByIds`, `streamDividends`, `streamLists`, `refreshPositionQuote`) - **Large** (3-4 weeks)
 
 ### Testing & Quality Assurance
 - [ ] **Testing**: - **Large** (6-8 weeks)
@@ -751,4 +791,128 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **API Documentation**: Comprehensive API reference ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94)) - **Medium** (2-3 weeks)
 - [ ] **Developer Guide**: Onboarding guide for new contributors ([#95](https://github.com/CIInc/robinhood-options-mobile/issues/95)) - **Medium** (2-3 weeks)
 - [ ] **ADRs**: Architecture Decision Records ([#96](https://github.com/CIInc/robinhood-options-mobile/issues/96)) - **Small** (1-2 weeks)
+
+### Priority 3.5: Futures & Advanced Strategy (Q2 2026 - Apr-Jun 2026)
+
+**Target:** Complete the futures trading experience and enhance strategy validation with professional-grade tools.
+
+**Why This Priority Matters:**
+Futures trading requires distinct risk management tools compared to equities. Providing these tools (SPAN margin, Greeks, roll assistance) attracts serious traders and increases platform stickiness.
+
+**Business Impact:**
+- Attracts high-volume futures traders
+- Increases trading volume and potential revenue
+- Reduces user churn to specialized futures platforms
+
+#### Futures Enhancements ([Tracking: #126](https://github.com/CIInc/robinhood-options-mobile/issues/126))
+- [ ] **Margin & Risk Metrics**: SPAN-style summary, maintenance requirements, and margin utilization.
+- [ ] **Realized P&L**: Track realized P&L using trade history for futures contracts.
+- [ ] **Contract Roll Assistant**: Alerts near expiration, auto-suggest roll strikes/months, and one-tap roll execution.
+- [ ] **Advanced Analytics**:
+    - [ ] Greeks (Delta, Gamma, Theta, Vega) for options on futures.
+    - [ ] Term structure analytics (Contango/Backwardation visualization).
+    - [ ] Volatility overlays and seasonal tendencies.
+- [ ] **Portfolio Risk**: Aggregated VaR (Value at Risk) and Expected Shortfall calculations including futures positions.
+
+#### Advanced Strategy Validation
+- [ ] **Walk-Forward Analysis**: Validate strategies by optimizing on a window and testing on the next, rolling forward - **Large** (4-5 weeks)
+- [ ] **Monte Carlo Simulation**: Stress test strategies with randomized trade ordering and market conditions - **Medium** (3-4 weeks)
+- [ ] **Robustness Matrix**: Heatmap of strategy performance across varying parameter sets - **Medium** (2-3 weeks)
+
+### Priority 4: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
+
+**Target:** Polish UI/UX, enhance security, and prepare for app store releases
+
+**Why This Priority Matters:**
+Q3-Q4 transitions from feature development to polish and compliance. Security is non-negotiable for financial apps (prevents app store rejection + data breaches). Performance optimization is critical pre-launch (app store reviews focus on speed/stability). CI/CD infrastructure improves team velocity by 50%+. This priority enables production readiness and regulatory approval. Strategic importance: **Production Readiness & App Store Launch**
+
+**Business Impact:**
+- Security compliance: Mandatory for app store release
+- Performance: 4.7+ star rating requires <0.1% crash rate
+- CI/CD: 50% faster deployments
+- Mobile polish: 3-5 star rating difference
+
+**Technical Complexity:** High (security, compliance, infrastructure)
+**User Impact:** Critical (required for launch)
+**Revenue Impact:** Critical (app store release enables monetization)
+
+#### Mobile Experience ([Tracking: #117](https://github.com/CIInc/robinhood-options-mobile/issues/117))
+- [ ] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
+- [ ] **Home Screen Widgets**: iOS and Android home screen widgets ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86)) - **Medium** (2-3 weeks)
+- [ ] **Smart Watch App**: Apple Watch and Wear OS companion apps - **Large** (4-5 weeks)
+- [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) - **Medium** (2-3 weeks)
+- [ ] **Siri/Google Assistant**: Voice command integration - **Medium** (2-3 weeks)
+- [ ] **Dark Mode Customization**: Advanced theme controls - **Small** (1 week)
+- [ ] **Tablet Optimization**: Optimized layouts for tablets - **Medium** (2-3 weeks)
+- [ ] **Landscape Mode**: Full landscape support - **Medium** (2-3 weeks)
+- [ ] **Haptic Feedback**: Vibration feedback for actions - **Small** (1 week)
+- [ ] **3D Touch/Long Press**: Gesture shortcuts - **Small** (1 week)
+
+#### Infrastructure & Security
+- [ ] **Testing Framework**: Comprehensive unit and integration tests - **Large** (4-6 weeks)
+- [ ] **Security Audit**: Third-party security assessment - **Medium** (2-3 weeks)
+- [ ] **Biometric Authentication**: Face/fingerprint login - **Small** (1-2 weeks)
+- [ ] **End-to-End Encryption**: Sensitive data encryption - **Medium** (2-3 weeks)
+- [ ] **Compliance**: SEC/regulatory compliance automation - **Large** (4-6 weeks)
+- [ ] **CI/CD Pipeline**: Automated testing and deployment - **Large** (3-4 weeks)
+- [ ] **Performance Optimization**: App size and speed improvements - **Medium** (2-3 weeks)
+- [ ] **Mock Brokerage Service** ([#5](https://github.com/CIInc/robinhood-options-mobile/issues/5)): - **Medium** (2-3 weeks)
+    - [ ] Implement `streamList` and `refreshPositionQuote` in `demo_service.dart`
+    - [ ] Implement `placeOptionsOrder` and `placeMultiLegOptionsOrder` simulation
+    - [ ] Implement `search` and `getForexQuoteByIds`
+- [ ] **AI Summaries** ([#21](https://github.com/CIInc/robinhood-options-mobile/issues/21)): AI-driven portfolio summaries - **Medium** (2-3 weeks)
+- [ ] **Charting Library Migration**: Migrate to `fl_chart` for better performance - **Medium** (2-3 weeks)
+- [ ] **Server-Side Caching**: Redis/Firestore caching for market data - **Medium** (2-3 weeks)
+- [ ] **Web Companion App**: Read-only web interface for portfolio monitoring and analysis (Phase 1 of Web Platform) - **Large** (6-8 weeks)
+- [ ] **Web Platform**: Full-featured web interface for desktop trading and analysis - **Extra Large** (3-4 months)
+
+### Education & Learning ([Tracking: #119](https://github.com/CIInc/robinhood-options-mobile/issues/119))
+- [ ] Investment strategy guides - **Medium** (2-3 weeks)
+- [ ] Options education modules - **Medium** (2-3 weeks)
+- [ ] Interactive tutorials - **Medium** (2-3 weeks)
+- [ ] Video explanations - **Large** (3-4 weeks)
+- [ ] Glossary of terms - **Small** (1 week)
+- [ ] Market hours info - **Small** (1 week)
+- [ ] FAQ section - **Small** (1 week)
+- [ ] Webinar integration - **Large** (3-4 weeks)
+- [ ] **Gamified Learning Path**:
+    - [ ] XP and Leveling system based on educational modules completed - **Medium** (2-3 weeks)
+    - [ ] "Paper Trading Challenges" with rewards - **Medium** (2-3 weeks)
+
+### Priority 5: Future Vision & Frontier Tech (2027+)
+
+**Target:** Next-generation trading technologies and decentralized finance
+
+**Why This Priority Matters:**
+Staying ahead of the curve requires exploring frontier technologies. Decentralized identity and zero-knowledge proofs allow for privacy-preserving social trading (proving returns without revealing trades). Multi-agent systems represent the next evolution of algorithmic trading.
+
+**Business Impact:**
+- Establishes RealizeAlpha as a technological leader
+- Opens new revenue streams in DeFi and data licensing
+- Future-proofs the platform against technological shifts
+
+#### Advanced AI & Agentic Systems
+- [ ] **Multi-Agent Collaboration**: Specialized agents (Macro, Technical, Sentiment) that debate and vote on trade decisions
+- [ ] **Natural Language Strategy Compilation**: Convert plain English descriptions into executable trading strategies
+- [ ] **Reinforcement Learning Models**: Self-optimizing agents that learn from market conditions in real-time
+- [ ] **Autonomous DAO Trading**: AI agents managing DAO treasuries with on-chain governance
+
+#### Decentralized Finance (DeFi) & Web3
+- [ ] **Zero-Knowledge Proofs (ZKP)**: Prove portfolio performance and risk metrics without revealing specific holdings
+- [ ] **Decentralized Identity (DID)**: Portable trader reputation and history across platforms
+- [ ] **On-Chain Trade Verification**: Cryptographic verification of trade execution and timing
+- [ ] **DeFi Protocol Integration**: Direct interaction with major DeFi lending and trading protocols
+
+#### Immersive Experience
+- [ ] **AR/VR Trading Interface**: Spatial computing interface for multi-dimensional data visualization (Vision Pro/Quest)
+- [ ] **Voice-Activated Trading**: Hands-free execution and portfolio management via voice commands
+- [ ] **Holographic Charting**: 3D visualization of volatility surfaces and option chains
+
+## Feedback & Contribution
+
+We value community feedback! If you have suggestions for the roadmap or want to contribute:
+1. **Open an Issue**: Submit feature requests or bug reports on GitHub.
+2. **Join the Discussion**: Participate in our community forums (coming soon).
+3. **Submit a PR**: We welcome contributions! See our [Contribution Guide](CONTRIBUTING.md).
+
 
