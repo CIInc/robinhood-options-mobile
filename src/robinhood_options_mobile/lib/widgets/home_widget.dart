@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
@@ -197,36 +198,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   _HomePageState();
 
   PortfolioHistoricals? _previousPortfolioHistoricals;
-
-  // Badge helpers for portfolio historical chart change metrics
-  Color _pnlColor(double? value) {
-    if (value == null) return Colors.grey;
-    if (value > 0) return Colors.green;
-    if (value < 0) return Colors.red;
-    return Colors.grey;
-  }
-
-  Widget _pnlBadge(String text, double? value, double fontSize,
-      {bool neutral = false}) {
-    var color = neutral
-        ? Theme.of(context).colorScheme.onSurfaceVariant
-        : _pnlColor(value);
-    var backgroundColor = neutral
-        ? Theme.of(context).colorScheme.surfaceContainerHighest
-        : color.withOpacity(0.1);
-
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3))),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w500,
-                color: color)));
-  }
 
   /*
   @override
@@ -1092,14 +1063,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
-                                                  _pnlBadge(
-                                                      formatCurrency.format(
-                                                          selection != null
+                                                  PnlBadge(
+                                                      text: formatCurrency
+                                                          .format(selection !=
+                                                                  null
                                                               ? selection
                                                                   .adjustedCloseEquity
                                                               : close),
-                                                      null,
-                                                      summaryValueFontSize,
+                                                      fontSize:
+                                                          summaryValueFontSize,
                                                       neutral: true),
                                                   Text(
                                                       formatMediumDateTime
@@ -1122,10 +1094,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
-                                                  _pnlBadge(
-                                                      returnText,
-                                                      changeInPeriod,
-                                                      summaryValueFontSize),
+                                                  PnlBadge(
+                                                      text: returnText,
+                                                      value: changeInPeriod,
+                                                      fontSize:
+                                                          summaryValueFontSize),
                                                   const Text("Change",
                                                       style: TextStyle(
                                                           fontSize:
@@ -1137,11 +1110,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 summaryEgdeInset), //.symmetric(horizontal: 6),
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: <Widget>[
-                                                  _pnlBadge(
-                                                      returnPercentText,
-                                                      changePercentInPeriod,
-                                                      summaryValueFontSize),
+                                                children: [
+                                                  PnlBadge(
+                                                      text: returnPercentText,
+                                                      value:
+                                                          changePercentInPeriod,
+                                                      fontSize:
+                                                          summaryValueFontSize),
                                                   const Text("Change %",
                                                       style: TextStyle(
                                                           fontSize:

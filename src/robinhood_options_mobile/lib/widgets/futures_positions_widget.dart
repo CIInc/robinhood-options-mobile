@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/futures_position_store.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 
 class FuturesPositionsWidget extends StatelessWidget {
   final bool showList;
@@ -9,56 +10,6 @@ class FuturesPositionsWidget extends StatelessWidget {
 
   const FuturesPositionsWidget(
       {super.key, this.showList = false, this.onTapHeader});
-
-  Color _pnlColor(BuildContext context, double v) {
-    if (v > 0) return Colors.green;
-    if (v < 0) return Colors.red;
-    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-  }
-
-  Widget _pnlBadge(BuildContext context, String? text, double? value) {
-    final base = _pnlColor(context, value ?? 0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: badgeValueFontSize,
-            fontWeight: FontWeight.w600,
-            color: base),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
-
-  Widget _neutralBadge(BuildContext context, String? text) {
-    final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-    final bg = Theme.of(context)
-        .colorScheme
-        .surfaceContainerHighest
-        .withValues(alpha: 0.18);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: badgeValueFontSize,
-            fontWeight: FontWeight.w600,
-            color: fg),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,8 +161,9 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _neutralBadge(context,
-                                              formatCurrency.format(avg)),
+                                          PnlBadge(
+                                              text: formatCurrency.format(avg),
+                                              neutral: true),
                                           const SizedBox(height: 4),
                                           const Text("Cost",
                                               style: TextStyle(
@@ -227,10 +179,10 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _pnlBadge(
-                                              context,
-                                              formatCurrency.format(dayPnl),
-                                              dayPnl),
+                                          PnlBadge(
+                                              text:
+                                                  formatCurrency.format(dayPnl),
+                                              value: dayPnl),
                                           const SizedBox(height: 4),
                                           const Text("Day P&L",
                                               style: TextStyle(
@@ -246,10 +198,10 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _pnlBadge(
-                                              context,
-                                              formatCurrency.format(openPnl),
-                                              openPnl),
+                                          PnlBadge(
+                                              text: formatCurrency
+                                                  .format(openPnl),
+                                              value: openPnl),
                                           const SizedBox(height: 4),
                                           const Text("Open P&L",
                                               style: TextStyle(
@@ -265,8 +217,10 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _neutralBadge(context,
-                                              formatCurrency.format(totalCost)),
+                                          PnlBadge(
+                                              text: formatCurrency
+                                                  .format(totalCost),
+                                              neutral: true),
                                           const SizedBox(height: 4),
                                           const Text("Total Cost",
                                               style: TextStyle(
@@ -282,8 +236,10 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _neutralBadge(context,
-                                              '${multiplier.toStringAsFixed(0)}x'),
+                                          PnlBadge(
+                                              text:
+                                                  '${multiplier.toStringAsFixed(0)}x',
+                                              neutral: true),
                                           const SizedBox(height: 4),
                                           const Text("Multiplier",
                                               style: TextStyle(
@@ -299,10 +255,10 @@ class FuturesPositionsWidget extends StatelessWidget {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          _neutralBadge(
-                                              context,
-                                              formatCurrency
-                                                  .format(previousClosePrice)),
+                                          PnlBadge(
+                                              text: formatCurrency
+                                                  .format(previousClosePrice),
+                                              neutral: true),
                                           const SizedBox(height: 4),
                                           const Text("Prev Close",
                                               style: TextStyle(

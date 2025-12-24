@@ -38,7 +38,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - User interface for configuration
    - Real-time status monitoring with countdown timer
    - Auto-save functionality (no manual save button)
-   - Emergency stop controls
+   - **Emergency Stop:** Long-press the auto-trade toggle to immediately stop all automated trading activities.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
 
 6. **Backend Functions** (`functions/src/`)

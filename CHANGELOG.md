@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.24.0] - 2025-12-22
+## [0.24.0] - 2025-12-23
 
 ### Added
+- **Automated Trading:**
+  - **Emergency Stop:** Added long-press functionality to the auto-trade toggle for immediate emergency stop.
+  - **Status Display:** Updated auto-trade status display for better visibility of system state.
+- **Benchmark Chart:**
+  - **Date Range Selection:** Added ability to select different date ranges (1W, 1M, 3M, YTD, 1Y, ALL) for benchmark performance comparison.
 - **Copy Trading Enhancements:**
   - **Inverse Copying:** Added option to copy trades in the opposite direction (e.g., buy when the leader sells).
   - **Exit Strategies:** Implemented exit strategies for copied trades to manage risk and profit taking.

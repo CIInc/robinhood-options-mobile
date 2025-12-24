@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -55,32 +56,6 @@ class ForexPositionsWidget extends StatefulWidget {
 
 class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
-
-  Color _pnlColor(BuildContext context, double v) {
-    if (v > 0) return Colors.green;
-    if (v < 0) return Colors.red;
-    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-  }
-
-  Widget _pnlBadge(BuildContext context, String? text, double? value,
-      {double fontSize = badgeValueFontSize}) {
-    final base = _pnlColor(context, value ?? 0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: base.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: base.withOpacity(0.3)),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w500, color: base),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -693,7 +668,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(context, todayReturnText, todayReturn),
+                    PnlBadge(text: todayReturnText, value: todayReturn),
                     const SizedBox(height: 4),
                     const Text("Return Today",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
@@ -711,8 +686,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(
-                        context, todayReturnPercentText, todayReturnPercent),
+                    PnlBadge(
+                        text: todayReturnPercentText,
+                        value: todayReturnPercent),
                     const SizedBox(height: 4),
                     const Text("Return Today %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
@@ -728,13 +704,14 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(context, totalReturnText, totalReturn),
-                    const SizedBox(height: 4),
-                    const Text("Total Return",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
+                  child: Column(
+                    children: <Widget>[
+                      PnlBadge(text: totalReturnText, value: totalReturn),
+                      const SizedBox(height: 4),
+                      const Text("Total Return",
+                          style: TextStyle(fontSize: summaryLabelFontSize)),
+                    ],
+                  ),
                 ),
               ),
               InkWell(
@@ -748,8 +725,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(
-                        context, totalReturnPercentText, totalReturnPercent),
+                    PnlBadge(
+                        text: totalReturnPercentText,
+                        value: totalReturnPercent),
                     const SizedBox(height: 4),
                     const Text("Total Return %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),

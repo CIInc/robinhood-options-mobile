@@ -1536,10 +1536,11 @@ class _SearchWidgetState extends State<SearchWidget>
                             }
 
                             // Disable styling for indicators not in settings
-                            final opacity = isIndicatorEnabled ? 1.0 : 0.4;
+                            final opacity = 1.0;
+                             // isIndicatorEnabled ? 1.0 : 0.4;
                             final disabledColor = Colors.grey;
-                            final finalTagColor =
-                                isIndicatorEnabled ? tagColor : disabledColor;
+                            final finalTagColor = tagColor;
+                              // isIndicatorEnabled ? tagColor : disabledColor;
 
                             return Container(
                               padding: const EdgeInsets.symmetric(

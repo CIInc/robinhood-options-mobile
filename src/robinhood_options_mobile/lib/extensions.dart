@@ -1,12 +1,12 @@
-extension EnumExtensions<T extends Enum> on T {
+extension EnumExtensions on Enum {
   String enumValue() {
     return toString().split('.').last;
   }
 }
 
-extension StringExtensions<T extends Enum> on String {
-  T parseEnum(List<T> values, T defaultValue) {
-    final Map<String, T> statusMap = {
+extension StringExtensions on String {
+  E parseEnum<E extends Enum>(List<E> values, E defaultValue) {
+    final Map<String, E> statusMap = {
       for (var status in values) status.enumValue(): status
     };
 

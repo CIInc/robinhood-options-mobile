@@ -89,13 +89,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Stock Orders (Direct placement)
 - ✅ Trading UI Refactor (Improved order preview & placement)
 
-### v0.24.0 ✅ (Released Dec 22, 2025)
-**Copy Trading Enhancements & Trade Signals**
+### v0.24.0 ✅ (Released Dec 23, 2025)
+**Copy Trading Enhancements, Trade Signals & Automated Trading**
 - ✅ Inverse Copying (Contrarian Mode)
 - ✅ Copy Trading Exit Strategies (TP/SL)
 - ✅ Copy Percentage & Advanced Filtering
 - ✅ Trade Signal Navigation Integration
 - ✅ Instrument Chart Robustness
+- ✅ Automated Trading Status Display & Emergency Stop
+- ✅ Performance Benchmark Chart Date Range Selection
 
 ### v0.25.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

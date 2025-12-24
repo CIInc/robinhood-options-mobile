@@ -52,9 +52,10 @@ class _OptionPositionsPageWidgetState extends State<OptionPositionsPageWidget> {
       SliverAppBar(
         centerTitle: false,
         title: Text("Options"),
-        floating: true,
-        snap: true,
-        pinned: false,
+        // floating: true,
+        // snap: true,
+        // pinned: false,
+        pinned: true,
         actions: [
           IconButton(
               icon: auth.currentUser != null

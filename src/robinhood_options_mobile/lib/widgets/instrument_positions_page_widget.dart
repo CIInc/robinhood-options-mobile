@@ -53,9 +53,10 @@ class _InstrumentPositionsPageWidgetState
       SliverAppBar(
         centerTitle: false,
         title: Text("Stocks & ETFs"),
-        floating: true,
-        snap: true,
-        pinned: false,
+        // floating: true,
+        // snap: true,
+        // pinned: false,
+        pinned: true,
         actions: [
           IconButton(
               icon: auth.currentUser != null

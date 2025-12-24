@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -70,56 +71,6 @@ class OptionPositionsWidget extends StatefulWidget {
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
-
-  // P&L badge helpers (mirrors instrument_positions_widget.dart for visual parity)
-  Color _pnlColor(BuildContext context, double v) {
-    if (v > 0) return Colors.green;
-    if (v < 0) return Colors.red;
-    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-  }
-
-  Widget _pnlBadge(BuildContext context, String? text, double? value,
-      {double fontSize = badgeValueFontSize}) {
-    final base = _pnlColor(context, value ?? 0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w600, color: base),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
-
-  // Neutral badge for Greeks & non-PnL metrics (avoid red/green sign semantics)
-  Widget _neutralBadge(BuildContext context, String? text,
-      {double fontSize = 12}) {
-    final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-    final bg = Theme.of(context)
-        .colorScheme
-        .surfaceContainerHighest
-        .withValues(alpha: 0.18);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w600, color: fg),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +420,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 title: Wrap(children: [
                   const Text(
                     "Options",
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style:
+                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
                   if (!widget.showList) ...[
                     SizedBox(
@@ -971,7 +923,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         child: Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, todayReturnText, todayReturn),
+            PnlBadge(text: todayReturnText, value: todayReturn),
             const SizedBox(height: 4),
             Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
           ]),
@@ -986,7 +938,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         child: Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, todayReturnPercentText, todayReturnPercent),
+            PnlBadge(text: todayReturnPercentText, value: todayReturnPercent),
             const SizedBox(height: 4),
             Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
           ]),
@@ -1001,7 +953,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         child: Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, totalReturnText, totalReturn),
+            PnlBadge(text: totalReturnText, value: totalReturn),
             const SizedBox(height: 4),
             Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
           ]),
@@ -1016,7 +968,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         child: Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, totalReturnPercentText, totalReturnPercent),
+            PnlBadge(text: totalReturnPercentText, value: totalReturnPercent),
             const SizedBox(height: 4),
             Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
           ]),
@@ -1035,7 +987,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(delta)),
+                    PnlBadge(text: formatNumber.format(delta), neutral: true),
                     const SizedBox(height: 4),
                     Text("Delta Δ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1047,7 +999,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(gamma)),
+                    PnlBadge(text: formatNumber.format(gamma), neutral: true),
                     const SizedBox(height: 4),
                     Text("Gamma Γ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1059,7 +1011,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(theta)),
+                    PnlBadge(text: formatNumber.format(theta), neutral: true),
                     const SizedBox(height: 4),
                     Text("Theta Θ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1071,7 +1023,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(vega)),
+                    PnlBadge(text: formatNumber.format(vega), neutral: true),
                     const SizedBox(height: 4),
                     Text("Vega v", style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1083,7 +1035,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(rho)),
+                    PnlBadge(text: formatNumber.format(rho), neutral: true),
                     const SizedBox(height: 4),
                     Text("Rho p", style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1095,8 +1047,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatPercentage.format(impliedVolatility)),
+                    PnlBadge(
+                        text: formatPercentage.format(impliedVolatility),
+                        neutral: true),
                     const SizedBox(height: 4),
                     Text("Impl. Vol.",
                         style: TextStyle(fontSize: labelFontSize)),
@@ -1107,27 +1060,31 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 Padding(
                   padding: const EdgeInsets.all(
                       greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatPercentage.format(chanceOfProfit)),
-                    const SizedBox(height: 4),
-                    Text("Chance", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
+                  child: Column(
+                    children: [
+                      PnlBadge(
+                          text: formatPercentage.format(chanceOfProfit),
+                          neutral: true),
+                      const SizedBox(height: 4),
+                      Text("Chance", style: TextStyle(fontSize: labelFontSize)),
+                    ],
+                  ),
                 )
               ],
               if (delta != null) ...[
                 Padding(
                   padding: const EdgeInsets.all(
                       greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatCompactNumber.format(openInterest)),
-                    const SizedBox(height: 4),
-                    Text("Open Interest",
-                        style: TextStyle(fontSize: labelFontSize)),
-                  ]),
+                  child: Column(
+                    children: [
+                      PnlBadge(
+                          text: formatCompactNumber.format(openInterest),
+                          neutral: true),
+                      const SizedBox(height: 4),
+                      Text("Open Interest",
+                          style: TextStyle(fontSize: labelFontSize)),
+                    ],
+                  ),
                 )
               ]
             ])));

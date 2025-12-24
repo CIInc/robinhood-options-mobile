@@ -42,9 +42,10 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
       SliverAppBar(
         centerTitle: false,
         title: Text("Crypto"),
-        floating: true,
-        snap: true,
-        pinned: false,
+        // floating: true,
+        // snap: true,
+        // pinned: false,
+        pinned: true,
         actions: [
           IconButton(
               icon: auth.currentUser != null

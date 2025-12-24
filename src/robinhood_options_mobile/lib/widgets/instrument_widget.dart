@@ -37,6 +37,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
@@ -1183,34 +1184,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   // Badge helpers extracted for reuse across detail & quote scroll rows.
-  Color _pnlColor(double? value) {
-    if (value == null) return Colors.grey;
-    if (value > 0) return Colors.green;
-    if (value < 0) return Colors.red;
-    return Colors.grey;
-  }
-
-  Widget _pnlBadge(String text, double? value, double fontSize,
-      {bool neutral = false}) {
-    var color = neutral
-        ? Theme.of(context).colorScheme.onSurfaceVariant
-        : _pnlColor(value);
-    var backgroundColor = neutral
-        ? Theme.of(context).colorScheme.surfaceContainerHighest
-        : color.withOpacity(0.1);
-
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3))),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w500,
-                color: color)));
-  }
 
   SingleChildScrollView _buildDetailScrollRow(
       InstrumentPosition ops, double valueFontSize, double labelFontSize,
@@ -1247,64 +1220,74 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(todayReturnText, todayReturn, valueFontSize),
+            PnlBadge(
+                text: todayReturnText,
+                value: todayReturn,
+                fontSize: valueFontSize),
             Text("Return Today", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                todayReturnPercentText, todayReturnPercent, valueFontSize),
+            PnlBadge(
+                text: todayReturnPercentText,
+                value: todayReturnPercent,
+                fontSize: valueFontSize),
             Text("Return Today %", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(totalReturnText, totalReturn, valueFontSize),
+            PnlBadge(
+                text: totalReturnText,
+                value: totalReturn,
+                fontSize: valueFontSize),
             Text("Total Return", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                totalReturnPercentText, totalReturnPercent, valueFontSize),
+            PnlBadge(
+                text: totalReturnPercentText,
+                value: totalReturnPercent,
+                fontSize: valueFontSize),
             Text("Total Return %", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                widget.brokerageUser.getDisplayText(ops.totalCost,
+            PnlBadge(
+                text: widget.brokerageUser.getDisplayText(ops.totalCost,
                     displayValue: DisplayValue.totalCost),
-                null,
-                valueFontSize,
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Cost", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                widget.brokerageUser.getDisplayText(ops.averageBuyPrice!,
+            PnlBadge(
+                text: widget.brokerageUser.getDisplayText(ops.averageBuyPrice!,
                     displayValue: DisplayValue.lastPrice),
-                null,
-                valueFontSize,
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Cost per share", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(formatCompactDateYear.format(ops.createdAt!), null,
-                valueFontSize,
+            PnlBadge(
+                text: formatCompactDateYear.format(ops.createdAt!),
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Opened", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(formatCompactDateYear.format(ops.updatedAt!), null,
-                valueFontSize,
+            PnlBadge(
+                text: formatCompactDateYear.format(ops.updatedAt!),
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Updated", style: TextStyle(fontSize: labelFontSize))
           ])),
@@ -1350,24 +1333,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(todayReturnText, todayReturn, valueFontSize),
+            PnlBadge(
+                text: todayReturnText,
+                value: todayReturn,
+                fontSize: valueFontSize),
             Text("Change Today", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                todayReturnPercentText, todayReturnPercent, valueFontSize),
+            PnlBadge(
+                text: todayReturnPercentText,
+                value: todayReturnPercent,
+                fontSize: valueFontSize),
             Text("Change Today %", style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                widget.brokerageUser.getDisplayText(ops.quoteObj!.bidPrice!,
+            PnlBadge(
+                text: widget.brokerageUser.getDisplayText(
+                    ops.quoteObj!.bidPrice!,
                     displayValue: DisplayValue.lastPrice),
-                null,
-                valueFontSize,
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Bid x ${ops.quoteObj!.bidSize}",
                 style: TextStyle(fontSize: labelFontSize))
@@ -1375,11 +1363,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                widget.brokerageUser.getDisplayText(ops.quoteObj!.askPrice!,
+            PnlBadge(
+                text: widget.brokerageUser.getDisplayText(
+                    ops.quoteObj!.askPrice!,
                     displayValue: DisplayValue.lastPrice),
-                null,
-                valueFontSize,
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Ask x ${ops.quoteObj!.askSize}",
                 style: TextStyle(fontSize: labelFontSize))
@@ -1387,12 +1375,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _pnlBadge(
-                widget.brokerageUser.getDisplayText(
+            PnlBadge(
+                text: widget.brokerageUser.getDisplayText(
                     ops.quoteObj!.adjustedPreviousClose!,
                     displayValue: DisplayValue.lastPrice),
-                null,
-                valueFontSize,
+                fontSize: valueFontSize,
                 neutral: true),
             Text("Previous Close", style: TextStyle(fontSize: labelFontSize))
           ])),

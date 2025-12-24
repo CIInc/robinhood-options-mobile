@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -58,32 +59,6 @@ class InstrumentPositionsWidget extends StatefulWidget {
 
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
-
-  Color _pnlColor(BuildContext context, double v) {
-    if (v > 0) return Colors.green;
-    if (v < 0) return Colors.red;
-    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-  }
-
-  Widget _pnlBadge(BuildContext context, String? text, double? value) {
-    final base = _pnlColor(context, value ?? 0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: badgeValueFontSize,
-            fontWeight: FontWeight.w600,
-            color: base),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -964,7 +939,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(context, todayReturnText, todayReturn),
+                    PnlBadge(text: todayReturnText, value: todayReturn),
                     const SizedBox(height: 4),
                     const Text("Return Today",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
@@ -982,8 +957,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(
-                        context, todayReturnPercentText, todayReturnPercent),
+                    PnlBadge(
+                        text: todayReturnPercentText,
+                        value: todayReturnPercent),
                     const SizedBox(height: 4),
                     const Text("Return Today %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
@@ -999,13 +975,14 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(context, totalReturnText, totalReturn),
-                    const SizedBox(height: 4),
-                    const Text("Total Return",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
+                  child: Column(
+                    children: <Widget>[
+                      PnlBadge(text: totalReturnText, value: totalReturn),
+                      const SizedBox(height: 4),
+                      const Text("Total Return",
+                          style: TextStyle(fontSize: summaryLabelFontSize)),
+                    ],
+                  ),
                 ),
               ),
               InkWell(
@@ -1019,8 +996,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _pnlBadge(
-                        context, totalReturnPercentText, totalReturnPercent),
+                    PnlBadge(
+                        text: totalReturnPercentText,
+                        value: totalReturnPercent),
                     const SizedBox(height: 4),
                     const Text("Total Return %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
