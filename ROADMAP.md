@@ -98,6 +98,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Instrument Chart Robustness
 - ✅ Automated Trading Status Display & Emergency Stop
 - ✅ Performance Benchmark Chart Date Range Selection
+
+### v0.25.0 ✅ (Released Dec 25, 2025)
+**Crypto Trading & Schwab Integration**
+- ✅ Crypto Order Widgets
+- ✅ Crypto Trading Interface
+- ✅ Enhanced Schwab Integration
+- ✅ Improved Option Order Handling
 - ✅ Trade Signal Notifications (Push notifications with filtering)
 
 ### v0.25.0 (Q1 2026 - Late January)
@@ -543,11 +550,11 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
 
 #### Brokerage Expansion
 - [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
-- [ ] **Schwab API Integration**: Native Schwab brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
+- [x] **Schwab API Integration**: Native Schwab brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
 - [ ] **Fidelity API Integration**: Native Fidelity brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
 - [ ] **Interactive Brokers Integration**: Native Interactive Brokers API support ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)) - **Large** (4-6 weeks)
 - [ ] **Multi-Brokerage**: Trade across multiple brokerage accounts - **Large** (3-4 weeks)
-- [ ] **Crypto Trading**: Crypto trading integration ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)) - **Large** (4-5 weeks)
+- [x] **Crypto Trading**: Crypto trading integration ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)) - **Large** (4-5 weeks)
 - [ ] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): - **Large** (4-5 weeks)
     - [ ] Implement `getForexQuote` and `getForexHistoricals`
     - [ ] Implement `getForexPositions`

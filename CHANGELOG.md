@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.25.0] - 2025-12-25
+
+### Added
+- **Crypto Trading:**
+  - **Crypto Order Widgets:** Added new widgets for placing and managing crypto orders.
+  - **Trading Interface:** Integrated crypto trading into the main trading interface.
+
+### Changed
+- **Schwab Integration:**
+  - **Enhanced Integration:** Improved integration with Schwab brokerage services.
+  - **Option Order Handling:** Refined handling of option orders for better reliability and execution.
+
 ## [0.24.0] - 2025-12-23
 
 ### Added

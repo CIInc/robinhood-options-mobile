@@ -62,8 +62,10 @@ Examples of specific file references an agent can use in patches:
 - Watchlist UI: `src/robinhood_options_mobile/lib/widgets/lists_widget.dart` (main lists view), `list_widget.dart` (individual list details).
 - Option Chain & Strategy UI: `src/robinhood_options_mobile/lib/widgets/instrument_option_chain_widget.dart` (option chain with advanced filtering & AI recommendations), `strategy_builder_widget.dart` (multi-leg strategy builder with payoff diagrams).
 - Trading UI: `src/robinhood_options_mobile/lib/widgets/trade_instrument_widget.dart` (refactored order placement), `position_order_widget.dart` (order preview).
+- Crypto/Forex Trading UI: `src/robinhood_options_mobile/lib/widgets/trade_forex_widget.dart` (crypto/forex order placement), `forex_orders_widget.dart` (order management).
 - Copy Trading UI & Backend: `lib/widgets/copy_trade_settings_widget.dart`, `lib/widgets/copy_trade_button_widget.dart`, `lib/widgets/copy_trading_dashboard_widget.dart` (dashboard & history), `lib/widgets/copy_trade_requests_widget.dart` (approval workflow), model in `lib/model/investor_group_store.dart` (`memberCopyTradeSettings`), functions trigger logic in `functions/src/copy-trading.ts`, audit collection `copy_trades` (see Firestore rules), documentation in `docs/copy-trading.md`.
 - Chart widgets: `src/robinhood_options_mobile/lib/widgets/chart_pie_widget.dart` (reusable PieChart with selection handling), `chart_time_series_widget.dart`, `chart_bar_widget.dart`, `instrument_chart_widget.dart` (enhanced instrument charting with benchmark comparison).
+- Schwab Integration: `src/robinhood_options_mobile/lib/services/schwab_service.dart` (Schwab API integration).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
 - Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD with manual callable endpoint), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
 - Backtesting function: `src/robinhood_options_mobile/functions/src/backtesting.ts` (runBacktest callable function for historical simulation).
