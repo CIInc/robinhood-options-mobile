@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.25.0] - 2025-12-25
+## [0.25.0] - 2025-12-26
 
 ### Added
 - **Crypto Trading:**
   - **Crypto Order Widgets:** Added new widgets for placing and managing crypto orders.
   - **Trading Interface:** Integrated crypto trading into the main trading interface.
+- **UI Enhancements:**
+  - **Animated Price Text:** Added `AnimatedPriceText` widget for dynamic price display with color-coded updates.
 
 ### Changed
 - **Schwab Integration:**

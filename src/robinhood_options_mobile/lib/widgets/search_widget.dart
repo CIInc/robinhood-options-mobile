@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -1791,8 +1792,9 @@ class _SearchWidgetState extends State<SearchWidget>
 
                     // Current Price
                     if (lastTradePrice != null) ...[
-                      Text(
-                        formatCurrency.format(lastTradePrice),
+                      AnimatedPriceText(
+                        price: lastTradePrice,
+                        format: formatCurrency,
                         style: TextStyle(
                           fontSize: 15.0,
                           fontWeight: FontWeight.w500,

@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
@@ -1103,14 +1104,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
                                                   PnlBadge(
-                                                      text: formatCurrency
-                                                          .format(selection !=
+                                                      child: AnimatedPriceText(
+                                                          price: selection !=
                                                                   null
-                                                              ? selection
-                                                                  .adjustedCloseEquity
-                                                              : close),
-                                                      fontSize:
-                                                          summaryValueFontSize,
+                                                              ? selection!
+                                                                  .adjustedCloseEquity!
+                                                              : close,
+                                                          format:
+                                                              formatCurrency,
+                                                          style: TextStyle(
+                                                              fontSize:
+                                                                  summaryValueFontSize,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSurfaceVariant)),
                                                       neutral: true),
                                                   Text(
                                                       formatMediumDateTime

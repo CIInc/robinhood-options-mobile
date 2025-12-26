@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_positions_page_widge
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -125,7 +126,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             color: charts.ColorUtil.fromDartColor(
               Theme.of(context).brightness == Brightness.light
                   ? Theme.of(context).colorScheme.surface
-                  : Theme.of(context).colorScheme.inverseSurface,
+                  : Theme.of(context).colorScheme.surface, //.inverseSurface,
             )),
         outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
             fontSize: 14,
@@ -405,18 +406,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                      return ScaleTransition(scale: animation, child: child);
-                    },
-                    child: Text(
-                      key: ValueKey<String>(marketValueText),
-                      marketValueText,
-                      style: const TextStyle(fontSize: assetValueFontSize),
-                      textAlign: TextAlign.right,
-                    ),
+                  AnimatedPriceText(
+                    price: marketValue!,
+                    format: formatCurrency,
+                    style: const TextStyle(fontSize: assetValueFontSize),
+                    textAlign: TextAlign.right,
                   ),
                   // if (sortedFilteredPositions.isNotEmpty) ...[
                   //   const SizedBox(height: 6),
@@ -474,7 +468,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             child: SizedBox(
                 height: barChartSeriesList.first.data.length == 1
                     ? 75
-                    : barChartSeriesList.first.data.length * 25 + 80,
+                    : barChartSeriesList.first.data.length * 26 + 80,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                       10.0, 0, 10, 10), //EdgeInsets.zero

@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -3392,9 +3393,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                formatCurrency.format(quoteObj.lastExtendedHoursTradePrice ??
-                    quoteObj.lastTradePrice),
+              AnimatedPriceText(
+                price: quoteObj.lastExtendedHoursTradePrice ??
+                    quoteObj.lastTradePrice!,
+                format: formatCurrency,
                 style: const TextStyle(
                     fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
@@ -4754,8 +4756,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ),
           if (quoteObj != null) ...[
             const SizedBox(height: 4),
-            Text(
-              formatCurrency.format(quoteObj.lastTradePrice),
+            AnimatedPriceText(
+              price: quoteObj.lastTradePrice!,
+              format: formatCurrency,
               style: TextStyle(
                   fontSize: 24.0,
                   fontWeight: FontWeight.bold,

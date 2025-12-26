@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeForexWidget extends StatefulWidget {
@@ -94,7 +95,9 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${widget.holding.currencyCode} Crypto'),
-              Text(formatCurrency.format(currentPrice),
+              AnimatedPriceText(
+                  price: currentPrice,
+                  format: formatCurrency,
                   style: theme.textTheme.labelMedium
                       ?.copyWith(color: Colors.white70)),
             ],

@@ -14,7 +14,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -99,6 +99,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Automated Trading Status Display & Emergency Stop
 - ✅ Performance Benchmark Chart Date Range Selection
 
+### v0.25.0 ✅ (Released Dec 26, 2025)
+**Crypto Trading & Schwab Integration**
+- ✅ Crypto Trading (Order widgets & Interface integration)
+- ✅ Schwab Integration Enhancements (Option order handling)
+- ✅ Animated Price Text Widget
+
+
 ### v0.25.0 ✅ (Released Dec 25, 2025)
 **Crypto Trading & Schwab Integration**
 - ✅ Crypto Order Widgets
@@ -107,23 +114,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Improved Option Order Handling
 - ✅ Trade Signal Notifications (Push notifications with filtering)
 
-### v0.25.0 (Q1 2026 - Late January)
+### v0.26.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support)
 
-### v0.26.0 (Q2 2026 - Mid February)
-**Schwab API Integration - Phase 1**
-- Portfolio & position streaming from Schwab
-- Market data & quotes integration
-- Account aggregation with Robinhood
-- Multi-brokerage account switching
-- Firestore sync for Schwab positions
-- Order history from Schwab
-
-### v0.27.0 (Q2 2026 - Late March)
+### v0.27.0 (Q1 2026 - Late February)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -142,13 +140,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Portfolio aggregation across 3 brokerages
 
 ### v0.29.0 (Q2-Q3 2026 - Late May)
-**Crypto & Forex Trading**
-- Crypto asset class support
+**Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs)
-- Real-time crypto quotes & charts
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
+- Advanced Crypto Charting
 
 ### v0.30.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
@@ -236,7 +233,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - DeFi Protocol Integration
 
 ### Trading Automation & Execution
-- **Core Trading**: Stock Orders (✅), Multi-Leg Options (✅), Futures Trading, Crypto/Forex Trading
+- **Core Trading**: Stock Orders (✅), Multi-Leg Options (✅), Futures Trading, Crypto Trading (✅), Forex Trading
 - **Automated Execution**: Agentic Trading (✅), Copy Trading Auto-Execute (✅), Trade Approval Workflow (✅)
 - **Advanced Orders**: Trailing Stops (✅), Conditional Orders, Order Templates, Time-Based Exits (✅), Time in Force (✅)
 - **Risk Management**: Advanced Risk Controls (✅), Take Profit/Stop Loss (✅), Trailing Stops (✅), Partial Position Exits (✅)
@@ -247,8 +244,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Execution Validation**: Backtesting Interface (✅), Trade Approval Workflow (✅), Paper Trading Mode (✅)
 
 ### Multi-Brokerage & Asset Coverage
-- **Brokerage Integration**: Schwab, Fidelity, Plaid, Interactive Brokers
-- **Asset Classes**: Stocks, Options, Futures (✅), Crypto, Forex, ETFs
+- **Brokerage Integration**: Schwab (✅), Fidelity, Plaid, Interactive Brokers
+- **Asset Classes**: Stocks, Options, Futures (✅), Crypto (✅), Forex, ETFs
 - **Account Management**: Multi-Brokerage Support, Multi-Account Aggregation, Import/Export, Bank Linking
 
 ### Analytics & Performance Intelligence
@@ -740,22 +737,22 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] API access for developers - **Large** (4-5 weeks)
 - [ ] Webhook notifications - **Medium** (2-3 weeks)
 - [ ] Third-party app integrations - **Large** (4-6 weeks)
-- [ ] **Yahoo Finance Integration**: - **Large** (3-4 weeks)
+- [x] **Yahoo Finance Integration**: - **Large** (3-4 weeks)
     - [x] Implement `getChartData` for advanced charting
-    - [ ] Implement `getNews` for real-time market news
-    - [ ] Implement `getSummary` for stock details
+    - [x] Implement `getNews` for real-time market news
+    - [x] Implement `getSummary` for stock details
 
 ### Brokerage Integration ([Tracking: #121](https://github.com/CIInc/robinhood-options-mobile/issues/121))
-- [ ] **Schwab Integration**: - **Large** (4-6 weeks)
-    - [ ] **Portfolio**: Portfolio retrieval and position streaming ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91))
-    - [ ] **Market Data**: Quotes and fundamentals ([#93](https://github.com/CIInc/robinhood-options-mobile/issues/93))
-    - [ ] Option order placement ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
+- [x] **Schwab Integration**: - **Large** (4-6 weeks)
+    - [x] **Portfolio**: Portfolio retrieval and position streaming ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91))
+    - [x] **Market Data**: Quotes and fundamentals ([#93](https://github.com/CIInc/robinhood-options-mobile/issues/93))
+    - [x] Option order placement ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
 - [ ] **Plaid Integration**: - **Large** (4-5 weeks)
     - [ ] **Options**: Full options support ([#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
     - [ ] Transaction history sync ([#123](https://github.com/CIInc/robinhood-options-mobile/issues/123))
 - [ ] **Fidelity Integration** ([#33](https://github.com/CIInc/robinhood-options-mobile/issues/33)): Implement Fidelity API integration - **Large** (4-6 weeks)
 - [ ] **Interactive Brokers Integration** ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)): Implement Interactive Brokers API integration - **Large** (4-6 weeks)
-- [ ] **Robinhood Crypto** ([#65](https://github.com/CIInc/robinhood-options-mobile/issues/65)): Crypto trading support - **Medium** (2-3 weeks)
+- [x] **Robinhood Crypto** ([#65](https://github.com/CIInc/robinhood-options-mobile/issues/65)): Crypto trading support - **Medium** (2-3 weeks)
 
 ### Technical Debt & UI Improvements ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
 - [ ] **Web Support**: - **Medium** (2-3 weeks)
@@ -778,7 +775,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
     - [ ] Migrate deprecated API endpoints (e.g., Robinhood search)
     - [ ] **Migrate to Dart 3**: Update SDK constraints and fix breaking changes - **Medium** (2-3 weeks)
     - [ ] **Complete Plaid Service**: Implement missing methods (`getPortfolios`, `getNummusHoldings`, `getInstrumentBySymbol`, `getOptionInstrumentByIds`, `getOptionMarketDataByIds`, `streamDividends`, `streamLists`) - **Large** (3-4 weeks)
-    - [ ] **Complete Schwab Service**: Implement missing methods (`getPortfolios`, `getNummusHoldings`, `getInstrumentBySymbol`, `getOptionInstrumentByIds`, `getOptionMarketDataByIds`, `streamDividends`, `streamLists`, `refreshPositionQuote`) - **Large** (3-4 weeks)
+    - [x] **Complete Schwab Service**: Implement missing methods (`getPortfolios`, `getNummusHoldings`, `getInstrumentBySymbol`, `getOptionInstrumentByIds`, `getOptionMarketDataByIds`, `streamDividends`, `streamLists`, `refreshPositionQuote`) - **Large** (3-4 weeks)
 
 ### Testing & Quality Assurance
 - [ ] **Testing**: - **Large** (6-8 weeks)

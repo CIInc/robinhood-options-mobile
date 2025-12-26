@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -170,10 +171,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
               color: charts.ColorUtil.fromDartColor(
-                brightness == Brightness.light
-                    ? Theme.of(context).colorScheme.surface
-                    : Theme.of(context).colorScheme.inverseSurface,
-              )),
+                  brightness == Brightness.light
+                      ? Theme.of(context).colorScheme.surface
+                      : Theme.of(context).colorScheme.surface // inverseSurface,
+                  )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
               color: charts.ColorUtil.fromDartColor(
@@ -249,7 +250,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               color: charts.ColorUtil.fromDartColor(
                 brightness == Brightness.light
                     ? Theme.of(context).colorScheme.surface
-                    : Theme.of(context).colorScheme.inverseSurface,
+                    : Theme.of(context).colorScheme.surface, // inverseSurface,
               )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
@@ -455,27 +456,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   child: Wrap(spacing: 8, children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                      child: AnimatedSwitcher(
-                        duration: Duration(milliseconds: 200),
-                        // transitionBuilder:
-                        //     (Widget child, Animation<double> animation) {
-                        //   return SlideTransition(
-                        //       position: (Tween<Offset>(
-                        //               begin: Offset(0, -0.25), end: Offset.zero))
-                        //           .animate(animation),
-                        //       child: child);
-                        // },
-                        transitionBuilder:
-                            (Widget child, Animation<double> animation) {
-                          return ScaleTransition(
-                              scale: animation, child: child);
-                        },
-                        child: Text(
-                          key: ValueKey<String>(marketValueText),
-                          marketValueText,
-                          style: const TextStyle(fontSize: assetValueFontSize),
-                          textAlign: TextAlign.right,
-                        ),
+                      child: AnimatedPriceText(
+                        price: marketValue!,
+                        format: formatCurrency,
+                        style: const TextStyle(fontSize: assetValueFontSize),
+                        textAlign: TextAlign.right,
                       ),
                     )
                   ]),
@@ -511,7 +496,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 barChartSeriesList.first.data.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: SizedBox(
-                height: barChartSeriesList.first.data.length * 25 +
+                height: barChartSeriesList.first.data.length * 26 +
                     80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(

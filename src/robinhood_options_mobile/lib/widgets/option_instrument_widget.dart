@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -1570,9 +1571,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   ]),
               if (optionInstrument.optionMarketData != null) ...[
                 Wrap(spacing: 10, children: [
-                  Text(
-                      formatCurrency.format(
-                          optionInstrument.optionMarketData!.adjustedMarkPrice),
+                  AnimatedPriceText(
+                      price:
+                          optionInstrument.optionMarketData!.adjustedMarkPrice!,
+                      format: formatCurrency,
                       style: const TextStyle(fontSize: 14.0)),
                   Wrap(children: [
                     Icon(
@@ -2418,10 +2420,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       : (instrument.quoteObj!.changeToday < 0
                           ? Colors.red
                           : Colors.grey))),
-              Text(
-                formatCurrency.format(
-                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                        instrument.quoteObj!.lastTradePrice),
+              AnimatedPriceText(
+                price: instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice!,
+                format: formatCurrency,
                 style: const TextStyle(fontSize: 18.0),
                 textAlign: TextAlign.right,
               ),

@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/widgets/trade_forex_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -637,11 +638,11 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           ),
           if (holding.quoteObj != null) ...[
             const SizedBox(height: 4),
-            Text(
-              holding.quoteObj!.markPrice! < 0.001
+            AnimatedPriceText(
+              price: holding.quoteObj!.markPrice!,
+              format: holding.quoteObj!.markPrice! < 0.001
                   ? NumberFormat.simpleCurrency(decimalDigits: 8)
-                      .format(holding.quoteObj!.markPrice)
-                  : formatCurrency.format(holding.quoteObj!.markPrice),
+                  : formatCurrency,
               style: TextStyle(
                   fontSize: 24.0,
                   fontWeight: FontWeight.bold,

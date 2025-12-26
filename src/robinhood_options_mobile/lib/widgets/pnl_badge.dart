@@ -3,6 +3,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 
 class PnlBadge extends StatelessWidget {
   final String? text;
+  final Widget? child;
   final double? value;
   final double fontSize;
   final bool neutral;
@@ -10,7 +11,8 @@ class PnlBadge extends StatelessWidget {
 
   const PnlBadge({
     super.key,
-    required this.text,
+    this.text,
+    this.child,
     this.value,
     this.fontSize = badgeValueFontSize,
     this.neutral = false,
@@ -48,16 +50,17 @@ class PnlBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: borderColor),
       ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
+      child: child ??
+          Text(
+            text ?? '',
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+            overflow: TextOverflow.fade,
+            softWrap: false,
+          ),
     );
   }
 }
