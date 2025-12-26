@@ -268,7 +268,7 @@ export async function handleAlphaTask(marketData: any,
   }
 
   let optimization: any = null;
-  // let indicatorsChanged = true;
+  let indicatorsChanged = true;
 
   if (previousSignalDoc && previousSignalDoc.multiIndicatorResult) {
     // Simple string comparison of indicators object
@@ -278,7 +278,7 @@ export async function handleAlphaTask(marketData: any,
     );
     const currIndicators = JSON.stringify(multiIndicatorResult.indicators);
     if (prevIndicators === currIndicators) {
-      // indicatorsChanged = false;
+      indicatorsChanged = false;
       logger.info(`Indicators unchanged for ${symbol}, skipping processing`);
       // Reuse previous optimization if available
       optimization = previousSignalDoc.optimization;
@@ -298,19 +298,19 @@ export async function handleAlphaTask(marketData: any,
 
   // Optimize signal with ML
   // Only run optimization if indicators changed
-  // if (indicatorsChanged) {
-  try {
-    optimization = await optimizeSignal(
-      symbol,
-      interval,
-      multiIndicatorResult,
-      { opens, highs, lows, closes, volumes },
-      marketIndexData
-    );
-  } catch (error) {
-    logger.error(`Error running signal optimization for ${symbol}`, error);
+  if (indicatorsChanged) {
+    try {
+      optimization = await optimizeSignal(
+        symbol,
+        interval,
+        multiIndicatorResult,
+        { opens, highs, lows, closes, volumes },
+        marketIndexData
+      );
+    } catch (error) {
+      logger.error(`Error running signal optimization for ${symbol}`, error);
+    }
   }
-  // }
 
   let { allGreen, indicators: indicatorResults,
     overallSignal, reason } = multiIndicatorResult;

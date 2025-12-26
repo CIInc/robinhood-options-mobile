@@ -8,7 +8,7 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **Portfolio Management:** View your Schwab portfolio holdings, including stocks, options, and cash.
 - **Order Management:**
     - **View Orders:** Access your history of executed and pending orders.
-    - **Option Orders:** Enhanced handling of option orders, including multi-leg strategies.
+    - **Option Orders:** Enhanced handling of option orders, including multi-leg strategies. **(Updated v0.25.0)**
 - **Real-Time Data:** Fetch real-time quotes and market data for your holdings.
 - **Seamless Navigation:** The app's navigation has been updated to support Schwab accounts, providing a consistent experience across different brokerages.
 
@@ -24,6 +24,7 @@ RealizeAlpha has integrated with Charles Schwab to provide users with a broader 
 - **`SchwabService`:** A dedicated service class handles all interactions with the Schwab API, ensuring secure and efficient data retrieval.
 - **Data Models:** New data models (e.g., `Instrument.fromSchwabJson`, `OptionOrder.fromSchwabJson`) have been implemented to parse Schwab-specific data formats.
 - **Token Management:** The app handles OAuth token refresh automatically to maintain a secure connection.
+- **Enhanced Integration (v0.25.0):** Improved reliability for option order execution and status tracking.
 
 ## Limitations & Future Work
 

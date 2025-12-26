@@ -472,6 +472,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               orderData.side,
               quantity,
               "instrument",
+              price,
               settings.autoExecute
             );
           }
@@ -785,6 +786,7 @@ export const onOptionOrderCreated = onDocumentCreated(
               orderData.direction,
               quantity,
               "option",
+              price,
               settings.autoExecute
             );
           }
@@ -805,6 +807,7 @@ export const onOptionOrderCreated = onDocumentCreated(
  * @param {string} side Buy/sell side
  * @param {number} quantity Quantity of the trade
  * @param {string} orderType Type of order (instrument or option)
+ * @param {number} [price] Price of the trade
  * @param {boolean} autoExecute Whether the trade was auto-executed or
  *   requires approval
  */
@@ -815,6 +818,7 @@ async function sendCopyTradeNotification(
   side: string,
   quantity: number,
   orderType: string,
+  price?: number,
   autoExecute = true
 ): Promise<void> {
   try {
@@ -839,10 +843,15 @@ async function sendCopyTradeNotification(
     }
 
     // Prepare notification
-    const title = autoExecute ? "Copy Trade Executed" : "Copy Trade Request";
+    const emoji = side.toLowerCase() === "buy" ? "📥" : "📤";
+    const title = autoExecute ?
+      `${emoji} Copy Trade Executed` :
+      `${emoji} Copy Trade Request`;
+    const priceStr = price ? ` @ $${price.toFixed(2)}` : "";
     const body =
       `${sourceUserName} ${side} ${quantity.toFixed(0)} ` +
-      `${orderType === "option" ? "contracts" : "shares"} of ${symbol}`;
+      `${orderType === "option" ? "contracts" : "shares"} of ` +
+      `${symbol}${priceStr}`;
 
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({

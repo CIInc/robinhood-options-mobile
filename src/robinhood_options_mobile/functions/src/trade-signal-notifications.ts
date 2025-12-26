@@ -18,13 +18,66 @@ const db = getFirestore();
 const messaging = getMessaging();
 
 /**
+ * Interface for indicator result
+ */
+interface IndicatorResult {
+  value: number | null;
+  signal: string;
+  reason: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Interface for multi-indicator result
+ */
+interface MultiIndicatorResult {
+  allGreen: boolean;
+  indicators: {
+    priceMovement: IndicatorResult;
+    momentum: IndicatorResult;
+    marketDirection: IndicatorResult;
+    volume: IndicatorResult;
+    macd: IndicatorResult;
+    bollingerBands: IndicatorResult;
+    stochastic: IndicatorResult;
+    atr: IndicatorResult;
+    obv: IndicatorResult;
+    vwap: IndicatorResult;
+    adx: IndicatorResult;
+    williamsR: IndicatorResult;
+    [key: string]: IndicatorResult | undefined;
+  };
+  customIndicators?: Record<string, IndicatorResult>;
+  overallSignal: string;
+  reason: string;
+  signalStrength: number;
+}
+
+/**
  * Interface for trade signal document data
  */
 interface TradeSignal {
-  symbol: string;
-  signal: string; // BUY, SELL, or HOLD
-  interval?: string; // 1d, 1h, 30m, 15m
   timestamp: number;
+  symbol: string;
+  interval?: string; // 1d, 1h, 30m, 15m
+  signal: string; // BUY, SELL, or HOLD
+  reason?: string;
+  multiIndicatorResult?: MultiIndicatorResult;
+  optimization?: {
+    confidenceScore: number;
+    refinedSignal: string;
+    reasoning: string;
+    [key: string]: any;
+  };
+  currentPrice?: number;
+  pricesLength?: number;
+  volumesLength?: number;
+  config?: Record<string, any>;
+  portfolioState?: Record<string, any>;
+  proposal?: Record<string, any>;
+  assessment?: Record<string, any>;
+
+  // Legacy or flattened fields
   confidence?: number;
   smaFast?: number;
   smaSlow?: number;
@@ -32,6 +85,7 @@ interface TradeSignal {
   macd?: number;
   volume?: number;
   price?: number;
+  indicators?: any;
 }
 
 /**
@@ -44,6 +98,22 @@ interface NotificationSettings {
   intervals: string[];
   includeHold: boolean;
   minConfidence?: number;
+}
+
+/**
+ * Get confidence score from signal
+ * @param {TradeSignal} signal The trade signal
+ * @return {number|undefined} The confidence score (0-1) or undefined
+ */
+function getSignalConfidence(signal: TradeSignal): number | undefined {
+  if (signal.confidence !== undefined) {
+    return signal.confidence;
+  }
+  if (signal.multiIndicatorResult?.signalStrength !== undefined) {
+    // signalStrength is 0-100, convert to 0-1
+    return signal.multiIndicatorResult.signalStrength / 100;
+  }
+  return undefined;
 }
 
 /**
@@ -91,10 +161,11 @@ function shouldNotifyUser(
   }
 
   // Check confidence threshold
+  const confidence = getSignalConfidence(signal);
   if (
     settings.minConfidence !== undefined &&
-    signal.confidence !== undefined &&
-    signal.confidence < settings.minConfidence
+    confidence !== undefined &&
+    confidence < settings.minConfidence
   ) {
     return false;
   }
@@ -149,20 +220,66 @@ async function sendTradeSignalNotification(
     // Prepare notification
     const intervalLabel = getIntervalLabel(signal.interval);
     const action = signal.signal;
-    const title = `${action} Signal: ${signal.symbol}`;
-    const priceStr = signal.price ?
-      ` at $${signal.price.toFixed(2)}` :
-      "";
-    const body = isNew ?
-      `New ${intervalLabel.toLowerCase()} ${action.toLowerCase()} ` +
-      `signal for ${signal.symbol}${priceStr}` :
-      `${intervalLabel} signal updated to ${action} for ` +
-      `${signal.symbol}${priceStr}`;
+    const emoji = action === "BUY" ? "🟢" : (action === "SELL" ? "🔴" : "🟡");
+    const title = `${emoji} ${action} Signal: ${signal.symbol}`;
 
-    // Add confidence to body if available
-    const bodyWithConfidence = signal.confidence !== undefined ?
-      `${body} (${(signal.confidence * 100).toFixed(0)}% confidence)` :
-      body;
+    const price = signal.price || signal.currentPrice;
+    const priceStr = price ? `$${price.toFixed(2)}` : "N/A";
+
+    const confidence = getSignalConfidence(signal);
+    const confidenceStr = confidence !== undefined ?
+      ` (${(confidence * 100).toFixed(0)}% Conf.)` : "";
+
+    let rsi = signal.rsi;
+    let macd = signal.macd;
+    let smaFast = signal.smaFast;
+    let smaSlow = signal.smaSlow;
+
+    // Fallback to indicators object if top-level fields are missing
+    // Check multiIndicatorResult first, then legacy indicators field
+    const indicatorsObj = signal.multiIndicatorResult?.indicators ||
+      signal.indicators;
+
+    if (indicatorsObj) {
+      if (rsi === undefined && indicatorsObj.momentum) {
+        rsi = indicatorsObj.momentum.value ?? undefined;
+      }
+      if (macd === undefined && indicatorsObj.macd) {
+        macd = indicatorsObj.macd.value ?? undefined;
+      }
+
+      // Extract SMAs from priceMovement metadata if available
+      if (smaFast === undefined && smaSlow === undefined &&
+        indicatorsObj.priceMovement &&
+        indicatorsObj.priceMovement.metadata) {
+        const meta = indicatorsObj.priceMovement.metadata;
+        if (meta.ma10 !== undefined) smaFast = meta.ma10;
+        if (meta.ma20 !== undefined) smaSlow = meta.ma20;
+      }
+    }
+
+    let indicatorsText = "";
+    if (rsi !== undefined) {
+      indicatorsText += `RSI: ${rsi.toFixed(0)}`;
+    }
+    if (macd !== undefined) {
+      if (indicatorsText) indicatorsText += " • ";
+      indicatorsText += `MACD: ${macd.toFixed(2)}`;
+    }
+    if (smaFast !== undefined && smaSlow !== undefined) {
+      if (indicatorsText) indicatorsText += " • ";
+      indicatorsText +=
+        `SMA: ${smaFast.toFixed(2)}/${smaSlow.toFixed(2)}`;
+    }
+
+    const status = isNew ? "New" : "Updated";
+    let body = `${status} ${intervalLabel} @ ${priceStr}${confidenceStr}`;
+
+    if (indicatorsText) {
+      body += `\n${indicatorsText}`;
+    }
+
+    const bodyWithConfidence = body;
 
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({
@@ -176,8 +293,8 @@ async function sendTradeSignalNotification(
         symbol: signal.symbol,
         signal: signal.signal,
         interval: signal.interval || "1d",
-        price: signal.price?.toString() || "",
-        confidence: signal.confidence?.toString() || "",
+        price: price?.toString() || "",
+        confidence: confidence?.toString() || "",
         timestamp: signal.timestamp.toString(),
       },
       android: {

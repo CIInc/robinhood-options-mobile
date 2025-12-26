@@ -14,7 +14,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -104,15 +104,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Crypto Trading (Order widgets & Interface integration)
 - ✅ Schwab Integration Enhancements (Option order handling)
 - ✅ Animated Price Text Widget
-
-
-### v0.25.0 ✅ (Released Dec 25, 2025)
-**Crypto Trading & Schwab Integration**
-- ✅ Crypto Order Widgets
-- ✅ Crypto Trading Interface
-- ✅ Enhanced Schwab Integration
-- ✅ Improved Option Order Handling
-- ✅ Trade Signal Notifications (Push notifications with filtering)
 
 ### v0.26.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

@@ -225,13 +225,15 @@ function buildNotificationContent(data: NotificationRequest): {
 
   switch (type) {
   case "buy": {
+    const total = (quantity || 0) * (price || 0);
     const body =
       "Bought " +
       `${quantity} ` +
       "shares of " +
       `${symbol} ` +
       "at $" +
-      `${price?.toFixed(2)}`;
+      `${price?.toFixed(2)} ` +
+      `($${total.toFixed(2)})`;
     return {
       title: "🤖 Auto-Trade Executed",
       body,
@@ -240,14 +242,26 @@ function buildNotificationContent(data: NotificationRequest): {
 
   case "take_profit": {
     const sign = profitLoss && profitLoss > 0 ? "+" : "";
+    let percentStr = "";
+    if (price && quantity && profitLoss !== undefined) {
+      const totalExit = price * quantity;
+      const totalEntry = totalExit - profitLoss;
+      if (totalEntry !== 0) {
+        const percent = (profitLoss / totalEntry) * 100;
+        percentStr = ` (${sign}${percent.toFixed(2)}%)`;
+      }
+    }
     const body =
       "Sold " +
       `${quantity} ` +
       "shares of " +
       `${symbol} ` +
+      "at $" +
+      `${price?.toFixed(2)} ` +
       "for " +
       `${sign}$${profitLoss?.toFixed(2)} ` +
-      "profit";
+      "profit" +
+      percentStr;
     return {
       title: "💰 Take Profit Hit!",
       body,
@@ -255,13 +269,25 @@ function buildNotificationContent(data: NotificationRequest): {
   }
 
   case "stop_loss": {
+    let percentStr = "";
+    if (price && quantity && profitLoss !== undefined) {
+      const totalExit = price * quantity;
+      const totalEntry = totalExit - profitLoss;
+      if (totalEntry !== 0) {
+        const percent = (profitLoss / totalEntry) * 100;
+        percentStr = ` (${percent.toFixed(2)}%)`;
+      }
+    }
     const body =
       "Sold " +
       `${quantity} ` +
       "shares of " +
       `${symbol} ` +
+      "at $" +
+      `${price?.toFixed(2)} ` +
       "to limit loss: $" +
-      `${profitLoss?.toFixed(2)}`;
+      `${Math.abs(profitLoss || 0).toFixed(2)}` +
+      percentStr;
     return {
       title: "🛑 Stop Loss Triggered",
       body,
@@ -283,9 +309,9 @@ function buildNotificationContent(data: NotificationRequest): {
       const winRate =
         totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(0) : "0";
       const body =
-        `${totalTrades} trades | ${wins}W/${losses}L (` +
-        `${winRate}% win rate) | ` +
-        `${totalPnL >= 0 ? "+" : ""}$${totalPnL.toFixed(2)}`;
+        `${totalTrades} trades | ✅ ${wins} / ❌ ${losses} (` +
+        `${winRate}% win) | ` +
+        `${totalPnL >= 0 ? "📈 +" : "📉 "}$${totalPnL.toFixed(2)}`;
       return {
         title: "📊 Daily Auto-Trade Summary",
         body,

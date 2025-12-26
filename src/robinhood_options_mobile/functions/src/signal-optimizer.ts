@@ -8,7 +8,7 @@ const vertexAI = new VertexAI({
 });
 
 const model = vertexAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
+  model: "gemini-1.5-flash",
   generationConfig: {
     responseMimeType: "application/json",
   },
@@ -37,6 +37,11 @@ export async function optimizeSignal(
   marketData: any,
   marketIndexData: any
 ): Promise<OptimizationResult> {
+  // Cost optimization: Skip AI if signal strength is weak
+  if (multiIndicatorResult.signalStrength < 25) {
+    return null as any;
+  }
+
   try {
     const indicators = multiIndicatorResult.indicators;
     const lastPrices = marketData.closes.slice(-10);
@@ -56,55 +61,30 @@ export async function optimizeSignal(
       }
     }
 
-    const prompt = `
-      You are an expert financial analyst and trading algorithm.
-      Analyze the following technical indicators and market context for ` +
-      `${symbol} on a ${interval} interval.
-      
-      Current Rule-Based Signal: ${multiIndicatorResult.overallSignal}
-      Signal Strength: ${multiIndicatorResult.signalStrength}
-      
-      Technical Indicators:
-      - Price Movement: ${indicators.priceMovement.signal} ` +
-      `(${indicators.priceMovement.reason})
-      - Momentum: ${indicators.momentum.signal} ` +
-      `(${indicators.momentum.reason})
-      - Market Direction: ${indicators.marketDirection.signal} ` +
-      `(${indicators.marketDirection.reason})
-      - Volume: ${indicators.volume.signal} (${indicators.volume.reason})
-      - MACD: ${indicators.macd.signal} (${indicators.macd.reason})
-      - Bollinger Bands: ${indicators.bollingerBands.signal} ` +
-      `(${indicators.bollingerBands.reason})
-      - Stochastic: ${indicators.stochastic.signal} ` +
-      `(${indicators.stochastic.reason})
-      - ATR: ${indicators.atr.signal} (${indicators.atr.reason})
-      - OBV: ${indicators.obv.signal} (${indicators.obv.reason})
-      - VWAP: ${indicators.vwap.signal} (${indicators.vwap.reason})
-      - ADX: ${indicators.adx.signal} (${indicators.adx.reason})
-      - Williams %R: ${indicators.williamsR.signal} ` +
-      `(${indicators.williamsR.reason})
-      ${customIndicatorsText}
-      Recent Price Action (last 10 closes): ${lastPrices.join(", ")}
-      Recent Volumes (last 10): ${lastVolumes.join(", ")}
-      Recent Highs (last 10): ${lastHighs.join(", ")}
-      Recent Lows (last 10): ${lastLows.join(", ")}
-      Market Index Trend (last 5 closes): ${marketTrend.join(", ")}
-      Market Index Volumes (last 5): ${marketVolTrend.join(", ")}
-      
-      Task:
-      1. Evaluate the coherence of the indicators.
-      2. Assess the strength of the trend and potential for reversal.
-      3. Provide a confidence score (0-100) for the trade.
-      4. Suggest a refined signal (BUY, SELL, or HOLD).
-      5. Provide a concise reasoning.
-      
-      Output JSON format:
-      {
-        "confidenceScore": number,
-        "refinedSignal": "BUY" | "SELL" | "HOLD",
-        "reasoning": "string"
-      }
-    `;
+    const prompt = `Role:Financial Analyst.Task:Analyze ${symbol} (${interval}).
+Signal:${multiIndicatorResult.overallSignal} ` +
+      `Strength:${multiIndicatorResult.signalStrength}
+Indicators:
+Price:${indicators.priceMovement.signal}(${indicators.priceMovement.reason})
+Mom:${indicators.momentum.signal}(${indicators.momentum.reason})
+Dir:${indicators.marketDirection.signal}(${indicators.marketDirection.reason})
+Vol:${indicators.volume.signal}(${indicators.volume.reason})
+MACD:${indicators.macd.signal}(${indicators.macd.reason})
+BB:${indicators.bollingerBands.signal}(${indicators.bollingerBands.reason})
+Stoch:${indicators.stochastic.signal}(${indicators.stochastic.reason})
+ATR:${indicators.atr.signal}(${indicators.atr.reason})
+OBV:${indicators.obv.signal}(${indicators.obv.reason})
+VWAP:${indicators.vwap.signal}(${indicators.vwap.reason})
+ADX:${indicators.adx.signal}(${indicators.adx.reason})
+W%R:${indicators.williamsR.signal}(${indicators.williamsR.reason})` +
+      `${customIndicatorsText}
+Prices:${lastPrices.join(",")}
+Vols:${lastVolumes.join(",")}
+Highs:${lastHighs.join(",")}
+Lows:${lastLows.join(",")}
+MktTrend:${marketTrend.join(",")}
+MktVols:${marketVolTrend.join(",")}
+Output JSON:{confidenceScore(0-100),refinedSignal(BUY/SELL/HOLD),reasoning}`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.candidates?.[0].content.parts[0].text;

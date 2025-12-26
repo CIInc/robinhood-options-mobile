@@ -39,7 +39,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Real-time status monitoring with countdown timer, market analysis status, and emergency stop indicators
    - Auto-save functionality (no manual save button)
    - **Manual Execution:** Use the "Run Now" button to immediately trigger a market analysis and trade execution cycle.
-   - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities.
+   - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities. You can also **long-press the auto-trade status badge** in the app bar to quickly toggle the emergency stop.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
 
 6. **Backend Functions** (`functions/src/`)
@@ -109,12 +109,16 @@ Users can now define their own technical indicators to be used alongside the sta
 
 ### ML Optimization
 
-Machine Learning models are integrated to continuously optimize trade signals:
+Machine Learning models are integrated to continuously optimize trade signals, leveraging Google's **Vertex AI Gemini 1.5 Flash** model for high-speed, cost-effective analysis.
 
 - **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
 - **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
 - **Adaptive Logic:** The system adapts to changing market volatility and trends.
 - **Continuous Learning:** The models are retrained periodically with new market data to ensure relevance.
+- **Cost Efficiency:**
+  - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
+  - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
+  - **Model Selection:** Uses the `gemini-1.5-flash` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
 
 ### Advanced Exit Strategies
 
@@ -147,7 +151,7 @@ The system automatically executes trades when auto-trading is enabled:
 8. Updates countdown timer for next cycle
 9. Logs execution results
 
-**Location:** `navigation_widget.dart` - Main navigation widget with access to all services and providers
+**Location:** `AgenticTradingProvider` (`lib/model/agentic_trading_provider.dart`) - Centralized provider managing trading state and execution logic.
 
 **UI Integration:**
 - Settings widget shows real-time countdown to next check
@@ -245,12 +249,16 @@ Users can now define their own technical indicators to be used alongside the sta
 
 ### ML Optimization
 
-Machine Learning models are integrated to continuously optimize trade signals:
+Machine Learning models are integrated to continuously optimize trade signals, leveraging Google's **Vertex AI Gemini 1.5 Flash** model for high-speed, cost-effective analysis.
 
 - **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
 - **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
 - **Adaptive Logic:** The system adapts to changing market volatility and trends.
 - **Continuous Learning:** The models are retrained periodically with new market data to ensure relevance.
+- **Cost Efficiency:**
+  - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
+  - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
+  - **Model Selection:** Uses the `gemini-1.5-flash` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
 
 ### Advanced Exit Strategies
 

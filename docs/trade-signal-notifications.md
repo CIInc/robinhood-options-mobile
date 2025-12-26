@@ -69,6 +69,9 @@ Both triggers:
 **Widget**:
 - `TradeSignalNotificationSettingsWidget` - UI for configuring notification preferences
 
+**Navigation**:
+- `NavigationStatefulWidget` handles incoming notification payloads and routes the user to the `InstrumentWidget` with the appropriate symbol and signal data. This ensures a seamless transition from notification to analysis.
+
 ### Data Storage
 
 Notification settings are stored in the user document:

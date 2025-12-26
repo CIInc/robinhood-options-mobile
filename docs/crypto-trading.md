@@ -4,8 +4,8 @@ RealizeAlpha now supports cryptocurrency trading, allowing users to trade digita
 
 ## Features
 
-- **Real-Time Quotes:** View real-time price data for supported cryptocurrencies.
-- **Order Placement:** Place market and limit orders for buying and selling crypto.
+- **Real-Time Quotes:** View real-time price data for supported cryptocurrencies with **Animated Price Text** that color-codes price changes (green for up, red for down).
+- **Order Placement:** Place **Market** and **Limit** orders for buying and selling crypto.
 - **Order Management:** View and manage open crypto orders, including the ability to cancel pending orders.
 - **Portfolio Integration:** Crypto holdings are integrated into the main portfolio view, allowing for a holistic view of your assets.
 - **Dedicated Widgets:**
@@ -20,8 +20,10 @@ RealizeAlpha now supports cryptocurrency trading, allowing users to trade digita
 3.  **Place Order:** Tap the "Trade" button to open the `TradeForexWidget`.
 4.  **Configure Order:**
     - Select "Buy" or "Sell".
-    - Choose the order type (Market or Limit).
+    - Choose the order type: **Market** (execute immediately at best price) or **Limit** (set a specific price).
+    - For Limit orders, enter your desired **Limit Price**.
     - Enter the quantity or amount.
+    - **Time in Force:** Defaults to **GTC** (Good Till Cancelled).
 5.  **Review and Confirm:** Review your order details and swipe to confirm placement.
 
 ## Supported Assets
