@@ -130,7 +130,7 @@ class UserInfoWidget extends StatelessWidget {
             width: 8,
           ),
           TextButton.icon(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.link_off),
             onPressed: () async {
               var userStore =
                   Provider.of<BrokerageUserStore>(context, listen: false);
@@ -144,7 +144,7 @@ class UserInfoWidget extends StatelessWidget {
                     brokerageUserStore: userStore);
               }
             },
-            label: const Text('Disconnect'),
+            label: const Text('Unlink'),
           ),
         ],
       ))

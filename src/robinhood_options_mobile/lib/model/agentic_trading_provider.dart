@@ -232,17 +232,21 @@ class AgenticTradingProvider with ChangeNotifier {
         return;
       }
 
+      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+
       // Validate user/account
-      if (userStore.items.isEmpty ||
-          userStore.currentUser == null ||
-          accountStore.items.isEmpty) {
+      if (!isPaperMode &&
+          (userStore.items.isEmpty ||
+              userStore.currentUser == null ||
+              accountStore.items.isEmpty)) {
         debugPrint('🤖 Auto-trade check: missing user or account data');
         return;
       }
 
       final currentUser = userStore.currentUser;
-      final firstAccount = accountStore.items.first;
-      if (currentUser == null) {
+      final firstAccount =
+          accountStore.items.isNotEmpty ? accountStore.items.first : null;
+      if (!isPaperMode && currentUser == null) {
         debugPrint('🤖 Auto-trade check: currentUser is null');
         return;
       }
@@ -252,7 +256,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'portfolioValue': portfolioStore.items.isNotEmpty
             ? portfolioStore.items.first.equity
             : 0.0,
-        'cashAvailable': firstAccount.portfolioCash,
+        'cashAvailable': firstAccount?.portfolioCash ?? 0.0,
         'positions': portfolioStore.items.length,
       };
 
@@ -688,10 +692,13 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+
       // Validate required parameters
-      if (brokerageUser == null ||
-          account == null ||
-          brokerageService == null ||
+      if ((!isPaperMode &&
+              (brokerageUser == null ||
+                  account == null ||
+                  brokerageService == null)) ||
           instrumentStore == null) {
         debugPrint('❌ Missing required parameters for auto-trade');
         _isAutoTrading = false;
@@ -922,20 +929,26 @@ class AgenticTradingProvider with ChangeNotifier {
 
             // Get instrument from store
             dynamic instrument;
-            try {
-              // Get instrument by symbol
-              instrument = await brokerageService.getInstrumentBySymbol(
-                brokerageUser,
-                instrumentStore,
-                symbol,
-              );
-              if (instrument == null) {
-                debugPrint(
-                    '⚠️ Could not find instrument for $symbol, skipping');
-                continue;
+            if (brokerageService != null && brokerageUser != null) {
+              try {
+                // Get instrument by symbol
+                instrument = await brokerageService.getInstrumentBySymbol(
+                  brokerageUser,
+                  instrumentStore,
+                  symbol,
+                );
+                if (instrument == null) {
+                  debugPrint(
+                      '⚠️ Could not find instrument for $symbol, skipping');
+                  if (!isPaperMode) continue;
+                }
+              } catch (e) {
+                debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+                if (!isPaperMode) continue;
               }
-            } catch (e) {
-              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+            } else if (!isPaperMode) {
+              debugPrint(
+                  '⚠️ Missing brokerage service or user for real trade, skipping');
               continue;
             }
 
@@ -1159,6 +1172,11 @@ class AgenticTradingProvider with ChangeNotifier {
     try {
       final side = action.toLowerCase() == 'buy' ? 'buy' : 'sell';
       final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+
+      if (!isPaperMode && brokerageService == null) {
+        debugPrint('❌ Cannot approve real order without brokerage service');
+        return;
+      }
 
       debugPrint(
           '${isPaperMode ? '📝 PAPER' : '📤'} Approving order: $action $quantity shares of $symbol at \$$price');

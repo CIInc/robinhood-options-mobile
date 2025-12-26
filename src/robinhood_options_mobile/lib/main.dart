@@ -14,7 +14,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
-import 'package:robinhood_options_mobile/model/drawer_provider.dart';
+// import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
@@ -110,53 +110,60 @@ class MyApp extends StatelessWidget {
     return DynamicColorBuilder(
         builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
       // Platform.isAndroid
-      ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
-          ? const ColorScheme.light(
-              primary: Colors.indigo,
-              secondary:
-                  // CupertinoColors.systemMint
-                  CupertinoColors.systemGrey4
-              // Colors.indigoAccent
-              )
-          : lightDynamic ?? const ColorScheme.light();
+      // ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
+      //     ? const ColorScheme.light(
+      //         primary: Colors.indigo,
+      //         secondary:
+      //             // CupertinoColors.systemMint
+      //             CupertinoColors.systemGrey4
+      //         // Colors.indigoAccent
+      //         )
+      //     : lightDynamic ?? const ColorScheme.light();
       // primary: Color.fromRGBO(156, 39, 176, 0.7),
       // secondary: Color.fromRGBO(83, 109, 254, 0.7))
-      ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
-          ? const ColorScheme.dark(
-              primary: Colors.indigo, secondary: CupertinoColors.systemGrey
-              // CupertinoColors.systemMint
-              // Colors.indigoAccent
-              )
-          : darkDynamic ?? const ColorScheme.dark();
+      // ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
+      //     ? const ColorScheme.dark(
+      //         primary: Colors.indigo, secondary: CupertinoColors.systemGrey
+      //         // CupertinoColors.systemMint
+      //         // Colors.indigoAccent
+      //         )
+      //     : darkDynamic ?? const ColorScheme.dark();
       ThemeData lightTheme = ThemeData(
-        colorScheme: colorScheme,
+        // colorScheme: colorScheme,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          brightness: Brightness.light,
+        ),
         // , textTheme: Typography.blackCupertino);
         useMaterial3: true,
-        appBarTheme: AppBarTheme(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: Colors.white),
-        tabBarTheme: TabBarThemeData(
-          dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-        ),
-        chipTheme: ChipThemeData(
-          side: BorderSide.none,
-          // shape: LinearBorder()
-          // StadiumBorder(side: BorderSide.none)
-        ),
+        // appBarTheme: AppBarTheme(
+        //     backgroundColor: colorScheme.primary,
+        //     foregroundColor: Colors.white),
+        // tabBarTheme: TabBarThemeData(
+        //   dividerColor: Colors.transparent,
+        //   labelColor: Colors.white,
+        //   unselectedLabelColor: Colors.white70,
+        // ),
+        // chipTheme: ChipThemeData(
+        //   side: BorderSide.none,
+        //   // shape: LinearBorder()
+        //   // StadiumBorder(side: BorderSide.none)
+        // ),
       );
       ThemeData darkTheme = ThemeData(
-        colorScheme: darkColorScheme
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          brightness: Brightness.dark,
+        ),
+        // colorScheme: darkColorScheme,
         // , textTheme: Typography.whiteHelsinki,
-        ,
         useMaterial3: true,
         // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
-        chipTheme: ChipThemeData(
-          side: BorderSide.none,
-          // shape: LinearBorder()
-          // StadiumBorder(side: BorderSide.none)
-        ),
+        // chipTheme: ChipThemeData(
+        //   side: BorderSide.none,
+        //   // shape: LinearBorder()
+        //   // StadiumBorder(side: BorderSide.none)
+        // ),
       );
       return MultiProvider(
           providers: [
@@ -226,9 +233,9 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(
               create: (context) => QuoteStore(),
             ),
-            ChangeNotifierProvider(
-              create: (context) => DrawerProvider(),
-            ),
+            // ChangeNotifierProvider(
+            //   create: (context) => DrawerProvider(),
+            // ),
             ChangeNotifierProvider(
               create: (context) => LogoProvider(),
             ),

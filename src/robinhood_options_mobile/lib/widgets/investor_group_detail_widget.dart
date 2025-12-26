@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
@@ -16,7 +15,7 @@ import 'package:intl/intl.dart';
 class InvestorGroupDetailWidget extends StatefulWidget {
   final String groupId;
   final FirestoreService firestoreService;
-  final BrokerageUser brokerageUser;
+  final BrokerageUser? brokerageUser;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
 

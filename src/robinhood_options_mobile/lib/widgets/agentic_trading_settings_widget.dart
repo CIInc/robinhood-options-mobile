@@ -17,13 +17,13 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
-  final IBrokerageService service;
+  final IBrokerageService? service;
 
   const AgenticTradingSettingsWidget({
     super.key,
     required this.user,
     required this.userDocRef,
-    required this.service,
+    this.service,
   });
 
   @override
@@ -338,6 +338,12 @@ class _AgenticTradingSettingsWidgetState
     try {
       final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
+
+      // Force paper trading mode if no brokerage service is linked
+      if (widget.service == null) {
+        agenticTradingProvider.config['paperTradingMode'] = true;
+      }
+
       final newConfig = {
         'smaPeriodFast': agenticTradingProvider.config['smaPeriodFast'] ?? 10,
         'smaPeriodSlow': agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
@@ -424,19 +430,21 @@ class _AgenticTradingSettingsWidgetState
     final brokerageUserStore =
         Provider.of<BrokerageUserStore>(context, listen: false);
     final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final isPaperMode = provider.config['paperTradingMode'] as bool? ?? false;
 
-    if (brokerageUserStore.items.isEmpty) {
+    if (!isPaperMode && brokerageUserStore.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to brokerage first')),
       );
       return;
     }
-    final brokerageUser =
-        brokerageUserStore.items[brokerageUserStore.currentUserIndex];
+    final brokerageUser = brokerageUserStore.items.isNotEmpty
+        ? brokerageUserStore.items[brokerageUserStore.currentUserIndex]
+        : null;
 
     var account =
         accountStore.items.isNotEmpty ? accountStore.items.first : null;
-    if (account == null) {
+    if (!isPaperMode && account == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No brokerage account found')),
       );
@@ -1575,18 +1583,20 @@ class _AgenticTradingSettingsWidgetState
         // Paper Trading Mode
         Container(
           decoration: BoxDecoration(
-            color:
-                (agenticTradingProvider.config['paperTradingMode'] as bool? ??
-                        false)
-                    ? Colors.blue.withOpacity(0.1)
-                    : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: (widget.service == null ||
+                    (agenticTradingProvider.config['paperTradingMode']
+                            as bool? ??
+                        false))
+                ? Colors.blue.withOpacity(0.1)
+                : colorScheme.surfaceContainerHighest.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color:
-                  (agenticTradingProvider.config['paperTradingMode'] as bool? ??
-                          false)
-                      ? Colors.blue.withOpacity(0.5)
-                      : Colors.transparent,
+              color: (widget.service == null ||
+                      (agenticTradingProvider.config['paperTradingMode']
+                              as bool? ??
+                          false))
+                  ? Colors.blue.withOpacity(0.5)
+                  : Colors.transparent,
               width: 2,
             ),
           ),
@@ -1601,9 +1611,10 @@ class _AgenticTradingSettingsWidgetState
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (agenticTradingProvider.config['paperTradingMode']
-                        as bool? ??
-                    false)
+                if (widget.service == null ||
+                    (agenticTradingProvider.config['paperTradingMode']
+                            as bool? ??
+                        false))
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -1624,18 +1635,24 @@ class _AgenticTradingSettingsWidgetState
                   ),
               ],
             ),
-            subtitle: const Text(
-              'Simulate trades without real money - Test strategies risk-free',
-              style: TextStyle(fontSize: 12),
+            subtitle: Text(
+              widget.service == null
+                  ? 'Brokerage not linked. Paper trading only.'
+                  : 'Simulate trades without real money - Test strategies risk-free',
+              style: const TextStyle(fontSize: 12),
             ),
-            value: agenticTradingProvider.config['paperTradingMode'] as bool? ??
-                false,
-            onChanged: (value) {
-              setState(() {
-                agenticTradingProvider.config['paperTradingMode'] = value;
-              });
-              _saveSettings();
-            },
+            value: widget.service == null
+                ? true
+                : (agenticTradingProvider.config['paperTradingMode'] as bool? ??
+                    false),
+            onChanged: widget.service == null
+                ? null
+                : (value) {
+                    setState(() {
+                      agenticTradingProvider.config['paperTradingMode'] = value;
+                    });
+                    _saveSettings();
+                  },
             activeThumbColor: Colors.blue,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16.0,

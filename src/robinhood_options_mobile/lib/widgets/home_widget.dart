@@ -58,6 +58,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dar
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
+import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
@@ -70,13 +71,14 @@ class DrawerItem {
 }
 */
 class HomePage extends StatefulWidget {
-  final BrokerageUser brokerageUser;
-  final UserInfo userInfo;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final UserInfo? userInfo;
+  final IBrokerageService? service;
   final GenerativeService generativeService;
 
   final User? user;
   final DocumentReference<User>? userDoc;
+  final VoidCallback? onLogin;
   //final Account account;
   /*
   final drawerItems = [
@@ -99,6 +101,7 @@ class HomePage extends StatefulWidget {
     this.navigatorKey,
     required this.user,
     required this.userDoc,
+    this.onLogin,
     //required this.onUserChanged,
     //required this.onAccountsChanged
   });
@@ -280,11 +283,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
+    if (widget.brokerageUser == null || widget.service == null) {
+      return Scaffold(
+          body: RefreshIndicator(
+        onRefresh: () async {
+          if (widget.onLogin != null) {
+            widget.onLogin!();
+          }
+        },
+        child: CustomScrollView(
+          slivers: [
+            ExpandedSliverAppBar(
+              title: Text(widget.title ?? 'Home'),
+              auth: auth,
+              firestoreService: FirestoreService(),
+              automaticallyImplyLeading: true,
+              onChange: () {
+                setState(() {});
+              },
+              analytics: widget.analytics,
+              observer: widget.observer,
+              user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
+              service: widget.service,
+            ),
+            SliverFillRemaining(
+              child: WelcomeWidget(
+                onLogin: widget.onLogin,
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
     // Commented out, the BrokerageUserStore change detection occurs one level up at NavigationStatefulWidget which will pass in the new user in the ctor.
     // Provider.of<BrokerageUserStore>(context, listen: true);
 
-    futureAccounts = widget.service.getAccounts(
-        widget.brokerageUser,
+    futureAccounts = widget.service!.getAccounts(
+        widget.brokerageUser!,
         Provider.of<AccountStore>(context, listen: false),
         Provider.of<PortfolioStore>(context, listen: false),
         Provider.of<OptionPositionStore>(context, listen: false),
@@ -292,25 +329,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             Provider.of<InstrumentPositionStore>(context, listen: false),
         userDoc: widget.userDoc);
 
-    if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-        widget.brokerageUser.source == BrokerageSource.demo) {
-      futurePortfolios = widget.service.getPortfolios(widget.brokerageUser,
+    if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+        widget.brokerageUser!.source == BrokerageSource.demo) {
+      futurePortfolios = widget.service!.getPortfolios(widget.brokerageUser!,
           Provider.of<PortfolioStore>(context, listen: false));
-      futureNummusHoldings = widget.service.getNummusHoldings(
-          widget.brokerageUser,
+      futureNummusHoldings = widget.service!.getNummusHoldings(
+          widget.brokerageUser!,
           Provider.of<ForexHoldingStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
 
-      futureOptionPositions = widget.service.getOptionPositionStore(
-          widget.brokerageUser,
+      futureOptionPositions = widget.service!.getOptionPositionStore(
+          widget.brokerageUser!,
           Provider.of<OptionPositionStore>(context, listen: false),
           Provider.of<InstrumentStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
 
-      futureStockPositions = widget.service.getStockPositionStore(
-          widget.brokerageUser,
+      futureStockPositions = widget.service!.getStockPositionStore(
+          widget.brokerageUser!,
           Provider.of<InstrumentPositionStore>(context, listen: false),
           Provider.of<InstrumentStore>(context, listen: false),
           Provider.of<QuoteStore>(context, listen: false),
@@ -318,13 +355,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           userDoc: widget.userDoc);
     }
     /*
-    positionStoreStream = widget.service.streamStockPositionStore(
+    positionStoreStream = widget.service!.streamStockPositionStore(
         widget.user,
         Provider.of<StockPositionStore>(context, listen: false),
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false),
         nonzero: !hasQuantityFilters[1]);
-    optionPositionStoreStream = widget.service.streamOptionPositionStore(
+    optionPositionStoreStream = widget.service!.streamOptionPositionStore(
         widget.user,
         Provider.of<OptionPositionStore>(context, listen: false),
         Provider.of<InstrumentStore>(context, listen: false),
@@ -349,9 +386,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             account = null;
           }
 
-          if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-            futureFuturesAccounts = (widget.service as RobinhoodService)
-                .getFuturesAccounts(widget.brokerageUser, account!);
+          if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+            futureFuturesAccounts = (widget.service! as RobinhoodService)
+                .getFuturesAccounts(widget.brokerageUser!, account!);
           }
 
           // var futuresAccounts = data[1] as List<dynamic>;
@@ -370,21 +407,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           //   }
           // }
 
-          if (widget.brokerageUser.source == BrokerageSource.schwab) {
-            // futurePortfolios = widget.service.getPortfolios(
+          if (widget.brokerageUser!.source == BrokerageSource.schwab) {
+            // futurePortfolios = widget.service!.getPortfolios(
             //     widget.user, Provider.of<PortfolioStore>(context, listen: false));
-            // futureNummusHoldings = widget.service.getNummusHoldings(
+            // futureNummusHoldings = widget.service!.getNummusHoldings(
             //     widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
             //     nonzero: !hasQuantityFilters[1]);
 
-            // futureOptionPositions = widget.service.getOptionPositionStore(
+            // futureOptionPositions = widget.service!.getOptionPositionStore(
             //     widget.user,
             //     Provider.of<OptionPositionStore>(context, listen: false),
             //     Provider.of<InstrumentStore>(context, listen: false),
             //     nonzero: !hasQuantityFilters[1]);
 
-            futureStockPositions = widget.service.getStockPositionStore(
-                widget.brokerageUser,
+            futureStockPositions = widget.service!.getStockPositionStore(
+                widget.brokerageUser!,
                 Provider.of<InstrumentPositionStore>(context, listen: false),
                 Provider.of<InstrumentStore>(context, listen: false),
                 Provider.of<QuoteStore>(context, listen: false),
@@ -392,34 +429,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 userDoc: widget.userDoc);
           }
 
-          if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-              widget.brokerageUser.source == BrokerageSource.demo) {
-            // futurePortfolioHistoricals = widget.service.getPortfolioHistoricals(
-            //     widget.brokerageUser,
+          if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+              widget.brokerageUser!.source == BrokerageSource.demo) {
+            // futurePortfolioHistoricals = widget.service!.getPortfolioHistoricals(
+            //     widget.brokerageUser!,
             //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
             //     account!.accountNumber,
             //     chartBoundsFilter,
             //     chartDateSpanFilter);
 
-            futurePortfolioHistoricals = widget.service.getPortfolioPerformance(
-                widget.brokerageUser,
-                Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-                account!.accountNumber,
-                chartBoundsFilter: chartBoundsFilter,
-                chartDateSpanFilter: chartDateSpanFilter);
+            futurePortfolioHistoricals = widget.service!
+                .getPortfolioPerformance(
+                    widget.brokerageUser!,
+                    Provider.of<PortfolioHistoricalsStore>(context,
+                        listen: false),
+                    account!.accountNumber,
+                    chartBoundsFilter: chartBoundsFilter,
+                    chartDateSpanFilter: chartDateSpanFilter);
 
-            // futurePortfolioHistoricalsYear = widget.service
+            // futurePortfolioHistoricalsYear = widget.service!
             //     .getPortfolioHistoricals(
-            //         widget.brokerageUser,
+            //         widget.brokerageUser!,
             //         Provider.of<PortfolioHistoricalsStore>(context,
             //             listen: false),
             //         account!.accountNumber,
             //         chartBoundsFilter,
             //         ChartDateSpan.ytd);
 
-            futurePortfolioHistoricalsYear = widget.service
+            futurePortfolioHistoricalsYear = widget.service!
                 .getPortfolioPerformance(
-                    widget.brokerageUser,
+                    widget.brokerageUser!,
                     Provider.of<PortfolioHistoricalsStore>(context,
                         listen: false),
                     account!.accountNumber,
@@ -428,15 +467,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
             // Future.delayed(Duration(seconds: 1), () {
             //   if (mounted) {
-            futureDividends = widget.service.getDividends(
-              widget.brokerageUser,
+            futureDividends = widget.service!.getDividends(
+              widget.brokerageUser!,
               Provider.of<DividendStore>(context, listen: false),
               Provider.of<InstrumentStore>(context, listen: false),
             );
             //   }
             // });
-            futureInterests = widget.service.getInterests(
-              widget.brokerageUser,
+            futureInterests = widget.service!.getInterests(
+              widget.brokerageUser!,
               Provider.of<InterestStore>(context, listen: false),
             );
           } else {
@@ -448,10 +487,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           }
 
           // FUTURES
-          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-          //   futuresStream = (widget.service as RobinhoodService)
+          // if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+          //   futuresStream = (widget.service! as RobinhoodService)
           //       .streamFuturePositions(
-          //           widget.brokerageUser,
+          //           widget.brokerageUser!,
           //           futuresAccounts.firstWhereOrNull(
           //               (f) => f['accountType'] == 'FUTURES')['id']);
           // }
@@ -551,10 +590,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
               analytics: widget.analytics,
               observer: widget.observer,
-              user: widget.brokerageUser,
+              user: widget.brokerageUser!,
               firestoreUser: widget.user,
               userDocRef: widget.userDoc,
-              service: widget.service,
+              service: widget.service!,
             ),
 
             if (welcomeWidget != null) ...[
@@ -640,8 +679,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //     ]),
             //   ));
             // }),
-            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-                widget.brokerageUser.source == BrokerageSource.demo) ...[
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo) ...[
               Selector<PortfolioHistoricalsStore, PortfolioHistoricals?>(
                   selector: (context, store) {
                 final baseData = store.items.firstWhereOrNull((element) =>
@@ -1034,13 +1073,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           changePercentInPeriod =
                               close / open - 1; // changeInPeriod / close;
                         }
-                        String? returnText = widget.brokerageUser
+                        String? returnText = widget.brokerageUser!
                             .getDisplayText(changeInPeriod,
                                 displayValue: DisplayValue.totalReturn);
-                        String? returnPercentText = widget.brokerageUser
+                        String? returnPercentText = widget.brokerageUser!
                             .getDisplayText(changePercentInPeriod,
                                 displayValue: DisplayValue.totalReturnPercent);
-                        // Icon todayIcon = widget.brokerageUser
+                        // Icon todayIcon = widget.brokerageUser!
                         //     .getDisplayIcon(changeInPeriod, size: 26.0);
 
                         //return Text(value.selection!.beginsAt.toString());
@@ -2100,7 +2139,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                   AgenticTradingSettingsWidget(
                                                 user: widget.user!,
                                                 userDocRef: widget.userDoc!,
-                                                service: widget.service,
+                                                service: widget.service!,
                                               ),
                                             ),
                                           );
@@ -2143,8 +2182,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ),
               ),
             ),
-            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-                widget.brokerageUser.source == BrokerageSource.demo) ...[
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo) ...[
               Consumer2<DividendStore, InterestStore>(
                   //, ChartSelectionStore
                   builder: (context, dividendStore, interestStore, child) {
@@ -2161,8 +2200,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 var chartSelectionStore =
                     Provider.of<ChartSelectionStore>(context, listen: false);
                 return IncomeTransactionsWidget(
-                    widget.brokerageUser,
-                    widget.service,
+                    widget.brokerageUser!,
+                    widget.service!,
                     dividendStore,
                     instrumentPositionStore,
                     instrumentOrderStore,
@@ -2185,7 +2224,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     : Future.value(null)
               ]),
               builder: (context, snapshot) {
-                if (snapshot.hasData) {
+                if (snapshot.hasData &&
+                    snapshot.connectionState == ConnectionState.done) {
                   var sp500 = snapshot.data![0];
                   var nasdaq = snapshot.data![1];
                   var dow = snapshot.data![2];
@@ -2588,7 +2628,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
             ),
             // FUTURES: If we have futures accounts, stream aggregated positions
-            if (widget.brokerageUser.source == BrokerageSource.robinhood) ...[
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
               FutureBuilder<List<dynamic>>(
                   future: futureFuturesAccounts,
                   builder: (context, snapshotAccounts) {
@@ -2596,13 +2636,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         snapshotAccounts.data != null) {
                       var accounts = snapshotAccounts.data!;
                       var futuresAccount = accounts.firstWhere(
-                          (f) => f['accountType'] == 'FUTURES',
+                          (f) => f != null && f['accountType'] == 'FUTURES',
                           orElse: () => null);
                       if (futuresAccount != null) {
                         var accountId = futuresAccount['id'];
-                        var stream = (widget.service as RobinhoodService)
+                        var stream = (widget.service! as RobinhoodService)
                             .streamFuturePositions(
-                                widget.brokerageUser, accountId);
+                                widget.brokerageUser!, accountId);
                         return StreamBuilder<List<dynamic>>(
                             stream: stream,
                             builder: (context, futSnapshot) {
@@ -2664,8 +2704,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .toList();
 
               return OptionPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
+                widget.brokerageUser!,
+                widget.service!,
                 filteredOptionAggregatePositions,
                 showList: false,
                 analytics: widget.analytics,
@@ -2709,8 +2749,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               }
               */
               return InstrumentPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
+                widget.brokerageUser!,
+                widget.service!,
                 filteredPositions,
                 showList: false,
                 analytics: widget.analytics,
@@ -2757,8 +2797,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       )),
                       */
                       ForexPositionsWidget(
-                        widget.brokerageUser,
-                        widget.service,
+                        widget.brokerageUser!,
+                        widget.service!,
                         filteredHoldings,
                         showList: false,
                         analytics: widget.analytics,
@@ -2815,9 +2855,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<void> _refresh() async {
     var random = Random();
     final maxDelay = 15000;
-    if (widget.brokerageUser.refreshEnabled &&
+    if (widget.brokerageUser != null &&
+        widget.brokerageUser!.refreshEnabled &&
         (_notification == null || _notification == AppLifecycleState.resumed)) {
-      if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
         if (account != null) {
           // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
           // await service.getAccounts(
@@ -2830,14 +2871,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Future.delayed(Duration(milliseconds: newRandom), () async {
             if (!mounted) return;
             // Always fetch hour data for real-time updates
-            await widget.service.getPortfolioPerformance(
-                widget.brokerageUser,
+            await widget.service!.getPortfolioPerformance(
+                widget.brokerageUser!,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
                 chartBoundsFilter: chartBoundsFilter,
                 chartDateSpanFilter: ChartDateSpan.hour);
-            // await widget.service.getPortfolioHistoricals(
-            //     widget.brokerageUser,
+            // await widget.service!.getPortfolioHistoricals(
+            //     widget.brokerageUser!,
             //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
             //     account!.accountNumber,
             //     chartBoundsFilter,
@@ -2851,8 +2892,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('refreshOptionMarketData scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshOptionMarketData(
-              widget.brokerageUser,
+          await widget.service!.refreshOptionMarketData(
+              widget.brokerageUser!,
               Provider.of<OptionPositionStore>(context, listen: false),
               Provider.of<OptionInstrumentStore>(context, listen: false));
         });
@@ -2861,8 +2902,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('refreshPositionQuote scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshPositionQuote(
-              widget.brokerageUser,
+          await widget.service!.refreshPositionQuote(
+              widget.brokerageUser!,
               Provider.of<InstrumentPositionStore>(context, listen: false),
               Provider.of<QuoteStore>(context, listen: false));
         });
@@ -2871,7 +2912,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('getPortfolios scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.getPortfolios(widget.brokerageUser,
+          await widget.service!.getPortfolios(widget.brokerageUser!,
               Provider.of<PortfolioStore>(context, listen: false));
         });
 
@@ -2879,15 +2920,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('refreshNummusHoldings scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshNummusHoldings(
-            widget.brokerageUser,
+          await widget.service!.refreshNummusHoldings(
+            widget.brokerageUser!,
             Provider.of<ForexHoldingStore>(context, listen: false),
           );
         });
       }
-      if (widget.brokerageUser.source == BrokerageSource.schwab) {
-        futureAccounts = widget.service.getAccounts(
-            widget.brokerageUser,
+      if (widget.brokerageUser!.source == BrokerageSource.schwab) {
+        futureAccounts = widget.service!.getAccounts(
+            widget.brokerageUser!,
             Provider.of<AccountStore>(context, listen: false),
             Provider.of<PortfolioStore>(context, listen: false),
             Provider.of<OptionPositionStore>(context, listen: false),
@@ -2907,6 +2948,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   // }
 
   void resetChart(ChartDateSpan span, Bounds bounds) async {
+    if (widget.brokerageUser == null || widget.service == null) return;
     // setState(() {
     prevChartDateSpanFilter = chartDateSpanFilter;
     chartDateSpanFilter = span;
@@ -2916,12 +2958,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     var portfolioHistoricalStore =
         Provider.of<PortfolioHistoricalsStore>(context, listen: false);
     // futurePortfolioHistoricals =
-    await widget.service.getPortfolioPerformance(
-        widget.brokerageUser, portfolioHistoricalStore, account!.accountNumber,
+    await widget.service!.getPortfolioPerformance(
+        widget.brokerageUser!, portfolioHistoricalStore, account!.accountNumber,
         chartBoundsFilter: chartBoundsFilter,
         chartDateSpanFilter: chartDateSpanFilter);
-    // await widget.service.getPortfolioHistoricals(
-    //     widget.brokerageUser,
+    // await widget.service!.getPortfolioHistoricals(
+    //     widget.brokerageUser!,
     //     portfolioHistoricalStore,
     //     account!.accountNumber,
     //     chartBoundsFilter,
@@ -2960,7 +3002,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //isScrollControlled: true,
         //useRootNavigator: true,
         //constraints: const BoxConstraints(maxHeight: 200),
-        builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
+        builder: (_) => MoreMenuBottomSheet(widget.brokerageUser!,
             analytics: widget.analytics,
             observer: widget.observer,
             chainSymbols: chainSymbols,

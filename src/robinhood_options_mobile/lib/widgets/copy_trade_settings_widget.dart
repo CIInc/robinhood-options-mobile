@@ -274,7 +274,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                       ),
                     )
                   : const Icon(Icons.save),
-              label: const Text('Save Settings'),
+              label: const Text('Save'),
             )
           : null,
       body: Form(

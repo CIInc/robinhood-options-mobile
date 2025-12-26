@@ -98,8 +98,9 @@ service cloud.firestore {
       );
 
       match /messages/{messageId} {
-        allow read: if request.auth.uid != null && 
-          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+        allow read: if get(/databases/$(database)/documents/investor_groups/$(groupId)).data.isPrivate == false || 
+          (request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members);
         allow create: if request.auth.uid != null && 
           request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members &&
           request.resource.data.senderId == request.auth.uid;

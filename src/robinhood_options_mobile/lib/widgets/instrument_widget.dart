@@ -586,11 +586,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ));
                 }),
                 actions: [
-                  AutoTradeStatusBadgeWidget(
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                    service: widget.service,
-                  ),
+                  if (auth.currentUser != null)
+                    AutoTradeStatusBadgeWidget(
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                      service: widget.service,
+                    ),
                   IconButton(
                       icon: auth.currentUser != null
                           ? (auth.currentUser!.photoURL == null
@@ -601,7 +602,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       auth.currentUser!.photoURL!
                                       //  ?? Constants .placeholderImage, // No longer used
                                       )))
-                          : const Icon(Icons.login),
+                          : const Icon(Icons.account_circle_outlined),
                       onPressed: () async {
                         var response = await showProfile(
                             context,

@@ -88,7 +88,16 @@ class BrokerageUser {
                     ? PlaidService()
                     : DemoService();
 
-        var client = Client(credentials, identifier: service.clientId);
+        String? secret;
+        if (user.source == BrokerageSource.schwab) {
+          secret = SchwabService.sc;
+        }
+
+        var client = Client(credentials,
+            identifier: service.clientId,
+            secret: secret, onCredentialsRefreshed: (creds) {
+          user.credentials = creds.toJson();
+        });
         user.oauth2Client = client;
       }
       list.add(user);

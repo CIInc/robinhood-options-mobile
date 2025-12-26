@@ -22,7 +22,7 @@ import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget
 class AutoTradeStatusBadgeWidget extends StatefulWidget {
   final User? user;
   final DocumentReference<User>? userDocRef;
-  final IBrokerageService service;
+  final IBrokerageService? service;
 
   const AutoTradeStatusBadgeWidget({
     super.key,
@@ -139,7 +139,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
           _wasActive = false;
         }
 
-        final status = _getStatusAttributes(agenticTradingProvider);
+        final status = _getStatusAttributes(context, agenticTradingProvider);
 
         // Calculate progress for countdown if in waiting state
         double? progressValue;
@@ -312,7 +312,9 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
     );
   }
 
-  _StatusAttributes _getStatusAttributes(AgenticTradingProvider provider) {
+  _StatusAttributes _getStatusAttributes(
+      BuildContext context, AgenticTradingProvider provider) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final isAutoTrading = provider.showAutoTradingVisual;
     final emergencyStop = provider.emergencyStopActivated;
     final dailyCount = provider.dailyTradeCount;
@@ -323,7 +325,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return _StatusAttributes(
         title: 'Stopped',
         subtitle: 'EMERGENCY',
-        color: Colors.red,
+        color: isLight ? Colors.red.shade700 : Colors.red,
         icon: Icons.stop_circle,
         tooltip: 'Emergency Stop Active\nLong press to resume',
       );
@@ -331,7 +333,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return _StatusAttributes(
         title: 'Done',
         subtitle: '$dailyCount/$dailyLimit',
-        color: Colors.blueGrey,
+        color: isLight ? Colors.blueGrey.shade700 : Colors.blueGrey,
         icon: Icons.check_circle,
         tooltip:
             'Daily Trade Limit Reached\nTrades Today: $dailyCount/$dailyLimit',
@@ -340,7 +342,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return _StatusAttributes(
         title: 'Trading',
         subtitle: '$dailyCount/$dailyLimit',
-        color: Colors.green,
+        color: isLight ? Colors.green.shade700 : Colors.green,
         icon: Icons.play_circle,
         tooltip: 'Auto-Trading Active\nTrades Today: $dailyCount/$dailyLimit',
       );
@@ -352,7 +354,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return _StatusAttributes(
         title: 'Auto On',
         subtitle: timeStr,
-        color: Colors.amber,
+        color: isLight ? Colors.amber.shade800 : Colors.amber,
         icon: Icons.schedule,
         tooltip:
             'Auto-Trade Enabled\nNext Check: $timeStr\nTrades Today: $dailyCount/$dailyLimit',

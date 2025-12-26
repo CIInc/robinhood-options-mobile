@@ -164,7 +164,7 @@ class _ListWidgetState extends State<ListWidget>
                                 auth.currentUser!.photoURL!
                                 //  ?? Constants .placeholderImage, // No longer used
                                 )))
-                    : const Icon(Icons.login),
+                    : const Icon(Icons.account_circle_outlined),
                 onPressed: () async {
                   var response = await showProfile(
                       context,

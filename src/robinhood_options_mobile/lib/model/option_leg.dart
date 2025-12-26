@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/option_leg_execution.dart';
 
 class OptionLeg {
@@ -47,6 +48,33 @@ class OptionLeg {
             ? OptionLegExecution.fromJsonArray(json['executions'])
             : [];
 
+  OptionLeg.fromSchwabJson(dynamic json)
+      : id = json['legId'].toString(),
+        position = null,
+        positionType = json['instruction'].toString().startsWith('BUY')
+            ? 'long'
+            : 'short', // BUY_TO_OPEN, SELL_TO_CLOSE
+        option = json['instrument']['instrumentId'].toString(),
+        positionEffect = json['positionEffect'] == 'OPENING' ? 'open' : 'close',
+        ratioQuantity = json['quantity'].toInt(),
+        side = json['instruction'].toString().split('_')[0].toLowerCase(),
+        expirationDate = DateFormat("MM/dd/yyyy").tryParse(json['instrument']
+                ['description']
+            .toString()
+            .split(' ')
+            .reversed
+            .skip(2)
+            .first),
+        strikePrice = double.tryParse(json['instrument']['description']
+            .toString()
+            .split(' ')
+            .reversed
+            .skip(1)
+            .first
+            .replaceFirst('\$', '')),
+        optionType = json['instrument']['putCall'].toString().toLowerCase(),
+        executions = [];
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'position': position,
@@ -70,6 +98,15 @@ class OptionLeg {
       /*} catch (e) {
         print(e);
       }*/
+    }
+    return legs;
+  }
+
+  static List<OptionLeg> fromSchwabJsonArray(dynamic json) {
+    List<OptionLeg> legs = [];
+    for (int i = 0; i < json.length; i++) {
+      var leg = OptionLeg.fromSchwabJson(json[i]);
+      legs.add(leg);
     }
     return legs;
   }

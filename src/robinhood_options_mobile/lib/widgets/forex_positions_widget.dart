@@ -494,37 +494,6 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         ? null
         : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
-    double? totalReturn = widget.brokerageUser.getDisplayValueForexHolding(
-        holdings[index],
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.brokerageUser
-        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
-
-    double? totalReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHolding(holdings[index],
-            displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
-        totalReturnPercent,
-        displayValue: DisplayValue.totalReturnPercent);
-
-    double? todayReturn = widget.brokerageUser.getDisplayValueForexHolding(
-        holdings[index],
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.brokerageUser
-        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
-
-    double? todayReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHolding(holdings[index],
-            displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent,
-        displayValue: DisplayValue.todayReturnPercent);
-
-    Icon todayIcon =
-        widget.brokerageUser.getDisplayIcon(todayReturn, size: 26.0);
-    Icon totalIcon =
-        widget.brokerageUser.getDisplayIcon(totalReturn, size: 26.0);
-
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(

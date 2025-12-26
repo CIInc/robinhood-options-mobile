@@ -113,6 +113,49 @@ class OptionOrder {
             ? (json['updated_at'] as Timestamp).toDate()
             : DateTime.tryParse(json['updated_at']);
 
+  OptionOrder.fromSchwabJson(dynamic json)
+      : id = json['orderId'].toString(),
+        chainId = json['orderLegCollection'][0]['instrument']['instrumentId']
+            .toString(),
+        chainSymbol =
+            json['orderLegCollection'][0]['instrument']['underlyingSymbol'],
+        cancelUrl = null,
+        canceledQuantity = (json['quantity'] -
+                json['filledQuantity'] -
+                json['remainingQuantity'])
+            .toDouble(),
+        direction = json['orderLegCollection'][0]['instruction']
+                .toString()
+                .startsWith('BUY')
+            ? 'debit'
+            : 'credit',
+        legs = OptionLeg.fromSchwabJsonArray(json['orderLegCollection']),
+        pendingQuantity = json['remainingQuantity'].toDouble(),
+        premium = json['price'].toDouble(),
+        processedPremium = json['orderActivityCollection'] != null
+            ? (json['orderActivityCollection'] as List)
+                .expand((activity) => (activity['executionLegs'] as List))
+                .map((leg) =>
+                    (leg['price'] as num).toDouble() *
+                    (leg['quantity'] as num).toDouble() *
+                    100)
+                .fold<double>(0.0, (a, b) => a + b)
+            : null,
+        price = json['price'].toDouble(),
+        processedQuantity = json['filledQuantity'].toDouble(),
+        quantity = json['quantity'].toDouble(),
+        refId = json['orderId'].toString(),
+        state = json['status'].toString().toLowerCase(),
+        timeInForce = json['duration'].toString().toLowerCase(),
+        trigger = json['orderType'].toString().toLowerCase(),
+        type = json['orderType'].toString().toLowerCase(),
+        responseCategory = null,
+        openingStrategy = null,
+        closingStrategy = null,
+        stopPrice = null,
+        createdAt = DateTime.tryParse(json['enteredTime']),
+        updatedAt = DateTime.tryParse(json['closeTime'] ?? json['enteredTime']);
+
   String get strategy {
     String strat = "";
     if (openingStrategy != null) {

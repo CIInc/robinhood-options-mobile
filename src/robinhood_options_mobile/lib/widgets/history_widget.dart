@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/model/option_event.dart';
@@ -52,16 +53,18 @@ class HistoryPage extends StatefulWidget {
       required this.generativeService,
       required this.user,
       required this.userDoc,
-      this.navigatorKey});
+      this.navigatorKey,
+      this.onLogin});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final GenerativeService generativeService;
   final User? user;
   final DocumentReference<User>? userDoc;
+  final VoidCallback? onLogin;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -160,8 +163,43 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    optionOrderStream ??= widget.service.streamOptionOrders(
-        widget.brokerageUser,
+    if (widget.brokerageUser == null || widget.service == null) {
+      return Scaffold(
+          body: RefreshIndicator(
+        onRefresh: () async {
+          if (widget.onLogin != null) {
+            widget.onLogin!();
+          }
+        },
+        child: CustomScrollView(
+          slivers: [
+            ExpandedSliverAppBar(
+              title: const Text(''), // History
+              auth: auth,
+              firestoreService: _firestoreService,
+              automaticallyImplyLeading: true,
+              onChange: () {
+                setState(() {});
+              },
+              analytics: widget.analytics,
+              observer: widget.observer,
+              user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
+              service: widget.service,
+            ),
+            SliverFillRemaining(
+              child: WelcomeWidget(
+                onLogin: widget.onLogin,
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
+
+    optionOrderStream ??= widget.service!.streamOptionOrders(
+        widget.brokerageUser!,
         Provider.of<OptionOrderStore>(context, listen: false),
         userDoc: widget.userDoc);
 
@@ -171,8 +209,8 @@ class _HistoryPageState extends State<HistoryPage>
           if (optionOrdersSnapshot.hasData) {
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
-            positionOrderStream ??= widget.service.streamPositionOrders(
-                widget.brokerageUser,
+            positionOrderStream ??= widget.service!.streamPositionOrders(
+                widget.brokerageUser!,
                 Provider.of<InstrumentOrderStore>(context, listen: false),
                 Provider.of<InstrumentStore>(context, listen: false),
                 userDoc: widget.userDoc);
@@ -184,8 +222,8 @@ class _HistoryPageState extends State<HistoryPage>
                     positionOrders =
                         positionOrdersSnapshot.data as List<InstrumentOrder>;
 
-                    optionEventStream ??= widget.service.streamOptionEvents(
-                        widget.brokerageUser,
+                    optionEventStream ??= widget.service!.streamOptionEvents(
+                        widget.brokerageUser!,
                         Provider.of<OptionEventStore>(context, listen: false),
                         userDoc: widget.userDoc);
                     return StreamBuilder(
@@ -210,8 +248,8 @@ class _HistoryPageState extends State<HistoryPage>
                               }
                             }
 
-                            dividendStream ??= widget.service.streamDividends(
-                                widget.brokerageUser,
+                            dividendStream ??= widget.service!.streamDividends(
+                                widget.brokerageUser!,
                                 Provider.of<InstrumentStore>(context,
                                     listen: false),
                                 userDoc: widget.userDoc);
@@ -226,9 +264,9 @@ class _HistoryPageState extends State<HistoryPage>
                                         .compareTo(
                                             DateTime.parse(a["payable_date"])));
 
-                                    interestStream ??= widget.service
+                                    interestStream ??= widget.service!
                                         .streamInterests(
-                                            widget.brokerageUser,
+                                            widget.brokerageUser!,
                                             Provider.of<InstrumentStore>(
                                                 context,
                                                 listen: false),
@@ -502,28 +540,29 @@ class _HistoryPageState extends State<HistoryPage>
                   snap: true,
                   pinned: true,
                   centerTitle: false,
-                  title: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.end,
-                      //runAlignment: WrapAlignment.end,
-                      //alignment: WrapAlignment.end,
-                      spacing: 20,
-                      //runSpacing: 5,
-                      children: [
-                        const Text('Transactions',
-                            style: TextStyle(fontSize: 20.0)),
-                        Text(
-                            "$orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                            //  ${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length + filteredDividends!.length) : "0"}
-                            //  of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"}
-                            style: const TextStyle(
-                                fontSize: 16.0, color: Colors.white70)),
-                      ]),
+                  // title: Wrap(
+                  //     crossAxisAlignment: WrapCrossAlignment.end,
+                  //     //runAlignment: WrapAlignment.end,
+                  //     //alignment: WrapAlignment.end,
+                  //     spacing: 20,
+                  //     //runSpacing: 5,
+                  //     children: [
+                  //       const Text('Transactions',
+                  //           style: TextStyle(fontSize: 20.0)),
+                  //       Text(
+                  //           "$orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                  //           //  ${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length + filteredDividends!.length) : "0"}
+                  //           //  of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"}
+                  //           style: const TextStyle(
+                  //               fontSize: 16.0, color: Colors.white70)),
+                  //     ]),
                   actions: [
-                    AutoTradeStatusBadgeWidget(
-                      user: widget.user,
-                      userDocRef: widget.userDoc,
-                      service: widget.service,
-                    ),
+                    if (auth.currentUser != null)
+                      AutoTradeStatusBadgeWidget(
+                        user: widget.user,
+                        userDocRef: widget.userDoc,
+                        service: widget.service!,
+                      ),
                     IconButton(
                         icon: auth.currentUser != null
                             ? (auth.currentUser!.photoURL == null
@@ -534,7 +573,7 @@ class _HistoryPageState extends State<HistoryPage>
                                         auth.currentUser!.photoURL!
                                         //  ?? Constants .placeholderImage, // No longer used
                                         )))
-                            : const Icon(Icons.login),
+                            : const Icon(Icons.account_circle_outlined),
                         onPressed: () async {
                           var response = await showProfile(
                               context,
@@ -542,8 +581,8 @@ class _HistoryPageState extends State<HistoryPage>
                               _firestoreService,
                               widget.analytics,
                               widget.observer,
-                              widget.brokerageUser,
-                              widget.service);
+                              widget.brokerageUser!,
+                              widget.service!);
                           if (response != null) {
                             setState(() {});
                           }
@@ -895,8 +934,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                 MaterialPageRoute(
                                                     builder: (context) =>
                                                         PositionOrderWidget(
-                                                          widget.brokerageUser,
-                                                          widget.service,
+                                                          widget.brokerageUser!,
+                                                          widget.service!,
                                                           filteredPositionOrders![
                                                               index],
                                                           analytics:
@@ -1139,8 +1178,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                 MaterialPageRoute(
                                                     builder: (context) =>
                                                         OptionOrderWidget(
-                                                          widget.brokerageUser,
-                                                          widget.service,
+                                                          widget.brokerageUser!,
+                                                          widget.service!,
                                                           optionOrder,
                                                           analytics:
                                                               widget.analytics,

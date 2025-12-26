@@ -303,38 +303,39 @@ class OptionMarketData {
 "low52Week":1.45,"nonStandard":false,"pennyPilot":true,"inTheMoney":false,"mini":false}
 */
   OptionMarketData.fromSchwabJson(dynamic json)
-      : adjustedMarkPrice = json['mark'] as double,
-        askPrice = json['ask'] as double,
-        askSize = json['askSize'] as int,
-        bidPrice = json['bid'] as double,
-        bidSize = json['bidSize'] as int,
+      : adjustedMarkPrice = double.tryParse(json['mark'].toString()),
+        askPrice = double.tryParse(json['ask'].toString()),
+        askSize = int.tryParse(json['askSize'].toString()) ?? 0,
+        bidPrice = double.tryParse(json['bid'].toString()),
+        bidSize = int.tryParse(json['bidSize'].toString()) ?? 0,
         breakEvenPrice = null,
-        highPrice = json['highPrice'] as double,
-        instrument = '', // TODO
-        instrumentId = '', // TODO
-        lastTradePrice = json['last'] as double,
-        lastTradeSize = json['lastSize'] as int,
-        lowPrice = json['lowPrice'] as double,
-        markPrice = json['mark'] as double,
-        openInterest = json['openInterest'] as int,
-        previousCloseDate = null, // TODO
-        previousClosePrice =
-            (json['mark'] as double) - (json['markChange'] as double),
-        volume = json['totalVolume'] as int,
+        highPrice = double.tryParse(json['highPrice'].toString()),
+        instrument = json['symbol'],
+        instrumentId = json['symbol'],
+        lastTradePrice = double.tryParse(json['last'].toString()),
+        lastTradeSize = int.tryParse(json['lastSize'].toString()) ?? 0,
+        lowPrice = double.tryParse(json['lowPrice'].toString()),
+        markPrice = double.tryParse(json['mark'].toString()),
+        openInterest = int.tryParse(json['openInterest'].toString()) ?? 0,
+        previousCloseDate = null,
+        previousClosePrice = double.tryParse(json['closePrice'].toString()) ??
+            ((double.tryParse(json['mark'].toString()) ?? 0) -
+                (double.tryParse(json['markChange'].toString()) ?? 0)),
+        volume = int.tryParse(json['totalVolume'].toString()) ?? 0,
         symbol = json['optionRoot'],
-        occSymbol = json['optionRoot'], // TODO
-        chanceOfProfitLong = null, // TODO
-        chanceOfProfitShort = null, // TODO
-        delta = json['delta'] as double,
-        gamma = json['gamma'] as double,
-        impliedVolatility = json['volatility'] as double,
-        rho = json['rho'] as double,
-        theta = json['theta'] as double,
-        vega = json['vega'] as double,
-        highFillRateBuyPrice = null, // TODO
-        highFillRateSellPrice = null, // TODO
-        lowFillRateBuyPrice = null, // TODO
-        lowFillRateSellPrice = null, // TODO
+        occSymbol = json['symbol'],
+        chanceOfProfitLong = null,
+        chanceOfProfitShort = null,
+        delta = double.tryParse(json['delta'].toString()),
+        gamma = double.tryParse(json['gamma'].toString()),
+        impliedVolatility = double.tryParse(json['volatility'].toString()),
+        rho = double.tryParse(json['rho'].toString()),
+        theta = double.tryParse(json['theta'].toString()),
+        vega = double.tryParse(json['vega'].toString()),
+        highFillRateBuyPrice = null,
+        highFillRateSellPrice = null,
+        lowFillRateBuyPrice = null,
+        lowFillRateSellPrice = null,
         updatedAt = DateTime.now();
 
   double get changeToday {

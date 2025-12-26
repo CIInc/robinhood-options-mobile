@@ -33,7 +33,7 @@ class AuthUtil {
           role = token.claims!['role'];
         }
       }
-      _userRole = role.parseEnum(UserRole.values, UserRole.user) as UserRole;
+      _userRole = role.parseEnum(UserRole.values, UserRole.user);
     }
     return _userRole!;
   }

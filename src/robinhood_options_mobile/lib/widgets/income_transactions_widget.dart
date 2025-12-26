@@ -2028,7 +2028,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           auth.currentUser!.photoURL!
                                           //  ?? Constants .placeholderImage, // No longer used
                                           )))
-                              : const Icon(Icons.login),
+                              : const Icon(Icons.account_circle_outlined),
                           onPressed: () {
                             showProfile(
                                 context,

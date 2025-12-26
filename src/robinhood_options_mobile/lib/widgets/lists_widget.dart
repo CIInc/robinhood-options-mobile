@@ -345,32 +345,24 @@ class _ListsWidgetState extends State<ListsWidget>
         snap: false,
         pinned: true,
         centerTitle: false,
-        title: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            //runAlignment: WrapAlignment.end,
-            //alignment: WrapAlignment.end,
-            spacing: 20,
-            //runSpacing: 5,
-            children: [
-              const Text('Lists', style: TextStyle(fontSize: 20.0)),
-              Text(
-                "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
-                style: TextStyle(
-                  fontSize: 16.0,
-                  // color: Theme.of(context).colorScheme.onSurfaceVariant
-                ),
-              )
-            ]),
+        // title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        //   const Text('Lists', style: TextStyle(fontSize: 20.0)),
+        //   Text(
+        //     "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
+        //     style: const TextStyle(fontSize: 16.0),
+        //   )
+        // ]),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _showCreateListDialog,
           ),
-          AutoTradeStatusBadgeWidget(
-            user: widget.user,
-            userDocRef: widget.userDocRef,
-            service: widget.service,
-          ),
+          if (auth.currentUser != null)
+            AutoTradeStatusBadgeWidget(
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+              service: widget.service,
+            ),
           IconButton(
               icon: auth.currentUser != null
                   ? (auth.currentUser!.photoURL == null

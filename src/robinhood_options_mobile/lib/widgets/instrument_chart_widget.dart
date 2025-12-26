@@ -294,19 +294,4 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       ),
     );
   }
-
-  Widget _buildBoundsChip(Bounds bounds, String label) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: widget.chartBoundsFilter == bounds,
-        onSelected: (bool value) {
-          if (value) {
-            widget.onFilterChanged(widget.chartDateSpanFilter, bounds);
-          }
-        },
-      ),
-    );
-  }
 }

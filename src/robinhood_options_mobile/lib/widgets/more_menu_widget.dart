@@ -29,7 +29,7 @@ class MoreMenuBottomSheet extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
+  final BrokerageUser? brokerageUser;
   final ValueChanged<dynamic> onSettingsChanged;
   final ScrollPhysics? physics;
   final ScrollController? scrollController;
@@ -71,6 +71,9 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   @override
   Widget build(BuildContext context) {
     userStore = Provider.of<BrokerageUserStore>(context, listen: true);
+    if (widget.brokerageUser == null) {
+      return const SizedBox();
+    }
     return Scaffold(
         // appBar:
         //     AppBar(leading: const CloseButton(), title: const Text('Settings')),
@@ -93,10 +96,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             //leading: Icon(Icons.functions),
             title: const Text("Refresh Market Data"),
             subtitle: const Text("Periodically update latest prices"),
-            value: widget.brokerageUser.refreshEnabled,
+            value: widget.brokerageUser!.refreshEnabled,
             onChanged: (bool value) {
               setState(() {
-                widget.brokerageUser.refreshEnabled = value;
+                widget.brokerageUser!.refreshEnabled = value;
               });
               _onSettingsChanged();
             },
@@ -118,10 +121,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             //leading: Icon(Icons.functions),
             title: const Text("Position Details"),
             subtitle: const Text("Displays P/L and Greeks."),
-            value: widget.brokerageUser.showPositionDetails,
+            value: widget.brokerageUser!.showPositionDetails,
             onChanged: (bool value) {
               setState(() {
-                widget.brokerageUser.showPositionDetails = value;
+                widget.brokerageUser!.showPositionDetails = value;
               });
               _onSettingsChanged();
             },
@@ -143,47 +146,47 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           RadioListTile<bool>(
               title: const Text("Last Price"),
               value:
-                  widget.brokerageUser.displayValue == DisplayValue.lastPrice,
+                  widget.brokerageUser!.displayValue == DisplayValue.lastPrice,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue = DisplayValue.lastPrice;
+                  widget.brokerageUser!.displayValue = DisplayValue.lastPrice;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("Market Value"),
-              value:
-                  widget.brokerageUser.displayValue == DisplayValue.marketValue,
+              value: widget.brokerageUser!.displayValue ==
+                  DisplayValue.marketValue,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue = DisplayValue.marketValue;
+                  widget.brokerageUser!.displayValue = DisplayValue.marketValue;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("\$ Today"),
-              value:
-                  widget.brokerageUser.displayValue == DisplayValue.todayReturn,
+              value: widget.brokerageUser!.displayValue ==
+                  DisplayValue.todayReturn,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue = DisplayValue.todayReturn;
+                  widget.brokerageUser!.displayValue = DisplayValue.todayReturn;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("% Today"),
-              value: widget.brokerageUser.displayValue ==
+              value: widget.brokerageUser!.displayValue ==
                   DisplayValue.todayReturnPercent,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue =
+                  widget.brokerageUser!.displayValue =
                       DisplayValue.todayReturnPercent;
                 });
                 _onSettingsChanged();
@@ -191,24 +194,24 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               }),
           RadioListTile<bool>(
               title: const Text("\$ Total"),
-              value:
-                  widget.brokerageUser.displayValue == DisplayValue.totalReturn,
+              value: widget.brokerageUser!.displayValue ==
+                  DisplayValue.totalReturn,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue = DisplayValue.totalReturn;
+                  widget.brokerageUser!.displayValue = DisplayValue.totalReturn;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("% Total"),
-              value: widget.brokerageUser.displayValue ==
+              value: widget.brokerageUser!.displayValue ==
                   DisplayValue.totalReturnPercent,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.brokerageUser.displayValue =
+                  widget.brokerageUser!.displayValue =
                       DisplayValue.totalReturnPercent;
                 });
                 _onSettingsChanged();
@@ -270,10 +273,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           SwitchListTile(
             //leading: Icon(Icons.functions),
             title: const Text("Group by Stock"),
-            value: widget.brokerageUser.optionsView == OptionsView.grouped,
+            value: widget.brokerageUser!.optionsView == OptionsView.grouped,
             onChanged: (bool value) {
               setState(() {
-                widget.brokerageUser.optionsView =
+                widget.brokerageUser!.optionsView =
                     value ? OptionsView.grouped : OptionsView.list;
                 //widget.user.showPositionDetails = value;
               });
@@ -291,166 +294,168 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("Expiration Date"),
-            value:
-                widget.brokerageUser.sortOptions == DisplayValue.expirationDate,
+            value: widget.brokerageUser!.sortOptions ==
+                DisplayValue.expirationDate,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions = DisplayValue.expirationDate;
-                widget.brokerageUser.sortDirection = SortDirection.asc;
+                widget.brokerageUser!.sortOptions = DisplayValue.expirationDate;
+                widget.brokerageUser!.sortDirection = SortDirection.asc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
-                    DisplayValue.expirationDate
-                ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
+            secondary:
+                widget.brokerageUser!.sortOptions == DisplayValue.expirationDate
+                    ? IconButton(
+                        icon: Icon(widget.brokerageUser!.sortDirection ==
+                                SortDirection.desc
                             ? Icons.south
                             : Icons.north),
-                    onPressed: () {
-                      setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
-                                    SortDirection.asc
-                                ? SortDirection.desc
-                                : SortDirection.asc;
-                      });
-                      _onSettingsChanged();
-                      Navigator.pop(context, 'dialog');
-                      // showSettings();
-                    },
-                  )
-                : null,
+                        onPressed: () {
+                          setState(() {
+                            widget.brokerageUser!.sortDirection =
+                                widget.brokerageUser!.sortDirection ==
+                                        SortDirection.asc
+                                    ? SortDirection.desc
+                                    : SortDirection.asc;
+                          });
+                          _onSettingsChanged();
+                          Navigator.pop(context, 'dialog');
+                          // showSettings();
+                        },
+                      )
+                    : null,
           ),
           RadioListTile<bool>(
             title: const Text("Last Price"),
-            value: widget.brokerageUser.sortOptions == DisplayValue.lastPrice,
+            value: widget.brokerageUser!.sortOptions == DisplayValue.lastPrice,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions = DisplayValue.lastPrice;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortOptions = DisplayValue.lastPrice;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
-                    DisplayValue.lastPrice
-                ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
+            secondary:
+                widget.brokerageUser!.sortOptions == DisplayValue.lastPrice
+                    ? IconButton(
+                        icon: Icon(widget.brokerageUser!.sortDirection ==
+                                SortDirection.desc
                             ? Icons.south
                             : Icons.north),
-                    onPressed: () {
-                      setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
-                                    SortDirection.asc
-                                ? SortDirection.desc
-                                : SortDirection.asc;
-                      });
-                      _onSettingsChanged();
-                      Navigator.pop(context, 'dialog');
-                      // showSettings();
-                    },
-                  )
-                : null,
+                        onPressed: () {
+                          setState(() {
+                            widget.brokerageUser!.sortDirection =
+                                widget.brokerageUser!.sortDirection ==
+                                        SortDirection.asc
+                                    ? SortDirection.desc
+                                    : SortDirection.asc;
+                          });
+                          _onSettingsChanged();
+                          Navigator.pop(context, 'dialog');
+                          // showSettings();
+                        },
+                      )
+                    : null,
           ),
           RadioListTile<bool>(
             title: const Text("Market Value"),
-            value: widget.brokerageUser.sortOptions == DisplayValue.marketValue,
+            value:
+                widget.brokerageUser!.sortOptions == DisplayValue.marketValue,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions = DisplayValue.marketValue;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortOptions = DisplayValue.marketValue;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
-                    DisplayValue.marketValue
-                ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
+            secondary:
+                widget.brokerageUser!.sortOptions == DisplayValue.marketValue
+                    ? IconButton(
+                        icon: Icon(widget.brokerageUser!.sortDirection ==
+                                SortDirection.desc
                             ? Icons.south
                             : Icons.north),
-                    onPressed: () {
-                      setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
-                                    SortDirection.asc
-                                ? SortDirection.desc
-                                : SortDirection.asc;
-                      });
-                      _onSettingsChanged();
-                      Navigator.pop(context, 'dialog');
-                      // showSettings();
-                    },
-                  )
-                : null,
+                        onPressed: () {
+                          setState(() {
+                            widget.brokerageUser!.sortDirection =
+                                widget.brokerageUser!.sortDirection ==
+                                        SortDirection.asc
+                                    ? SortDirection.desc
+                                    : SortDirection.asc;
+                          });
+                          _onSettingsChanged();
+                          Navigator.pop(context, 'dialog');
+                          // showSettings();
+                        },
+                      )
+                    : null,
           ),
           RadioListTile<bool>(
             title: const Text("\$ Today"),
-            value: widget.brokerageUser.sortOptions == DisplayValue.todayReturn,
+            value:
+                widget.brokerageUser!.sortOptions == DisplayValue.todayReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions = DisplayValue.todayReturn;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortOptions = DisplayValue.todayReturn;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
-                    DisplayValue.todayReturn
-                ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
+            secondary:
+                widget.brokerageUser!.sortOptions == DisplayValue.todayReturn
+                    ? IconButton(
+                        icon: Icon(widget.brokerageUser!.sortDirection ==
+                                SortDirection.desc
                             ? Icons.south
                             : Icons.north),
-                    onPressed: () {
-                      setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
-                                    SortDirection.asc
-                                ? SortDirection.desc
-                                : SortDirection.asc;
-                      });
-                      _onSettingsChanged();
-                      Navigator.pop(context, 'dialog');
-                      // showSettings();
-                    },
-                  )
-                : null,
+                        onPressed: () {
+                          setState(() {
+                            widget.brokerageUser!.sortDirection =
+                                widget.brokerageUser!.sortDirection ==
+                                        SortDirection.asc
+                                    ? SortDirection.desc
+                                    : SortDirection.asc;
+                          });
+                          _onSettingsChanged();
+                          Navigator.pop(context, 'dialog');
+                          // showSettings();
+                        },
+                      )
+                    : null,
           ),
           RadioListTile<bool>(
             title: const Text("% Today"),
-            value: widget.brokerageUser.sortOptions ==
+            value: widget.brokerageUser!.sortOptions ==
                 DisplayValue.todayReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions =
+                widget.brokerageUser!.sortOptions =
                     DisplayValue.todayReturnPercent;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
+            secondary: widget.brokerageUser!.sortOptions ==
                     DisplayValue.todayReturnPercent
                 ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
-                            ? Icons.south
-                            : Icons.north),
+                    icon: Icon(widget.brokerageUser!.sortDirection ==
+                            SortDirection.desc
+                        ? Icons.south
+                        : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
+                        widget.brokerageUser!.sortDirection =
+                            widget.brokerageUser!.sortDirection ==
                                     SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
@@ -464,63 +469,64 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("\$ Total"),
-            value: widget.brokerageUser.sortOptions == DisplayValue.totalReturn,
+            value:
+                widget.brokerageUser!.sortOptions == DisplayValue.totalReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions = DisplayValue.totalReturn;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortOptions = DisplayValue.totalReturn;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
-                    DisplayValue.totalReturn
-                ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
+            secondary:
+                widget.brokerageUser!.sortOptions == DisplayValue.totalReturn
+                    ? IconButton(
+                        icon: Icon(widget.brokerageUser!.sortDirection ==
+                                SortDirection.desc
                             ? Icons.south
                             : Icons.north),
-                    onPressed: () {
-                      setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
-                                    SortDirection.asc
-                                ? SortDirection.desc
-                                : SortDirection.asc;
-                      });
-                      _onSettingsChanged();
-                      Navigator.pop(context, 'dialog');
-                      // showSettings();
-                    },
-                  )
-                : null,
+                        onPressed: () {
+                          setState(() {
+                            widget.brokerageUser!.sortDirection =
+                                widget.brokerageUser!.sortDirection ==
+                                        SortDirection.asc
+                                    ? SortDirection.desc
+                                    : SortDirection.asc;
+                          });
+                          _onSettingsChanged();
+                          Navigator.pop(context, 'dialog');
+                          // showSettings();
+                        },
+                      )
+                    : null,
           ),
           RadioListTile<bool>(
             title: const Text("% Total"),
-            value: widget.brokerageUser.sortOptions ==
+            value: widget.brokerageUser!.sortOptions ==
                 DisplayValue.totalReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.brokerageUser.sortOptions =
+                widget.brokerageUser!.sortOptions =
                     DisplayValue.totalReturnPercent;
-                widget.brokerageUser.sortDirection = SortDirection.desc;
+                widget.brokerageUser!.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.brokerageUser.sortOptions ==
+            secondary: widget.brokerageUser!.sortOptions ==
                     DisplayValue.totalReturnPercent
                 ? IconButton(
-                    icon: Icon(
-                        widget.brokerageUser.sortDirection == SortDirection.desc
-                            ? Icons.south
-                            : Icons.north),
+                    icon: Icon(widget.brokerageUser!.sortDirection ==
+                            SortDirection.desc
+                        ? Icons.south
+                        : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.brokerageUser.sortDirection =
-                            widget.brokerageUser.sortDirection ==
+                        widget.brokerageUser!.sortDirection =
+                            widget.brokerageUser!.sortDirection ==
                                     SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
@@ -615,7 +621,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   Future<void> _onSettingsChanged({bool persistUser = true}) async {
     if (persistUser) {
-      userStore!.addOrUpdate(widget.brokerageUser);
+      userStore!.addOrUpdate(widget.brokerageUser!);
       userStore!.save();
     }
     widget.onSettingsChanged({

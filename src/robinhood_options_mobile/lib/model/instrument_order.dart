@@ -112,6 +112,36 @@ class InstrumentOrder {
                 ? (json['created_at'] as Timestamp).toDate()
                 : DateTime.tryParse(json['created_at']);
 
+  InstrumentOrder.fromSchwabJson(dynamic json)
+      : id = json['orderId'].toString(),
+        refId = json['orderId'].toString(),
+        url = "",
+        account = json['accountNumber'].toString(),
+        position = "",
+        cancel = null,
+        instrument =
+            json['orderLegCollection'][0]['instrument']['symbol'].toString(),
+        instrumentId = json['orderLegCollection'][0]['instrument']
+                ['instrumentId']
+            .toString(),
+        cumulativeQuantity = json['filledQuantity'].toDouble(),
+        averagePrice = json['price'].toDouble(),
+        fees = null,
+        state = json['status'].toString().toLowerCase(),
+        pendingCancelOpenAgent = null,
+        type = json['orderType'].toString().toLowerCase(),
+        side = json['orderLegCollection'][0]['instruction']
+            .toString()
+            .toLowerCase(),
+        timeInForce = json['duration'].toString().toLowerCase(),
+        trigger = json['orderType'].toString().toLowerCase(),
+        price = json['price'].toDouble(),
+        stopPrice = json['stopPrice']?.toDouble(),
+        quantity = json['quantity'].toDouble(),
+        rejectReason = null,
+        createdAt = DateTime.tryParse(json['enteredTime']),
+        updatedAt = DateTime.tryParse(json['closeTime'] ?? json['enteredTime']);
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'ref_id': refId,

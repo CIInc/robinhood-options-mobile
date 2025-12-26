@@ -212,7 +212,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                             maxRadius: 12,
                             backgroundImage: CachedNetworkImageProvider(auth
                                 .FirebaseAuth.instance.currentUser!.photoURL!)))
-                    : const Icon(Icons.login),
+                    : const Icon(Icons.account_circle_outlined),
                 onPressed: () async {
                   var response = await showProfile(
                       context,

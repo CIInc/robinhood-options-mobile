@@ -57,7 +57,7 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
                               auth.currentUser!.photoURL!
                               //  ?? Constants .placeholderImage, // No longer used
                               )))
-                  : const Icon(Icons.login),
+                  : const Icon(Icons.account_circle_outlined),
               onPressed: () {
                 showProfile(context, auth, _firestoreService, widget.analytics,
                     widget.observer, widget.brokerageUser, widget.service);

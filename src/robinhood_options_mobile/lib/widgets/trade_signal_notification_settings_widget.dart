@@ -29,8 +29,14 @@ class _TradeSignalNotificationSettingsWidgetState
   @override
   void initState() {
     super.initState();
-    _settings = widget.user.tradeSignalNotificationSettings ??
-        TradeSignalNotificationSettings();
+    _loadSettings();
+  }
+
+  void _loadSettings() {
+    setState(() {
+      _settings = widget.user.tradeSignalNotificationSettings ??
+          TradeSignalNotificationSettings();
+    });
   }
 
   Future<void> _saveSettings() async {
@@ -51,6 +57,7 @@ class _TradeSignalNotificationSettingsWidgetState
             behavior: SnackBarBehavior.floating,
           ),
         );
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -77,23 +84,29 @@ class _TradeSignalNotificationSettingsWidgetState
       appBar: AppBar(
         title: const Text('Trade Signal Notifications'),
         actions: [
-          if (_isSaving)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveSettings,
-              tooltip: 'Save settings',
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Revert Changes',
+            onPressed: _loadSettings,
+          ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isSaving ? null : _saveSettings,
+        icon: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.save),
+        label: const Text('Save'),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
         children: [
           // Enable/Disable notifications
           SwitchListTile(

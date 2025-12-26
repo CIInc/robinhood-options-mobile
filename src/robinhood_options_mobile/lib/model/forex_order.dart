@@ -1,5 +1,3 @@
-import 'package:robinhood_options_mobile/model/forex_quote.dart';
-
 class ForexOrder {
   final String id;
   final String? refId;

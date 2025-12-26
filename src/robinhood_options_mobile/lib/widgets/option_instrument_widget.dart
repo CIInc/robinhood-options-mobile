@@ -223,13 +223,16 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
     int originalDte = 0;
-    DateTime createdAt = DateTime(optionInstrument.createdAt!.year,
-        optionInstrument.createdAt!.month, optionInstrument.createdAt!.day);
-    if (optionPosition != null) {
-      createdAt = DateTime(optionPosition.createdAt!.year,
-          optionPosition.createdAt!.month, optionPosition.createdAt!.day);
+    if (optionInstrument.createdAt != null) {
+      DateTime createdAt = DateTime(optionInstrument.createdAt!.year,
+          optionInstrument.createdAt!.month, optionInstrument.createdAt!.day);
+      if (optionPosition != null) {
+        createdAt = DateTime(optionPosition.createdAt!.year,
+            optionPosition.createdAt!.month, optionPosition.createdAt!.day);
+      }
+      originalDte =
+          optionInstrument.expirationDate!.difference(createdAt).inDays;
     }
-    originalDte = optionInstrument.expirationDate!.difference(createdAt).inDays;
     List<charts.Series<dynamic, String>> seriesList = [
       charts.Series<dynamic, String>(
         id: 'Days to Expiration',
@@ -1201,8 +1204,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 minTileHeight: 10,
                 title: const Text("Break Even Price"),
                 trailing: Text(
-                    formatCurrency.format(
-                        optionInstrument.optionMarketData!.breakEvenPrice),
+                    optionInstrument.optionMarketData!.breakEvenPrice != null
+                        ? formatCurrency.format(
+                            optionInstrument.optionMarketData!.breakEvenPrice)
+                        : '-',
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
@@ -1249,7 +1254,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               ListTile(
                 minTileHeight: 10,
                 title: Text(
-                    "Previous Close (${formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!)})"),
+                    "Previous Close (${optionInstrument.optionMarketData!.previousCloseDate != null ? formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!) : '-'})"),
                 trailing: Text(
                     formatCurrency.format(
                         optionInstrument.optionMarketData!.previousClosePrice),
@@ -1540,8 +1545,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       // debugPrint("transform: $t scrolled: $scrolled");
 
       var optionInstrument = optionInstrumentStore.items.firstWhereOrNull(
-          (element) => element.id == widget.optionInstrument.id);
-      optionInstrument ??= widget.optionInstrument;
+              (element) => element.id == widget.optionInstrument.id) ??
+          widget.optionInstrument;
       return SliverAppBar(
         centerTitle: false,
         title: Opacity(
@@ -1679,7 +1684,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             ),
                             SizedBox(
                                 width: 115,
-                                child: Text(optionInstrument!.chainSymbol,
+                                child: Text(optionInstrument.chainSymbol,
                                     style: TextStyle(
                                         fontSize: 12.0,
                                         color: Theme.of(context)
@@ -1720,7 +1725,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             SizedBox(
                                 width: 115,
                                 child: Text(
-                                    "\$${formatCompactNumber.format(optionInstrument!.strikePrice)} ${optionInstrument!.type.toUpperCase()}",
+                                    "\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type.toUpperCase()}",
                                     style: TextStyle(
                                         fontSize: 12.0,
                                         color: Theme.of(context)
@@ -1762,7 +1767,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 width: 115,
                                 child: Text(
                                     formatDate.format(
-                                        optionInstrument!.expirationDate!),
+                                        optionInstrument.expirationDate!),
                                     style: TextStyle(
                                         fontSize: 12.0,
                                         color: Theme.of(context)
@@ -1774,7 +1779,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             ),
                           ],
                         ),
-                        if (optionInstrument!.optionMarketData != null) ...[
+                        if (optionInstrument.optionMarketData != null) ...[
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -1804,7 +1809,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               SizedBox(
                                   width: 115,
                                   child: Text(
-                                      formatCurrency.format(optionInstrument!
+                                      formatCurrency.format(optionInstrument
                                           .optionMarketData!.adjustedMarkPrice),
                                       style: TextStyle(
                                           fontSize: 12.0,
@@ -1852,12 +1857,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                               alignment: WrapAlignment.end,
                                               children: [
                                                 Icon(
-                                                    optionInstrument!
+                                                    optionInstrument
                                                                 .optionMarketData!
                                                                 .changeToday >
                                                             0
                                                         ? Icons.trending_up
-                                                        : (optionInstrument!
+                                                        : (optionInstrument
                                                                     .optionMarketData!
                                                                     .changeToday <
                                                                 0
@@ -1865,13 +1870,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                                                 .trending_down
                                                             : Icons
                                                                 .trending_flat),
-                                                    color: (optionInstrument!
+                                                    color: (optionInstrument
                                                                 .optionMarketData!
                                                                 .changeToday >
                                                             0
                                                         ? Colors
                                                             .lightGreenAccent
-                                                        : (optionInstrument!
+                                                        : (optionInstrument
                                                                     .optionMarketData!
                                                                     .changeToday <
                                                                 0
@@ -1882,8 +1887,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                                   width: 2,
                                                 ),
                                                 Text(
-                                                    formatPercentage
-                                                        .format(optionInstrument!
+                                                    formatPercentage.format(
+                                                        optionInstrument
                                                             .optionMarketData!
                                                             .changePercentToday
                                                             .abs()),
@@ -1901,7 +1906,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 SizedBox(
                                     width: 60,
                                     child: Text(
-                                        "${optionInstrument!.optionMarketData!.changeToday > 0 ? "+" : optionInstrument!.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument!.optionMarketData!.changeToday.abs())}",
+                                        "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
                                         style: TextStyle(
                                             fontSize: 12.0,
                                             color: Theme.of(context)
@@ -2280,7 +2285,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               auth.currentUser!.photoURL!
                               //  ?? Constants .placeholderImage, // No longer used
                               )))
-                  : const Icon(Icons.login),
+                  : const Icon(Icons.account_circle_outlined),
               onPressed: () async {
                 var response = await showProfile(
                     context,

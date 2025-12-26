@@ -69,8 +69,8 @@ class User {
             photoUrl: json['photoUrl'] as String?,
             providerId: json['providerId'] as String?,
             location: json['location'] as String?,
-            role: (json['role'] != null ? json['role'] as String : '').parseEnum(UserRole.values, UserRole.user)
-                as UserRole,
+            role: (json['role'] != null ? json['role'] as String : '')
+                .parseEnum(UserRole.values, UserRole.user),
             devices: json.keys.contains('devices')
                 ? Device.fromJsonArray(json['devices'])
                 : [],
@@ -94,17 +94,19 @@ class User {
                 ? InvestmentProfile.fromJson(
                     json['investmentProfile'] as Map<String, Object?>)
                 : null,
-            tradeSignalNotificationSettings: json['tradeSignalNotificationSettings'] != null
-                ? TradeSignalNotificationSettings.fromJson(json['tradeSignalNotificationSettings']
-                    as Map<String, dynamic>)
-                : null,
+            tradeSignalNotificationSettings:
+                json['tradeSignalNotificationSettings'] != null
+                    ? TradeSignalNotificationSettings.fromJson(
+                        json['tradeSignalNotificationSettings']
+                            as Map<String, dynamic>)
+                    : null,
             agenticTradingConfig: json['agenticTradingConfig'] != null
                 ? AgenticTradingConfig.fromJson(
                     json['agenticTradingConfig'] as Map<String, dynamic>)
                 : null,
             optionFilterPresets: json['optionFilterPresets'] != null
-                ? (json['optionFilterPresets'] as Map<String, dynamic>)
-                    .map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
+                ? (json['optionFilterPresets'] as Map<String, dynamic>).map(
+                    (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
                 : null,
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?);
 

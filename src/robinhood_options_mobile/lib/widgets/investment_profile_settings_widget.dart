@@ -31,6 +31,7 @@ class InvestmentProfileSettingsWidget extends StatefulWidget {
 class _InvestmentProfileSettingsWidgetState
     extends State<InvestmentProfileSettingsWidget> {
   final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
   late TextEditingController _investmentGoalsController;
   late TextEditingController _totalPortfolioValueController;
   String? _selectedTimeHorizon;
@@ -53,13 +54,20 @@ class _InvestmentProfileSettingsWidgetState
   @override
   void initState() {
     super.initState();
-    _investmentGoalsController = TextEditingController(
-        text: widget.user.investmentProfile?.investmentGoals ?? '');
-    _totalPortfolioValueController = TextEditingController(
-        text: widget.user.investmentProfile?.totalPortfolioValue?.toString() ??
-            '');
-    _selectedTimeHorizon = widget.user.investmentProfile?.timeHorizon;
-    _selectedRiskTolerance = widget.user.investmentProfile?.riskTolerance;
+    _investmentGoalsController = TextEditingController();
+    _totalPortfolioValueController = TextEditingController();
+    _loadSettings();
+  }
+
+  void _loadSettings() {
+    setState(() {
+      _investmentGoalsController.text =
+          widget.user.investmentProfile?.investmentGoals ?? '';
+      _totalPortfolioValueController.text =
+          widget.user.investmentProfile?.totalPortfolioValue?.toString() ?? '';
+      _selectedTimeHorizon = widget.user.investmentProfile?.timeHorizon;
+      _selectedRiskTolerance = widget.user.investmentProfile?.riskTolerance;
+    });
   }
 
   void _autoImportPortfolioValue() {
@@ -129,33 +137,45 @@ class _InvestmentProfileSettingsWidgetState
 
   void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
-      // Initialize investmentProfile if it doesn't exist
-      widget.user.investmentProfile ??= InvestmentProfile();
+      setState(() {
+        _isSaving = true;
+      });
+      try {
+        // Initialize investmentProfile if it doesn't exist
+        widget.user.investmentProfile ??= InvestmentProfile();
 
-      widget.user.investmentProfile!.investmentGoals =
-          _investmentGoalsController.text.isNotEmpty
-              ? _investmentGoalsController.text
-              : null;
-      widget.user.investmentProfile!.timeHorizon = _selectedTimeHorizon;
-      widget.user.investmentProfile!.riskTolerance = _selectedRiskTolerance;
-      widget.user.investmentProfile!.totalPortfolioValue =
-          _totalPortfolioValueController.text.isNotEmpty
-              ? double.tryParse(_totalPortfolioValueController.text)
-              : null;
+        widget.user.investmentProfile!.investmentGoals =
+            _investmentGoalsController.text.isNotEmpty
+                ? _investmentGoalsController.text
+                : null;
+        widget.user.investmentProfile!.timeHorizon = _selectedTimeHorizon;
+        widget.user.investmentProfile!.riskTolerance = _selectedRiskTolerance;
+        widget.user.investmentProfile!.totalPortfolioValue =
+            _totalPortfolioValueController.text.isNotEmpty
+                ? double.tryParse(_totalPortfolioValueController.text)
+                : null;
 
-      var usersCollection = widget.firestoreService.userCollection;
-      var userDocumentReference =
-          usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
-      await widget.firestoreService
-          .updateUser(userDocumentReference, widget.user);
+        var usersCollection = widget.firestoreService.userCollection;
+        var userDocumentReference =
+            usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
+        await widget.firestoreService
+            .updateUser(userDocumentReference, widget.user);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Investment profile saved!'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Investment profile saved!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
   }
@@ -169,11 +189,32 @@ class _InvestmentProfileSettingsWidgetState
       appBar: AppBar(
         title: const Text('Investment Profile'),
         elevation: 0,
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.refresh),
+        //     tooltip: 'Revert Changes',
+        //     onPressed: _loadSettings,
+        //   ),
+        // ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isSaving ? null : _saveSettings,
+        icon: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.save),
+        label: const Text('Save'),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
           children: [
             Card(
               elevation: 0,
@@ -331,16 +372,6 @@ class _InvestmentProfileSettingsWidgetState
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _saveSettings,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Save Investment Profile'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                minimumSize: const Size(double.infinity, 48),
-              ),
             ),
             const SizedBox(height: 16),
           ],

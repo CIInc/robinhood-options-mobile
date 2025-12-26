@@ -13,10 +13,10 @@ import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.da
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
-class InvestorGroupsWidget extends StatelessWidget {
+class InvestorGroupsWidget extends StatefulWidget {
   final FirestoreService firestoreService;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final User? user;
@@ -34,6 +34,34 @@ class InvestorGroupsWidget extends StatelessWidget {
   });
 
   @override
+  State<InvestorGroupsWidget> createState() => _InvestorGroupsWidgetState();
+}
+
+class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
+  Stream<QuerySnapshot<InvestorGroup>>? _publicGroupsStream;
+  Stream<QuerySnapshot<InvestorGroup>>? _userGroupsStream;
+  Stream<QuerySnapshot<InvestorGroup>>? _pendingInvitationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStreams();
+  }
+
+  void _refreshStreams() {
+    _publicGroupsStream = widget.firestoreService.getPublicInvestorGroups();
+    if (auth.currentUser != null) {
+      _userGroupsStream =
+          widget.firestoreService.getUserInvestorGroups(auth.currentUser!.uid);
+      _pendingInvitationsStream = widget.firestoreService
+          .getUserPendingInvitations(auth.currentUser!.uid);
+    } else {
+      _userGroupsStream = null;
+      _pendingInvitationsStream = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
@@ -44,8 +72,8 @@ class InvestorGroupsWidget extends StatelessWidget {
             snap: true,
             pinned: true,
             centerTitle: false,
-            title:
-                const Text('Investor Groups', style: TextStyle(fontSize: 20.0)),
+            title: const Text('',
+                style: TextStyle(fontSize: 20.0)), // Investor Groups
             actions: [
               IconButton(
                 icon: const Icon(Icons.history),
@@ -74,9 +102,9 @@ class InvestorGroupsWidget extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => InvestorGroupCreateWidget(
-                        firestoreService: firestoreService,
-                        analytics: analytics,
-                        observer: observer,
+                        firestoreService: widget.firestoreService,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
                       ),
                     ),
                   );
@@ -90,27 +118,36 @@ class InvestorGroupsWidget extends StatelessWidget {
                             maxRadius: 12,
                             backgroundImage: CachedNetworkImageProvider(
                                 auth.currentUser!.photoURL!)))
-                    : const Icon(Icons.login),
+                    : const Icon(Icons.account_circle_outlined),
                 onPressed: () async {
-                  await showProfile(context, auth, firestoreService, analytics,
-                      observer, brokerageUser, service);
+                  await showProfile(
+                      context,
+                      auth,
+                      widget.firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.brokerageUser,
+                      widget.service);
+                  setState(() {
+                    _refreshStreams();
+                  });
                 },
               ),
             ],
             bottom: const TabBar(
               tabs: [
+                Tab(icon: Icon(Icons.public), text: 'Discover'),
                 Tab(icon: Icon(Icons.groups), text: 'My Groups'),
                 Tab(icon: Icon(Icons.mail_outline), text: 'Invitations'),
-                Tab(icon: Icon(Icons.public), text: 'Discover'),
               ],
             ),
           ),
         ],
         body: TabBarView(
           children: [
+            _buildPublicGroups(context),
             _buildMyGroups(context),
             _buildPendingInvitations(context),
-            _buildPublicGroups(context),
           ],
         ),
       ),
@@ -140,9 +177,18 @@ class InvestorGroupsWidget extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.login),
-                    onPressed: () {
-                      showProfile(context, auth, firestoreService, analytics,
-                          observer, brokerageUser, service);
+                    onPressed: () async {
+                      await showProfile(
+                          context,
+                          auth,
+                          widget.firestoreService,
+                          widget.analytics,
+                          widget.observer,
+                          widget.brokerageUser,
+                          widget.service);
+                      setState(() {
+                        _refreshStreams();
+                      });
                     },
                     label: const Text('Sign In'),
                   ),
@@ -155,7 +201,7 @@ class InvestorGroupsWidget extends StatelessWidget {
     }
 
     return StreamBuilder(
-      stream: firestoreService.getUserInvestorGroups(auth.currentUser!.uid),
+      stream: _userGroupsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -264,10 +310,10 @@ class InvestorGroupsWidget extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => InvestorGroupDetailWidget(
                                 groupId: group.id,
-                                firestoreService: firestoreService,
-                                brokerageUser: brokerageUser,
-                                analytics: analytics,
-                                observer: observer,
+                                firestoreService: widget.firestoreService,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
                               ),
                             ),
                           );
@@ -308,9 +354,18 @@ class InvestorGroupsWidget extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.login),
-                    onPressed: () {
-                      showProfile(context, auth, firestoreService, analytics,
-                          observer, brokerageUser, service);
+                    onPressed: () async {
+                      await showProfile(
+                          context,
+                          auth,
+                          widget.firestoreService,
+                          widget.analytics,
+                          widget.observer,
+                          widget.brokerageUser,
+                          widget.service);
+                      setState(() {
+                        _refreshStreams();
+                      });
                     },
                     label: const Text('Sign In'),
                   ),
@@ -323,7 +378,7 @@ class InvestorGroupsWidget extends StatelessWidget {
     }
 
     return StreamBuilder(
-      stream: firestoreService.getUserPendingInvitations(auth.currentUser!.uid),
+      stream: _pendingInvitationsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -448,10 +503,10 @@ class InvestorGroupsWidget extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => InvestorGroupDetailWidget(
                                 groupId: group.id,
-                                firestoreService: firestoreService,
-                                brokerageUser: brokerageUser,
-                                analytics: analytics,
-                                observer: observer,
+                                firestoreService: widget.firestoreService,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
                               ),
                             ),
                           );
@@ -474,8 +529,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     if (auth.currentUser == null) return;
 
     try {
-      await firestoreService.acceptGroupInvitation(
-          group.id, auth.currentUser!.uid);
+      await widget.firestoreService
+          .acceptGroupInvitation(group.id, auth.currentUser!.uid);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Joined ${group.name}')),
@@ -495,8 +550,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     if (auth.currentUser == null) return;
 
     try {
-      await firestoreService.declineGroupInvitation(
-          group.id, auth.currentUser!.uid);
+      await widget.firestoreService
+          .declineGroupInvitation(group.id, auth.currentUser!.uid);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Declined invitation to ${group.name}')),
@@ -513,7 +568,7 @@ class InvestorGroupsWidget extends StatelessWidget {
 
   Widget _buildPublicGroups(BuildContext context) {
     return StreamBuilder(
-      stream: firestoreService.getPublicInvestorGroups(),
+      stream: _publicGroupsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -634,10 +689,10 @@ class InvestorGroupsWidget extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => InvestorGroupDetailWidget(
                                 groupId: group.id,
-                                firestoreService: firestoreService,
-                                brokerageUser: brokerageUser,
-                                analytics: analytics,
-                                observer: observer,
+                                firestoreService: widget.firestoreService,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
                               ),
                             ),
                           );

@@ -20,6 +20,11 @@ class InstrumentOrderStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addAll(List<InstrumentOrder> items) {
+    _items.addAll(items);
+    notifyListeners();
+  }
+
   void removeAll() {
     _items.clear();
     // This call tells the widgets that are listening to this model to rebuild.
@@ -27,8 +32,7 @@ class InstrumentOrderStore extends ChangeNotifier {
   }
 
   bool update(InstrumentOrder item) {
-    var index =
-        _items.indexWhere((element) => element.id == item.id);
+    var index = _items.indexWhere((element) => element.id == item.id);
     if (index == -1) {
       return false;
     }

@@ -386,6 +386,7 @@ class SchwabService implements IBrokerageService {
             var stockPosition = InstrumentPosition.fromSchwabJson(positionJson);
             instrumentPositionStore!.addOrUpdate(stockPosition);
           } else if (positionJson['instrument']['assetType'] == "OPTION") {
+            // e.g. {shortQuantity: 0.0, averagePrice: 4.0066, currentDayProfitLoss: 7.0, currentDayProfitLossPercentage: 3.91, longQuantity: 1.0, settledLongQuantity: 1.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0UBER.BK60090000, symbol: UBER  260220C00090000, description: UBER TECHNOLOGIES INC 02/20/2026 $90 Call, netChange: 0.08, type: VANILLA, putCall: CALL, underlyingSymbol: UBER}, marketValue: 186.0, maintenanceRequirement: 0.0, averageLongPrice: 4.0, taxLotAverageLongPrice: 4.0066, longOpenProfitLoss: -214.66, previousSessionLongQuantity: 1.0, currentDayCost: 0.0}
             var optionPosition =
                 OptionAggregatePosition.fromSchwabJson(positionJson, account);
 
@@ -851,10 +852,12 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
     if (user.oauth2Client!.credentials.isExpired) {
-      throw Exception('Authorization expired. Please log back in.');
-      // user.oauth2Client = await user.oauth2Client!.refreshCredentials();
-      // SchwabService.login();
-      // return null;
+      try {
+        user.oauth2Client = await user.oauth2Client!.refreshCredentials();
+        user.credentials = user.oauth2Client!.credentials.toJson();
+      } catch (e) {
+        throw Exception('Authorization expired. Please log back in.');
+      }
     }
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
     debugPrint(
@@ -880,9 +883,15 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
-      BrokerageUser user, InstrumentStore store, String symbol) {
-    // TODO: implement getInstrumentBySymbol
-    throw UnimplementedError();
+      BrokerageUser user, InstrumentStore store, String symbol) async {
+    var url =
+        "$endpoint/marketdata/v1/instruments?symbol=$symbol&projection=symbol-search";
+    var resultJson = await getJson(user, url);
+    var instruments = resultJson['instruments'];
+    if (instruments != null && (instruments as List).isNotEmpty) {
+      return Instrument.fromJson(instruments[0]);
+    }
+    return null;
   }
 
   @override
@@ -1014,138 +1023,108 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   {
     "session": "NORMAL",
     "duration": "DAY",
-    "orderType": "LIMIT",
+    "orderType": "MARKET",
+    "cancelTime": "2025-12-24T23:21:23.176Z",
     "complexOrderStrategyType": "NONE",
-    "quantity": 1,
-    "filledQuantity": 1,
+    "quantity": 0,
+    "filledQuantity": 0,
     "remainingQuantity": 0,
-    "requestedDestination": "AUTO",
-    "destinationLinkName": "CDRG",
-    "price": 5.25,
+    "requestedDestination": "INET",
+    "destinationLinkName": "string",
+    "releaseTime": "2025-12-24T23:21:23.176Z",
+    "stopPrice": 0,
+    "stopPriceLinkBasis": "MANUAL",
+    "stopPriceLinkType": "VALUE",
+    "stopPriceOffset": 0,
+    "stopType": "STANDARD",
+    "priceLinkBasis": "MANUAL",
+    "priceLinkType": "VALUE",
+    "price": 0,
+    "taxLotMethod": "FIFO",
     "orderLegCollection": [
       {
-        "orderLegType": "OPTION",
-        "legId": 1,
+        "orderLegType": "EQUITY",
+        "legId": 0,
         "instrument": {
-          "assetType": "OPTION",
-          "cusip": "0AMAT.KF40210000",
-          "symbol": "AMAT  241115C00210000",
-          "description": "APPLIED MATLS INC 11/15/2024 $210 Call",
-          "instrumentId": 212962723,
-          "type": "VANILLA",
-          "putCall": "CALL",
-          "underlyingSymbol": "AMAT",
-          "optionDeliverables": [
-            {
-              "symbol": "AMAT",
-              "deliverableUnits": 100
-            }
-          ]
+          "cusip": "string",
+          "symbol": "string",
+          "description": "string",
+          "instrumentId": 0,
+          "netChange": 0,
+          "type": "SWEEP_VEHICLE"
         },
-        "instruction": "BUY_TO_OPEN",
+        "instruction": "BUY",
         "positionEffect": "OPENING",
-        "quantity": 1
+        "quantity": 0,
+        "quantityType": "ALL_SHARES",
+        "divCapGains": "REINVEST",
+        "toSymbol": "string"
       }
     ],
+    "activationPrice": 0,
+    "specialInstruction": "ALL_OR_NONE",
     "orderStrategyType": "SINGLE",
-    "orderId": 1001889848665,
+    "orderId": 0,
     "cancelable": false,
     "editable": false,
-    "status": "FILLED",
-    "enteredTime": "2024-10-15T17:29:28+0000",
-    "closeTime": "2024-10-15T17:34:52+0000",
-    "accountNumber": 21453928,
+    "status": "AWAITING_PARENT_ORDER",
+    "enteredTime": "2025-12-24T23:21:23.176Z",
+    "closeTime": "2025-12-24T23:21:23.176Z",
+    "tag": "string",
+    "accountNumber": 0,
     "orderActivityCollection": [
       {
         "activityType": "EXECUTION",
-        "activityId": 87232752207,
         "executionType": "FILL",
-        "quantity": 1,
+        "quantity": 0,
         "orderRemainingQuantity": 0,
         "executionLegs": [
           {
-            "legId": 1,
-            "quantity": 1,
+            "legId": 0,
+            "price": 0,
+            "quantity": 0,
             "mismarkedQuantity": 0,
-            "price": 5.25,
-            "time": "2024-10-15T17:34:52+0000",
-            "instrumentId": 212962723
+            "instrumentId": 0,
+            "time": "2025-12-24T23:21:23.176Z"
           }
         ]
-      }
-    ]
-  },
-  {
-    "session": "NORMAL",
-    "duration": "DAY",
-    "orderType": "LIMIT",
-    "complexOrderStrategyType": "NONE",
-    "quantity": 1,
-    "filledQuantity": 1,
-    "remainingQuantity": 0,
-    "requestedDestination": "AUTO",
-    "destinationLinkName": "CDRG",
-    "price": 20.1,
-    "orderLegCollection": [
-      {
-        "orderLegType": "OPTION",
-        "legId": 1,
-        "instrument": {
-          "assetType": "OPTION",
-          "cusip": "0TSM..KF40170000",
-          "symbol": "TSM   241115C00170000",
-          "description": "TAIWAN SEMICONDUCTOR MFG CO LTD 11/15/2024 $170 Call",
-          "instrumentId": 215826019,
-          "type": "VANILLA",
-          "putCall": "CALL",
-          "underlyingSymbol": "TSM",
-          "optionDeliverables": [
-            {
-              "symbol": "TSM",
-              "deliverableUnits": 100
-            }
-          ]
-        },
-        "instruction": "SELL_TO_CLOSE",
-        "positionEffect": "CLOSING",
-        "quantity": 1
       }
     ],
-    "orderStrategyType": "SINGLE",
-    "orderId": 1001812640148,
-    "cancelable": false,
-    "editable": false,
-    "status": "FILLED",
-    "enteredTime": "2024-10-07T19:55:51+0000",
-    "closeTime": "2024-10-07T19:55:51+0000",
-    "accountNumber": 21453928,
-    "orderActivityCollection": [
-      {
-        "activityType": "EXECUTION",
-        "activityId": 86897332527,
-        "executionType": "FILL",
-        "quantity": 1,
-        "orderRemainingQuantity": 0,
-        "executionLegs": [
-          {
-            "legId": 1,
-            "quantity": 1,
-            "mismarkedQuantity": 0,
-            "price": 20.1,
-            "time": "2024-10-07T19:55:51+0000",
-            "instrumentId": 215826019
-          }
-        ]
-      }
-    ]
+    "replacingOrderCollection": [
+      "string"
+    ],
+    "childOrderStrategies": [
+      "string"
+    ],
+    "statusDescription": "string"
   }
-]*/
+]
+*/
   @override
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) {
-    // TODO: implement streamPositionOrders
-    throw UnimplementedError();
+      {DocumentReference? userDoc}) async* {
+    var toDate = DateTime.now();
+    var fromDate = toDate.subtract(const Duration(days: 60));
+    var fromEnteredTime = fromDate.toIso8601String();
+    var toEnteredTime = toDate.toIso8601String();
+
+    var url =
+        "$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime";
+    var resultJson = await getJson(user, url);
+    List<InstrumentOrder> orderItems = [];
+    for (var i = 0; i < resultJson.length; i++) {
+      var order = resultJson[i];
+      if (order['orderLegCollection'] != null &&
+          order['orderLegCollection'].isNotEmpty &&
+          order['orderLegCollection'][0]['orderLegType'] == 'EQUITY') {
+        var oi = InstrumentOrder.fromSchwabJson(order);
+        orderItems.add(oi);
+      }
+    }
+    store.removeAll();
+    store.addAll(orderItems);
+    yield orderItems;
   }
 
   @override
@@ -1322,12 +1301,165 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     throw UnimplementedError();
   }
 
+/*
+https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A59.000Z&toEnteredTime=2024-10-28T23%3A59%3A59.000Z
+[
+  {
+    "session": "NORMAL",
+    "duration": "DAY",
+    "orderType": "LIMIT",
+    "complexOrderStrategyType": "NONE",
+    "quantity": 1,
+    "filledQuantity": 1,
+    "remainingQuantity": 0,
+    "requestedDestination": "AUTO",
+    "destinationLinkName": "CDRG",
+    "price": 5.25,
+    "orderLegCollection": [
+      {
+        "orderLegType": "OPTION",
+        "legId": 1,
+        "instrument": {
+          "assetType": "OPTION",
+          "cusip": "0AMAT.KF40210000",
+          "symbol": "AMAT  241115C00210000",
+          "description": "APPLIED MATLS INC 11/15/2024 $210 Call",
+          "instrumentId": 212962723,
+          "type": "VANILLA",
+          "putCall": "CALL",
+          "underlyingSymbol": "AMAT",
+          "optionDeliverables": [
+            {
+              "symbol": "AMAT",
+              "deliverableUnits": 100
+            }
+          ]
+        },
+        "instruction": "BUY_TO_OPEN",
+        "positionEffect": "OPENING",
+        "quantity": 1
+      }
+    ],
+    "orderStrategyType": "SINGLE",
+    "orderId": 1001889848665,
+    "cancelable": false,
+    "editable": false,
+    "status": "FILLED",
+    "enteredTime": "2024-10-15T17:29:28+0000",
+    "closeTime": "2024-10-15T17:34:52+0000",
+    "accountNumber": 21453928,
+    "orderActivityCollection": [
+      {
+        "activityType": "EXECUTION",
+        "activityId": 87232752207,
+        "executionType": "FILL",
+        "quantity": 1,
+        "orderRemainingQuantity": 0,
+        "executionLegs": [
+          {
+            "legId": 1,
+            "quantity": 1,
+            "mismarkedQuantity": 0,
+            "price": 5.25,
+            "time": "2024-10-15T17:34:52+0000",
+            "instrumentId": 212962723
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "session": "NORMAL",
+    "duration": "DAY",
+    "orderType": "LIMIT",
+    "complexOrderStrategyType": "NONE",
+    "quantity": 1,
+    "filledQuantity": 1,
+    "remainingQuantity": 0,
+    "requestedDestination": "AUTO",
+    "destinationLinkName": "CDRG",
+    "price": 20.1,
+    "orderLegCollection": [
+      {
+        "orderLegType": "OPTION",
+        "legId": 1,
+        "instrument": {
+          "assetType": "OPTION",
+          "cusip": "0TSM..KF40170000",
+          "symbol": "TSM   241115C00170000",
+          "description": "TAIWAN SEMICONDUCTOR MFG CO LTD 11/15/2024 $170 Call",
+          "instrumentId": 215826019,
+          "type": "VANILLA",
+          "putCall": "CALL",
+          "underlyingSymbol": "TSM",
+          "optionDeliverables": [
+            {
+              "symbol": "TSM",
+              "deliverableUnits": 100
+            }
+          ]
+        },
+        "instruction": "SELL_TO_CLOSE",
+        "positionEffect": "CLOSING",
+        "quantity": 1
+      }
+    ],
+    "orderStrategyType": "SINGLE",
+    "orderId": 1001812640148,
+    "cancelable": false,
+    "editable": false,
+    "status": "FILLED",
+    "enteredTime": "2024-10-07T19:55:51+0000",
+    "closeTime": "2024-10-07T19:55:51+0000",
+    "accountNumber": 21453928,
+    "orderActivityCollection": [
+      {
+        "activityType": "EXECUTION",
+        "activityId": 86897332527,
+        "executionType": "FILL",
+        "quantity": 1,
+        "orderRemainingQuantity": 0,
+        "executionLegs": [
+          {
+            "legId": 1,
+            "quantity": 1,
+            "mismarkedQuantity": 0,
+            "price": 20.1,
+            "time": "2024-10-07T19:55:51+0000",
+            "instrumentId": 215826019
+          }
+        ]
+      }
+    ]
+  }
+]*/
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
       BrokerageUser user, OptionOrderStore store,
-      {DocumentReference? userDoc}) {
-    // TODO: implement streamOptionOrders
-    throw UnimplementedError();
+      {DocumentReference? userDoc}) async* {
+    var toDate = DateTime.now();
+    var fromDate = toDate.subtract(const Duration(days: 60));
+    // Format: 2024-09-28T23:59:59.000Z
+    var fromEnteredTime = fromDate.toUtc().toIso8601String();
+    var toEnteredTime = toDate.toUtc().toIso8601String();
+
+    var url =
+        '$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime';
+
+    var results = await getJson(user, url);
+    List<OptionOrder> orders = [];
+    for (var result in results) {
+      // Check if it is an option order
+      if (result['orderLegCollection'] != null &&
+          (result['orderLegCollection'] as List).isNotEmpty) {
+        var firstLeg = result['orderLegCollection'][0];
+        if (firstLeg['orderLegType'] == 'OPTION') {
+          orders.add(OptionOrder.fromSchwabJson(result));
+        }
+      }
+    }
+    store.addAll(orders);
+    yield orders;
   }
 
   @override
@@ -1344,9 +1476,57 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       String trigger = 'immediate',
       double? stopPrice,
       String timeInForce = 'gtc',
-      Map<String, dynamic>? trailingPeg}) {
-    // TODO: implement placeOptionsOrder
-    throw UnimplementedError();
+      Map<String, dynamic>? trailingPeg}) async {
+    var instruction = side.toUpperCase() == 'BUY'
+        ? (positionEffect.toUpperCase() == 'OPEN'
+            ? 'BUY_TO_OPEN'
+            : 'BUY_TO_CLOSE')
+        : (positionEffect.toUpperCase() == 'OPEN'
+            ? 'SELL_TO_OPEN'
+            : 'SELL_TO_CLOSE');
+
+    var orderType = type.toUpperCase();
+    var duration =
+        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+
+    var body = {
+      "orderType": orderType,
+      "session": "NORMAL",
+      "duration": duration,
+      "orderStrategyType": "SINGLE",
+      "price": price,
+      "orderLegCollection": [
+        {
+          "instruction": instruction,
+          "quantity": quantity,
+          "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
+        }
+      ]
+    };
+
+    if (orderType == 'STOP' || orderType == 'STOP_LIMIT') {
+      if (stopPrice != null) {
+        body['stopPrice'] = stopPrice;
+      }
+    }
+
+    var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
+
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(body),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Failed to place order: ${response.body}');
+    }
+
+    if (response.body.isNotEmpty) {
+      return jsonDecode(response.body);
+    }
+    return {"status": "success"};
   }
 
   @override
@@ -1359,9 +1539,58 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
-    // TODO: implement placeMultiLegOptionsOrder
-    throw UnimplementedError();
+      String timeInForce = 'gtc'}) async {
+    var orderType = type.toUpperCase();
+    var duration =
+        timeInForce.toUpperCase() == 'GTC' ? 'GOOD_TILL_CANCEL' : 'DAY';
+
+    var orderLegCollection = legs.map((leg) {
+      var side = leg['side'];
+      var positionEffect = leg['position_effect'];
+      var optionInstrument = leg['option_instrument'] as OptionInstrument;
+      var legQuantity = leg['ratio_quantity'] ?? 1;
+
+      var instruction = side.toUpperCase() == 'BUY'
+          ? (positionEffect.toUpperCase() == 'OPEN'
+              ? 'BUY_TO_OPEN'
+              : 'BUY_TO_CLOSE')
+          : (positionEffect.toUpperCase() == 'OPEN'
+              ? 'SELL_TO_OPEN'
+              : 'SELL_TO_CLOSE');
+
+      return {
+        "instruction": instruction,
+        "quantity": quantity * legQuantity,
+        "instrument": {"symbol": optionInstrument.id, "assetType": "OPTION"}
+      };
+    }).toList();
+
+    var body = {
+      "orderType": orderType,
+      "session": "NORMAL",
+      "duration": duration,
+      "orderStrategyType": "SINGLE", // TODO: Verify strategy type for multi-leg
+      "price": price,
+      "orderLegCollection": orderLegCollection
+    };
+
+    var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
+
+    var response = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(body),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Failed to place order: ${response.body}');
+    }
+
+    if (response.body.isNotEmpty) {
+      return jsonDecode(response.body);
+    }
+    return {"status": "success"};
   }
 
   @override
@@ -1389,10 +1618,51 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     throw UnimplementedError();
   }
 
+/*
+https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=search
+{
+  "instruments": [
+    {
+      "cusip": "037833100",
+      "symbol": "AAPL",
+      "description": "Apple Inc",
+      "exchange": "NASDAQ",
+      "assetType": "EQUITY"
+    },
+    {
+      "cusip": "060505104",
+      "symbol": "BAC",
+      "description": "Bank Of America Corp",
+      "exchange": "NYSE",
+      "assetType": "EQUITY"
+    }
+  ]
+}
+*/
   @override
-  Future search(BrokerageUser user, String query) {
-    // TODO: implement search
-    throw UnimplementedError();
+  Future search(BrokerageUser user, String query) async {
+    var symbolSearchUrl =
+        "$endpoint/marketdata/v1/instruments?symbol=$query&projection=symbol-search";
+    var descSearchUrl =
+        "$endpoint/marketdata/v1/instruments?symbol=$query&projection=desc-search";
+
+    var results = await Future.wait([
+      getJson(user, symbolSearchUrl),
+      getJson(user, descSearchUrl),
+    ]);
+
+    var symbolInstruments = results[0]['instruments'] ?? [];
+    var descInstruments = results[1]['instruments'] ?? [];
+
+    var combined = [...symbolInstruments];
+    var existingSymbols = symbolInstruments.map((i) => i['symbol']).toSet();
+
+    for (var instrument in descInstruments) {
+      if (!existingSymbols.contains(instrument['symbol'])) {
+        combined.add(instrument);
+      }
+    }
+    return combined;
   }
 
   @override
@@ -1419,14 +1689,39 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
     // TODO: implement getOptionHistoricals
-    throw UnimplementedError();
+    return Future.value(
+        OptionHistoricals('', '', '', [], null, null, null, null, []));
   }
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-      BrokerageUser user, OptionOrderStore store, String chainId) {
-    // TODO: implement getOptionOrders
-    throw UnimplementedError();
+      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    var toDate = DateTime.now();
+    var fromDate = toDate.subtract(const Duration(days: 60));
+    var fromEnteredTime = fromDate.toUtc().toIso8601String();
+    var toEnteredTime = toDate.toUtc().toIso8601String();
+
+    var url =
+        '$endpoint/trader/v1/orders?fromEnteredTime=$fromEnteredTime&toEnteredTime=$toEnteredTime';
+
+    var results = await getJson(user, url);
+    List<OptionOrder> orders = [];
+    for (var result in results) {
+      if (result['orderLegCollection'] != null &&
+          (result['orderLegCollection'] as List).isNotEmpty) {
+        var firstLeg = result['orderLegCollection'][0];
+        if (firstLeg['orderLegType'] == 'OPTION') {
+          var order = OptionOrder.fromSchwabJson(result);
+          if (order.chainId == chainId || order.chainSymbol == chainId) {
+            orders.add(order);
+          }
+        }
+      }
+    }
+    for (var order in orders) {
+      store.addOrUpdate(order);
+    }
+    return orders;
   }
 
   @override
@@ -1569,16 +1864,51 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<OptionChain> getOptionChains(BrokerageUser user, String id) {
-    // TODO: implement getOptionChains
-    throw UnimplementedError();
+  Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
+    // id is usually the symbol for Schwab
+    var url =
+        "$endpoint/marketdata/v1/chains?symbol=$id&contractType=ALL&includeUnderlyingQuote=true&strategy=SINGLE";
+    var resultJson = await getJson(user, url);
+
+    if (resultJson['status'] == 'SUCCESS') {
+      List<DateTime> expirationDates = [];
+      if (resultJson['callExpDateMap'] != null) {
+        Map<String, dynamic> callMap = resultJson['callExpDateMap'];
+        callMap.keys.forEach((key) {
+          // key format: "2024-10-18:1"
+          var datePart = key.split(':')[0];
+          expirationDates.add(DateTime.parse(datePart));
+        });
+      }
+      // Sort dates
+      expirationDates.sort((a, b) => a.compareTo(b));
+
+      return OptionChain(
+          id,
+          id,
+          true, // canOpenPosition
+          null, // cashComponent
+          expirationDates,
+          100.0, // tradeValueMultiplier
+          const MinTicks(0.05, 0.01, 3.00) // minTicks (default)
+          );
+    }
+    throw Exception('Failed to get option chain');
   }
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-      BrokerageUser user, List<String> ids) {
-    // TODO: implement getOptionChainsByIds
-    throw UnimplementedError();
+      BrokerageUser user, List<String> ids) async {
+    List<OptionChain> chains = [];
+    for (var id in ids) {
+      try {
+        var chain = await getOptionChains(user, id);
+        chains.add(chain);
+      } catch (e) {
+        debugPrint('Error getting option chain for $id: $e');
+      }
+    }
+    return chains;
   }
 
   /*
@@ -1728,9 +2058,115 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       String? expirationDates,
       String? type,
       {String? state = "active",
-      bool includeMarketData = false}) {
-    // TODO: implement streamOptionInstruments
-    throw UnimplementedError();
+      bool includeMarketData = false}) async* {
+    var fromDate =
+        expirationDates ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    var toDate =
+        expirationDates ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    // contractType: CALL, PUT, ALL
+    var contractType = type?.toUpperCase() ?? 'ALL';
+
+    var url =
+        "$endpoint/marketdata/v1/chains?symbol=${instrument.symbol}&contractType=$contractType&includeUnderlyingQuote=true&strategy=SINGLE&fromDate=$fromDate&toDate=$toDate";
+
+    var resultJson = await getJson(user, url);
+
+    List<OptionInstrument> options = [];
+
+    if (resultJson['status'] == 'SUCCESS') {
+      // Parse callExpDateMap
+      if (resultJson['callExpDateMap'] != null) {
+        Map<String, dynamic> callMap = resultJson['callExpDateMap'];
+        callMap.forEach((key, value) {
+          // value is a Map<String, List<dynamic>> where key is strike
+          Map<String, dynamic> strikeMap = value;
+          strikeMap.forEach((strikeKey, optionList) {
+            for (var optionJson in optionList) {
+              options.add(_mapSchwabOption(optionJson, instrument));
+            }
+          });
+        });
+      }
+      // Parse putExpDateMap
+      if (resultJson['putExpDateMap'] != null) {
+        Map<String, dynamic> putMap = resultJson['putExpDateMap'];
+        putMap.forEach((key, value) {
+          Map<String, dynamic> strikeMap = value;
+          strikeMap.forEach((strikeKey, optionList) {
+            for (var optionJson in optionList) {
+              options.add(_mapSchwabOption(optionJson, instrument));
+            }
+          });
+        });
+      }
+    }
+
+    yield options;
+  }
+
+  OptionInstrument _mapSchwabOption(dynamic json, Instrument instrument) {
+    var symbol = json['symbol']; // "AAPL  241018C00230000"
+    var strike = double.tryParse(json['strikePrice'].toString());
+    var expirationDate = DateTime.tryParse(json['expirationDate']);
+    var type = json['putCall'].toString().toLowerCase(); // "call"
+
+    var marketData = OptionMarketData(
+        double.tryParse(json['mark'].toString()), // adjustedMarkPrice
+        double.tryParse(json['ask'].toString()), // askPrice
+        int.tryParse(json['askSize'].toString()) ?? 0, // askSize
+        double.tryParse(json['bid'].toString()), // bidPrice
+        int.tryParse(json['bidSize'].toString()) ?? 0, // bidSize
+        null, // breakEvenPrice
+        double.tryParse(json['highPrice'].toString()), // highPrice
+        symbol, // instrument
+        symbol, // instrumentId
+        double.tryParse(json['last'].toString()), // lastTradePrice
+        int.tryParse(json['lastSize'].toString()) ?? 0, // lastTradeSize
+        double.tryParse(json['lowPrice'].toString()), // lowPrice
+        double.tryParse(json['mark'].toString()), // markPrice
+        int.tryParse(json['openInterest'].toString()) ?? 0, // openInterest
+        null, // previousCloseDate
+        double.tryParse(json['closePrice'].toString()), // previousClosePrice
+        int.tryParse(json['totalVolume'].toString()) ?? 0, // volume
+        instrument.symbol, // symbol
+        symbol, // occSymbol
+        null, // chanceOfProfitLong
+        null, // chanceOfProfitShort
+        double.tryParse(json['delta'].toString()), // delta
+        double.tryParse(json['gamma'].toString()), // gamma
+        double.tryParse(json['volatility'].toString()), // impliedVolatility
+        double.tryParse(json['rho'].toString()), // rho
+        double.tryParse(json['theta'].toString()), // theta
+        double.tryParse(json['vega'].toString()), // vega
+        null, // highFillRateBuyPrice
+        null, // highFillRateSellPrice
+        null, // lowFillRateBuyPrice
+        null, // lowFillRateSellPrice
+        DateTime.now() // updatedAt
+        );
+
+    var oi = OptionInstrument(
+        instrument.symbol, // chainId
+        instrument.symbol, // chainSymbol
+        null, // createdAt
+        expirationDate,
+        symbol, // id
+        null, // issueDate
+        const MinTicks(null, null, null),
+        "tradable", // rhsTradability
+        "active", // state
+        strike,
+        "tradable", // tradability
+        type,
+        null, // updatedAt
+        symbol, // url
+        null, // selloutDateTime
+        '', // longStrategyCode
+        '' // shortStrategyCode
+        );
+    oi.optionMarketData = marketData;
+    return oi;
   }
 
   @override

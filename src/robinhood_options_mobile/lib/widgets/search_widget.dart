@@ -36,8 +36,8 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
   final User? user;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final GenerativeService generativeService;
   final DocumentReference<User>? userDocRef;
 
@@ -132,12 +132,18 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildScaffold() {
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
-    futureMovers ??=
-        widget.service.getMovers(widget.brokerageUser, direction: "up");
-    futureLosers ??=
-        widget.service.getMovers(widget.brokerageUser, direction: "down");
-    futureListMovers ??=
-        widget.service.getTopMovers(widget.brokerageUser, instrumentStore!);
+    if (widget.brokerageUser != null && widget.service != null) {
+      futureMovers ??=
+          widget.service!.getMovers(widget.brokerageUser!, direction: "up");
+      futureLosers ??=
+          widget.service!.getMovers(widget.brokerageUser!, direction: "down");
+      futureListMovers ??=
+          widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
+    } else {
+      futureMovers = Future.value([]);
+      futureLosers = Future.value([]);
+      futureListMovers = Future.value([]);
+    }
     // futureListMostPopular ??=
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
@@ -214,13 +220,14 @@ class _SearchWidgetState extends State<SearchWidget>
                       snap: false,
                       pinned: true,
                       centerTitle: false,
-                      title: const Text('Search'),
+                      title: const Text(''), // Search
                       actions: [
-                        AutoTradeStatusBadgeWidget(
-                          user: widget.user,
-                          userDocRef: widget.userDocRef,
-                          service: widget.service,
-                        ),
+                        if (auth.currentUser != null)
+                          AutoTradeStatusBadgeWidget(
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                            service: widget.service,
+                          ),
                         IconButton(
                             icon: auth.currentUser != null
                                 ? (auth.currentUser!.photoURL == null
@@ -231,7 +238,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                             auth.currentUser!.photoURL!
                                             //  ?? Constants .placeholderImage, // No longer used
                                             )))
-                                : const Icon(Icons.login),
+                                : const Icon(Icons.account_circle_outlined),
                             onPressed: () async {
                               var response = await showProfile(
                                   context,
@@ -246,6 +253,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               }
                             })
                       ]),
+                  /*
                   if (done == false) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -260,6 +268,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               )),
                     ))
                   ],
+                  */
                   SliverStickyHeader(
                     header: Material(
                       elevation: 2,
@@ -303,10 +312,11 @@ class _SearchWidgetState extends State<SearchWidget>
                           onChanged: (text) {
                             widget.analytics.logSearch(searchTerm: text);
                             setState(() {
-                              futureSearch = text.isEmpty
-                                  ? Future.value(null)
-                                  : widget.service
-                                      .search(widget.brokerageUser, text);
+                              futureSearch =
+                                  text.isEmpty || widget.service == null
+                                      ? Future.value(null)
+                                      : widget.service!
+                                          .search(widget.brokerageUser!, text);
                             });
                           },
                         ),
@@ -318,17 +328,20 @@ class _SearchWidgetState extends State<SearchWidget>
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 125.0,
+                            maxCrossAxisExtent: 150.0,
                             mainAxisSpacing: 10.0,
                             crossAxisSpacing: 10.0,
-                            childAspectRatio: 1.29,
+                            childAspectRatio: 0.925,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (BuildContext context, int index) {
                               return _buildSearchGridItem(search, index);
                             },
                             childCount: search != null
-                                ? search["results"][0]["content"]["data"].length
+                                ? (search is List
+                                    ? search.length
+                                    : search["results"][0]["content"]["data"]
+                                        .length)
                                 : 0,
                           ),
                         )),
@@ -454,6 +467,13 @@ class _SearchWidgetState extends State<SearchWidget>
                                                     widget.userDocRef == null) {
                                                   return;
                                                 }
+                                                // if (widget.service == null) {
+                                                //   ScaffoldMessenger.of(context)
+                                                //       .showSnackBar(const SnackBar(
+                                                //           content: Text(
+                                                //               "Please link a brokerage account to use this feature.")));
+                                                //   return;
+                                                // }
                                                 final result =
                                                     await Navigator.of(context)
                                                         .push(
@@ -941,7 +961,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
                                   return _buildListGridItem(
-                                      listMovers, index, widget.brokerageUser);
+                                      listMovers, index, widget.brokerageUser!);
                                 },
                                 childCount: listMovers.length,
                               ),
@@ -1000,7 +1020,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
                                   return _buildListGridItem(listMostPopular,
-                                      index, widget.brokerageUser);
+                                      index, widget.brokerageUser!);
                                 },
                                 childCount: listMostPopular.length,
                               ),
@@ -1010,67 +1030,85 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.filter_alt),
-                              label: const Text('Stock Screener'),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ScreenerWidget(
-                                      widget.brokerageUser,
-                                      widget.service,
-                                      analytics: widget.analytics,
-                                      observer: widget.observer,
-                                      generativeService:
-                                          widget.generativeService,
-                                      user: widget.user,
-                                      userDocRef: widget.userDocRef,
+                  if (false) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.filter_alt),
+                                label: const Text('Stock Screener'),
+                                onPressed: () {
+                                  if (widget.brokerageUser == null ||
+                                      widget.service == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                "Please link a brokerage account to use this feature.")));
+                                    return;
+                                  }
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ScreenerWidget(
+                                        widget.brokerageUser!,
+                                        widget.service!,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.dashboard_customize),
-                              label: const Text('Presets'),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PresetsWidget(
-                                      widget.brokerageUser,
-                                      widget.service,
-                                      analytics: widget.analytics,
-                                      observer: widget.observer,
-                                      generativeService:
-                                          widget.generativeService,
-                                      user: widget.user,
-                                      userDocRef: widget.userDocRef,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.dashboard_customize),
+                                label: const Text('Presets'),
+                                onPressed: () {
+                                  if (widget.brokerageUser == null ||
+                                      widget.service == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                "Please link a brokerage account to use this feature.")));
+                                    return;
+                                  }
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PresetsWidget(
+                                        widget.brokerageUser!,
+                                        widget.service!,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                  ],
                   // TODO: Introduce web banner
                   if (!kIsWeb) ...[
                     SliverToBoxAdapter(
@@ -1188,8 +1226,14 @@ class _SearchWidgetState extends State<SearchWidget>
                       ),
                     ])),
             onTap: () async {
-              var instrument = await widget.service.getInstrument(
-                  widget.brokerageUser,
+              if (widget.brokerageUser == null || widget.service == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        "Please link a brokerage account to view details.")));
+                return;
+              }
+              var instrument = await widget.service!.getInstrument(
+                  widget.brokerageUser!,
                   instrumentStore!,
                   movers[index].instrumentUrl);
 
@@ -1203,8 +1247,8 @@ class _SearchWidgetState extends State<SearchWidget>
                   context,
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
+                            widget.brokerageUser!,
+                            widget.service!,
                             instrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
@@ -1216,7 +1260,12 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildSearchGridItem(dynamic search, int index) {
-    var data = search["results"][0]["content"]["data"][index];
+    dynamic data;
+    if (search is List) {
+      data = search[index];
+    } else {
+      data = search["results"][0]["content"]["data"][index]["item"];
+    }
     return Card(
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -1230,50 +1279,139 @@ class _SearchWidgetState extends State<SearchWidget>
         child: InkWell(
             borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.max,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(
-                        data["item"]["symbol"],
-                        style: TextStyle(
-                          fontSize: 17.0,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: Text(
-                          data["item"]["simple_name"] ?? data["item"]["name"],
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              data["symbol"],
+                              style: TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        data["simple_name"] ??
+                            data["name"] ??
+                            data[
+                                "description"], // Schwab API returns this field
+                        style: TextStyle(
+                          fontSize: 13.0,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
                         ),
-                      )
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      if (data["exchange"] != null ||
+                          data["assetType"] != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (data["exchange"] != null)
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer
+                                        .withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    data["exchange"],
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            if (data["exchange"] != null &&
+                                data["assetType"] != null &&
+                                data["exchange"] != "Mutual Fund" &&
+                                data["assetType"] != "INDEX" &&
+                                data["assetType"] != "EQUITY")
+                              const SizedBox(width: 4),
+                            if (data["assetType"] != null &&
+                                data["exchange"] != "Mutual Fund" &&
+                                data["assetType"] != "INDEX" &&
+                                data["assetType"] != "EQUITY")
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .tertiaryContainer
+                                        .withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    data["assetType"],
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onTertiaryContainer,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      ]
                     ])),
-            onTap: () {
-              var instrument = Instrument.fromJson(data["item"]);
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
+            onTap: () async {
+              if (widget.brokerageUser == null || widget.service == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        "Please link a brokerage account to view details.")));
+                return;
+              }
+              final instrumentStore =
+                  Provider.of<InstrumentStore>(context, listen: false);
+              var instrument = await widget.service!.getInstrumentBySymbol(
+                  widget.brokerageUser!, instrumentStore, data["symbol"]);
+
+              // var instrument = Instrument.fromJson(data);
+              if (instrument != null) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              widget.brokerageUser!,
+                              widget.service!,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              }
             }));
     /*
     return ListTile(
@@ -1497,8 +1635,6 @@ class _SearchWidgetState extends State<SearchWidget>
                           children: indicatorSignals.entries.map((entry) {
                             final indicatorName = entry.key;
                             final indicatorSignal = entry.value;
-                            final isIndicatorEnabled =
-                                enabledIndicators[indicatorName] == true;
 
                             Color tagColor;
                             if (indicatorSignal == 'BUY') {
@@ -1537,10 +1673,9 @@ class _SearchWidgetState extends State<SearchWidget>
 
                             // Disable styling for indicators not in settings
                             final opacity = 1.0;
-                             // isIndicatorEnabled ? 1.0 : 0.4;
-                            final disabledColor = Colors.grey;
+                            // isIndicatorEnabled ? 1.0 : 0.4;
                             final finalTagColor = tagColor;
-                              // isIndicatorEnabled ? tagColor : disabledColor;
+                            // isIndicatorEnabled ? tagColor : disabledColor;
 
                             return Container(
                               padding: const EdgeInsets.symmetric(
@@ -1584,16 +1719,22 @@ class _SearchWidgetState extends State<SearchWidget>
             onTap: () async {
               final symbol = signal['symbol'];
               if (symbol == null || symbol == 'N/A') return;
-              var instrument = await widget.service.getInstrumentBySymbol(
-                  widget.brokerageUser, instrumentStore!, symbol);
+              if (widget.brokerageUser == null || widget.service == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        "Please link a brokerage account to view details.")));
+                return;
+              }
+              var instrument = await widget.service!.getInstrumentBySymbol(
+                  widget.brokerageUser!, instrumentStore!, symbol);
 
               if (!mounted || instrument == null) return;
               Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
+                            widget.brokerageUser!,
+                            widget.service!,
                             instrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
@@ -1732,7 +1873,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
                             user,
-                            widget.service,
+                            widget.service!,
                             instrumentObj,
                             analytics: widget.analytics,
                             observer: widget.observer,
