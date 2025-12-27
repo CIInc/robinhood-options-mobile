@@ -229,6 +229,7 @@ class _ListsWidgetState extends State<ListsWidget>
   }
 
   Widget _buildScaffold({Widget? welcomeWidget, bool done = false}) {
+    /*
     var totalItems = 0;
     var totalLists = 0;
     if (watchlists != null) {
@@ -236,6 +237,7 @@ class _ListsWidgetState extends State<ListsWidget>
       totalItems =
           watchlists!.map((e) => e.items.length).reduce((a, b) => a + b);
     }
+    */
     return /*Scaffold(
         appBar: AppBar(
           title: Wrap(

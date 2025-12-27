@@ -237,8 +237,6 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     double? marketValue = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.brokerageUser
-        .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
     double? totalReturn = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
@@ -312,7 +310,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
                 child: AnimatedPriceText(
-                  price: marketValue!,
+                  price: marketValue ?? 0,
                   format: formatCurrency,
                   style: const TextStyle(fontSize: assetValueFontSize),
                   textAlign: TextAlign.right,

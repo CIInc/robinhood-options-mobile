@@ -334,8 +334,6 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     double? marketValue = widget.brokerageUser
         .getDisplayValueInstrumentPositions(sortedFilteredPositions,
             displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.brokerageUser
-        .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
     double? totalReturn = widget.brokerageUser
         .getDisplayValueInstrumentPositions(sortedFilteredPositions,
@@ -407,7 +405,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AnimatedPriceText(
-                    price: marketValue!,
+                    price: marketValue ?? 0,
                     format: formatCurrency,
                     style: const TextStyle(fontSize: assetValueFontSize),
                     textAlign: TextAlign.right,

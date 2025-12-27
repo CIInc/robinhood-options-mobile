@@ -229,8 +229,6 @@ class CopyTradingProvider with ChangeNotifier {
     }
 
     try {
-      dynamic orderResult;
-
       // 1. Get Account
       final accounts = await _service!
           .getAccounts(_brokerageUser!, _accountStore, null, null);
@@ -248,7 +246,7 @@ class CopyTradingProvider with ChangeNotifier {
         }
 
         // 3. Place Order
-        orderResult = await _service!.placeInstrumentOrder(
+        await _service!.placeInstrumentOrder(
           _brokerageUser!,
           account,
           instrument,
@@ -293,7 +291,7 @@ class CopyTradingProvider with ChangeNotifier {
             orElse: () => throw Exception('Option instrument not found'));
 
         // 4. Place Order
-        orderResult = await _service!.placeOptionsOrder(
+        await _service!.placeOptionsOrder(
           _brokerageUser!,
           account,
           optionInstrument,

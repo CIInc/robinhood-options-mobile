@@ -1,0 +1,324 @@
+import 'package:collection/collection.dart';
+import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+
+class PerformanceChartWidget extends StatefulWidget {
+  final Future<dynamic>? futureMarketIndexHistoricalsSp500;
+  final Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
+  final Future<dynamic>? futureMarketIndexHistoricalsDow;
+  final Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
+  final ChartDateSpan benchmarkChartDateSpanFilter;
+  final Function(ChartDateSpan) onFilterChanged;
+
+  const PerformanceChartWidget({
+    super.key,
+    required this.futureMarketIndexHistoricalsSp500,
+    required this.futureMarketIndexHistoricalsNasdaq,
+    required this.futureMarketIndexHistoricalsDow,
+    required this.futurePortfolioHistoricalsYear,
+    required this.benchmarkChartDateSpanFilter,
+    required this.onFilterChanged,
+  });
+
+  @override
+  State<PerformanceChartWidget> createState() => _PerformanceChartWidgetState();
+}
+
+class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
+  bool animateChart = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: Future.wait([
+        widget.futureMarketIndexHistoricalsSp500 as Future,
+        widget.futureMarketIndexHistoricalsNasdaq as Future,
+        widget.futureMarketIndexHistoricalsDow as Future,
+        widget.futurePortfolioHistoricalsYear != null
+            ? widget.futurePortfolioHistoricalsYear as Future
+            : Future.value(null)
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.hasData &&
+            snapshot.connectionState == ConnectionState.done) {
+          var sp500 = snapshot.data![0];
+          var nasdaq = snapshot.data![1];
+          var dow = snapshot.data![2];
+          var portfolioHistoricals = snapshot.data![3] as PortfolioHistoricals?;
+          if (portfolioHistoricals != null) {
+            final DateTime now = DateTime.now();
+            final DateTime newYearsDay = DateTime(now.year, 1, 1);
+
+            var portfolioHistoricalsStore =
+                Provider.of<PortfolioHistoricalsStore>(context, listen: true);
+            var dayHistoricals = portfolioHistoricalsStore.items
+                .singleWhereOrNull((e) => e.span == 'day');
+            if (dayHistoricals != null &&
+                !portfolioHistoricals.equityHistoricals.any((e) =>
+                    e.beginsAt ==
+                    dayHistoricals.equityHistoricals.last.beginsAt)) {
+              portfolioHistoricals.equityHistoricals
+                  .add(dayHistoricals.equityHistoricals.last);
+            }
+
+            var regularsp500 = sp500['chart']['result'][0]['meta']
+                ['currentTradingPeriod']['regular'];
+            var sp500PreviousClose = sp500['chart']['result'][0]['meta']
+                ['chartPreviousClose'];
+            var nasdaqPreviousClose =
+                nasdaq['chart']['result'][0]['meta']['chartPreviousClose'];
+            var dowPreviousClose =
+                dow['chart']['result'][0]['meta']['chartPreviousClose'];
+            var enddiffsp500 = regularsp500['end'] - regularsp500['start'];
+
+            DateTime? cutoff;
+            if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.year_2) {
+              cutoff = DateTime.now().subtract(const Duration(days: 365 * 2));
+            } else if (widget.benchmarkChartDateSpanFilter ==
+                ChartDateSpan.year_3) {
+              cutoff = DateTime.now().subtract(const Duration(days: 365 * 3));
+            } else if (widget.benchmarkChartDateSpanFilter ==
+                ChartDateSpan.year_5) {
+              cutoff = DateTime.now().subtract(const Duration(days: 365 * 5));
+            }
+
+            List<Map<String, dynamic>> processMarketData(
+                dynamic data, double previousClose) {
+              var timestamps =
+                  (data['chart']['result'][0]['timestamp'] as List);
+              var adjcloses = (data['chart']['result'][0]['indicators']
+                  ['adjclose'][0]['adjclose'] as List);
+
+              var list = timestamps.mapIndexed((index, e) {
+                final numerator = adjcloses[index];
+                final close = (numerator as num?)?.toDouble();
+                return {
+                  'date': DateTime.fromMillisecondsSinceEpoch(
+                      (e + enddiffsp500) * 1000),
+                  'close': close
+                };
+              }).toList();
+
+              if (cutoff != null) {
+                list = list
+                    .where((e) => (e['date'] as DateTime).isAfter(cutoff!))
+                    .toList();
+              }
+
+              double basePrice = previousClose;
+              if (cutoff != null && list.isNotEmpty) {
+                basePrice = list.first['close'] as double;
+              }
+
+              var result = list.map((e) {
+                var close = e['close'] as double?;
+                return {
+                  'date': e['date'],
+                  'value': close == null ? 0.0 : (close / basePrice) - 1.0,
+                };
+              }).toList();
+
+              if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd) {
+                result.insert(0, {'date': newYearsDay, 'value': 0.0});
+              }
+              return result;
+            }
+
+            var seriesDatasp500 = processMarketData(sp500, sp500PreviousClose);
+            var seriesDatanasdaq =
+                processMarketData(nasdaq, nasdaqPreviousClose);
+            var seriesDatadow = processMarketData(dow, dowPreviousClose);
+
+            var seriesOpenportfolio =
+                portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity;
+            var seriesDataportfolio = portfolioHistoricals.equityHistoricals
+                .mapIndexed((index, e) => {
+                      'date': e.beginsAt,
+                      'value':
+                          e.adjustedCloseEquity! / seriesOpenportfolio! - 1
+                    })
+                .toList();
+
+            final allValues = <double>[
+              ...seriesDatasp500
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatanasdaq
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatadow
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDataportfolio
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+            ];
+            var extents = charts.NumericExtents.fromValues(allValues);
+            extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
+                extents.max + (extents.width * 0.1));
+            var brightness = MediaQuery.of(context).platformBrightness;
+            var axisLabelColor = charts.MaterialPalette.gray.shade500;
+            if (brightness == Brightness.light) {
+              axisLabelColor = charts.MaterialPalette.gray.shade700;
+            }
+            var chartSelectionStore =
+                Provider.of<ChartSelectionStore>(context, listen: false);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              chartSelectionStore.selectionChanged(MapEntry(
+                  seriesDataportfolio.last['date'] as DateTime,
+                  seriesDataportfolio.last['value'] as double));
+            });
+            TimeSeriesChart marketIndicesChart = TimeSeriesChart(
+              [
+                charts.Series<dynamic, DateTime>(
+                  id: 'Portfolio',
+                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                      Colors.accents[0 % Colors.accents.length]),
+                  domainFn: (dynamic data, _) => data['date'],
+                  measureFn: (dynamic data, index) => data['value'],
+                  data: seriesDataportfolio,
+                ),
+                charts.Series<dynamic, DateTime>(
+                  id: 'S&P 500',
+                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                      Colors.accents[4 % Colors.accents.length]),
+                  domainFn: (dynamic data, _) => data['date'],
+                  measureFn: (dynamic data, index) => data['value'],
+                  data: seriesDatasp500,
+                ),
+                charts.Series<dynamic, DateTime>(
+                  id: 'Nasdaq',
+                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                      Colors.accents[2 % Colors.accents.length]),
+                  domainFn: (dynamic data, _) => data['date'],
+                  measureFn: (dynamic data, index) => data['value'],
+                  data: seriesDatanasdaq,
+                ),
+                charts.Series<dynamic, DateTime>(
+                  id: 'Dow 30',
+                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                      Colors.accents[6 % Colors.accents.length]),
+                  domainFn: (dynamic data, _) => data['date'],
+                  measureFn: (dynamic data, index) => data['value'],
+                  data: seriesDatadow,
+                ),
+              ],
+              animate: animateChart,
+              zeroBound: false,
+              primaryMeasureAxis: charts.PercentAxisSpec(
+                  viewport: extents,
+                  renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
+              seriesLegend: charts.SeriesLegend(
+                horizontalFirst: true,
+                desiredMaxColumns: 2,
+                cellPadding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                position: charts.BehaviorPosition.top,
+                showMeasures: true,
+                measureFormatter: (measure) =>
+                    measure != null ? formatPercentage.format(measure) : '',
+              ),
+              onSelected: (charts.SelectionModel? model) {
+                chartSelectionStore.selectionChanged(model != null
+                    ? MapEntry(model.selectedDatum.first.datum['date'],
+                        model.selectedDatum.first.datum['value'])
+                    : null);
+              },
+              initialSelection: charts.InitialSelection(selectedDataConfig: [
+                charts.SeriesDatumConfig<DateTime>('Portfolio',
+                    seriesDataportfolio.last['date'] as DateTime),
+                charts.SeriesDatumConfig<DateTime>(
+                    'S&P 500', seriesDatasp500.last['date'] as DateTime),
+                charts.SeriesDatumConfig<DateTime>(
+                    'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
+                charts.SeriesDatumConfig<DateTime>(
+                    'Dow 30', seriesDatadow.last['date'] as DateTime)
+              ], shouldPreserveSelectionOnDraw: true),
+              symbolRenderer: TextSymbolRenderer(() {
+                return chartSelectionStore.selection != null
+                    ? formatCompactDateTimeWithHour.format(
+                        (chartSelectionStore.selection as MapEntry)
+                            .key
+                            .toLocal())
+                    : '';
+              }, marginBottom: 16),
+            );
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Performance",
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Compare market indices and benchmarks (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter).toUpperCase()})",
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                    height: 56,
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 8.0),
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _buildChip('YTD', ChartDateSpan.ytd),
+                        _buildChip('1Y', ChartDateSpan.year),
+                        _buildChip('2Y', ChartDateSpan.year_2),
+                        _buildChip('3Y', ChartDateSpan.year_3),
+                        _buildChip('5Y', ChartDateSpan.year_5),
+                      ],
+                    )),
+                SizedBox(
+                    height: 380,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      child: marketIndicesChart,
+                    )),
+              ],
+            );
+          }
+        }
+        debugPrint("${snapshot.error}");
+
+        return const SizedBox();
+      },
+    );
+  }
+
+  Widget _buildChip(String label, ChartDateSpan span) {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: widget.benchmarkChartDateSpanFilter == span,
+        onSelected: (bool value) {
+          if (value) {
+            widget.onFilterChanged(span);
+          }
+        },
+      ),
+    );
+  }
+}

@@ -24,8 +24,6 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/presets_widget.dart';
-import 'package:robinhood_options_mobile/widgets/screener_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
@@ -1031,85 +1029,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
-                  if (false) ...[
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.filter_alt),
-                                label: const Text('Stock Screener'),
-                                onPressed: () {
-                                  if (widget.brokerageUser == null ||
-                                      widget.service == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                "Please link a brokerage account to use this feature.")));
-                                    return;
-                                  }
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ScreenerWidget(
-                                        widget.brokerageUser!,
-                                        widget.service!,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        generativeService:
-                                            widget.generativeService,
-                                        user: widget.user,
-                                        userDocRef: widget.userDocRef,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.dashboard_customize),
-                                label: const Text('Presets'),
-                                onPressed: () {
-                                  if (widget.brokerageUser == null ||
-                                      widget.service == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                "Please link a brokerage account to use this feature.")));
-                                    return;
-                                  }
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PresetsWidget(
-                                        widget.brokerageUser!,
-                                        widget.service!,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        generativeService:
-                                            widget.generativeService,
-                                        user: widget.user,
-                                        userDocRef: widget.userDocRef,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
+
                   // TODO: Introduce web banner
                   if (!kIsWeb) ...[
                     SliverToBoxAdapter(

@@ -97,8 +97,6 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     double? marketValue = widget.brokerageUser
         .getDisplayValueOptionAggregatePosition(widget.filteredOptionPositions,
             displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.brokerageUser
-        .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
     double? deltaAvg,
         gammaAvg,
@@ -457,7 +455,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
                       child: AnimatedPriceText(
-                        price: marketValue!,
+                        price: marketValue ?? 0,
                         format: formatCurrency,
                         style: const TextStyle(fontSize: assetValueFontSize),
                         textAlign: TextAlign.right,
