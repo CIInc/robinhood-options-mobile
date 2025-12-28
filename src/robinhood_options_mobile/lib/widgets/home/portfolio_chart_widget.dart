@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -102,11 +103,10 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             final currentLast = baseData.equityHistoricals.isNotEmpty
                 ? baseData.equityHistoricals.last.beginsAt
                 : null;
-            final previousLast =
-                _previousPortfolioHistoricals!.equityHistoricals.isNotEmpty
-                    ? _previousPortfolioHistoricals!
-                        .equityHistoricals.last.beginsAt
-                    : null;
+            final previousLast = _previousPortfolioHistoricals!
+                    .equityHistoricals.isNotEmpty
+                ? _previousPortfolioHistoricals!.equityHistoricals.last.beginsAt
+                : null;
             if (currentLast != null &&
                 previousLast != null &&
                 currentLast.isAfter(previousLast)) {
@@ -168,8 +168,8 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         changeInPeriod = close - open;
         changePercentInPeriod = (close / open) - 1;
 
-        var provider =
-            Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+        var provider = Provider.of<PortfolioHistoricalsSelectionStore>(context,
+            listen: false);
         TimeSeriesChart historicalChart = TimeSeriesChart(
           [
             charts.Series<EquityHistorical, DateTime>(
@@ -206,7 +206,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             horizontalFirst: true,
             position: charts.BehaviorPosition.top,
             defaultHiddenSeries: const ['Equity', 'Market Value'],
-            showMeasures: true,
+            showMeasures: false,
             measureFormatter: (measure) =>
                 measure != null ? formatPercentage.format(measure) : '',
           ),
@@ -234,8 +234,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             var selection = value.selection;
             if (selection != null) {
               changeInPeriod = selection.adjustedCloseEquity! - open;
-              changePercentInPeriod =
-                  selection.adjustedCloseEquity! / open - 1;
+              changePercentInPeriod = selection.adjustedCloseEquity! / open - 1;
             } else {
               changeInPeriod = close - open;
               changePercentInPeriod = close / open - 1;
@@ -278,11 +277,12 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                                       .onSurfaceVariant)),
                                           neutral: true),
                                       Text(
-                                          formatMediumDateTime.format(selection !=
-                                                  null
-                                              ? selection.beginsAt!.toLocal()
-                                              : lastHistorical!.beginsAt!
-                                                  .toLocal()),
+                                          formatMediumDateTime.format(
+                                              selection != null
+                                                  ? selection.beginsAt!
+                                                      .toLocal()
+                                                  : lastHistorical!.beginsAt!
+                                                      .toLocal()),
                                           style: const TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),

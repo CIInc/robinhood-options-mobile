@@ -27,6 +27,8 @@ import * as agenticTradingNotifications from "./agentic-trading-notifications";
 import * as cronDiagnosticsFuncs from "./cron-diagnostics";
 import * as signalDiagnosticsFuncs from "./signal-diagnostics";
 import * as backtesting from "./backtesting";
+import * as optionsFlow from "./options-flow";
+import * as optionsFlowCron from "./options-flow-cron";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -75,3 +77,9 @@ export const sendAgenticTradeNotification =
 export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
 export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;
 export const runBacktest = backtesting.runBacktest;
+export const getOptionsFlow = optionsFlow.getOptionsFlow;
+export const createOptionAlert = optionsFlow.createOptionAlert;
+export const getOptionAlerts = optionsFlow.getOptionAlerts;
+export const deleteOptionAlert = optionsFlow.deleteOptionAlert;
+export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
+export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;

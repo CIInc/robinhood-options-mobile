@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
@@ -394,6 +395,17 @@ class _SearchWidgetState extends State<SearchWidget>
                   //     height: 25.0,
                   //   )),
                   // ],
+                  SliverToBoxAdapter(
+                    child: OptionsFlowCardWidget(
+                      brokerageUser: widget.brokerageUser,
+                      service: widget.service,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    ),
+                  ),
                   Consumer<TradeSignalsProvider>(
                     builder: (context, tradeSignalsProvider, child) {
                       // Apply client-side filtering for strength categories when needed

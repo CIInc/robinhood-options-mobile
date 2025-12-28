@@ -330,7 +330,9 @@ class _InstrumentOptionChainWidgetState
           if (expirationDates!.isNotEmpty) {
             if (widget.selectedOption != null && expirationDateFilter == null) {
               expirationDateFilter = expirationDates!.firstWhereOrNull((d) =>
-                  d.isAtSameMomentAs(widget.selectedOption!.expirationDate!));
+                  d.year == widget.selectedOption!.expirationDate!.year &&
+                  d.month == widget.selectedOption!.expirationDate!.month &&
+                  d.day == widget.selectedOption!.expirationDate!.day);
             }
             if (expirationDateFilter != null &&
                 !expirationDates!
@@ -512,7 +514,21 @@ class _InstrumentOptionChainWidgetState
                           filteredOptionsInstruments![index];
 
                       if (widget.selectedOption != null &&
-                          optionInstrument.id == widget.selectedOption!.id) {
+                          ((widget.selectedOption!.id.isNotEmpty &&
+                                  optionInstrument.id.isNotEmpty &&
+                                  widget.selectedOption!.id ==
+                                      optionInstrument.id) ||
+                              (widget.selectedOption!.strikePrice ==
+                                      optionInstrument.strikePrice &&
+                                  widget.selectedOption!.type ==
+                                      optionInstrument.type &&
+                                  widget.selectedOption!.expirationDate?.year ==
+                                      optionInstrument.expirationDate?.year &&
+                                  widget.selectedOption!.expirationDate
+                                          ?.month ==
+                                      optionInstrument.expirationDate?.month &&
+                                  widget.selectedOption!.expirationDate?.day ==
+                                      optionInstrument.expirationDate?.day))) {
                         instrumentPosition = index;
                         debugPrint(
                             'instrumentPosition (selected): $instrumentPosition');
@@ -1048,6 +1064,23 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
     });
   }
 
+  bool get isSelected {
+    if (widget.selectedOption == null) return false;
+    if (widget.selectedOption!.id.isNotEmpty &&
+        widget.optionInstrument.id.isNotEmpty) {
+      return widget.selectedOption!.id == widget.optionInstrument.id;
+    }
+    return widget.selectedOption!.strikePrice ==
+            widget.optionInstrument.strikePrice &&
+        widget.selectedOption!.type == widget.optionInstrument.type &&
+        widget.selectedOption!.expirationDate?.year ==
+            widget.optionInstrument.expirationDate?.year &&
+        widget.selectedOption!.expirationDate?.month ==
+            widget.optionInstrument.expirationDate?.month &&
+        widget.selectedOption!.expirationDate?.day ==
+            widget.optionInstrument.expirationDate?.day;
+  }
+
   @override
   Widget build(BuildContext context) {
     var expirationDateStr =
@@ -1084,7 +1117,7 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                         .colorScheme
                         .outlineVariant
                         .withValues(alpha: 0.1))),
-            color: widget.selectedOption?.id == widget.optionInstrument.id
+            color: isSelected
                 ? Theme.of(context)
                     .colorScheme
                     .primaryContainer
@@ -1151,8 +1184,7 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                                   style: TextStyle(
                                       fontSize: 18.0,
                                       fontWeight: FontWeight.bold,
-                                      color: widget.selectedOption?.id ==
-                                              widget.optionInstrument.id
+                                      color: isSelected
                                           ? Theme.of(context)
                                               .colorScheme
                                               .onPrimaryContainer
@@ -1205,8 +1237,7 @@ class _OptionInstrumentItemState extends State<OptionInstrumentItem> {
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: widget.selectedOption?.id ==
-                                            widget.optionInstrument.id
+                                    color: isSelected
                                         ? Theme.of(context)
                                             .colorScheme
                                             .onPrimaryContainer

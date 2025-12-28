@@ -54,6 +54,7 @@ import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
@@ -694,6 +695,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ),
                   ),
                 ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                includePortfolioSymbols: true,
               ),
             ),
             if (widget.brokerageUser!.source == BrokerageSource.robinhood ||

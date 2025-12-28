@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -929,6 +930,77 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ]));
           }),
           if (instrument.tradeable) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+            SliverToBoxAdapter(
+              child: Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OptionsFlowWidget(
+                          initialSymbol: instrument.symbol,
+                          brokerageUser: widget.brokerageUser,
+                          service: widget.service,
+                          analytics: widget.analytics,
+                          observer: widget.observer,
+                          generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10.0),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: const Icon(Icons.water, color: Colors.blue),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Options Flow',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4.0),
+                              Text(
+                                'View real-time institutional activity for ${instrument.symbol}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,

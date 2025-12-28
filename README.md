@@ -24,6 +24,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **[Crypto Trading](docs/crypto-trading.md):** Dedicated widgets for placing and managing crypto orders, integrated into the main trading interface.
 *   **[Schwab Integration](docs/schwab-integration.md):** Enhanced integration with Schwab brokerage services for improved option order handling and reliability.
 *   **[Option Chain Screener](docs/option-strategy-builder.md#option-chain-screener):** Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more. Features AI-powered "Find Best Contract" suggestions based on risk tolerance and strategy.
+*   **[Options Flow Analysis](docs/options-flow-analysis.md):** Track institutional sentiment with real-time monitoring of large option orders (sweeps, blocks), unusual volume detection, and dark pool activity analysis.
 *   **[Strategy Builder](docs/option-strategy-builder.md#multi-leg-strategy-builder):** Multi-leg options strategy builder supporting Spreads, Straddles, Iron Condors, and custom combinations with visual payoff diagrams and risk/reward analysis.
 *   **[Advanced Order Types](docs/advanced-order-types.md):** Support for Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for both stocks and options.
 *   **[Trade Signal Notifications](docs/trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence.
