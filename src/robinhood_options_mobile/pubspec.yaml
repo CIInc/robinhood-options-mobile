@@ -114,6 +114,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -165,3 +166,9 @@ flutter_icons:
   ios: true
   # optionally, as transparency is not allowed on app store
   remove_alpha_ios: true
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/images/icon.png
+  android_12:
+    image: assets/images/icon.png
+    color: "#ffffff"
