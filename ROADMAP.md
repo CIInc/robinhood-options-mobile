@@ -101,18 +101,38 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.25.0 ✅ (Released Dec 26, 2025)
 **Crypto Trading & Schwab Integration**
+- ✅ Crypto Trading (Order widgets & interface integration)
+- ✅ Schwab Integration Enhancements (Improved option order handling)
+- ✅ UI Enhancements (Animated Price Text)
+
+### v0.26.0 ✅ (Released Dec 28, 2025)
+**Options Flow Analysis & Trade Signal Notifications**
+- ✅ Options Flow Analysis (Real-time monitoring, Smart Flags, Alerts)
+- ✅ Comprehensive Smart Flags (Whale, Golden Sweep, Steamroller, etc.)
+- ✅ Trade Signal Notifications (Configurable alerts, Rich content, Deep linking)
+- ✅ UI Polish (Updated icons & assets)
+
+### v0.25.0 ✅ (Released Dec 26, 2025)
+**Crypto Trading & Schwab Integration**
 - ✅ Crypto Trading (Order widgets & Interface integration)
 - ✅ Schwab Integration Enhancements (Option order handling)
 - ✅ Animated Price Text Widget
 
-### v0.26.0 (Q1 2026 - Late January)
+### v0.26.0 ✅ (Released Dec 28, 2025)
+**Options Flow Analysis & UI Polish**
+- ✅ Enhanced Options Flow Analysis (New flags: Cheap Vol, High Premium, etc.)
+- ✅ Improved Flag Detection Algorithms (Whale, LEAPS)
+- ✅ UI Polish (Cleaner list view, better tooltips)
+- ✅ Documentation Updates (Comprehensive flag definitions)
+
+### v0.27.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support)
 
-### v0.27.0 (Q1 2026 - Late February)
+### v0.28.0 (Q1 2026 - Late February)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement

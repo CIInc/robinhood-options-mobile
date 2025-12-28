@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.26.0] - 2025-12-28
+
+### Added
+- **Options Flow Analysis:**
+  - **New Smart Flags:** Added support for "Cheap Vol", "High Premium", "Above Ask", "Below Bid", "Mid Market", and "Large Block" detection.
+  - **Comprehensive Flag Suite:** Full support for 30+ smart flags including "Whale", "Golden Sweep", "Steamroller", "Gamma Squeeze", "Panic Hedge", "Earnings Play", and "Divergences".
+  - **Improved Filtering:** Added filters for "High Premium" and "Cheap Vol" to the Options Flow filter dialog.
+  - **Documentation:** Comprehensive update to in-app tooltips and definitions for all flags.
+  - **Enhanced Flag Detection:** Refined algorithms and thresholds for detecting "Whale" (>$1M), "LEAPS" (>365 days), and other smart flags.
+- **Trade Signal Notifications:**
+  - **Configurable Alerts:** Users can now configure push notifications for trade signals (BUY/SELL/HOLD) with filters for symbols, intervals, and confidence thresholds.
+  - **Rich Notifications:** Notifications include signal type, symbol, price, interval, and confidence score.
+  - **Deep Linking:** Tapping a notification navigates directly to the instrument details page for immediate analysis.
+
+### Changed
+- **UI:** Updated app icons and asset images for improved visual consistency.
+- **Code Quality:** Refactored instrument and option positions widgets to handle null market values gracefully and removed unused code.
+
 ## [0.25.0] - 2025-12-26
 
 ### Added

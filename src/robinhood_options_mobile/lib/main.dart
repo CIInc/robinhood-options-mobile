@@ -131,7 +131,10 @@ class MyApp extends StatelessWidget {
       ThemeData lightTheme = ThemeData(
         // colorScheme: colorScheme,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
+          seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
+          // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
           brightness: Brightness.light,
         ),
         // , textTheme: Typography.blackCupertino);
@@ -152,7 +155,10 @@ class MyApp extends StatelessWidget {
       );
       ThemeData darkTheme = ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: Color.fromARGB(255, 86, 136, 247), // Colors.lightBlue,
+          // seedColor: const Color(0xFF003366), // RealizeAlpha Blue
+          seedColor: const Color(0xFF002147), // RealizeAlpha Dark Blue
+          // seedColor: const Color(0xFF00C805), // RealizeAlpha Green
           brightness: Brightness.dark,
         ),
         // colorScheme: darkColorScheme,

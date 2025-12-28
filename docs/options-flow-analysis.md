@@ -36,6 +36,11 @@ Our system automatically tags trades with specific characteristics to help you i
 *   **Deep ITM:** Deep In-The-Money contracts (>10% ITM). Often used as a stock replacement strategy.
 *   **Deep OTM:** Deep Out-Of-The-Money contracts (>15% OTM). Aggressive speculative bets.
 *   **Aggressive:** Orders executed above the ask (buying) or below the bid (selling), showing urgency to get filled.
+*   **Above Ask:** Trade executed at a price higher than the ask price. Indicates extreme urgency to buy.
+*   **Below Bid:** Trade executed at a price lower than the bid price. Indicates extreme urgency to sell.
+*   **Mid Market:** Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.
+*   **Ask Side:** Trade executed at the ask price. Indicates buying pressure.
+*   **Bid Side:** Trade executed at the bid price. Indicates selling pressure.
 *   **0DTE:** Contracts expiring today. High risk, high reward speculative trading.
 *   **Lotto:** Far OTM (>15%) contracts expiring within 2 weeks with low premium (< $1.00). Low probability, high payout bets.
 *   **Weekly OTM:** Out-of-the-money contracts expiring within a week with volume > 500.
