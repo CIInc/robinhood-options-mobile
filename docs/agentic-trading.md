@@ -43,7 +43,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
 
 6. **Backend Functions** (`functions/src/`)
-   - `riskguardTask`: Advanced risk assessment and validation engine
+   - `riskguardTask`: Advanced risk assessment and validation engine (powers both Agentic and [Manual Trading](risk-guard.md) protection)
    - `RiskGuardAgent`: Implements sector limits, correlation checks, and volatility filters
    - Trade signal generation cron jobs (daily, hourly, 15-min)
 

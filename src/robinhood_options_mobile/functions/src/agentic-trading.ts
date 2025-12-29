@@ -270,6 +270,9 @@ export const getAgenticTradingConfig = onCall(async () => {
     maxPortfolioConcentration: 0.5,
     rsiPeriod: 14,
     marketIndexSymbol: "SPY",
+    enableDynamicPositionSizing: false,
+    riskPerTrade: 0.01,
+    atrMultiplier: 2,
   };
   return { status: "success", config };
 });

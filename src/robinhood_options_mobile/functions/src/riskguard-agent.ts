@@ -1,6 +1,8 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
+import { getMarketData } from "./agentic-trading";
+import { computeATR } from "./technical-indicators";
 
 /**
  * Fetches symbol information (sector, beta, etc.) from Yahoo Finance.
@@ -73,6 +75,90 @@ function calculateVolatility(prices: number[]): number {
 }
 
 /**
+ * Calculates the total value of the portfolio including cash and positions.
+ * @param {any} portfolioState - The portfolio state object.
+ * @return {number} The total portfolio value.
+ */
+export function calculatePortfolioValue(portfolioState: any): number {
+  if (!portfolioState) return 0;
+
+  const cash = Number(portfolioState.cash) || 0;
+  let totalValue = cash;
+
+  for (const [symbol, data] of Object.entries(portfolioState)) {
+    if (symbol === "cash" || symbol === "highWaterMark") continue;
+
+    let quantity = 0;
+    let price = 0;
+
+    if (typeof data === "object" && data !== null) {
+      quantity = Number((data as any).quantity || 0);
+      price = Number((data as any).price || 0);
+    } else {
+      // If data is just a number, it might be quantity, but we need price.
+      // Without price, we can't value it.
+      // Assuming simple key-value is not used for valuation without price
+      // context or assuming the caller handles it.
+      // In assessTrade, it tried to use proposal price if symbol matched.
+      // Here we strictly calculate value based on state.
+      continue;
+    }
+
+    if (quantity !== 0 && price > 0) {
+      totalValue += quantity * price;
+    }
+  }
+  return totalValue;
+}
+
+/**
+ * Calculates the recommended position size based on ATR volatility.
+ * Formula: Position Size = (Account Value * Risk %) / (ATR * Multiplier)
+ * @param {number} accountValue - Total portfolio value.
+ * @param {number} riskPerTrade - Percentage of account to risk (0-1).
+ * @param {number} atr - The current ATR value.
+ * @param {number} atrMultiplier - Multiplier for ATR (e.g., 2).
+ * @return {number} The recommended quantity (number of shares).
+ */
+export function calculateDynamicPositionSize(
+  accountValue: number,
+  riskPerTrade: number,
+  atr: number,
+  atrMultiplier: number
+): number {
+  if (atr <= 0 || atrMultiplier <= 0) return 0;
+
+  const riskAmount = accountValue * riskPerTrade;
+  const stopLossDistance = atr * atrMultiplier;
+
+  // Calculate number of shares
+  // Risk Amount = Shares * Stop Loss Distance
+  // Shares = Risk Amount / Stop Loss Distance
+
+  const shares = Math.floor(riskAmount / stopLossDistance);
+
+  return shares;
+}
+
+/**
+ * Helper to extract current position quantity from portfolio state.
+ * @param {any} portfolioState - The portfolio state object.
+ * @param {string} symbol - The symbol to look up.
+ * @return {number} The quantity held.
+ */
+export function getCurrentPosition(portfolioState: any,
+  symbol: string): number {
+  if (!portfolioState || !portfolioState[symbol]) return 0;
+
+  if (typeof portfolioState[symbol] === "object" &&
+    portfolioState[symbol].quantity !== undefined) {
+    return Number(portfolioState[symbol].quantity);
+  } else {
+    return Number(portfolioState[symbol]);
+  }
+}
+
+/**
  * Assesses a proposed trade against predefined risk parameters.
  * @param {object} proposal - The proposed trade details
  * (symbol, quantity, price, action).
@@ -103,17 +189,7 @@ export async function assessTrade(proposal: any,
   const adjustedQty = action === "SELL" ? -Math.abs(qty) : Math.abs(qty);
 
   // Extract current position for the symbol being traded
-  let currentPosition = 0;
-  if (portfolioState && portfolioState[symbol]) {
-    if (typeof portfolioState[symbol] === "object" &&
-      portfolioState[symbol].quantity !== undefined) {
-      currentPosition = Number(portfolioState[symbol].quantity);
-    } else {
-      currentPosition = Number(portfolioState[symbol]);
-    }
-  }
-
-  const cash = portfolioState?.cash ?? 0;
+  const currentPosition = getCurrentPosition(portfolioState, symbol);
 
   // Check max position size (absolute value after trade)
   const proposedPosition = currentPosition + adjustedQty;
@@ -126,12 +202,15 @@ export async function assessTrade(proposal: any,
   }
 
   // Calculate total portfolio value from ALL positions
-  let totalPortfolioValue = cash;
+  // We use the helper but we also need to handle the case where portfolioState
+  // entries might not have price, but we have the proposal price for the
+  // current symbol.
+  let totalPortfolioValue = Number(portfolioState?.cash || 0);
   const positions: { [key: string]: { quantity: number, price: number } } = {};
 
   // Iterate through all positions in portfolioState
   for (const [posSymbol, posData] of Object.entries(portfolioState)) {
-    if (posSymbol === "cash") continue;
+    if (posSymbol === "cash" || posSymbol === "highWaterMark") continue;
 
     let posQuantity = 0;
     let posPrice: number | null = null;
@@ -274,4 +353,92 @@ export const riskguardTask = onCall(async (request) => {
   const config = request.data.config || {};
   const result = await assessTrade(proposal, portfolioState, config);
   return result;
+});
+
+/**
+ * Cloud Function to calculate dynamic position size.
+ * @param {object} request - The request object containing symbol,
+ * portfolioState, and config.
+ * @returns {Promise<object>} The calculation result.
+ */
+export const calculatePositionSize = onCall(async (request) => {
+  logger.info("Calculate Position Size called", { data: request.data });
+  const symbol = request.data.symbol;
+  const portfolioState = request.data.portfolioState || {};
+  const config = request.data.config || {};
+
+  if (!symbol) {
+    return { status: "error", message: "Symbol is required" };
+  }
+
+  // 1. Fetch Market Data for ATR
+  // Use 1d interval, 14 period (default)
+  const marketData = await getMarketData(symbol, 10, 30, "1d", "3mo");
+  const highs = marketData.highs;
+  const lows = marketData.lows;
+  const closes = marketData.closes;
+
+  if (!closes || closes.length < 15) {
+    return {
+      status: "error",
+      message: "Insufficient price data for ATR calculation",
+    };
+  }
+
+  // 2. Calculate ATR
+  const atr = computeATR(highs, lows, closes, 14);
+  if (!atr) {
+    return { status: "error", message: "Failed to calculate ATR" };
+  }
+
+  // 3. Calculate Portfolio Value
+  const accountValue = calculatePortfolioValue(portfolioState);
+
+  // 4. Calculate Dynamic Size
+  const riskPerTrade = config.riskPerTrade || 0.01;
+  const atrMultiplier = config.atrMultiplier || 2;
+
+  let quantity = calculateDynamicPositionSize(
+    accountValue,
+    riskPerTrade,
+    atr,
+    atrMultiplier
+  );
+
+  // 5. Apply Caps
+  let cappedBy = null;
+  const currentPosition = getCurrentPosition(portfolioState, symbol);
+  const maxPositionSize = config.maxPositionSize || 100;
+  const availableSpace = Math.max(0, maxPositionSize - currentPosition);
+
+  if (quantity > availableSpace) {
+    quantity = availableSpace;
+    cappedBy = "maxPositionSize";
+  }
+
+  const maxPortfolioConcentration = config.maxPortfolioConcentration || 0.5;
+  const lastPrice = closes[closes.length - 1];
+  if (lastPrice > 0) {
+    const maxValue = accountValue * maxPortfolioConcentration;
+    const maxTotalQty = Math.floor(maxValue / lastPrice);
+    const availableQtyByConc = Math.max(0, maxTotalQty - currentPosition);
+
+    if (quantity > availableQtyByConc) {
+      quantity = availableQtyByConc;
+      cappedBy = "maxPortfolioConcentration";
+    }
+  }
+
+  return {
+    status: "success",
+    quantity,
+    details: {
+      atr,
+      accountValue,
+      riskPerTrade,
+      atrMultiplier,
+      cappedBy,
+      lastPrice,
+    },
+  };
 });

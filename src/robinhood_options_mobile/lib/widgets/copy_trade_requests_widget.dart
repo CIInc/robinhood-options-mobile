@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 
 class CopyTradeRequestsWidget extends StatefulWidget {
   const CopyTradeRequestsWidget({super.key});
@@ -299,6 +302,55 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
   Future<void> _approveRequest(
       BuildContext context, CopyTradeRecord request) async {
     try {
+      // RiskGuard Check
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final portfolioState = <String, dynamic>{};
+      if (accountStore.items.isNotEmpty) {
+        portfolioState['cash'] =
+            accountStore.items[0].portfolioCash; // .buyingPower
+      }
+
+      final riskResult =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': {
+          'symbol': request.symbol,
+          'quantity': request.copiedQuantity,
+          'price': request.price,
+          'action': request.side.toUpperCase(),
+          'multiplier': request.orderType == 'option' ? 100 : 1,
+        },
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
+
+      if (riskResult.data['approved'] == false) {
+        if (!context.mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('RiskGuard Warning'),
+            content: Text(
+                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Proceed Anyway'),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) {
+          return;
+        }
+      }
+
       final provider = Provider.of<CopyTradingProvider>(context, listen: false);
       await provider.approveRequest(request);
       if (context.mounted) {
@@ -346,7 +398,61 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
       final selectedRequests =
           requests.where((r) => selectedIds.contains(r.id)).toList();
 
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final portfolioState = <String, dynamic>{};
+      if (accountStore.items.isNotEmpty) {
+        portfolioState['cash'] = accountStore.items[0].buyingPower;
+      }
+
       for (final request in selectedRequests) {
+        // RiskGuard Check
+        try {
+          final riskResult = await FirebaseFunctions.instance
+              .httpsCallable('riskguardTask')
+              .call({
+            'proposal': {
+              'symbol': request.symbol,
+              'quantity': request.copiedQuantity,
+              'price': request.price,
+              'action': request.side.toUpperCase(),
+              'multiplier': request.orderType == 'option' ? 100 : 1,
+            },
+            'portfolioState': portfolioState,
+            'config': agenticProvider.config,
+          });
+
+          if (riskResult.data['approved'] == false) {
+            if (!context.mounted) break;
+            final proceed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('RiskGuard Warning: ${request.symbol}'),
+                content: Text(riskResult.data['reason'] ??
+                    'Trade rejected by RiskGuard.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Skip'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Proceed'),
+                  ),
+                ],
+              ),
+            );
+
+            if (proceed != true) {
+              continue;
+            }
+          }
+        } catch (e) {
+          debugPrint('RiskGuard check failed for ${request.symbol}: $e');
+          // Optionally continue or stop
+        }
+
         await provider.approveRequest(request);
         successCount++;
       }

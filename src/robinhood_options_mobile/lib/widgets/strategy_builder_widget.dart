@@ -18,6 +18,8 @@ import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 
 class StrategyBuilderWidget extends StatefulWidget {
   final BrokerageUser user;
@@ -1512,6 +1514,56 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
     final creditOrDebit = estimatedPrice < 0 ? 'credit' : 'debit';
 
     try {
+      // RiskGuard Check
+      var accountStore = Provider.of<AccountStore>(context, listen: false);
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final portfolioState = <String, dynamic>{};
+      if (accountStore.items.isNotEmpty) {
+        portfolioState['cash'] =
+            accountStore.items[0].portfolioCash; // .buyingPower
+      }
+
+      final riskResult =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': {
+          'symbol': widget.instrument.symbol,
+          'quantity': quantity,
+          'price': price.abs(),
+          'action': creditOrDebit == 'debit' ? 'BUY' : 'SELL',
+          'multiplier': 100,
+          'strategy': selectedStrategy?.name,
+        },
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
+
+      if (riskResult.data['approved'] == false) {
+        if (!mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('RiskGuard Warning'),
+            content: Text(
+                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Proceed Anyway'),
+              ),
+            ],
+          ),
+        );
+
+        if (proceed != true) {
+          return;
+        }
+      }
+
       final legs = selectedLegs
           .asMap()
           .entries

@@ -424,7 +424,94 @@ export async function handleAlphaTask(marketData: any,
 
   const lastPrice = closes.length > 0 ?
     closes[closes.length - 1] : marketData?.currentPrice || 0;
-  const quantity = config?.tradeQuantity || 1;
+
+  let quantity = config?.tradeQuantity || 1;
+  let dynamicSizingDetails: any = null;
+
+  // Dynamic Position Sizing (RiskGuard Expansion)
+  // Only apply for BUY signals as this is an entry sizing model
+  if (config?.enableDynamicPositionSizing && overallSignal === "BUY") {
+    const atrValue = multiIndicatorResult.indicators.atr.value;
+    if (atrValue && atrValue > 0) {
+      const accountValue = riskguard.calculatePortfolioValue(portfolioState);
+      // Default risk per trade 1% (0.01), ATR multiplier 2
+      const riskPerTrade = config.riskPerTrade || 0.01;
+      const atrMultiplier = config.atrMultiplier || 2;
+
+      let dynamicQty = riskguard.calculateDynamicPositionSize(
+        accountValue,
+        riskPerTrade,
+        atrValue,
+        atrMultiplier
+      );
+
+      const rawCalculatedQty = dynamicQty;
+      let cappedBy = null;
+
+      if (dynamicQty > 0) {
+        // --- Apply Risk Limits to Dynamic Quantity ---
+        const currentPosition = riskguard.getCurrentPosition(portfolioState,
+          symbol);
+
+        // 1. Max Position Size Cap
+        const maxPositionSize = config.maxPositionSize || 100;
+        const availableSpace = Math.max(0, maxPositionSize - currentPosition);
+
+        if (dynamicQty > availableSpace) {
+          logger.info("Dynamic Position Sizing: Capping quantity " +
+            `${dynamicQty} to available space ${availableSpace} ` +
+            `(Max ${maxPositionSize}, Current ${currentPosition})`);
+          dynamicQty = availableSpace;
+          cappedBy = "maxPositionSize";
+        }
+
+        // 2. Max Portfolio Concentration Cap
+        const maxPortfolioConcentration =
+          config.maxPortfolioConcentration || 0.5;
+        if (lastPrice > 0) {
+          const maxValue = accountValue * maxPortfolioConcentration;
+          const maxTotalQty = Math.floor(maxValue / lastPrice);
+          const availableQtyByConc = Math.max(0, maxTotalQty - currentPosition);
+
+          if (dynamicQty > availableQtyByConc) {
+            logger.info("Dynamic Position Sizing: Capping quantity " +
+              `${dynamicQty} to concentration limit ${availableQtyByConc} ` +
+              `(MaxConc ${maxPortfolioConcentration}, Price ${lastPrice})`);
+            dynamicQty = availableQtyByConc;
+            cappedBy = "maxPortfolioConcentration";
+          }
+        }
+
+        if (dynamicQty > 0) {
+          quantity = dynamicQty;
+          logger.info(
+            `Dynamic Position Sizing: Final quantity ${quantity} ` +
+            `based on Account Value $${accountValue.toFixed(2)}, ` +
+            `Risk ${riskPerTrade * 100}%, ATR ${atrValue.toFixed(2)}, ` +
+            `Multiplier ${atrMultiplier}`);
+        } else {
+          logger.warn("Dynamic Position Sizing: Calculated 0 quantity after " +
+            "risk caps, falling back to fixed quantity");
+        }
+      } else {
+        logger.warn("Dynamic Position Sizing: Calculated 0 quantity, " +
+          "falling back to fixed quantity");
+      }
+
+      dynamicSizingDetails = {
+        rawCalculatedQty,
+        finalQty: quantity,
+        cappedBy,
+        atr: atrValue,
+        riskPerTrade,
+        atrMultiplier,
+        accountValue,
+      };
+    } else {
+      logger.warn("Dynamic Position Sizing: ATR not available, " +
+        "falling back to fixed quantity");
+    }
+  }
 
   const proposal = {
     symbol,
@@ -434,6 +521,7 @@ export async function handleAlphaTask(marketData: any,
     price: lastPrice,
     interval,
     multiIndicatorResult,
+    dynamicSizingDetails,
   };
 
   // Call riskguard to assess

@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -138,6 +138,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Improved Flag Detection Algorithms (Whale, LEAPS)
 - ✅ UI Polish (Cleaner list view, better tooltips)
 - ✅ Documentation Updates (Comprehensive flag definitions)
+
+### v0.26.1 ✅ (Released Dec 29, 2025)
+**RiskGuard Manual Trade Protection**
+- ✅ RiskGuard integration for Manual Trading (Stocks, Options, Crypto)
+- ✅ Pre-trade risk validation & warning dialogs
+- ✅ "Proceed Anyway" override workflow with persistent banners
+- ✅ Analytics logging for risk overrides
+- ✅ Unified RiskGuard engine for both Automated and Manual trading
 
 ### v0.27.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
@@ -251,7 +259,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-Agent Collaboration Systems
 - Zero-Knowledge Proof Portfolio Verification
 - Decentralized Identity (DID) Integration
-- AR/VR Spatial Trading Interface
+- AR/VR Spatial Trading Interface, Manual Trade Protection (✅)
 - Voice-Activated Trading
 - DeFi Protocol Integration
 

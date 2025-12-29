@@ -20,6 +20,9 @@ void main() {
         maxDailyLossPercent: 1.5,
         takeProfitPercent: 15.0,
         stopLossPercent: 7.5,
+        enableDynamicPositionSizing: true,
+        riskPerTrade: 0.02,
+        atrMultiplier: 2.5,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -48,6 +51,9 @@ void main() {
       expect(json['dailyTradeLimit'], equals(10));
       expect(json['autoTradeCooldownMinutes'], equals(30));
       expect(json['maxDailyLossPercent'], equals(1.5));
+      expect(json['enableDynamicPositionSizing'], equals(true));
+      expect(json['riskPerTrade'], equals(0.02));
+      expect(json['atrMultiplier'], equals(2.5));
       expect(json['takeProfitPercent'], equals(15.0));
       expect(json['stopLossPercent'], equals(7.5));
       expect(json['enabledIndicators']['priceMovement'], equals(true));
@@ -62,6 +68,9 @@ void main() {
       expect(deserializedConfig.tradeQuantity, equals(10));
       expect(deserializedConfig.maxPositionSize, equals(200));
       expect(deserializedConfig.maxPortfolioConcentration, equals(0.3));
+      expect(deserializedConfig.enableDynamicPositionSizing, equals(true));
+      expect(deserializedConfig.riskPerTrade, equals(0.02));
+      expect(deserializedConfig.atrMultiplier, equals(2.5));
       expect(deserializedConfig.rsiPeriod, equals(14));
       expect(deserializedConfig.marketIndexSymbol, equals('QQQ'));
       expect(deserializedConfig.autoTradeEnabled, equals(true));

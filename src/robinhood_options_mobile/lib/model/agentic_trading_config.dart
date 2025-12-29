@@ -71,6 +71,11 @@ class AgenticTradingConfig {
   bool
       requireAllIndicatorsGreen; // If true, ignores minSignalStrength and requires all enabled to be BUY
 
+  // Dynamic Position Sizing
+  bool enableDynamicPositionSizing;
+  double riskPerTrade; // Risk per trade as % of account (e.g. 0.01 for 1%)
+  double atrMultiplier; // Multiplier for ATR to determine stop loss distance
+
   AgenticTradingConfig({
     this.smaPeriodFast = 10,
     this.smaPeriodSlow = 30,
@@ -115,6 +120,9 @@ class AgenticTradingConfig {
     this.maxDrawdown = 10.0,
     this.minSignalStrength = 75.0,
     this.requireAllIndicatorsGreen = true,
+    this.enableDynamicPositionSizing = false,
+    this.riskPerTrade = 0.01,
+    this.atrMultiplier = 2.0,
   })  : exitStages = exitStages ??
             [
               ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
@@ -200,6 +208,10 @@ class AgenticTradingConfig {
             (json['minSignalStrength'] as num?)?.toDouble() ?? 75.0,
         requireAllIndicatorsGreen =
             json['requireAllIndicatorsGreen'] as bool? ?? true,
+        enableDynamicPositionSizing =
+            json['enableDynamicPositionSizing'] as bool? ?? false,
+        riskPerTrade = (json['riskPerTrade'] as num?)?.toDouble() ?? 0.01,
+        atrMultiplier = (json['atrMultiplier'] as num?)?.toDouble() ?? 2.0,
         enabledIndicators = (json['enabledIndicators'] != null)
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -262,6 +274,9 @@ class AgenticTradingConfig {
       'requireAllIndicatorsGreen': requireAllIndicatorsGreen,
       'maxDrawdown': maxDrawdown,
       'minSignalStrength': minSignalStrength,
+      'enableDynamicPositionSizing': enableDynamicPositionSizing,
+      'riskPerTrade': riskPerTrade,
+      'atrMultiplier': atrMultiplier,
     };
   }
 
@@ -301,6 +316,9 @@ class AgenticTradingConfig {
     double? minSignalStrength,
     double? maxDrawdown,
     bool? requireAllIndicatorsGreen,
+    bool? enableDynamicPositionSizing,
+    double? riskPerTrade,
+    double? atrMultiplier,
   }) {
     return AgenticTradingConfig(
       smaPeriodFast: smaPeriodFast ?? this.smaPeriodFast,
@@ -349,6 +367,10 @@ class AgenticTradingConfig {
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
       requireAllIndicatorsGreen:
           requireAllIndicatorsGreen ?? this.requireAllIndicatorsGreen,
+      enableDynamicPositionSizing:
+          enableDynamicPositionSizing ?? this.enableDynamicPositionSizing,
+      riskPerTrade: riskPerTrade ?? this.riskPerTrade,
+      atrMultiplier: atrMultiplier ?? this.atrMultiplier,
     );
   }
 }

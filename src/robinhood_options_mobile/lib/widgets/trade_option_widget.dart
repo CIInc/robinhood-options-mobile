@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
@@ -52,6 +54,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   bool placingOrder = false;
   double estimatedTotal = 0.0;
   bool _isPreviewing = false;
+  String? _riskGuardWarning;
 
   @override
   void initState() {
@@ -129,11 +132,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.save_as),
-              onPressed: _showTemplatesDialog,
-              tooltip: 'Order Templates',
-            )
+            if (!_isPreviewing)
+              IconButton(
+                icon: const Icon(Icons.save_as),
+                onPressed: _showTemplatesDialog,
+                tooltip: 'Order Templates',
+              )
           ],
         ),
         body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
@@ -225,11 +229,16 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             controller: quantityCtl,
             keyboardType: const TextInputType.numberWithOptions(decimal: false),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: "Contracts",
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
               filled: true,
               suffixText: "contracts",
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.auto_awesome),
+                tooltip: "Calculate Dynamic Size",
+                onPressed: _calculateDynamicSize,
+              ),
             ),
             style: const TextStyle(fontSize: 18),
           ),
@@ -413,9 +422,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               onPressed: placingOrder || estimatedTotal <= 0
                   ? null
                   : () {
-                      setState(() {
-                        _isPreviewing = true;
-                      });
+                      _runRiskGuard();
                     },
             ),
           ),
@@ -437,6 +444,53 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
+          if (_riskGuardWarning != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                border: Border.all(color: Colors.orange),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "RiskGuard Warning: $_riskGuardWarning",
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                border: Border.all(color: Colors.green),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "RiskGuard Check Passed",
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.green),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Card(
             elevation: 0,
@@ -559,11 +613,203 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     );
   }
 
+  Future<void> _runRiskGuard() async {
+    setState(() {
+      placingOrder = true;
+    });
+
+    try {
+      var accountStore = Provider.of<AccountStore>(context, listen: false);
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+
+      final portfolioState = <String, dynamic>{};
+      if (accountStore.items.isNotEmpty) {
+        portfolioState['cash'] = accountStore.items[0].buyingPower;
+        if (widget.optionPosition != null) {
+          portfolioState[widget.optionInstrument!.chainSymbol] = {
+            'quantity': widget.optionPosition!.quantity,
+            'price': widget.optionPosition!.averageOpenPrice,
+            'multiplier': 100,
+          };
+        }
+      }
+
+      double qty = double.tryParse(quantityCtl.text) ?? 0;
+      double price = 0;
+      if (orderType == 'Limit') {
+        price = double.tryParse(priceCtl.text) ?? 0;
+      } else if (orderType == 'Stop') {
+        price = double.tryParse(stopPriceCtl.text) ?? 0;
+      } else if (orderType == 'Stop Limit') {
+        price = double.tryParse(priceCtl.text) ?? 0;
+      } else {
+        price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0;
+      }
+
+      final proposal = {
+        'symbol': widget.optionInstrument?.chainSymbol,
+        'quantity': qty,
+        'price': price,
+        'action': positionType?.toUpperCase() ?? 'BUY',
+        'orderType': orderType,
+        'isOption': true,
+        'multiplier': 100,
+      };
+
+      final result =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': proposal,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
+
+      final data = result.data;
+      if (data['approved'] == true) {
+        setState(() {
+          _isPreviewing = true;
+          _riskGuardWarning = null;
+        });
+      } else {
+        if (mounted) {
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('RiskGuard Warning'),
+              content: Text(data['reason'] ?? 'Trade rejected by RiskGuard.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Proceed Anyway'),
+                ),
+              ],
+            ),
+          );
+
+          if (proceed == true) {
+            setState(() {
+              _isPreviewing = true;
+              _riskGuardWarning = data['reason'];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('RiskGuard check failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          placingOrder = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _calculateDynamicSize() async {
+    setState(() {
+      placingOrder = true;
+    });
+
+    try {
+      var accountStore = Provider.of<AccountStore>(context, listen: false);
+      var agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final portfolioState = <String, dynamic>{};
+      if (accountStore.items.isNotEmpty) {
+        portfolioState['cash'] = accountStore.items[0].buyingPower;
+        if (widget.optionPosition != null) {
+          portfolioState[widget.optionInstrument!.chainSymbol] = {
+            'quantity': widget.optionPosition!.quantity,
+            'price': widget.optionPosition!.averageOpenPrice,
+            'multiplier': 100,
+          };
+        }
+      }
+
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('calculatePositionSize')
+          .call({
+        'symbol': widget.optionInstrument?.chainSymbol,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
+
+      final data = result.data;
+      if (data['status'] == 'success') {
+        final qty = data['quantity'];
+        final details = data['details'];
+
+        if (qty < 0) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                "Trade Disallowed: Calculated size is negative ($qty). ${details['reason'] ?? ''}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ));
+        } else {
+          setState(() {
+            quantityCtl.text = qty.toString();
+          });
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                "Dynamic Size: $qty (ATR: ${details['atr'].toStringAsFixed(2)})"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ));
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: ${data['message']}"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      }
+    } catch (e) {
+      debugPrint('Dynamic size calculation failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          placingOrder = false;
+        });
+      }
+    }
+  }
+
   Future<void> _placeOrder() async {
     setState(() {
       placingOrder = true;
     });
     var accountStore = Provider.of<AccountStore>(context, listen: false);
+
+    if (_riskGuardWarning != null) {
+      await widget.analytics.logEvent(
+        name: 'risk_guard_override',
+        parameters: {
+          'symbol': widget.optionInstrument!.chainSymbol,
+          'reason': _riskGuardWarning!,
+          'order_type': orderType,
+        },
+      );
+    }
 
     try {
       String type = 'market';

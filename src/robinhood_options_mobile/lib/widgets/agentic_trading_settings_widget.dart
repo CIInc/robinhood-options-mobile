@@ -50,6 +50,9 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _minSignalStrengthController;
   late TextEditingController _timeBasedExitMinutesController;
   late TextEditingController _marketCloseExitMinutesController;
+  late TextEditingController _riskPerTradeController;
+  late TextEditingController _atrMultiplierController;
+  late bool _enableDynamicPositionSizing;
   late Map<String, bool> _enabledIndicators;
   late List<ExitStage> _exitStages;
   late List<CustomIndicatorConfig> _customIndicators;
@@ -127,6 +130,24 @@ class _AgenticTradingSettingsWidgetState
         text: config['timeBasedExitMinutes']?.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
         text: config['marketCloseExitMinutes']?.toString() ?? '15');
+    _riskPerTradeController = TextEditingController(
+        text: ((config['riskPerTrade'] as num?)?.toDouble() ?? 0.01)
+            .toString()); // Store as decimal in config, but maybe display as %? Let's keep decimal for now or convert.
+    // Actually, let's display as percentage for user friendliness (e.g. 1.0 for 1%)
+    // But wait, the backend expects decimal (0.01).
+    // Let's stick to what the controller expects. If I put 0.01 in text field, user sees 0.01.
+    // If I want user to type 1 for 1%, I need to convert back and forth.
+    // Let's keep it simple: User enters decimal (e.g. 0.01). Or maybe percentage is better.
+    // The config model says: double riskPerTrade; // Risk per trade as % of account (e.g. 0.01 for 1%)
+    // Let's display as percentage (1.0) and save as decimal (0.01).
+    double riskPerTrade = (config['riskPerTrade'] as num?)?.toDouble() ?? 0.01;
+    _riskPerTradeController =
+        TextEditingController(text: (riskPerTrade * 100).toString());
+
+    _atrMultiplierController = TextEditingController(
+        text: config['atrMultiplier']?.toString() ?? '2.0');
+    _enableDynamicPositionSizing =
+        config['enableDynamicPositionSizing'] as bool? ?? false;
   }
 
   @override
@@ -147,6 +168,8 @@ class _AgenticTradingSettingsWidgetState
     _maxVolatilityController.dispose();
     _maxDrawdownController.dispose();
     _minSignalStrengthController.dispose();
+    _riskPerTradeController.dispose();
+    _atrMultiplierController.dispose();
     super.dispose();
   }
 
@@ -418,6 +441,11 @@ class _AgenticTradingSettingsWidgetState
         'requireAllIndicatorsGreen':
             agenticTradingProvider.config['requireAllIndicatorsGreen'] ?? true,
         'maxDrawdown': double.parse(_maxDrawdownController.text),
+        // Dynamic Position Sizing
+        'enableDynamicPositionSizing': _enableDynamicPositionSizing,
+        'riskPerTrade': double.parse(_riskPerTradeController.text) /
+            100.0, // Convert % to decimal
+        'atrMultiplier': double.parse(_atrMultiplierController.text),
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -1927,6 +1955,83 @@ class _AgenticTradingSettingsWidgetState
         const Divider(),
         const SizedBox(height: 8),
         Text(
+          'Dynamic Position Sizing',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildSwitchListTile(
+          'enableDynamicPositionSizing',
+          'Enable Dynamic Sizing',
+          'Adjust trade size based on ATR volatility',
+          agenticTradingProvider,
+          defaultValue: false,
+          onChanged: (value) {
+            setState(() {
+              _enableDynamicPositionSizing = value;
+            });
+            _saveSettings();
+          },
+          extraContent: Column(
+            children: [
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _riskPerTradeController,
+                decoration: InputDecoration(
+                  labelText: 'Risk Per Trade %',
+                  helperText: '% of account to risk (e.g. 1.0 for 1%)',
+                  prefixIcon: const Icon(Icons.percent),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: colorScheme.surface,
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _saveSettings(),
+                validator: (value) {
+                  final v = double.tryParse(value ?? '');
+                  if (v == null || v <= 0 || v > 100) {
+                    return 'Enter a percent between 0 and 100';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _atrMultiplierController,
+                decoration: InputDecoration(
+                  labelText: 'ATR Multiplier',
+                  helperText: 'Multiplier for Stop Loss distance (e.g. 2.0)',
+                  prefixIcon: const Icon(Icons.close),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: colorScheme.surface,
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _saveSettings(),
+                validator: (value) {
+                  final v = double.tryParse(value ?? '');
+                  if (v == null || v <= 0) {
+                    return 'Enter a positive number';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
+        Text(
           'Advanced Controls',
           style: TextStyle(
             fontSize: 14,
@@ -2967,6 +3072,11 @@ class _AgenticTradingSettingsWidgetState
                 'requireAllIndicatorsGreen': agenticTradingProvider
                         .config['requireAllIndicatorsGreen'] ??
                     false,
+                'enableDynamicPositionSizing': _enableDynamicPositionSizing,
+                'riskPerTrade':
+                    double.tryParse(_riskPerTradeController.text) ?? 0.02,
+                'atrMultiplier':
+                    double.tryParse(_atrMultiplierController.text) ?? 2.0,
               };
 
               final config = AgenticTradingConfig.fromJson(configMap);

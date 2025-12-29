@@ -66,6 +66,7 @@ export const agenticTrading15mCronJob =
   agenticTradingIntradayCron.agenticTrading15mCron;
 // export const alphaagentTask = alphaagent.alphaagentTask;
 export const riskguardTask = riskguardAgent.riskguardTask;
+export const calculatePositionSize = riskguardAgent.calculatePositionSize;
 export const onInstrumentOrderCreated = copyTrading.onInstrumentOrderCreated;
 export const onOptionOrderCreated = copyTrading.onOptionOrderCreated;
 export const onTradeSignalCreated =

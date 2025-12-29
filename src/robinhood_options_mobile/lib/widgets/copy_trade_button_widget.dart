@@ -8,6 +8,8 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 
 /// Shows a confirmation dialog and copies a trade
 Future<void> showCopyTradeDialog({
@@ -158,12 +160,84 @@ Future<void> showCopyTradeDialog({
 
     final account = accountStore.items[0];
 
+    // Prepare for RiskGuard and Order Placement
+    String riskSymbol = symbol;
+    double riskMultiplier = 1.0;
+    String riskAction = 'BUY';
+    var optionInstrument;
+
     if (isInstrument) {
-      // Copy instrument (stock/ETF) order
       if (instrumentOrder.instrumentObj == null) {
         throw Exception('Instrument information not available');
       }
+      riskSymbol = instrumentOrder.instrumentObj!.symbol;
+      riskAction = side.toUpperCase();
+    } else {
+      if (optionOrder!.legs.isEmpty) {
+        throw Exception('No option legs found');
+      }
+      final leg = optionOrder.legs.first;
+      final optionInstruments = await brokerageService.getOptionInstrumentByIds(
+        currentUser,
+        [leg.id],
+      );
+      if (optionInstruments.isEmpty) {
+        throw Exception('Could not find option instrument');
+      }
+      optionInstrument = optionInstruments.first;
+      riskSymbol = optionInstrument.symbol;
+      riskMultiplier = 100.0;
+      riskAction = leg.side?.toUpperCase() ?? 'BUY';
+    }
 
+    // RiskGuard Check
+    try {
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final portfolioState = <String, dynamic>{};
+      portfolioState['cash'] = account.buyingPower;
+
+      final riskResult =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': {
+          'symbol': riskSymbol,
+          'quantity': finalQuantity.round(),
+          'price': finalPrice,
+          'action': riskAction,
+          'multiplier': riskMultiplier,
+        },
+        'portfolioState': portfolioState,
+        'config': agenticTradingProvider.config,
+      });
+
+      if (riskResult.data['approved'] == false) {
+        if (!context.mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('RiskGuard Warning'),
+            content: Text(
+                riskResult.data['reason'] ?? 'Trade rejected by RiskGuard.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Proceed Anyway'),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+    } catch (e) {
+      debugPrint('RiskGuard check failed: $e');
+    }
+
+    if (isInstrument) {
+      // Copy instrument (stock/ETF) order
       final orderResponse = await brokerageService.placeInstrumentOrder(
         currentUser,
         account,
@@ -211,24 +285,8 @@ Future<void> showCopyTradeDialog({
       }
     } else {
       // Copy option order
-      if (optionOrder!.legs.isEmpty) {
-        throw Exception('No option legs found');
-      }
-
-      // For now, only support single-leg options
-      final leg = optionOrder.legs.first;
-
-      // Fetch the option instrument
-      final optionInstruments = await brokerageService.getOptionInstrumentByIds(
-        currentUser,
-        [leg.id],
-      );
-
-      if (optionInstruments.isEmpty) {
-        throw Exception('Could not find option instrument');
-      }
-
-      final optionInstrument = optionInstruments.first;
+      // We already fetched optionInstrument
+      final leg = optionOrder!.legs.first;
 
       // Determine position effect and credit/debit
       final positionEffect = side == "credit" ? "close" : "open";

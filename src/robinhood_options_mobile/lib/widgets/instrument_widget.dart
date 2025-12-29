@@ -4825,6 +4825,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 fontSize: 16.0,
                 color: Theme.of(context).appBarTheme.foregroundColor),
             textAlign: TextAlign.left,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           if (quoteObj != null) ...[
             const SizedBox(height: 4),
