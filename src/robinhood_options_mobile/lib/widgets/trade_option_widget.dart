@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,8 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/order_template.dart';
+import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
@@ -66,6 +69,13 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     stopPriceCtl.addListener(_updateEstimates);
     trailingAmountCtl.addListener(_updateEstimates);
     _updateEstimates();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        context.read<OrderTemplateStore>().loadTemplates(user.uid);
+      }
+    });
   }
 
   @override
@@ -118,6 +128,13 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save_as),
+              onPressed: _showTemplatesDialog,
+              tooltip: 'Order Templates',
+            )
+          ],
         ),
         body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
   }
@@ -630,5 +647,167 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         });
       }
     }
+  }
+
+  void _showTemplatesDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Consumer<OrderTemplateStore>(
+          builder: (context, store, child) {
+            return Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Save current as template'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSaveTemplateDialog();
+                  },
+                ),
+                const Divider(),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: store.templates.length,
+                    itemBuilder: (context, index) {
+                      final template = store.templates[index];
+                      return ListTile(
+                        title: Text(template.name),
+                        subtitle: Text(
+                            '${template.symbol != null ? "${template.symbol} " : ""}${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} contracts" : ""}'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () {
+                            store.deleteTemplate(template.id);
+                          },
+                        ),
+                        onTap: () {
+                          _applyTemplate(template);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSaveTemplateDialog() {
+    final nameCtl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Template'),
+          content: TextField(
+            controller: nameCtl,
+            decoration: const InputDecoration(labelText: 'Template Name'),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameCtl.text.isNotEmpty) {
+                  _saveTemplate(nameCtl.text);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _saveTemplate(String name) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final store = context.read<OrderTemplateStore>();
+    final existing = store.getTemplateByName(name);
+
+    if (existing != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Overwrite Template?'),
+          content: Text(
+              'A template named "$name" already exists. Do you want to overwrite it?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _performSave(name, existing.id);
+              },
+              child: const Text('Overwrite'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _performSave(name, DateTime.now().millisecondsSinceEpoch.toString());
+    }
+  }
+
+  void _performSave(String name, String id) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final template = OrderTemplate(
+      id: id,
+      userId: user.uid,
+      name: name,
+      symbol: widget.optionInstrument?.chainSymbol,
+      positionType: positionType ?? 'Buy',
+      orderType: orderType,
+      timeInForce: timeInForce,
+      trailingType: trailingType,
+      quantity: double.tryParse(quantityCtl.text),
+      price: double.tryParse(priceCtl.text),
+      stopPrice: double.tryParse(stopPriceCtl.text),
+      trailingAmount: double.tryParse(trailingAmountCtl.text),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    context.read<OrderTemplateStore>().addTemplate(template);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Template saved')));
+  }
+
+  void _applyTemplate(OrderTemplate template) {
+    setState(() {
+      positionType = template.positionType;
+      orderType = template.orderType;
+      timeInForce = template.timeInForce;
+      if (template.trailingType != null) trailingType = template.trailingType!;
+
+      if (template.quantity != null) {
+        quantityCtl.text = template.quantity.toString();
+      }
+      if (template.price != null) priceCtl.text = template.price.toString();
+      if (template.stopPrice != null) {
+        stopPriceCtl.text = template.stopPrice.toString();
+      }
+      if (template.trailingAmount != null) {
+        trailingAmountCtl.text = template.trailingAmount.toString();
+      }
+
+      _updateEstimates();
+    });
   }
 }

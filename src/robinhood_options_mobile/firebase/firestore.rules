@@ -128,6 +128,12 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
 
+    match /order_templates/{templateId} {
+      allow read: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if
