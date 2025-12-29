@@ -3,6 +3,31 @@
 
 This document outlines the planned features and enhancements for RealizeAlpha.
 
+## Table of Contents
+
+- [Summary](#summary)
+- [Release Versions & Timeline](#release-versions--timeline)
+- [Risks & Blockers](#risks--blockers)
+- [Completed Features ✅](#completed-features-)
+  - [Investor Groups](#investor-groups)
+  - [Trade Signals & AI Trading](#trade-signals--ai-trading)
+  - [Backtesting](#backtesting)
+  - [Copy Trading](#copy-trading)
+  - [Futures Trading](#futures-trading)
+  - [Data Persistence](#data-persistence)
+  - [Portfolio Visualization](#portfolio-visualization)
+  - [Trading & Execution](#trading--execution)
+  - [AI & Insights](#ai--insights)
+  - [Infrastructure & Security](#infrastructure--security)
+- [Planned Enhancements 🚀](#planned-enhancements-)
+  - [Priority 1: Core Trading & Brokerage Expansion](#priority-1-core-trading--brokerage-expansion-q1-q2-2026)
+  - [Priority 2: Portfolio & Analysis](#priority-2-portfolio--analysis-q2-q3-2026---apr-sep-2026)
+  - [Priority 3: Investor Groups & Social](#priority-3-investor-groups--social-q3-2026---jul-sep-2026)
+  - [Priority 3.5: Futures & Advanced Strategy](#priority-35-futures--advanced-strategy-q2-2026---apr-jun-2026)
+  - [Priority 4: Mobile Experience & Infrastructure](#priority-4-mobile-experience--infrastructure-q3-q4-2026---jul-dec-2026)
+  - [Priority 5: Future Vision & Frontier Tech](#priority-5-future-vision--frontier-tech-2027)
+- [Feedback & Contribution](#feedback--contribution)
+
 ## Summary
 
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
@@ -536,18 +561,6 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
 **User Impact:** Very High (core trading experience & access)
 **Revenue Impact:** High (unlocks enterprise partnerships)
 
-#### Futures Positions ([Tracking: #111](https://github.com/CIInc/robinhood-options-mobile/issues/111))
-- [ ] **Margin & Risk**: SPAN-style margin metrics and risk layer ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67)) - **Large** (4-6 weeks)
-- [ ] **P&L Tracking**: Realized P&L and Day P&L using settlement price ([#102](https://github.com/CIInc/robinhood-options-mobile/issues/102)) - **Medium** (2-3 weeks)
-- [ ] **Roll Assistant**: Alerts near expiration and auto-suggest roll strikes ([#103](https://github.com/CIInc/robinhood-options-mobile/issues/103)) - **Medium** (2-3 weeks)
-- [ ] **Futures Roll Logic**: Automated detection and execution of contract rolls - **Medium** (2-3 weeks)
-- [ ] **Futures Detail Page**: Navigate to individual futures contract details ([#104](https://github.com/CIInc/robinhood-options-mobile/issues/104)) - **Small** (1 week)
-- [ ] **Futures Trading**: Place futures orders directly from the app ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72)) - **Large** (3-4 weeks)
-- [ ] **Futures Charts**: Historical price charts for futures contracts ([#106](https://github.com/CIInc/robinhood-options-mobile/issues/106)) - **Medium** (2-3 weeks)
-- [ ] **Analytics**: Greeks, term structure, and volatility surfaces ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)) - **Large** (4-6 weeks)
-- [ ] **Seasonality**: Volatility overlays and seasonal tendencies ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (3-4 weeks)
-- [ ] **Portfolio Risk**: Aggregated VaR and expected shortfall ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (4-5 weeks)
-
 #### Brokerage Expansion
 - [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
 - [x] **Schwab API Integration**: Native Schwab brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
@@ -817,14 +830,16 @@ Futures trading requires distinct risk management tools compared to equities. Pr
 - Reduces user churn to specialized futures platforms
 
 #### Futures Enhancements ([Tracking: #126](https://github.com/CIInc/robinhood-options-mobile/issues/126))
-- [ ] **Margin & Risk Metrics**: SPAN-style summary, maintenance requirements, and margin utilization.
-- [ ] **Realized P&L**: Track realized P&L using trade history for futures contracts.
-- [ ] **Contract Roll Assistant**: Alerts near expiration, auto-suggest roll strikes/months, and one-tap roll execution.
-- [ ] **Advanced Analytics**:
-    - [ ] Greeks (Delta, Gamma, Theta, Vega) for options on futures.
-    - [ ] Term structure analytics (Contango/Backwardation visualization).
-    - [ ] Volatility overlays and seasonal tendencies.
-- [ ] **Portfolio Risk**: Aggregated VaR (Value at Risk) and Expected Shortfall calculations including futures positions.
+- [ ] **Margin & Risk**: SPAN-style margin metrics and risk layer ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67)) - **Large** (4-6 weeks)
+- [ ] **P&L Tracking**: Realized P&L and Day P&L using settlement price ([#102](https://github.com/CIInc/robinhood-options-mobile/issues/102)) - **Medium** (2-3 weeks)
+- [ ] **Roll Assistant**: Alerts near expiration and auto-suggest roll strikes ([#103](https://github.com/CIInc/robinhood-options-mobile/issues/103)) - **Medium** (2-3 weeks)
+- [ ] **Futures Roll Logic**: Automated detection and execution of contract rolls - **Medium** (2-3 weeks)
+- [ ] **Futures Detail Page**: Navigate to individual futures contract details ([#104](https://github.com/CIInc/robinhood-options-mobile/issues/104)) - **Small** (1 week)
+- [ ] **Futures Trading**: Place futures orders directly from the app ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72)) - **Large** (3-4 weeks)
+- [ ] **Futures Charts**: Historical price charts for futures contracts ([#106](https://github.com/CIInc/robinhood-options-mobile/issues/106)) - **Medium** (2-3 weeks)
+- [ ] **Analytics**: Greeks, term structure, and volatility surfaces ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)) - **Large** (4-6 weeks)
+- [ ] **Seasonality**: Volatility overlays and seasonal tendencies ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (3-4 weeks)
+- [ ] **Portfolio Risk**: Aggregated VaR and expected shortfall ([#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)) - **Large** (4-5 weeks)
 
 #### Advanced Strategy Validation
 - [ ] **Walk-Forward Analysis**: Validate strategies by optimizing on a window and testing on the next, rolling forward - **Large** (4-5 weeks)
