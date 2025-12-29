@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.26.1] - 2025-12-29
+
+### Added
+- **RiskGuard Manual Trade Protection:**
+  - **Pre-Trade Validation:** Integrated RiskGuard validation into manual trading workflows for Stocks, Options, and Crypto.
+  - **Warning Dialogs:** Users are presented with a warning dialog if a proposed trade violates risk parameters (e.g., concentration limits, sector exposure).
+  - **Override Capability:** Added a "Proceed Anyway" option for users to override risk warnings, with a persistent amber banner displayed during the order preview.
+  - **Analytics:** Implemented logging of `risk_guard_override` events to Firebase Analytics for tracking risk behavior.
+  - **Unified Engine:** Leverages the same RiskGuard engine used for Automated Trading, ensuring consistent risk application across the platform.
+- **Trading Enhancements:**
+  - **Dynamic Position Sizing:** Added "Calculate Dynamic Size" button to trade widgets to automatically calculate share quantity based on available buying power or portfolio percentage.
+  - **Order Templates:** Enabled saving and loading of order templates for faster execution across Stocks, Options, and Crypto.
+- **Portfolio Visualization:**
+  - **Allocation Widget:** Enhanced `PortfolioChartWidget` with improved legend interactions, visual page indicators, and bidirectional highlighting.
+- **Options Flow Analysis:**
+  - **Refinements:** Improved flag detection logic and performance optimizations for real-time streaming.
+
+### Changed
+- **UI:** Hidden the "Order Templates" icon in the app bar when the order preview is active to reduce clutter.
+- **Documentation:** Added comprehensive documentation for RiskGuard (`docs/risk-guard.md`) and updated existing docs to reflect the new manual protection features.
+
 ## [0.26.0] - 2025-12-28
 
 ### Added

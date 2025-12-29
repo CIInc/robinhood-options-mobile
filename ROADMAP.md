@@ -141,11 +141,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.26.1 ✅ (Released Dec 29, 2025)
 **RiskGuard Manual Trade Protection**
-- ✅ RiskGuard integration for Manual Trading (Stocks, Options, Crypto)
-- ✅ Pre-trade risk validation & warning dialogs
-- ✅ "Proceed Anyway" override workflow with persistent banners
-- ✅ Analytics logging for risk overrides
-- ✅ Unified RiskGuard engine for both Automated and Manual trading
+- ✅ Unified RiskGuard integration for both Automated and Manual Trading (Stocks, Options, Crypto)
+- ✅ Dynamic Position Sizing (Auto-calc shares)
+- ✅ Order Templates (Save/Load configurations)
+- ✅ Portfolio Allocation Widget Enhancements
+- ✅ Options Flow Analysis Refinements
 
 ### v0.27.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
