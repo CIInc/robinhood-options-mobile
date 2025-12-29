@@ -14,7 +14,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -106,8 +106,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Animated Price Text Widget
 
 ### v0.26.0 ✅ (Released Dec 28, 2025)
-**Options Flow Analysis & UI Polish**
+**Options Flow Analysis & Trade Signal Notifications**
 - ✅ Enhanced Options Flow Analysis (New flags: Cheap Vol, High Premium, etc.)
+- ✅ Trade Signal Notifications (Configurable alerts, Rich notifications)
+- ✅ Deep Linking (Navigate to instrument details)
 - ✅ Improved Flag Detection Algorithms (Whale, LEAPS)
 - ✅ UI Polish (Cleaner list view, better tooltips)
 - ✅ Documentation Updates (Comprehensive flag definitions)
@@ -128,7 +130,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.28.0 (Q2 2026 - Late April)
+### v0.29.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Fidelity Multi-leg options execution
@@ -137,7 +139,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.29.0 (Q2-Q3 2026 - Late May)
+### v0.30.0 (Q2-Q3 2026 - Late May)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs)
 - Forex charting & analysis
@@ -145,7 +147,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Crypto/Forex analytics
 - Advanced Crypto Charting
 
-### v0.30.0 (Q3 2026 - Mid June)
+### v0.31.0 (Q3 2026 - Mid June)
 **AI Assistant & Advanced Analytics**
 - Generative AI Assistant (natural language queries)
 - AI-powered portfolio insights
@@ -154,7 +156,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Risk exposure heatmaps
 - Dividend projection & tracking
 
-### v0.30.0 (Q3 2026 - Late July)
+### v0.32.0 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)
@@ -163,17 +165,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Group settings & administration
 - Real-time member notifications
 
-### v0.30.0 (Q3 2026 - Late August)
+### v0.33.0 (Q3 2026 - Late August)
 **Real-Time Alerts & Monitoring**
 - Custom price/volume/volatility alerts
-- Rich push notifications with data
 - Alert history & management
 - Email/SMS alert channels
 - Earnings calendar alerts
 - Options expiration alerts
 - Unusual activity detection
 
-### v0.31.0 (Q3 2026 - Late September)
+### v0.34.0 (Q3 2026 - Late September)
 **Social Platform Foundation**
 - Follow portfolios
 - Portfolio comparison tools
@@ -183,7 +184,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Achievement badges
 - Social feed
 
-### v0.32.0 (Q4 2026 - Late October)
+### v0.35.0 (Q4 2026 - Late October)
 **Security & Compliance**
 - Biometric authentication (FaceID/TouchID)
 - Two-factor authentication (2FA)
@@ -193,9 +194,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Security audit implementation
 - Regulatory documentation
 
-### v0.33.0 (Q4 2026 - Late November)
+### v0.36.0 (Q4 2026 - Late November)
 **Mobile Experience & Polish**
-- Deep linking support
 - Home screen widgets
 - Offline mode
 - Landscape mode support
@@ -203,7 +203,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Dark mode enhancements
 - Performance optimizations
 
-### v0.34.0 (Q4 2026 - Late December)
+### v0.37.0 (Q4 2026 - Late December)
 **Advanced Social & Community**
 - Group analytics & insights
 - Advanced search & filtering
@@ -212,7 +212,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Influencer following features
 - Community marketplace
 
-### v0.35.0 (2027 Q1)
+### v0.38.0 (2027 Q1)
 **Compliance & Regulatory**
 - Full SEC/FINRA compliance
 - Regulatory reporting (Form 3, etc.)
@@ -262,7 +262,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **AI Assistant**: Generative AI Assistant, Natural Language Portfolio Queries, Investment Thesis Generation
 - **AI Analysis**: AI Summaries, AI-powered Price Targets, Sentiment Analysis, Insider Tracking
 - **ML Optimization**: Signal Optimization (✅), Custom Indicator Learning, Strategy Backtesting with ML
-- **Data Intelligence**: Correlation Analysis, Options Flow Analysis, Volatility Overlays
+- **Data Intelligence**: Correlation Analysis, Options Flow Analysis (✅), Volatility Overlays
 
 ### Social & Community
 - **Investor Groups** (✅): Group Management, Member Roles, Public/Private Groups, Portfolio Sharing (✅)
@@ -432,6 +432,11 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Configurable push notifications for trade signals
     - [x] Filtering by signal type, symbol, and confidence
     - [x] Deep linking to instrument details
+- [x] **Options Flow Analysis**:
+    - [x] Enhanced smart flags (Cheap Vol, High Premium, Large Block, etc.)
+    - [x] Improved detection algorithms (Whale, LEAPS)
+    - [x] Comprehensive in-app definitions
+    - [x] UI polish and better tooltips
 
 ### Backtesting
 - [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):
@@ -605,7 +610,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
     - [ ] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
-- [ ] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
+- [x] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
 - [ ] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
 - [ ] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
 - [ ] **Email/SMS Channels**: Critical signal notifications via multiple channels
@@ -681,7 +686,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 **Revenue Impact:** Critical (app store release enables monetization)
 
 #### Mobile Experience ([Tracking: #117](https://github.com/CIInc/robinhood-options-mobile/issues/117))
-- [ ] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
+- [x] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
 - [ ] **Home Screen Widgets**: iOS and Android home screen widgets ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86)) - **Medium** (2-3 weeks)
 - [ ] **Smart Watch App**: Apple Watch and Wear OS companion apps - **Large** (4-5 weeks)
 - [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) - **Medium** (2-3 weeks)
@@ -703,12 +708,12 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Mock Brokerage Service** ([#5](https://github.com/CIInc/robinhood-options-mobile/issues/5)): Demo and testing service - **Medium** (2-3 weeks)
 - [ ] **AI Summaries** ([#21](https://github.com/CIInc/robinhood-options-mobile/issues/21)): AI-driven portfolio summaries - **Medium** (2-3 weeks)
 - [ ] AI-powered price targets
-- [ ] Fair value calculations
+- [x] Fair value calculations
 - [ ] Technical analysis tools
 - [ ] Sentiment analysis dashboard
 - [ ] Insider trading activity tracking
 - [ ] Institutional ownership changes
-- [ ] Options flow analysis
+- [x] Options flow analysis
 - [ ] Correlation analysis
 
 ### Education & Learning ([Tracking: #119](https://github.com/CIInc/robinhood-options-mobile/issues/119))
@@ -760,7 +765,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **State Management**: Fix `setState` usage in position widgets (`ForexPositions`, `OptionPositions`, `InstrumentPositions`) - **Medium** (2-3 weeks)
 - [ ] **Charts**: Fix viewport and selection issues in `IncomeTransactionsWidget` - **Small** (1-2 weeks)
 - [ ] **Chart Value Display** ([#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)): Combine $ and % values in bar charts - **Small** (1 week)
-- [ ] **Animated Price Updates** ([#9](https://github.com/CIInc/robinhood-options-mobile/issues/9)): Animate price change labels on market data refresh - **Small** (1 week)
+- [x] **Animated Price Updates** ([#9](https://github.com/CIInc/robinhood-options-mobile/issues/9)): Animate price change labels on market data refresh - **Small** (1 week)
 - [ ] **Synchronized Scroll** ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)): Synchronize scrolling of portfolio position rows - **Small** (1 week)
 - [ ] **User Preferences**: Migrate user preferences to `FutureBuilder` in `UserWidget` - **Small** (1 week)
 - [ ] **Copy Trading**: Show detailed trade info in `CopyTradingDashboardWidget` - **Small** (1 week)
@@ -844,7 +849,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 **Revenue Impact:** Critical (app store release enables monetization)
 
 #### Mobile Experience ([Tracking: #117](https://github.com/CIInc/robinhood-options-mobile/issues/117))
-- [ ] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
+- [x] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85)) - **Small** (1 week)
 - [ ] **Home Screen Widgets**: iOS and Android home screen widgets ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86)) - **Medium** (2-3 weeks)
 - [ ] **Smart Watch App**: Apple Watch and Wear OS companion apps - **Large** (4-5 weeks)
 - [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)) - **Medium** (2-3 weeks)

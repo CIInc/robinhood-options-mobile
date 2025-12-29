@@ -585,7 +585,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           //   ]
           // ]
         ],
-        currentIndex: _pageIndex > 3 ? 0 : _pageIndex,
+        currentIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
         type: BottomNavigationBarType.fixed,
         //fixedColor: Colors.grey,
         selectedItemColor: Theme.of(context).colorScheme.primary,

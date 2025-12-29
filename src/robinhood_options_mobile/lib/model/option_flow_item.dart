@@ -17,6 +17,7 @@ class OptionFlowItem {
   final Sentiment sentiment;
   final String details; // e.g. "Ask Side", "Above Ask"
   final List<String> flags;
+  final List<String> reasons;
   final bool isUnusual;
   final String? sector;
   final double? marketCap;
@@ -45,6 +46,7 @@ class OptionFlowItem {
     required this.sentiment,
     required this.details,
     this.flags = const [],
+    this.reasons = const [],
     this.isUnusual = false,
     this.sector,
     this.marketCap,

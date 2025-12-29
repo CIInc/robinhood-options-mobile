@@ -5,15 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_flow_item.dart';
 import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/model/option_instrument.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_flow_detail_widget.dart';
 
 class OptionsFlowWidget extends StatefulWidget {
   final String? initialSymbol;
@@ -60,12 +57,18 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.',
     'BEARISH':
         'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.',
+    'NEUTRAL':
+        'Neutral sentiment. Trade executed between bid and ask, or straddle/strangle strategy.',
     'ITM':
         'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.',
     'OTM':
         'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
+    'Super Whale':
+        'Massive premium > \$5M. Represents the highest level of institutional conviction.',
     'WHALE':
-        'Massive institutional order >\$1M premium. Represents highest conviction from major players.',
+        'Large premium order >\$1M. Represents high conviction from major players.',
+    'Institutional':
+        'Large block trade > \$2M premium. Often indicates institutional rebalancing or positioning.',
     'Golden Sweep':
         'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.',
     'Steamroller':
@@ -89,12 +92,15 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         'Put buying while stock is up. Smart money betting on a reversal.',
     'Panic Hedge':
         'Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k). Fear/hedging against crash.',
+    'Floor Protection':
+        'High volume deep OTM puts. Likely institutional hedging/insurance.',
     'Gamma Squeeze':
         'Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k). Can force dealer buying.',
     'Contrarian':
         'Trade direction opposes current stock trend (>2% move). Betting on reversal.',
     'Earnings Play':
         'Options expiring shortly after earnings (2-14 days). Betting on volatility event.',
+    'IV Crush Risk': 'High IV just before earnings. Risk of volatility crush.',
     'Extreme IV':
         'Implied Volatility > 250%. Extreme fear/greed or binary event.',
     'High IV': 'Implied Volatility > 100%. Market pricing in a massive move.',
@@ -104,9 +110,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     'High Premium':
         'Significant volume (>100) on expensive options (>\$20.00). High capital commitment per contract.',
     '0DTE': 'Expires today. Maximum gamma risk/reward. Pure speculation.',
+    '0DTE Lotto':
+        'High volume (>1000) OTM options expiring today. Extremely speculative "lotto" ticket bets.',
     'Weekly OTM':
         'Expires < 1 week and Out-of-the-Money with volume > 500. Short-term speculative bet.',
     'LEAPS': 'Expires > 1 year. Long-term investment substitute for stock.',
+    'Leaps Buy': 'Long-term OTM bullish speculation.',
     'Lotto':
         'Cheap OTM (>15%) options (< \$1.00). High risk, potential 10x+ return.',
     'ATM Flow':
@@ -125,6 +134,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         'Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.',
     'Ask Side': 'Trade executed at the ask price. Indicates buying pressure.',
     'Bid Side': 'Trade executed at the bid price. Indicates selling pressure.',
+    'Cross Trade':
+        'High volume trade executed exactly at the Bid or Ask price. Often pre-arranged and neutral in sentiment.',
     'Large Block / Dark Pool':
         'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
   };
@@ -198,67 +209,86 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
         title: const Text('Options Flow Analysis'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline),
-            tooltip: 'Help & Definitions',
-            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.filter_list),
+            onPressed: _showFilterDialog,
           ),
-          // IconButton(
-          //   icon: const Icon(Icons.refresh),
-          //   onPressed: () =>
-          //       Provider.of<OptionsFlowStore>(context, listen: false).refresh(),
-          // ),
-          PopupMenuButton<FlowSortOption>(
-            icon: const Icon(Icons.sort),
-            tooltip: 'Sort',
-            onSelected: (option) {
-              Provider.of<OptionsFlowStore>(context, listen: false)
-                  .setSortOption(option);
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More',
+            onSelected: (value) {
+              if (value == 'alerts') {
+                _showAlertsDialog();
+              } else if (value == 'help') {
+                _showHelpDialog();
+              } else if (value.startsWith('sort_')) {
+                final index = int.parse(value.split('_')[1]);
+                Provider.of<OptionsFlowStore>(context, listen: false)
+                    .setSortOption(FlowSortOption.values[index]);
+              }
             },
             itemBuilder: (context) {
               final currentSort =
                   Provider.of<OptionsFlowStore>(context, listen: false)
                       .sortOption;
               return [
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.time,
+                const PopupMenuItem<String>(
+                  value: 'alerts',
+                  child: Row(
+                    children: [
+                      Icon(Icons.notifications_outlined),
+                      SizedBox(width: 12),
+                      Text('Alerts'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'help',
+                  child: Row(
+                    children: [
+                      Icon(Icons.help_outline),
+                      SizedBox(width: 12),
+                      Text('Help & Definitions'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  enabled: false,
+                  child: Text('SORT BY',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ),
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.time.index}',
                   checked: currentSort == FlowSortOption.time,
                   child: const Text('Time'),
                 ),
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.premium,
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.premium.index}',
                   checked: currentSort == FlowSortOption.premium,
                   child: const Text('Premium'),
                 ),
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.strike,
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.strike.index}',
                   checked: currentSort == FlowSortOption.strike,
                   child: const Text('Strike Price'),
                 ),
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.expiration,
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.expiration.index}',
                   checked: currentSort == FlowSortOption.expiration,
                   child: const Text('Expiration'),
                 ),
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.volOi,
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.volOi.index}',
                   checked: currentSort == FlowSortOption.volOi,
                   child: const Text('Vol / OI'),
                 ),
-                CheckedPopupMenuItem(
-                  value: FlowSortOption.score,
+                CheckedPopupMenuItem<String>(
+                  value: 'sort_${FlowSortOption.score.index}',
                   checked: currentSort == FlowSortOption.score,
                   child: const Text('Conviction Score'),
                 ),
               ];
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: _showAlertsDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
           ),
         ],
       ),
@@ -298,7 +328,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .primaryContainer
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -389,7 +419,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
               fillColor: Theme.of(context)
                   .colorScheme
                   .surfaceContainerHighest
-                  .withOpacity(0.3),
+                  .withValues(alpha: 0.3),
             ),
             textCapitalization: TextCapitalization.characters,
             onSubmitted: (value) {
@@ -426,7 +456,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 ),
                 backgroundColor:
                     (isDark ? Colors.purple.shade200 : Colors.purple)
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -452,7 +482,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       : Colors.green,
                   fontWeight: FontWeight.bold,
                 ),
-                backgroundColor: Colors.green.withOpacity(0.1),
+                backgroundColor: Colors.green.withValues(alpha: 0.1),
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -478,7 +508,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
-                backgroundColor: Colors.red.withOpacity(0.1),
+                backgroundColor: Colors.red.withValues(alpha: 0.1),
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -787,9 +817,11 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     // Calculate Top Symbols by Premium
     final symbolPremiums = <String, double>{};
-    for (var item in store.items) {
-      symbolPremiums[item.symbol] =
-          (symbolPremiums[item.symbol] ?? 0) + item.premium;
+    if (widget.initialSymbol == null) {
+      for (var item in store.items) {
+        symbolPremiums[item.symbol] =
+            (symbolPremiums[item.symbol] ?? 0) + item.premium;
+      }
     }
     final sortedSymbols = symbolPremiums.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -808,10 +840,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     // Calculate Top Sectors
     final sectorPremiums = <String, double>{};
-    for (var item in store.items) {
-      if (item.sector != null) {
-        sectorPremiums[item.sector!] =
-            (sectorPremiums[item.sector!] ?? 0) + item.premium;
+    if (widget.initialSymbol == null) {
+      for (var item in store.items) {
+        if (item.sector != null) {
+          sectorPremiums[item.sector!] =
+              (sectorPremiums[item.sector!] ?? 0) + item.premium;
+        }
       }
     }
     final sortedSectors = sectorPremiums.entries.toList()
@@ -824,7 +858,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
       color: Theme.of(context)
           .colorScheme
           .surfaceContainerHighest
-          .withOpacity(0.5),
+          .withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -846,7 +880,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: sentimentColor.withOpacity(0.1),
+                        color: sentimentColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -911,7 +945,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       Text(
                         '$bullishCount Trades',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.green.withOpacity(0.8),
+                              color: Colors.green.withValues(alpha: 0.8),
                             ),
                       ),
                     ],
@@ -951,7 +985,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       Text(
                         '$bearishCount Trades',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.red.withOpacity(0.8),
+                              color: Colors.red.withValues(alpha: 0.8),
                             ),
                       ),
                     ],
@@ -965,7 +999,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 Container(
                   height: 12,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -1148,9 +1182,16 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   _FlagStyle _getFlagStyle(String flag, bool isDark) {
     Color color = Theme.of(context).colorScheme.secondary;
     IconData? icon;
-    if (flag.contains('WHALE')) {
+    if (flag == 'Super Whale') {
+      color =
+          isDark ? Colors.purpleAccent.shade100 : Colors.purpleAccent.shade700;
+      icon = Icons.diamond;
+    } else if (flag.contains('WHALE')) {
       color = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
       icon = Icons.water;
+    } else if (flag == 'Institutional') {
+      color = isDark ? Colors.indigo.shade200 : Colors.indigo.shade800;
+      icon = Icons.account_balance;
     } else if (flag.contains('Golden')) {
       color = isDark ? Colors.amber.shade300 : Colors.amber.shade800;
       icon = Icons.star;
@@ -1167,12 +1208,21 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     } else if (flag.contains('Vol')) {
       color = isDark ? Colors.deepOrange.shade300 : Colors.deepOrange;
       icon = Icons.local_fire_department;
+    } else if (flag == 'IV Crush Risk') {
+      color =
+          isDark ? Colors.orangeAccent.shade100 : Colors.orangeAccent.shade700;
+      icon = Icons.compress;
     } else if (flag.contains('Extreme IV')) {
       color = isDark ? Colors.pinkAccent.shade100 : Colors.pinkAccent;
       icon = Icons.dangerous;
     } else if (flag.contains('High IV') || flag.contains('IV')) {
       color = isDark ? Colors.purple.shade300 : Colors.purple.shade600;
       icon = Icons.trending_up;
+    } else if (flag == '0DTE Lotto') {
+      color = isDark
+          ? Colors.deepOrangeAccent.shade100
+          : Colors.deepOrangeAccent.shade700;
+      icon = Icons.casino;
     } else if (flag.contains('0DTE')) {
       color = isDark ? Colors.red.shade300 : Colors.red.shade700;
       icon = Icons.timer_off;
@@ -1194,6 +1244,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     } else if (flag.contains('Weekly')) {
       color = isDark ? Colors.teal.shade300 : Colors.teal;
       icon = Icons.calendar_today;
+    } else if (flag == 'Leaps Buy') {
+      color =
+          isDark ? Colors.indigoAccent.shade100 : Colors.indigoAccent.shade700;
+      icon = Icons.savings;
     } else if (flag.contains('LEAPS')) {
       color = isDark ? Colors.indigo.shade300 : Colors.indigo;
       icon = Icons.schedule;
@@ -1221,6 +1275,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     } else if (flag.contains('Panic')) {
       color = isDark ? Colors.red.shade300 : Colors.red.shade900;
       icon = Icons.shield;
+    } else if (flag == 'Floor Protection') {
+      color = isDark ? Colors.teal.shade200 : Colors.teal.shade800;
+      icon = Icons.layers;
     } else if (flag.contains('Tight Spread')) {
       color = isDark ? Colors.blue.shade200 : Colors.blue.shade800;
       icon = Icons.align_horizontal_center;
@@ -1242,6 +1299,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     } else if (flag.contains('Below Bid') || flag.contains('Bid Side')) {
       color = isDark ? Colors.red.shade300 : Colors.red.shade700;
       icon = Icons.arrow_downward;
+    } else if (flag == 'Cross Trade') {
+      color = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+      icon = Icons.swap_horiz;
     } else if (flag.contains('Mid Market')) {
       color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade700;
       icon = Icons.horizontal_rule;
@@ -1279,7 +1339,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   }
 
   Widget _buildFlagBadge(String flag,
-      {bool small = false, double fontSize = 10, bool showTooltip = true}) {
+      {bool small = false,
+      double fontSize = 10,
+      bool showTooltip = true,
+      String? reason}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = _getFlagStyle(flag, isDark);
     final color = style.color;
@@ -1289,9 +1352,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
       final badge = Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1318,9 +1381,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
       if (showTooltip) {
         final doc = _flagDocumentation[flag];
-        if (doc != null) {
+        final tooltipMessage =
+            reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
+
+        if (tooltipMessage != null) {
           return Tooltip(
-            message: doc,
+            message: tooltipMessage,
             triggerMode: TooltipTriggerMode.tap,
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -1338,7 +1404,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     }
 
     return _buildBadge(flag, color, icon,
-        fontSize: fontSize, showTooltip: showTooltip);
+        fontSize: fontSize, showTooltip: showTooltip, reason: reason);
   }
 
   Widget _buildFlowItemCard(OptionFlowItem item) {
@@ -1404,7 +1470,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: sentimentColor.withOpacity(0.1),
+                      color: sentimentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(sentimentIcon, color: sentimentColor, size: 24),
@@ -1425,33 +1491,23 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                             ),
                             const SizedBox(width: 8),
                             if (item.score > 0)
-                              Tooltip(
-                                message:
-                                    'Conviction Score: ${item.score}/100\n\nA 0-100 rating of trade significance based on Premium Size, Flow Type, Urgency, Unusual Activity, and Multipliers.',
-                                triggerMode: TooltipTriggerMode.tap,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[800],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                textStyle: const TextStyle(color: Colors.white),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _getScoreColor(item.score)
-                                        .withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                        color: _getScoreColor(item.score),
-                                        width: 0.5),
-                                  ),
-                                  child: Text(
-                                    '${item.score}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                                  color: _getScoreColor(item.score)
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
                                       color: _getScoreColor(item.score),
-                                    ),
+                                      width: 0.5),
+                                ),
+                                child: Text(
+                                  '${item.score}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getScoreColor(item.score),
                                   ),
                                 ),
                               ),
@@ -1559,8 +1615,15 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   _buildBadge(item.details,
                       Theme.of(context).colorScheme.secondary, null,
                       showTooltip: false),
-                  ...item.flags
-                      .map((flag) => _buildFlagBadge(flag, showTooltip: false)),
+                  ...item.flags.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final flag = entry.value;
+                    final reason = index < item.reasons.length
+                        ? item.reasons[index]
+                        : null;
+                    return _buildFlagBadge(flag,
+                        showTooltip: false, reason: reason);
+                  }),
                 ],
               ),
               const Divider(height: 24),
@@ -1647,7 +1710,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                           : (isDark
                                               ? Colors.amber
                                               : Colors.amber.shade900))
-                                      .withOpacity(0.2),
+                                      .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -1683,13 +1746,13 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   }
 
   Widget _buildBadge(String label, Color color, IconData? icon,
-      {double fontSize = 10, bool showTooltip = true}) {
+      {double fontSize = 10, bool showTooltip = true, String? reason}) {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1714,9 +1777,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     if (showTooltip) {
       final doc = _flagDocumentation[label];
-      if (doc != null) {
+      final tooltipMessage =
+          reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
+
+      if (tooltipMessage != null) {
         return Tooltip(
-          message: doc,
+          message: tooltipMessage,
           triggerMode: TooltipTriggerMode.tap,
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -1757,525 +1823,21 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   }
 
   void _handleItemTap(OptionFlowItem item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dte = item.daysToExpiration;
-    final daysLabel = dte <= 0 ? '0d' : '${dte}d';
-
-    // Moneyness
-    double moneynessPct = 0;
-    bool isItm = false;
-    if (item.type.toUpperCase() == 'CALL') {
-      moneynessPct = (item.spotPrice - item.strike) / item.spotPrice;
-      isItm = item.spotPrice >= item.strike;
-    } else {
-      moneynessPct = (item.strike - item.spotPrice) / item.spotPrice;
-      isItm = item.strike >= item.spotPrice;
-    }
-    final moneynessLabel =
-        '${(moneynessPct.abs() * 100).toStringAsFixed(1)}% ${isItm ? "ITM" : "OTM"}';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    item.symbol[0],
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.symbol,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      _currencyFormat.format(item.spotPrice),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: (item.sentiment == Sentiment.bullish
-                            ? Colors.green
-                            : item.sentiment == Sentiment.bearish
-                                ? Colors.red
-                                : Colors.grey)
-                        .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.sentiment == Sentiment.bullish
-                            ? Icons.trending_up
-                            : item.sentiment == Sentiment.bearish
-                                ? Icons.trending_down
-                                : Icons.remove,
-                        size: 16,
-                        color: item.sentiment == Sentiment.bullish
-                            ? Colors.green
-                            : item.sentiment == Sentiment.bearish
-                                ? Colors.red
-                                : Colors.grey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        item.sentiment.toString().split('.').last.toUpperCase(),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: item.sentiment == Sentiment.bullish
-                              ? Colors.green
-                              : item.sentiment == Sentiment.bearish
-                                  ? Colors.red
-                                  : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (item.isUnusual)
-                  _buildBadge(
-                      'UNUSUAL',
-                      isDark ? Colors.purple.shade200 : Colors.purple,
-                      Icons.bolt),
-                if (item.flowType == FlowType.sweep)
-                  _buildBadge('SWEEP', Colors.orange, Icons.waves),
-                if (item.flowType == FlowType.block)
-                  _buildBadge('BLOCK', Colors.blue, Icons.view_module),
-                if (item.flowType == FlowType.darkPool)
-                  _buildBadge(
-                      'DARK POOL', Colors.grey.shade800, Icons.visibility_off),
-                if (item.details.isNotEmpty)
-                  _buildBadge(item.details,
-                      Theme.of(context).colorScheme.secondary, null),
-                ...item.flags.map((flag) => _buildFlagBadge(flag)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (item.score > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Conviction Score',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                    Tooltip(
-                      message:
-                          'A 0-100 rating of trade significance based on Premium Size, Flow Type, Urgency (0DTE), Unusual Activity, Earnings Plays, and Smart Money Flags.',
-                      triggerMode: TooltipTriggerMode.tap,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      textStyle: const TextStyle(color: Colors.white),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _getScoreColor(item.score).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                              color:
-                                  _getScoreColor(item.score).withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.star,
-                                size: 14, color: _getScoreColor(item.score)),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${item.score}/100',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: _getScoreColor(item.score),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (item.sector != null)
-              InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  Provider.of<OptionsFlowStore>(context, listen: false)
-                      .setFilterSector(item.sector);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Sector',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            item.sector!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(Icons.filter_list,
-                              size: 14,
-                              color: Theme.of(context).colorScheme.primary),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (item.marketCap != null)
-              _buildDetailRow(
-                  'Market Cap', _compactFormat.format(item.marketCap)),
-            _buildDetailRow('Time', _timeFormat.format(item.time)),
-            _buildDetailRow('Premium', _currencyFormat.format(item.premium)),
-            _buildDetailRow('Type', item.type),
-            _buildDetailRow('Strike',
-                '\$${item.strike.toStringAsFixed(1)} ($moneynessLabel)'),
-            // Builder(builder: (context) {
-            //   final lastPrice = item.premium / item.volume / 100;
-            //   final breakEven = item.type.toUpperCase() == 'CALL'
-            //       ? item.strike + lastPrice
-            //       : item.strike - lastPrice;
-            //   return _buildDetailRow(
-            //       'Break Even', _currencyFormat.format(breakEven));
-            // }),
-            if (item.changePercent != null)
-              _buildDetailRow('Change %',
-                  '${(item.changePercent! * 100).toStringAsFixed(2)}%'),
-            if (item.bid != null && item.ask != null)
-              _buildDetailRow('Bid / Ask',
-                  '${_currencyFormat.format(item.bid)} / ${_currencyFormat.format(item.ask)}'),
-            _buildDetailRow('Expiration',
-                '${_dateFormat.format(item.expirationDate)} ($daysLabel)'),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Volume / OI',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        '${_compactFormat.format(item.volume)} / ${_compactFormat.format(item.openInterest)}',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                      if (item.openInterest > 0 &&
-                          item.volume > item.openInterest) ...[
-                        const SizedBox(width: 8),
-                        Tooltip(
-                          message:
-                              'Volume is ${(item.volume / item.openInterest).toStringAsFixed(1)}x Open Interest',
-                          triggerMode: TooltipTriggerMode.tap,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: ((item.volume / item.openInterest) > 5
-                                      ? (isDark
-                                          ? Colors.purple.shade200
-                                          : Colors.purple)
-                                      : (isDark
-                                          ? Colors.amber
-                                          : Colors.amber.shade900))
-                                  .withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${(item.volume / item.openInterest).toStringAsFixed(1)}x',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: (item.volume / item.openInterest) > 5
-                                    ? (isDark
-                                        ? Colors.purple.shade200
-                                        : Colors.purple)
-                                    : (isDark
-                                        ? Colors.amber
-                                        : Colors.amber.shade900),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            _buildDetailRow('Implied Volatility',
-                '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showAddAlertDialog(initialSymbol: item.symbol);
-                    },
-                    icon: const Icon(Icons.add_alert, size: 18),
-                    label: const Text('Alert'),
-                    style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _navigateToInstrument(item);
-                    },
-                    icon: const Icon(Icons.show_chart, size: 18),
-                    label: const Text('Stock'),
-                    style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _navigateToOptionChain(item);
-                    },
-                    icon: const Icon(Icons.list, size: 18),
-                    label: const Text('Chain'),
-                    style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8)),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OptionFlowDetailWidget(
+          item: item,
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: widget.generativeService,
+          user: widget.user,
+          userDocRef: widget.userDocRef,
         ),
       ),
     );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _navigateToInstrument(OptionFlowItem item) async {
-    if (widget.service == null || widget.brokerageUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Brokerage connection required for details')),
-      );
-      return;
-    }
-
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      // Fetch instrument
-      final instrumentStore =
-          Provider.of<InstrumentStore>(context, listen: false);
-      final instrument = await widget.service!.getInstrumentBySymbol(
-          widget.brokerageUser!, instrumentStore, item.symbol);
-
-      if (!mounted) return;
-      Navigator.pop(context); // Hide loading
-
-      if (instrument != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InstrumentWidget(
-              widget.brokerageUser!,
-              widget.service!,
-              instrument,
-              analytics: widget.analytics!,
-              observer: widget.observer!,
-              generativeService: widget.generativeService!,
-              user: widget.user!,
-              userDocRef: widget.userDocRef,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Instrument ${item.symbol} not found')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Hide loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching details: $e')),
-      );
-    }
-  }
-
-  Future<void> _navigateToOptionChain(OptionFlowItem item) async {
-    if (widget.service == null || widget.brokerageUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Brokerage connection required for details')),
-      );
-      return;
-    }
-
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      // Fetch instrument
-      final instrumentStore =
-          Provider.of<InstrumentStore>(context, listen: false);
-      final instrument = await widget.service!.getInstrumentBySymbol(
-          widget.brokerageUser!, instrumentStore, item.symbol);
-
-      if (!mounted) return;
-      Navigator.pop(context); // Hide loading
-
-      if (instrument != null) {
-        // Create a dummy OptionInstrument for highlighting
-        final selectedOption = OptionInstrument(
-          '', // chainId
-          item.symbol, // chainSymbol
-          null, // createdAt
-          item.expirationDate, // expirationDate
-          '', // id
-          null, // issueDate
-          const MinTicks(null, null, null), // minTicks
-          '', // rhsTradability
-          '', // state
-          item.strike, // strikePrice
-          '', // tradability
-          item.type.toLowerCase(), // type
-          null, // updatedAt
-          '', // url
-          null, // selloutDateTime
-          '', // longStrategyCode
-          '', // shortStrategyCode
-        );
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InstrumentOptionChainWidget(
-              widget.brokerageUser!,
-              widget.service!,
-              instrument,
-              analytics: widget.analytics!,
-              observer: widget.observer!,
-              generativeService: widget.generativeService!,
-              user: widget.user!,
-              userDocRef: widget.userDocRef,
-              initialTypeFilter: item.type,
-              selectedOption: selectedOption,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Instrument ${item.symbol} not found')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Hide loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching details: $e')),
-      );
-    }
   }
 
   void _showAlertsDialog() {
@@ -2355,7 +1917,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .surfaceContainerHighest
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   side: BorderSide(
@@ -2585,47 +2147,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   }
 
   void _showFilterDialog() {
-    final store = Provider.of<OptionsFlowStore>(context, listen: false);
-    String? tempSymbol = store.filterSymbol;
-    Sentiment? tempSentiment = store.filterSentiment;
-    bool tempUnusual = store.filterUnusual;
-    bool tempHighConviction = store.filterHighConviction;
-    String? tempMoneyness = store.filterMoneyness;
-    FlowType? tempFlowType = store.filterFlowType;
-    String? tempExpiration = store.filterExpiration;
-    String? tempSector = store.filterSector;
-    double? tempMinCap = store.filterMinCap;
-    List<String> tempFlags =
-        store.filterFlags != null ? List.from(store.filterFlags!) : [];
-
-    final symbolController = TextEditingController(text: tempSymbol);
-
-    // Get available sectors from data
-    final availableSectors = store.allItems
-        .map((e) => e.sector)
-        .where((s) => s != null)
-        .cast<String>()
-        .toSet()
-        .toList()
-      ..sort();
-
-    if (availableSectors.isEmpty) {
-      availableSectors.addAll([
-        'Technology',
-        'Finance',
-        'Healthcare',
-        'Consumer Cyclical',
-        'Energy',
-        'Communication Services',
-        'Industrials',
-        'Consumer Defensive',
-        'Utilities',
-        'Real Estate',
-        'Basic Materials'
-      ]);
-      availableSectors.sort();
-    }
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2634,455 +2155,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return DraggableScrollableSheet(
-            initialChildSize: 0.94,
-            minChildSize: 0.5,
-            maxChildSize: 1.0,
-            expand: false,
-            builder: (_, controller) => Column(
-              children: [
-                AppBar(
-                  title: const Text('Filter Options Flow'),
-                  automaticallyImplyLeading: false,
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          tempSymbol = null;
-                          symbolController.clear();
-                          tempSentiment = null;
-                          tempUnusual = false;
-                          tempHighConviction = false;
-                          tempMoneyness = null;
-                          tempFlowType = null;
-                          tempExpiration = null;
-                          tempSector = null;
-                          tempMinCap = null;
-                          tempFlags = [];
-                        });
-                      },
-                      child: const Text('Reset'),
-                    ),
-                  ],
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                ),
-                Expanded(
-                  child: ListView(
-                    controller: controller,
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      TextField(
-                        controller: symbolController,
-                        decoration: InputDecoration(
-                          labelText: 'Symbol',
-                          hintText: 'e.g. SPY',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          prefixIcon: const Icon(Icons.search),
-                        ),
-                        textCapitalization: TextCapitalization.characters,
-                        onChanged: (value) {
-                          tempSymbol = value.trim();
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Sentiment',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          FilterChip(
-                            label: const Text('Bullish'),
-                            selected: tempSentiment == Sentiment.bullish,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempSentiment =
-                                    selected ? Sentiment.bullish : null;
-                              });
-                            },
-                            selectedColor: Colors.green.withOpacity(0.2),
-                            checkmarkColor: Colors.green,
-                            avatar: tempSentiment == Sentiment.bullish
-                                ? const Icon(Icons.trending_up,
-                                    size: 16, color: Colors.green)
-                                : null,
-                          ),
-                          FilterChip(
-                            label: const Text('Bearish'),
-                            selected: tempSentiment == Sentiment.bearish,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempSentiment =
-                                    selected ? Sentiment.bearish : null;
-                              });
-                            },
-                            selectedColor: Colors.red.withOpacity(0.2),
-                            checkmarkColor: Colors.red,
-                            avatar: tempSentiment == Sentiment.bearish
-                                ? const Icon(Icons.trending_down,
-                                    size: 16, color: Colors.red)
-                                : null,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Flow Type',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: FlowType.values.map((type) {
-                          return FilterChip(
-                            label: Text(type.name.toUpperCase()),
-                            selected: tempFlowType == type,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempFlowType = selected ? type : null;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Flags',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Builder(builder: (context) {
-                        Widget buildChip(String label, String value) {
-                          final isDark =
-                              Theme.of(context).brightness == Brightness.dark;
-                          final style = _getFlagStyle(value, isDark);
-                          return FilterChip(
-                            label: Text(label),
-                            selected: tempFlags.contains(value),
-                            onSelected: (bool selected) {
-                              setState(() {
-                                if (selected) {
-                                  tempFlags.add(value);
-                                } else {
-                                  tempFlags.remove(value);
-                                }
-                              });
-                            },
-                            visualDensity: VisualDensity.compact,
-                            avatar: style.icon != null
-                                ? Icon(style.icon, size: 16, color: style.color)
-                                : null,
-                            selectedColor: style.color.withOpacity(0.2),
-                            checkmarkColor: style.color,
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Volume & Institutional',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant)),
-                            const SizedBox(height: 4),
-                            Wrap(spacing: 8, runSpacing: 8, children: [
-                              buildChip('WHALE', 'WHALE'),
-                              buildChip('Golden Sweep', 'Golden Sweep'),
-                              buildChip('Steamroller', 'Steamroller'),
-                              buildChip('Mega Vol', 'Mega Vol'),
-                              buildChip('Vol Explosion', 'Vol Explosion'),
-                              buildChip('High Vol/OI', 'High Vol/OI'),
-                              buildChip('New Position', 'New Position'),
-                              buildChip('Aggressive', 'Aggressive'),
-                              buildChip('High Premium', 'High Premium'),
-                              buildChip('Tight Spread', 'Tight Spread'),
-                              buildChip('Wide Spread', 'Wide Spread'),
-                            ]),
-                            const SizedBox(height: 12),
-                            Text('Strategy & Sentiment',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant)),
-                            const SizedBox(height: 4),
-                            Wrap(spacing: 8, runSpacing: 8, children: [
-                              buildChip('Bullish Div', 'Bullish Divergence'),
-                              buildChip('Bearish Div', 'Bearish Divergence'),
-                              buildChip('Panic Hedge', 'Panic Hedge'),
-                              buildChip('Gamma Squeeze', 'Gamma Squeeze'),
-                              buildChip('Contrarian', 'Contrarian'),
-                              buildChip('Earnings Play', 'Earnings Play'),
-                            ]),
-                            const SizedBox(height: 12),
-                            Text('Volatility',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant)),
-                            const SizedBox(height: 4),
-                            Wrap(spacing: 8, runSpacing: 8, children: [
-                              buildChip('Extreme IV', 'Extreme IV'),
-                              buildChip('High IV', 'High IV'),
-                              buildChip('Low IV', 'Low IV'),
-                              buildChip('Cheap Vol', 'Cheap Vol'),
-                            ]),
-                            const SizedBox(height: 12),
-                            Text('Moneyness & Time',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant)),
-                            const SizedBox(height: 4),
-                            Wrap(spacing: 8, runSpacing: 8, children: [
-                              buildChip('0DTE', '0DTE'),
-                              buildChip('Weekly OTM', 'Weekly OTM'),
-                              buildChip('LEAPS', 'LEAPS'),
-                              buildChip('Lotto', 'Lotto'),
-                              buildChip('ATM Flow', 'ATM Flow'),
-                              buildChip('Deep ITM', 'Deep ITM'),
-                              buildChip('Deep OTM', 'Deep OTM'),
-                            ]),
-                          ],
-                        );
-                      }),
-                      const SizedBox(height: 24),
-                      SwitchListTile(
-                        title: const Text('Unusual Activity Only'),
-                        subtitle: const Text('High volume relative to OI'),
-                        value: tempUnusual,
-                        onChanged: (value) {
-                          setState(() {
-                            tempUnusual = value;
-                          });
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      SwitchListTile(
-                        title: const Text('High Conviction Only'),
-                        subtitle: const Text('Score >= 70'),
-                        value: tempHighConviction,
-                        onChanged: (value) {
-                          setState(() {
-                            tempHighConviction = value;
-                          });
-                        },
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Sector',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('All'),
-                            selected: tempSector == null,
-                            onSelected: (bool selected) {
-                              if (selected) {
-                                setState(() {
-                                  tempSector = null;
-                                });
-                              }
-                            },
-                          ),
-                          for (final sector in availableSectors)
-                            ChoiceChip(
-                              label: Text(sector),
-                              selected: tempSector == sector,
-                              onSelected: (bool selected) {
-                                setState(() {
-                                  tempSector = selected ? sector : null;
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Min Market Cap',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('All'),
-                            selected: tempMinCap == null,
-                            onSelected: (bool selected) {
-                              if (selected) {
-                                setState(() {
-                                  tempMinCap = null;
-                                });
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('> \$10B'),
-                            selected: tempMinCap == 10.0,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempMinCap = selected ? 10.0 : null;
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('> \$50B'),
-                            selected: tempMinCap == 50.0,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempMinCap = selected ? 50.0 : null;
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('> \$200B'),
-                            selected: tempMinCap == 200.0,
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempMinCap = selected ? 200.0 : null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Expiration',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('All'),
-                            selected: tempExpiration == null,
-                            onSelected: (bool selected) {
-                              if (selected) {
-                                setState(() {
-                                  tempExpiration = null;
-                                });
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('< 7 Days'),
-                            selected: tempExpiration == '0-7',
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempExpiration = selected ? '0-7' : null;
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('8-30 Days'),
-                            selected: tempExpiration == '8-30',
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempExpiration = selected ? '8-30' : null;
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('> 30 Days'),
-                            selected: tempExpiration == '30+',
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempExpiration = selected ? '30+' : null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      const Text('Moneyness',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('All'),
-                            selected: tempMoneyness == null,
-                            onSelected: (bool selected) {
-                              if (selected) {
-                                setState(() {
-                                  tempMoneyness = null;
-                                });
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('In The Money'),
-                            selected: tempMoneyness == 'ITM',
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempMoneyness = selected ? 'ITM' : null;
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('Out Of The Money'),
-                            selected: tempMoneyness == 'OTM',
-                            onSelected: (bool selected) {
-                              setState(() {
-                                tempMoneyness = selected ? 'OTM' : null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: FilledButton(
-                    onPressed: () {
-                      store.setFilters(
-                        symbol: tempSymbol,
-                        sentiment: tempSentiment,
-                        unusual: tempUnusual,
-                        highConviction: tempHighConviction,
-                        moneyness: tempMoneyness,
-                        flowType: tempFlowType,
-                        expiration: tempExpiration,
-                        sector: tempSector,
-                        minCap: tempMinCap,
-                        flags: tempFlags,
-                      );
-                      Navigator.pop(context);
-                    },
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Apply Filters'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      builder: (context) => const _FilterDialog(),
     );
   }
 
@@ -3241,7 +2314,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       _buildHelpItem('Weekly OTM',
                           'Expires < 1 week and Out-of-the-Money. Short-term speculative bet.'),
                       _buildHelpItem('LEAPS',
-                          'Expires > 6 months. Long-term investment substitute for stock.'),
+                          'Expires > 12 months. Long-term investment substitute for stock.'),
                       _buildHelpItem('Lotto',
                           'Cheap OTM options (< \$1.00). High risk, potential 10x+ return.'),
                       _buildHelpItem('ATM Flow',
@@ -3350,13 +2423,13 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .errorContainer
-                              .withOpacity(0.2),
+                              .withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Theme.of(context)
                                 .colorScheme
                                 .error
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                         child: Column(
@@ -3451,4 +2524,606 @@ class _FlagStyle {
   final Color color;
   final IconData? icon;
   _FlagStyle(this.color, this.icon);
+}
+
+class _FilterDialog extends StatefulWidget {
+  const _FilterDialog();
+
+  @override
+  State<_FilterDialog> createState() => _FilterDialogState();
+}
+
+class _FilterDialogState extends State<_FilterDialog> {
+  late TextEditingController _symbolController;
+
+  @override
+  void initState() {
+    super.initState();
+    final store = Provider.of<OptionsFlowStore>(context, listen: false);
+    _symbolController = TextEditingController(text: store.filterSymbol);
+  }
+
+  @override
+  void dispose() {
+    _symbolController.dispose();
+    super.dispose();
+  }
+
+  _FlagStyle _getFlagStyle(String flag, bool isDark) {
+    Color color = Theme.of(context).colorScheme.secondary;
+    IconData? icon;
+    if (flag == 'Super Whale') {
+      color =
+          isDark ? Colors.purpleAccent.shade100 : Colors.purpleAccent.shade700;
+      icon = Icons.diamond;
+    } else if (flag.contains('WHALE')) {
+      color = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
+      icon = Icons.water;
+    } else if (flag == 'Institutional') {
+      color = isDark ? Colors.indigo.shade200 : Colors.indigo.shade800;
+      icon = Icons.account_balance;
+    } else if (flag.contains('Golden')) {
+      color = isDark ? Colors.amber.shade300 : Colors.amber.shade800;
+      icon = Icons.star;
+    } else if (flag.contains('Mega Vol')) {
+      color = isDark ? Colors.deepPurple.shade300 : Colors.deepPurple;
+      icon = Icons.tsunami;
+    } else if (flag.contains('Vol Explosion')) {
+      color =
+          isDark ? Colors.deepOrangeAccent.shade200 : Colors.deepOrangeAccent;
+      icon = Icons.local_fire_department;
+    } else if (flag.contains('High Vol/OI')) {
+      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
+      icon = Icons.trending_up;
+    } else if (flag.contains('Vol')) {
+      color = isDark ? Colors.deepOrange.shade300 : Colors.deepOrange;
+      icon = Icons.local_fire_department;
+    } else if (flag == 'IV Crush Risk') {
+      color =
+          isDark ? Colors.orangeAccent.shade100 : Colors.orangeAccent.shade700;
+      icon = Icons.compress;
+    } else if (flag.contains('Extreme IV')) {
+      color = isDark ? Colors.pinkAccent.shade100 : Colors.pinkAccent;
+      icon = Icons.dangerous;
+    } else if (flag.contains('High IV') || flag.contains('IV')) {
+      color = isDark ? Colors.purple.shade300 : Colors.purple.shade600;
+      icon = Icons.trending_up;
+    } else if (flag == '0DTE Lotto') {
+      color = isDark
+          ? Colors.deepOrangeAccent.shade100
+          : Colors.deepOrangeAccent.shade700;
+      icon = Icons.casino;
+    } else if (flag.contains('0DTE')) {
+      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
+      icon = Icons.timer_off;
+    } else if (flag.contains('Lotto')) {
+      color = isDark ? Colors.pink.shade300 : Colors.pink;
+      icon = Icons.casino;
+    } else if (flag.contains('ATM Flow')) {
+      color = isDark ? Colors.cyanAccent.shade200 : Colors.cyan.shade800;
+      icon = Icons.center_focus_strong;
+    } else if (flag.contains('Deep ITM')) {
+      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
+      icon = Icons.vertical_align_bottom;
+    } else if (flag.contains('Deep OTM')) {
+      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
+      icon = Icons.vertical_align_top;
+    } else if (flag.contains('Aggressive')) {
+      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
+      icon = Icons.flash_on;
+    } else if (flag.contains('Weekly')) {
+      color = isDark ? Colors.teal.shade300 : Colors.teal;
+      icon = Icons.calendar_today;
+    } else if (flag == 'Leaps Buy') {
+      color =
+          isDark ? Colors.indigoAccent.shade100 : Colors.indigoAccent.shade700;
+      icon = Icons.savings;
+    } else if (flag.contains('LEAPS')) {
+      color = isDark ? Colors.indigo.shade300 : Colors.indigo;
+      icon = Icons.schedule;
+    } else if (flag.contains('Earnings')) {
+      color = isDark ? Colors.purple.shade300 : Colors.purple.shade700;
+      icon = Icons.event;
+    } else if (flag.contains('Bullish Divergence')) {
+      color = isDark ? Colors.greenAccent.shade200 : Colors.green.shade800;
+      icon = Icons.call_made;
+    } else if (flag.contains('Bearish Divergence')) {
+      color = isDark ? Colors.redAccent.shade200 : Colors.red.shade800;
+      icon = Icons.call_received;
+    } else if (flag.contains('Contrarian')) {
+      color = isDark ? Colors.cyan.shade300 : Colors.cyan.shade700;
+      icon = Icons.compare_arrows;
+    } else if (flag.contains('New Position')) {
+      color = isDark ? Colors.green.shade300 : Colors.green.shade600;
+      icon = Icons.fiber_new;
+    } else if (flag.contains('Steamroller')) {
+      color = isDark ? Colors.brown.shade300 : Colors.brown.shade700;
+      icon = Icons.compress;
+    } else if (flag.contains('Gamma Squeeze')) {
+      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
+      icon = Icons.rocket_launch;
+    } else if (flag.contains('Panic')) {
+      color = isDark ? Colors.red.shade300 : Colors.red.shade900;
+      icon = Icons.shield;
+    } else if (flag == 'Floor Protection') {
+      color = isDark ? Colors.teal.shade200 : Colors.teal.shade800;
+      icon = Icons.layers;
+    } else if (flag.contains('Tight Spread')) {
+      color = isDark ? Colors.blue.shade200 : Colors.blue.shade800;
+      icon = Icons.align_horizontal_center;
+    } else if (flag.contains('Wide Spread')) {
+      color = isDark ? Colors.brown.shade200 : Colors.brown.shade800;
+      icon = Icons.align_horizontal_left;
+    } else if (flag.contains('Low IV')) {
+      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey;
+      icon = Icons.trending_down;
+    } else if (flag.contains('Cheap Vol')) {
+      color = isDark ? Colors.green.shade200 : Colors.green.shade800;
+      icon = Icons.savings;
+    } else if (flag.contains('High Premium')) {
+      color = isDark ? Colors.amber.shade200 : Colors.amber.shade800;
+      icon = Icons.monetization_on;
+    } else if (flag.contains('Above Ask') || flag.contains('Ask Side')) {
+      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
+      icon = Icons.arrow_upward;
+    } else if (flag.contains('Below Bid') || flag.contains('Bid Side')) {
+      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
+      icon = Icons.arrow_downward;
+    } else if (flag == 'Cross Trade') {
+      color = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+      icon = Icons.swap_horiz;
+    } else if (flag.contains('Mid Market')) {
+      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade700;
+      icon = Icons.horizontal_rule;
+    } else if (flag.contains('Large Block') ||
+        flag.toUpperCase().contains('DARK POOL')) {
+      color = isDark ? Colors.grey.shade400 : Colors.grey.shade800;
+      icon = Icons.visibility_off;
+    } else if (flag.contains('SWEEP')) {
+      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
+      icon = Icons.waves;
+    } else if (flag.contains('BLOCK')) {
+      color = Colors.blue;
+      icon = Icons.view_module;
+    } else if (flag.contains('BULLISH')) {
+      color = Colors.green;
+      icon = Icons.trending_up;
+    } else if (flag.contains('BEARISH')) {
+      color = Colors.red;
+      icon = Icons.trending_down;
+    } else if (flag.contains('Bullish')) {
+      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
+    } else if (flag.contains('Bearish')) {
+      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
+    } else if (flag == 'ITM') {
+      color = isDark ? Colors.amber : Colors.amber.shade900;
+      icon = Icons.check_circle_outline;
+    } else if (flag == 'OTM') {
+      color = Theme.of(context).colorScheme.onSurfaceVariant;
+      icon = Icons.radio_button_unchecked;
+    } else if (flag == 'UNUSUAL') {
+      color = isDark ? Colors.purple.shade200 : Colors.purple;
+      icon = Icons.bolt;
+    }
+    return _FlagStyle(color, icon);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<OptionsFlowStore>(
+      builder: (context, store, child) {
+        // Get available sectors from data
+        final availableSectors = store.allItems
+            .map((e) => e.sector)
+            .where((s) => s != null)
+            .cast<String>()
+            .toSet()
+            .toList()
+          ..sort();
+
+        if (availableSectors.isEmpty) {
+          availableSectors.addAll([
+            'Technology',
+            'Finance',
+            'Healthcare',
+            'Consumer Cyclical',
+            'Energy',
+            'Communication Services',
+            'Industrials',
+            'Consumer Defensive',
+            'Utilities',
+            'Real Estate',
+            'Basic Materials'
+          ]);
+          availableSectors.sort();
+        }
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.94,
+          minChildSize: 0.5,
+          maxChildSize: 1.0,
+          expand: false,
+          builder: (_, controller) => Column(
+            children: [
+              AppBar(
+                title: const Text('Filter Options Flow'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      _symbolController.clear();
+                      store.setFilters();
+                    },
+                    child: const Text('Reset'),
+                  ),
+                ],
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+              ),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    TextField(
+                      controller: _symbolController,
+                      decoration: InputDecoration(
+                        labelText: 'Symbol',
+                        hintText: 'e.g. SPY',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _symbolController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _symbolController.clear();
+                                  store.setFilterSymbol(null);
+                                },
+                              )
+                            : null,
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (value) {
+                        store.setFilterSymbol(
+                            value.trim().isEmpty ? null : value.trim());
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Sentiment',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilterChip(
+                          label: const Text('Bullish'),
+                          selected: store.filterSentiment == Sentiment.bullish,
+                          onSelected: (bool selected) {
+                            store.setFilterSentiment(
+                                selected ? Sentiment.bullish : null);
+                          },
+                          selectedColor: Colors.green.withValues(alpha: 0.2),
+                          checkmarkColor: Colors.green,
+                          avatar: store.filterSentiment == Sentiment.bullish
+                              ? const Icon(Icons.trending_up,
+                                  size: 16, color: Colors.green)
+                              : null,
+                        ),
+                        FilterChip(
+                          label: const Text('Bearish'),
+                          selected: store.filterSentiment == Sentiment.bearish,
+                          onSelected: (bool selected) {
+                            store.setFilterSentiment(
+                                selected ? Sentiment.bearish : null);
+                          },
+                          selectedColor: Colors.red.withValues(alpha: 0.2),
+                          checkmarkColor: Colors.red,
+                          avatar: store.filterSentiment == Sentiment.bearish
+                              ? const Icon(Icons.trending_down,
+                                  size: 16, color: Colors.red)
+                              : null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Flow Type',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: FlowType.values.map((type) {
+                        return FilterChip(
+                          label: Text(type.name.toUpperCase()),
+                          selected: store.filterFlowType == type,
+                          onSelected: (bool selected) {
+                            store.setFilterFlowType(selected ? type : null);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Flags',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Builder(builder: (context) {
+                      Widget buildChip(String label, String value) {
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final style = _getFlagStyle(value, isDark);
+                        final isSelected =
+                            store.filterFlags?.contains(value) ?? false;
+                        return FilterChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (bool selected) {
+                            final currentFlags =
+                                List<String>.from(store.filterFlags ?? []);
+                            if (selected) {
+                              currentFlags.add(value);
+                            } else {
+                              currentFlags.remove(value);
+                            }
+                            store.setFilterFlags(currentFlags);
+                          },
+                          visualDensity: VisualDensity.compact,
+                          avatar: style.icon != null
+                              ? Icon(style.icon, size: 16, color: style.color)
+                              : null,
+                          selectedColor: style.color.withValues(alpha: 0.2),
+                          checkmarkColor: style.color,
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Volume & Institutional',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Wrap(spacing: 8, runSpacing: 8, children: [
+                            buildChip('WHALE', 'WHALE'),
+                            buildChip('Golden Sweep', 'Golden Sweep'),
+                            buildChip('Steamroller', 'Steamroller'),
+                            buildChip('Mega Vol', 'Mega Vol'),
+                            buildChip('Vol Explosion', 'Vol Explosion'),
+                            buildChip('High Vol/OI', 'High Vol/OI'),
+                            buildChip('New Position', 'New Position'),
+                            buildChip('Aggressive', 'Aggressive'),
+                            buildChip('High Premium', 'High Premium'),
+                            buildChip('Tight Spread', 'Tight Spread'),
+                            buildChip('Wide Spread', 'Wide Spread'),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text('Strategy & Sentiment',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Wrap(spacing: 8, runSpacing: 8, children: [
+                            buildChip('Bullish Div', 'Bullish Divergence'),
+                            buildChip('Bearish Div', 'Bearish Divergence'),
+                            buildChip('Panic Hedge', 'Panic Hedge'),
+                            buildChip('Gamma Squeeze', 'Gamma Squeeze'),
+                            buildChip('Contrarian', 'Contrarian'),
+                            buildChip('Earnings Play', 'Earnings Play'),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text('Volatility',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Wrap(spacing: 8, runSpacing: 8, children: [
+                            buildChip('Extreme IV', 'Extreme IV'),
+                            buildChip('High IV', 'High IV'),
+                            buildChip('Low IV', 'Low IV'),
+                            buildChip('Cheap Vol', 'Cheap Vol'),
+                          ]),
+                          const SizedBox(height: 12),
+                          Text('Moneyness & Time',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
+                          const SizedBox(height: 4),
+                          Wrap(spacing: 8, runSpacing: 8, children: [
+                            buildChip('0DTE', '0DTE'),
+                            buildChip('Weekly OTM', 'Weekly OTM'),
+                            buildChip('LEAPS', 'LEAPS'),
+                            buildChip('Lotto', 'Lotto'),
+                            buildChip('ATM Flow', 'ATM Flow'),
+                            buildChip('Deep ITM', 'Deep ITM'),
+                            buildChip('Deep OTM', 'Deep OTM'),
+                          ]),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 24),
+                    SwitchListTile(
+                      title: const Text('Unusual Activity Only'),
+                      subtitle: const Text('High volume relative to OI'),
+                      value: store.filterUnusual,
+                      onChanged: (value) {
+                        store.setFilterUnusual(value);
+                      },
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    SwitchListTile(
+                      title: const Text('High Conviction Only'),
+                      subtitle: const Text('Score >= 70'),
+                      value: store.filterHighConviction,
+                      onChanged: (value) {
+                        store.setFilterHighConviction(value);
+                      },
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Sector',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: store.filterSector == null,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              store.setFilterSector(null);
+                            }
+                          },
+                        ),
+                        for (final sector in availableSectors)
+                          ChoiceChip(
+                            label: Text(sector),
+                            selected: store.filterSector == sector,
+                            onSelected: (bool selected) {
+                              store.setFilterSector(selected ? sector : null);
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Min Market Cap',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: store.filterMinCap == null,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              store.setFilterMinCap(null);
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$10B'),
+                          selected: store.filterMinCap == 10.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinCap(selected ? 10.0 : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$50B'),
+                          selected: store.filterMinCap == 50.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinCap(selected ? 50.0 : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$200B'),
+                          selected: store.filterMinCap == 200.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinCap(selected ? 200.0 : null);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Expiration',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: store.filterExpiration == null,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              store.setFilterExpiration(null);
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('< 7 Days'),
+                          selected: store.filterExpiration == '0-7',
+                          onSelected: (bool selected) {
+                            store.setFilterExpiration(selected ? '0-7' : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('8-30 Days'),
+                          selected: store.filterExpiration == '8-30',
+                          onSelected: (bool selected) {
+                            store.setFilterExpiration(selected ? '8-30' : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> 30 Days'),
+                          selected: store.filterExpiration == '30+',
+                          onSelected: (bool selected) {
+                            store.setFilterExpiration(selected ? '30+' : null);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Moneyness',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: store.filterMoneyness == null,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              store.setFilterMoneyness(null);
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('In The Money'),
+                          selected: store.filterMoneyness == 'ITM',
+                          onSelected: (bool selected) {
+                            store.setFilterMoneyness(selected ? 'ITM' : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('Out Of The Money'),
+                          selected: store.filterMoneyness == 'OTM',
+                          onSelected: (bool selected) {
+                            store.setFilterMoneyness(selected ? 'OTM' : null);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

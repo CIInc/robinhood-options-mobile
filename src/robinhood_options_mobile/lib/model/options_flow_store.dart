@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/option_flow_item.dart';
@@ -254,6 +253,7 @@ class OptionsFlowStore extends ChangeNotifier {
           ),
           details: item['details'],
           flags: (item['flags'] as List<dynamic>?)?.cast<String>() ?? [],
+          reasons: (item['reasons'] as List<dynamic>?)?.cast<String>() ?? [],
           isUnusual: item['isUnusual'] ?? false,
           sector: item['sector'],
           marketCap: item['marketCap'] != null

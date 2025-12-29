@@ -57,6 +57,7 @@ export interface OptionFlowItem {
   sentiment: string;
   details: string;
   flags: string[];
+  reasons: string[];
   isUnusual: boolean;
   score: number;
   marketCap?: number;
@@ -101,6 +102,55 @@ interface YahooOptionsResult {
   }[];
 }
 
+// Simple in-memory cache with LRU eviction
+const CACHE_CONFIG = {
+  TTL: 60 * 1000, // 1 minute cache
+  MAX_SIZE: 1000, // Max items in cache
+  SECTOR_TTL: 24 * 60 * 60 * 1000, // 24 hours for sector cache
+};
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry<any>>();
+const sectorCache = new Map<string, CacheEntry<string>>();
+
+const getFromCache = <T>(
+  key: string,
+  targetCache: Map<string, CacheEntry<any>> = cache,
+  ttl: number = CACHE_CONFIG.TTL
+): T | null => {
+  const entry = targetCache.get(key);
+  if (!entry) return null;
+
+  if (Date.now() - entry.timestamp > ttl) {
+    targetCache.delete(key);
+    return null;
+  }
+
+  // LRU: Refresh item position (delete and re-insert)
+  targetCache.delete(key);
+  targetCache.set(key, entry);
+
+  return entry.data;
+};
+
+const setInCache = <T>(
+  key: string,
+  data: T,
+  targetCache: Map<string, CacheEntry<any>> = cache
+): void => {
+  // Evict oldest if full
+  if (targetCache.size >= CACHE_CONFIG.MAX_SIZE) {
+    const firstKey = targetCache.keys().next().value;
+    if (firstKey) targetCache.delete(firstKey);
+  }
+
+  targetCache.set(key, { data, timestamp: Date.now() });
+};
+
 /**
  * Fetches and analyzes options flow for a list of symbols.
  * @param {string[]} symbols List of stock symbols to fetch.
@@ -123,6 +173,8 @@ export const fetchOptionsFlowForSymbols = async (
     batchResults.forEach((result) => {
       if (result.status === "fulfilled" && result.value) {
         items.push(...result.value);
+      } else if (result.status === "rejected") {
+        console.error("Error fetching batch item:", result.reason);
       }
     });
   }
@@ -139,6 +191,12 @@ const fetchForSymbol = async (
   symbol: string,
   expirationFilter?: string
 ): Promise<OptionFlowItem[]> => {
+  const cacheKey = `options_flow_${symbol}_${expirationFilter || "all"}`;
+  const cached = getFromCache<OptionFlowItem[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   try {
     // Fetch initial data to get expirations and quote info
     const initialResult = (await yf.options(symbol, {})) as YahooOptionsResult;
@@ -166,12 +224,15 @@ const fetchForSymbol = async (
     );
 
     // Process results
-    return processOptionChains(symbol, resultsToProcess, {
+    const items = processOptionChains(symbol, resultsToProcess, {
       changePercent,
       earningsTimestamp,
       marketCap,
       sector,
     });
+
+    setInCache(cacheKey, items);
+    return items;
   } catch (e) {
     console.error(`Failed to fetch options for ${symbol}`, e);
     return [];
@@ -183,11 +244,23 @@ const ensureSector = async (
   quote: YahooQuote
 ): Promise<string | undefined> => {
   if (quote.sector) return quote.sector;
+
+  const cachedSector = getFromCache<string>(
+    symbol,
+    sectorCache,
+    CACHE_CONFIG.SECTOR_TTL
+  );
+  if (cachedSector) return cachedSector;
+
   try {
     const summary = await yf.quoteSummary(symbol, {
       modules: ["assetProfile"],
     });
-    return summary.assetProfile?.sector;
+    const sector = summary.assetProfile?.sector;
+    if (sector) {
+      setInCache(symbol, sector, sectorCache);
+    }
+    return sector;
   } catch (e) {
     console.warn(`Failed to fetch sector for ${symbol}:`, e);
     return undefined;
@@ -259,6 +332,7 @@ const processOptionChains = (
   }
 ): OptionFlowItem[] => {
   const symbolItems: OptionFlowItem[] = [];
+  const now = new Date();
 
   for (const result of results) {
     const spotPrice = result.quote?.regularMarketPrice || 0;
@@ -277,7 +351,8 @@ const processOptionChains = (
         quoteInfo.changePercent,
         quoteInfo.earningsTimestamp,
         quoteInfo.marketCap,
-        quoteInfo.sector
+        quoteInfo.sector,
+        now
       );
       if (analyzed) symbolItems.push(analyzed);
     });
@@ -291,7 +366,8 @@ const processOptionChains = (
         quoteInfo.changePercent,
         quoteInfo.earningsTimestamp,
         quoteInfo.marketCap,
-        quoteInfo.sector
+        quoteInfo.sector,
+        now
       );
       if (analyzed) symbolItems.push(analyzed);
     });
@@ -307,7 +383,8 @@ const analyzeOption = (
   changePercent: number,
   earningsTimestamp: number | undefined,
   marketCap: number | undefined,
-  sector: string | undefined
+  sector: string | undefined,
+  now: Date
 ): OptionFlowItem | null => {
   // Filter for significant volume to simulate "flow"
   if (!opt.volume || opt.volume < CONFIG.MIN_VOLUME) return null;
@@ -331,12 +408,17 @@ const analyzeOption = (
   );
 
   const expirationDate = getDateFromPotentialTimestamp(opt.expiration);
-  const now = new Date();
   const daysToExpiration = getDaysDifference(now, expirationDate);
 
   const isOTM = isCall ? opt.strike > spotPrice : opt.strike < spotPrice;
+  // const volToOiRatio = openInterest > 0 ? volume / openInterest : 0;
+  // let moneyness = "ATM";
+  // const percentDiff = Math.abs(opt.strike - spotPrice) / spotPrice;
+  // if (percentDiff < 0.01) moneyness = "ATM";
+  // else if (isCall) moneyness = opt.strike < spotPrice ? "ITM" : "OTM";
+  // else moneyness = opt.strike > spotPrice ? "ITM" : "OTM";
 
-  const { flags, isUnusual } = detectFlags({
+  const { flags, reasons, isUnusual } = detectFlags({
     premium,
     flowType,
     isOTM,
@@ -356,6 +438,7 @@ const analyzeOption = (
     ask,
     marketCap: marketCap,
     lastPrice,
+    // volToOiRatio,
   });
 
   const score = calculateConvictionScore({
@@ -385,6 +468,7 @@ const analyzeOption = (
     sentiment: sentiment,
     details: details,
     flags: flags,
+    reasons: reasons,
     isUnusual: isUnusual,
     score: score,
     marketCap: marketCap,
@@ -415,11 +499,12 @@ interface FlagDetectionParams {
   ask?: number;
   marketCap?: number;
   lastPrice: number;
+  // volToOiRatio: number;
 }
 
 const detectFlags = (
   params: FlagDetectionParams
-): { flags: string[]; isUnusual: boolean } => {
+): { flags: string[]; reasons: string[]; isUnusual: boolean } => {
   const {
     premium,
     flowType,
@@ -440,10 +525,21 @@ const detectFlags = (
     ask,
     marketCap,
     lastPrice,
+    // volToOiRatio,
   } = params;
 
   const flags: string[] = [];
+  const reasons: string[] = [];
   let isUnusual = false;
+
+  // Super Whale Detection (> $5M)
+  if (premium > 5000000) {
+    flags.push("Super Whale");
+    reasons.push(
+      `Massive premium > $5M ($${Math.round(premium).toLocaleString()})`
+    );
+    isUnusual = true;
+  }
 
   // Whale Detection
   // Adjust threshold for small caps (<2B)
@@ -452,8 +548,19 @@ const detectFlags = (
     CONFIG.PREMIUM_THRESHOLDS.WHALE / 5 :
     CONFIG.PREMIUM_THRESHOLDS.WHALE;
 
-  if (premium > whaleThreshold) {
+  if (premium > whaleThreshold && premium <= 5000000) {
     flags.push("WHALE");
+    reasons.push(
+      `Large premium of $${Math.round(premium).toLocaleString()} ` +
+      `exceeds whale threshold ($${whaleThreshold.toLocaleString()})`
+    );
+    isUnusual = true;
+  }
+
+  // Institutional / Dark Pool Proxy
+  if (premium > 2000000 && flowType === "block") {
+    flags.push("Institutional");
+    reasons.push("Large block trade > $2M premium");
     isUnusual = true;
   }
 
@@ -466,6 +573,11 @@ const detectFlags = (
     volume > openInterest
   ) {
     flags.push("Golden Sweep");
+    reasons.push(
+      "High-conviction sweep: Premium > " +
+      `$${CONFIG.PREMIUM_THRESHOLDS.GOLDEN_SWEEP.toLocaleString()}, ` +
+      "OTM, Above Ask, and Vol > OI"
+    );
     isUnusual = true;
   }
 
@@ -477,12 +589,20 @@ const detectFlags = (
     volume > openInterest
   ) {
     flags.push("Steamroller");
+    reasons.push(
+      `Deep ITM position with heavy volume (${volume}) ` +
+      `exceeding OI (${openInterest})`
+    );
     isUnusual = true;
   }
 
   // New Position (Volume > Open Interest)
   if (openInterest > 0 && volume > openInterest) {
     flags.push("New Position");
+    reasons.push(
+      `Volume (${volume}) exceeds Open Interest (${openInterest}), ` +
+      "indicating fresh entry"
+    );
     isUnusual = true;
   }
 
@@ -495,6 +615,10 @@ const detectFlags = (
     changePercent > 1.0
   ) {
     flags.push("Gamma Squeeze");
+    reasons.push(
+      "Short-dated OTM calls with high volume and rising price " +
+      `(+${changePercent.toFixed(2)}%)`
+    );
     isUnusual = true;
   }
 
@@ -506,7 +630,19 @@ const detectFlags = (
     details === CONFIG.DETAILS.ABOVE_ASK
   ) {
     flags.push("Panic Hedge");
+    reasons.push(
+      "Aggressive OTM puts bought while stock is down " +
+      `${changePercent.toFixed(2)}%`
+    );
     isUnusual = true;
+  }
+
+  // Floor Protection (Deep OTM Puts with high volume)
+  if (!isCall && spotPrice > strike * 1.2 && volume > 1000) {
+    flags.push("Floor Protection");
+    reasons.push(
+      "High volume deep OTM puts. Likely institutional hedging/insurance."
+    );
   }
 
   // Earnings Play
@@ -519,7 +655,23 @@ const detectFlags = (
       expirationDate > earningsDate
     ) {
       flags.push("Earnings Play");
+      reasons.push(
+        `Options expire shortly after earnings in ${daysToEarnings} days`
+      );
       isUnusual = true;
+    }
+
+    // IV Crush Risk
+    if (
+      daysToEarnings >= 0 &&
+      daysToEarnings <= 2 &&
+      iv > CONFIG.IV_THRESHOLDS.HIGH
+    ) {
+      flags.push("IV Crush Risk");
+      reasons.push(
+        "High IV (${iv.toFixed(2)}) just before earnings." +
+        " Risk of volatility crush."
+      );
     }
   }
 
@@ -527,41 +679,78 @@ const detectFlags = (
   if (changePercent) {
     if (isCall && changePercent < -1.0) {
       flags.push("Bullish Divergence");
+      reasons.push(
+        `Calls bought despite stock dropping ${changePercent.toFixed(2)}%`
+      );
       isUnusual = true;
     } else if (!isCall && changePercent > 1.0) {
       flags.push("Bearish Divergence");
+      reasons.push(
+        `Puts bought despite stock rising ${changePercent.toFixed(2)}%`
+      );
       isUnusual = true;
     } else if (isCall && changePercent < -2.0) {
       flags.push("Contrarian");
+      reasons.push(
+        `Calls bought opposing strong downtrend (${changePercent.toFixed(2)}%)`
+      );
       isUnusual = true;
     } else if (!isCall && changePercent > 2.0) {
       flags.push("Contrarian");
+      reasons.push(
+        `Puts bought opposing strong uptrend (${changePercent.toFixed(2)}%)`
+      );
       isUnusual = true;
     }
   }
 
   // Unusual activity detection
   if (openInterest > 0) {
-    if (volume > openInterest * CONFIG.VOL_OI_RATIOS.MEGA) {
+    const volToOiRatio = openInterest > 0 ? volume / openInterest : 0;
+    if (volToOiRatio > CONFIG.VOL_OI_RATIOS.MEGA) {
       isUnusual = true;
       flags.push("Mega Vol");
-    } else if (volume > openInterest * CONFIG.VOL_OI_RATIOS.EXPLOSION) {
+      reasons.push(
+        `Volume (${volume}) is ${volToOiRatio.toFixed(1)}x ` +
+        `greater than Open Interest (${openInterest})`
+      );
+    } else if (volToOiRatio > CONFIG.VOL_OI_RATIOS.EXPLOSION) {
       isUnusual = true;
       flags.push("Vol Explosion");
-    } else if (volume > openInterest * CONFIG.VOL_OI_RATIOS.HIGH) {
+      reasons.push(
+        `Volume (${volume}) is ${volToOiRatio.toFixed(1)}x ` +
+        `greater than Open Interest (${openInterest})`
+      );
+    } else if (volToOiRatio > CONFIG.VOL_OI_RATIOS.HIGH) {
       isUnusual = true;
       flags.push("High Vol/OI");
+      reasons.push(
+        `Volume (${volume}) is ${volToOiRatio.toFixed(1)}x ` +
+        `greater than Open Interest (${openInterest})`
+      );
     }
   }
 
   if (iv > CONFIG.IV_THRESHOLDS.EXTREME) {
     isUnusual = true;
     flags.push("Extreme IV");
+    reasons.push(
+      `Implied Volatility at ${iv.toFixed(2)} ` +
+      `(Threshold: ${CONFIG.IV_THRESHOLDS.EXTREME})`
+    );
   } else if (iv > CONFIG.IV_THRESHOLDS.HIGH) {
     isUnusual = true;
     flags.push("High IV");
+    reasons.push(
+      `Implied Volatility at ${iv.toFixed(2)} ` +
+      `(Threshold: ${CONFIG.IV_THRESHOLDS.HIGH})`
+    );
   } else if (iv < CONFIG.IV_THRESHOLDS.LOW && daysToExpiration > 30) {
     flags.push("Low IV");
+    reasons.push(
+      `Implied Volatility at ${iv.toFixed(2)} is low ` +
+      `(< ${CONFIG.IV_THRESHOLDS.LOW}) for long-dated option`
+    );
   }
 
   // Spread Detection
@@ -569,8 +758,16 @@ const detectFlags = (
     const spread = (ask - bid) / ask;
     if (spread < 0.01 && volume > 500) {
       flags.push("Tight Spread");
+      reasons.push(
+        `Liquid market with ${(spread * 100).toFixed(2)}% spread ` +
+        "and high volume"
+      );
     } else if (spread > 0.1) {
       flags.push("Wide Spread");
+      reasons.push(
+        `Illiquid market with ${(spread * 100).toFixed(2)}% spread ` +
+        "(> 10%)"
+      );
     }
   }
 
@@ -578,20 +775,36 @@ const detectFlags = (
   const percentDiff = Math.abs(strike - spotPrice) / spotPrice;
   if (percentDiff < 0.01 && volume > 500) {
     flags.push("ATM Flow");
+    reasons.push(
+      `Strike ($${strike}) is near Spot ($${spotPrice}) ` +
+      "with significant volume"
+    );
   }
 
   // Deep ITM detection
   if (isCall && spotPrice > strike * 1.1) {
     flags.push("Deep ITM");
+    reasons.push(
+      `Call Strike ($${strike}) is significantly below Spot ($${spotPrice})`
+    );
   } else if (!isCall && spotPrice < strike * 0.9) {
     flags.push("Deep ITM");
+    reasons.push(
+      `Put Strike ($${strike}) is significantly above Spot ($${spotPrice})`
+    );
   }
 
   // Deep OTM detection
   if (isCall && spotPrice < strike * 0.8) {
     flags.push("Deep OTM");
+    reasons.push(
+      `Call Strike ($${strike}) is significantly above Spot ($${spotPrice})`
+    );
   } else if (!isCall && spotPrice > strike * 1.2) {
     flags.push("Deep OTM");
+    reasons.push(
+      `Put Strike ($${strike}) is significantly below Spot ($${spotPrice})`
+    );
   }
 
   // Aggressive detection
@@ -601,16 +814,23 @@ const detectFlags = (
     flowType === "sweep"
   ) {
     flags.push("Aggressive");
+    reasons.push(`Sweep executed ${details}`);
   }
 
   // Cheap Volatility
   if (lastPrice < 0.50 && volume > 2000) {
     flags.push("Cheap Vol");
+    reasons.push(
+      `Low-cost contracts ($${lastPrice}) with high volume (>2000)`
+    );
   }
 
   // High Premium Contract
   if (lastPrice > 20.0 && volume > 100) {
     flags.push("High Premium");
+    reasons.push(
+      `Expensive contracts ($${lastPrice}) with significant volume`
+    );
   }
 
   // Lotto Detection (Far OTM, Short Term)
@@ -618,13 +838,21 @@ const detectFlags = (
   if (isOTM && percentOTM > 0.15 && daysToExpiration < 14 && lastPrice < 1.0) {
     // Only flag as Lotto if premium is relatively low per contract (cheap bets)
     flags.push("Lotto");
+    reasons.push("Cheap (<$1), short-term OTM bet (>15% OTM)");
     isUnusual = true;
   }
 
   // Expiration-based unusual activity
   if (daysToExpiration <= CONFIG.DTE_THRESHOLDS.ZERO) {
-    flags.push("0DTE");
-    if (volume > 1000) isUnusual = true;
+    if (isOTM && volume > 1000) {
+      flags.push("0DTE Lotto");
+      reasons.push("High volume 0DTE OTM speculation");
+      isUnusual = true;
+    } else {
+      flags.push("0DTE");
+      reasons.push("Expires today or tomorrow");
+      if (volume > 2000) isUnusual = true;
+    }
   } else if (
     daysToExpiration <= CONFIG.DTE_THRESHOLDS.WEEKLY &&
     isOTM &&
@@ -632,15 +860,22 @@ const detectFlags = (
   ) {
     isUnusual = true;
     flags.push("Weekly OTM");
+    reasons.push("Short-term speculative bet (Weekly exp, OTM)");
   } else if (
     daysToExpiration > CONFIG.DTE_THRESHOLDS.LEAPS &&
     volume > 100
   ) {
     isUnusual = true;
     flags.push("LEAPS");
+    reasons.push("Long-term investment (>1 year)");
+
+    if (isCall && isOTM) {
+      flags.push("Leaps Buy");
+      reasons.push("Long-term OTM bullish speculation");
+    }
   }
 
-  return { flags, isUnusual };
+  return { flags, reasons, isUnusual };
 };
 
 interface ConvictionScoreParams {
@@ -722,7 +957,7 @@ const analyzeTradeExecution = (
   let sentiment = isCall ? CONFIG.SENTIMENT.BULLISH : CONFIG.SENTIMENT.BEARISH;
   let details = isCall ? CONFIG.DETAILS.ASK_SIDE : CONFIG.DETAILS.BID_SIDE;
 
-  if (bid && ask) {
+  if (bid > 0 && ask > 0) {
     if (lastPrice >= ask) {
       details = CONFIG.DETAILS.ABOVE_ASK;
       // Buying Calls or Puts
@@ -744,6 +979,9 @@ const analyzeTradeExecution = (
           CONFIG.SENTIMENT.BULLISH; // Leans Sell
       }
     }
+  } else {
+    // If bid/ask are missing, assume mid-market or unknown
+    details = CONFIG.DETAILS.MID_MARKET;
   }
 
   // Determine flow type based on volume vs OI and premium
@@ -753,6 +991,15 @@ const analyzeTradeExecution = (
     flowType = "sweep"; // High relative volume often indicates sweeps
   } else if (premium > CONFIG.PREMIUM_THRESHOLDS.BLOCK) {
     flowType = "block";
+  }
+
+  // Detect Cross Trades (Price exactly at Bid or Ask with high volume)
+  if (bid > 0 && ask > 0 && volume > 5000) {
+    if (lastPrice === bid || lastPrice === ask) {
+      flowType = "cross";
+      details = "Cross Trade";
+      sentiment = CONFIG.SENTIMENT.NEUTRAL;
+    }
   }
 
   // Detect large block trades (proxy for Dark Pool/Institutional)

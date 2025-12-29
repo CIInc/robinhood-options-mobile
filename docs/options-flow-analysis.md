@@ -12,7 +12,10 @@ RealizeAlpha provides advanced Options Flow Analysis to help traders gauge insti
 ### Smart Tags & Flags
 Our system automatically tags trades with specific characteristics to help you identify the nature of the flow. Tap on any flag in the app to see its definition.
 
-*   **WHALE:** Extremely large premium orders (>$1M), indicating massive institutional conviction. Follow the big money.
+*   **Super Whale:** Massive premium > $5M. Represents the highest level of institutional conviction.
+*   **WHALE:** Large premium orders (>$1M), indicating massive institutional conviction. Follow the big money.
+*   **Institutional:** Large block trade > $2M premium. Often indicates institutional rebalancing or positioning.
+*   **Large Block:** A single trade execution with significant size (>$200k premium), indicating institutional activity in one transaction.
 *   **Golden Sweep:** Aggressive sweep orders with >$1M premium, executed out-of-the-money. Often a strong directional signal.
 *   **Steamroller:** Massive size (>$500k), short term (<30 days), aggressive OTM sweep.
 *   **Mega Vol:** Volume is >10x Open Interest. Extreme unusual activity indicating a major new position.
@@ -21,7 +24,9 @@ Our system automatically tags trades with specific characteristics to help you i
 *   **New Position:** Volume exceeds Open Interest, confirming that new contracts are being opened.
 *   **Gamma Squeeze:** Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k). Can force dealers to buy stock to hedge, fueling the rally.
 *   **Panic Hedge:** Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k). Indicates fear or hedging against further downside.
+*   **Floor Protection:** High volume deep OTM puts. Likely institutional hedging/insurance.
 *   **Earnings Play:** Options expiring shortly after an upcoming earnings release (2-14 days). High volatility expected.
+*   **IV Crush Risk:** High IV just before earnings. Risk of volatility crush.
 *   **Bullish Divergence:** Call buying while stock is down. Smart money betting on a reversal.
 *   **Bearish Divergence:** Put buying while stock is up. Smart money betting on a reversal.
 *   **Contrarian:** Trades that go against the current stock trend (>2% move).
@@ -41,10 +46,13 @@ Our system automatically tags trades with specific characteristics to help you i
 *   **Mid Market:** Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.
 *   **Ask Side:** Trade executed at the ask price. Indicates buying pressure.
 *   **Bid Side:** Trade executed at the bid price. Indicates selling pressure.
+*   **Cross Trade:** High volume trade executed exactly at the Bid or Ask price. Often pre-arranged and neutral in sentiment.
 *   **0DTE:** Contracts expiring today. High risk, high reward speculative trading.
+*   **0DTE Lotto:** High volume (>1000) OTM options expiring today. Extremely speculative "lotto" ticket bets.
 *   **Lotto:** Far OTM (>15%) contracts expiring within 2 weeks with low premium (< $1.00). Low probability, high payout bets.
 *   **Weekly OTM:** Out-of-the-money contracts expiring within a week with volume > 500.
 *   **LEAPS:** Long-term Equity Anticipation Securities. Contracts expiring in > 1 year (365 days). Long-term conviction.
+*   **Leaps Buy:** Long-term OTM bullish speculation.
 
 ### Sentiment Analysis
 *   **Bullish/Bearish Flow:** Visualize the ratio of bullish (calls bought, puts sold) vs. bearish (puts bought, calls sold) flow.
