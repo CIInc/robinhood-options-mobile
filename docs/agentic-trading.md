@@ -100,6 +100,37 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 ### Custom Indicators
 
+> **New in v0.21.0**
+
+Users can now create and integrate their own technical indicators into the Agentic Trading system.
+
+*   **Creation**: Define custom logic using a simple scripting interface or by combining existing indicators.
+*   **Integration**: Custom indicators are treated as first-class citizens, with full support for backtesting, signal generation, and filtering.
+*   **Sharing**: Share your custom indicators with the community or keep them private.
+
+### ML Optimization
+
+> **New in v0.21.0**
+
+The system now leverages Machine Learning to optimize signal generation and parameter selection.
+
+*   **Signal Optimization**: ML models analyze historical performance to refine signal generation thresholds, reducing false positives.
+*   **Parameter Tuning**: Automatically suggests optimal settings for indicators based on current market conditions.
+*   **Continuous Learning**: The models adapt over time as new market data becomes available.
+
+### Advanced Exit Strategies
+
+> **New in v0.20.0**
+
+Beyond standard Take Profit and Stop Loss, the system now supports advanced exit strategies for precise trade management.
+
+*   **Partial Exits**: Scale out of positions by selling a percentage (e.g., 50%) at specific profit targets.
+*   **Time-Based Exits**: Automatically close positions after a set duration (e.g., 2 hours) if profit targets haven't been met, freeing up capital.
+*   **Market Close Exits**: Automatically close intraday positions before the market closes to avoid overnight risk.
+
+
+### Custom Indicators
+
 Users can now define their own technical indicators to be used alongside the standard 12-indicator system.
 
 - **Creation:** Define custom logic based on price action, volume, or other available data points.
@@ -118,7 +149,7 @@ Machine Learning models are integrated to continuously optimize trade signals, l
 - **Cost Efficiency:**
   - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
   - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
-  - **Model Selection:** Uses the `gemini-1.5-flash` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
+  - **Model Selection:** Uses the `gemini-2.5-flash-lite` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
 
 ### Advanced Exit Strategies
 
@@ -258,7 +289,7 @@ Machine Learning models are integrated to continuously optimize trade signals, l
 - **Cost Efficiency:**
   - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
   - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
-  - **Model Selection:** Uses the `gemini-1.5-flash` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
+  - **Model Selection:** Uses the `gemini-1.5-flash-001` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
 
 ### Advanced Exit Strategies
 

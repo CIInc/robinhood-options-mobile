@@ -83,7 +83,11 @@ Volume - Volume bar or other volume indicators
         title: 'Option Selector',
         prompt:
             'Analyze the option chain for symbol {{symbol}} as of ${formatLongDate.format(DateTime.now())} and provide the best {{type}} contracts to {{action}} and explain why.'),
-    Prompt(key: 'ask', title: 'Ask a Question', prompt: '', appendPortfolioToPrompt: true),
+    Prompt(
+        key: 'ask',
+        title: 'Ask a Question',
+        prompt: '',
+        appendPortfolioToPrompt: true),
   ];
   // final String _apiKey;
   // final String _baseUrl;
@@ -116,7 +120,7 @@ Volume - Volume bar or other volume indicators
     debugPrint("result: ${resp.data}");
     String? response;
     if (resp.data["modelVersion"].toString().startsWith("gemini-2")) {
-      //  == "gemini-2.0-flash-001"
+      //  == "gemini-2.5-flash-lite"
       response = resp.data["candidates"][0]["content"]["parts"]
           .map((e) => e["text"])
           .join('  \n');

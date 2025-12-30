@@ -37,6 +37,16 @@ Each notification includes:
 - Confidence level (if available)
 - Data payload for app navigation
 
+### Rich Notifications
+
+> **New in v0.26.0**
+
+Notifications now support rich media content to provide immediate context without opening the app.
+
+*   **Charts**: A mini-chart of the instrument's recent price action is displayed directly in the notification.
+*   **Data Tables**: Key metrics (e.g., Signal Strength, Indicator Summary) are presented in a concise table format.
+*   **Action Buttons**: Quick actions (e.g., "View Chart", "Place Trade") are available directly from the notification.
+
 ### App Navigation
 
 When a user taps on a trade signal notification, the app will:

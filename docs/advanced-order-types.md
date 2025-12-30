@@ -57,3 +57,21 @@ The trading interface has been completely redesigned for clarity and ease of use
 - **Order Preview**: A clear summary of your order details, estimated cost/credit, and resulting position impact before you confirm.
 - **Slide to Confirm**: A new slide-to-confirm mechanism prevents accidental order submissions.
 - **Real-time Estimates**: Dynamic updates of estimated total and stop prices as you adjust order parameters.
+
+## Order Templates
+
+> **New in v0.26.1**
+
+Order Templates allow you to save complex order configurations and reuse them later, saving time and reducing errors.
+
+### Key Benefits
+- **Speed**: Quickly load frequently used order setups (e.g., "Buy 100 shares with 5% Trailing Stop").
+- **Consistency**: Ensure you always use the same parameters for your standard trades.
+- **Convenience**: Great for complex multi-leg strategies or specific risk management setups.
+
+### How to Use
+1. Configure an order with your desired parameters (Type, Quantity, Limit Price, Time in Force, etc.).
+2. Tap the **Save Template** icon (floppy disk) in the top bar.
+3. Give your template a name (e.g., "Standard Swing Entry").
+4. To load a template, tap the **Load Template** icon (folder) and select from your saved list.
+

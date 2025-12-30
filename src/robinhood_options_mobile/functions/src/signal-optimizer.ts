@@ -8,7 +8,7 @@ const vertexAI = new VertexAI({
 });
 
 const model = vertexAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
+  model: "gemini-2.5-flash-lite",
   generationConfig: {
     responseMimeType: "application/json",
   },
@@ -38,7 +38,15 @@ export async function optimizeSignal(
   marketIndexData: any
 ): Promise<OptimizationResult> {
   // Cost optimization: Skip AI if signal strength is weak
-  if (multiIndicatorResult.signalStrength < 25) {
+  // Increased threshold to 50 to reduce costs
+  if (multiIndicatorResult.signalStrength < 50) {
+    return null as any;
+  }
+
+  // Cost optimization: Skip AI for HOLD signals
+  // unless they are strong (potential breakout)
+  if (multiIndicatorResult.overallSignal === "HOLD" &&
+    multiIndicatorResult.signalStrength < 70) {
     return null as any;
   }
 
@@ -105,7 +113,7 @@ Output JSON:{confidenceScore(0-100),refinedSignal(BUY/SELL/HOLD),reasoning}`;
       confidenceScore: optimization.confidenceScore,
       refinedSignal: optimization.refinedSignal,
       reasoning: optimization.reasoning,
-      mlModel: "gemini-2.5-flash",
+      mlModel: "gemini-2.5-flash-lite",
     };
   } catch (error) {
     logger.error("Error optimizing signal with ML", error);

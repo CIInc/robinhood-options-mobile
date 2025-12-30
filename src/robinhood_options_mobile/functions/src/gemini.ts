@@ -82,7 +82,7 @@ export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
     } as Tool;
 
     const model = vertexAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash-lite",
       tools: [googleSearchTool],
     });
 

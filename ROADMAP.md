@@ -465,6 +465,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Configurable push notifications for trade signals
     - [x] Filtering by signal type, symbol, and confidence
     - [x] Deep linking to instrument details
+    - [x] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
 - [x] **Options Flow Analysis**:
     - [x] Enhanced smart flags (Cheap Vol, High Premium, Large Block, etc.)
     - [x] Improved detection algorithms (Whale, LEAPS)
@@ -531,10 +532,21 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Advanced Order Types** ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)):
     - [x] Trailing Stop and Stop-Limit orders
     - [x] Time in Force support (GTC, GFD, IOC, OPG)
+    - [x] **Order Templates**: Save and reuse complex order configurations
 - [x] **Trading UI Refactor**:
     - [x] Improved order preview and placement flow
 - [x] **Stock Orders** ([#107](https://github.com/CIInc/robinhood-options-mobile/issues/107)):
     - [x] Place stock orders directly from the app
+- [x] **Dynamic Position Sizing**:
+    - [x] Automatically calculate trade size based on risk parameters
+
+### Brokerage & Asset Expansion
+- [x] **Crypto Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)):
+    - [x] Dedicated widgets for placing and managing crypto orders
+    - [x] Integrated into main trading interface
+- [x] **Schwab Integration** ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)):
+    - [x] Native Schwab brokerage support
+    - [x] Enhanced option order handling
 
 ### AI & Insights
 - [x] **Generative AI Assistant** ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74)):
@@ -571,19 +583,13 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
 
 #### Brokerage Expansion
 - [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
-- [x] **Schwab API Integration**: Native Schwab brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
 - [ ] **Fidelity API Integration**: Native Fidelity brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
 - [ ] **Interactive Brokers Integration**: Native Interactive Brokers API support ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)) - **Large** (4-6 weeks)
 - [ ] **Multi-Brokerage**: Trade across multiple brokerage accounts - **Large** (3-4 weeks)
-- [x] **Crypto Trading**: Crypto trading integration ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)) - **Large** (4-5 weeks)
 - [ ] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): - **Large** (4-5 weeks)
     - [ ] Implement `getForexQuote` and `getForexHistoricals`
     - [ ] Implement `getForexPositions`
     - [ ] Add Forex trading UI and order placement
-
-#### Trading Orders & Execution
-- [ ] **Order Templates**: Save and reuse order templates - **Small** (1 week)
-- [ ] **Dynamic Position Sizing**: Adjust trade size based on ATR volatility (RiskGuard expansion) - **Medium** (2-3 weeks)
 
 ### Priority 2: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
 
@@ -631,7 +637,6 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
     - [ ] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
-- [x] **Rich Notifications**: Charts and data in push notifications ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
 - [ ] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
 - [ ] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
 - [ ] **Email/SMS Channels**: Critical signal notifications via multiple channels

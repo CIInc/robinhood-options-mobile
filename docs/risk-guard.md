@@ -47,3 +47,11 @@ For the **Agentic Trading** system, RiskGuard acts as a hard gatekeeper.
 ## Architecture
 
 RiskGuard logic is centralized in the Firebase Cloud Functions (`functions/src/riskguard-agent.ts`), ensuring consistent rule application across all trading interfaces (Mobile App, Web, Automated Agents).
+
+## Dynamic Position Sizing
+
+RiskGuard includes a **Dynamic Position Sizing** feature that automatically calculates the optimal trade size based on risk parameters.
+
+*   **Volatility Adjustment**: Adjusts position size based on the asset's volatility (ATR).
+*   **Risk Budgeting**: Ensures that the potential loss (based on Stop Loss) does not exceed a fixed percentage of the portfolio (e.g., 1% or 2%).
+*   **Auto-Calculation**: When placing an order, users can opt to have the quantity automatically filled based on these risk rules.
