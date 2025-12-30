@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -147,7 +147,19 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Portfolio Allocation Widget Enhancements
 - ✅ Options Flow Analysis Refinements
 
-### v0.27.0 (Q1 2026 - Late January)
+### v0.27.0 ✅ (Released Dec 30, 2025)
+**Portfolio Analytics, AI Enhancements & UI Improvements**
+- ✅ **Risk Heatmap**: Interactive treemap visualization of portfolio exposure and performance
+- ✅ **Portfolio Analytics Dashboard**: Professional-grade metrics (Sharpe, Sortino, Alpha, Beta)
+- ✅ **Benchmark Comparison**: Compare performance against SPY, QQQ, and DIA
+- ✅ **Risk Metrics**: Max Drawdown, Volatility, and Value at Risk (VaR)
+- ✅ **AI Model Upgrade**: Switched to Gemini 2.5 Flash Lite for improved performance and cost efficiency
+- ✅ **Navigation Bar Upgrade**: Modern Material 3 NavigationBar for better UI consistency
+- ✅ **Ad Integration**: Integrated ad banners into OptionOrderWidget
+- ✅ **Watchlist Streaming**: Real-time watchlist updates in SearchWidget
+- ✅ **Order Management**: Added "Cancel Order" functionality in OptionOrderWidget
+
+### v0.28.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
@@ -520,6 +532,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] Bidirectional highlighting between chart slices and legend entries
 - [x] Top 5 holdings display with percentage labels
 - [x] "Others" grouping for remaining positions
+- [x] **Risk Heatmap**: Interactive treemap visualization with Sector/Symbol grouping
+- [x] **Portfolio Analytics**: Comprehensive dashboard with risk/return metrics
 
 ### Trading & Execution
 - [x] **Option Chain Screener** ([#12](https://github.com/CIInc/robinhood-options-mobile/issues/12)):
@@ -609,8 +623,8 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 **Revenue Impact:** High (AI insights enable premium tier)
 
 #### Portfolio Management ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
-- [ ] **Advanced Portfolio Analytics**: Sharpe ratio, alpha, beta calculations - **Medium** (2-3 weeks)
-- [ ] **Risk Exposure Heatmaps**: Visualize portfolio risk distribution - **Medium** (2-3 weeks)
+- [x] **Advanced Portfolio Analytics**: Sharpe ratio, alpha, beta calculations - **Medium** (2-3 weeks)
+- [x] **Risk Exposure Heatmaps**: Visualize portfolio risk distribution - **Medium** (2-3 weeks)
 - [ ] **Dividend Tracking**: Track and project dividend income - **Small** (1-2 weeks)
 - [ ] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
 - [ ] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
@@ -618,7 +632,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
 - [ ] **Import/Export**: Import from other brokerages, export to Excel/CSV - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
-- [ ] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
+- [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [ ] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [ ] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [ ] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)

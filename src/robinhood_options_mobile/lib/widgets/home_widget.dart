@@ -59,6 +59,7 @@ import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
 
 /*
 class DrawerItem {
@@ -758,6 +759,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 },
               ),
             ),
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: PortfolioAnalyticsWidget(
+                    user: widget.brokerageUser!,
+                    service: widget.service!,
+                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+                    futureMarketIndexHistoricalsSp500:
+                        futureMarketIndexHistoricalsSp500,
+                    futureMarketIndexHistoricalsNasdaq:
+                        futureMarketIndexHistoricalsNasdaq,
+                    futureMarketIndexHistoricalsDow:
+                        futureMarketIndexHistoricalsDow,
+                  ),
+                ),
+              ),
             // FUTURES: If we have futures accounts, stream aggregated positions
             if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
               FutureBuilder<List<dynamic>>(

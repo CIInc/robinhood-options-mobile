@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -70,8 +71,8 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
 
             var regularsp500 = sp500['chart']['result'][0]['meta']
                 ['currentTradingPeriod']['regular'];
-            var sp500PreviousClose = sp500['chart']['result'][0]['meta']
-                ['chartPreviousClose'];
+            var sp500PreviousClose =
+                sp500['chart']['result'][0]['meta']['chartPreviousClose'];
             var nasdaqPreviousClose =
                 nasdaq['chart']['result'][0]['meta']['chartPreviousClose'];
             var dowPreviousClose =
@@ -141,8 +142,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             var seriesDataportfolio = portfolioHistoricals.equityHistoricals
                 .mapIndexed((index, e) => {
                       'date': e.beginsAt,
-                      'value':
-                          e.adjustedCloseEquity! / seriesOpenportfolio! - 1
+                      'value': e.adjustedCloseEquity! / seriesOpenportfolio! - 1
                     })
                 .toList();
 
@@ -229,8 +229,8 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                     : null);
               },
               initialSelection: charts.InitialSelection(selectedDataConfig: [
-                charts.SeriesDatumConfig<DateTime>('Portfolio',
-                    seriesDataportfolio.last['date'] as DateTime),
+                charts.SeriesDatumConfig<DateTime>(
+                    'Portfolio', seriesDataportfolio.last['date'] as DateTime),
                 charts.SeriesDatumConfig<DateTime>(
                     'S&P 500', seriesDatasp500.last['date'] as DateTime),
                 charts.SeriesDatumConfig<DateTime>(
@@ -249,31 +249,14 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             );
             return Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Performance",
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Compare market indices and benchmarks (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter).toUpperCase()})",
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+                ListTile(
+                  title: const Text(
+                    "Performance",
+                    style:
+                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    "Compare market indices and benchmarks (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter).toUpperCase()})",
                   ),
                 ),
                 SizedBox(
@@ -293,7 +276,8 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 SizedBox(
                     height: 380,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
                       child: marketIndicesChart,
                     )),
               ],

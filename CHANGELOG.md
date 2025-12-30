@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.0] - 2025-12-30
+
+### Added
+- **Portfolio Analytics & Risk Heatmap:**
+  - **Risk Heatmap:** Interactive treemap visualization of portfolio exposure and performance.
+  - **Portfolio Analytics Dashboard:** Professional-grade metrics (Sharpe, Sortino, Alpha, Beta).
+  - **Benchmark Comparison:** Compare performance against SPY, QQQ, and DIA.
+  - **Risk Metrics:** Max Drawdown, Volatility, and Value at Risk (VaR).
+- **AI Enhancements:**
+  - **Model Upgrade:** Updated AI model references to use `gemini-2.5-flash-lite` for improved performance and cost efficiency.
+- **UI/UX Improvements:**
+  - **Navigation:** Updated `BottomNavigationBar` to Material 3 `NavigationBar` for better UI consistency and responsiveness.
+  - **Watchlists:** Added watchlist stream functionality in `SearchWidget` to display user watchlists directly.
+  - **Ad Integration:** Integrated ad banners into `OptionOrderWidget`.
+  - **Order Management:** Added "Cancel Order" functionality directly within `OptionOrderWidget`.
+
+### Changed
+- **Refactoring:**
+  - **Navigation:** Removed unused imports and code related to `ListsWidget` in `navigation_widget.dart`.
+  - **Order Widgets:** Refactored `PositionOrderWidget` to streamline data loading and improve UI presentation.
+  - **Option Orders:** Enhanced `OptionOrderWidget` with improved layout.
+
 ## [0.26.1] - 2025-12-29
 
 ### Added

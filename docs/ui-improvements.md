@@ -2,6 +2,25 @@
 
 ## Completed Improvements
 
+### Navigation Bar Upgrade (v0.27.0)
+- **Component**: Updated `BottomNavigationBar` to Material 3 `NavigationBar`.
+- **Benefits**:
+  - Improved UI consistency with Material 3 design guidelines.
+  - Better responsiveness and touch targets.
+  - Enhanced visual feedback for selected items.
+
+### Ad Integration (v0.27.0)
+- **Component**: Integrated ad banners into `OptionOrderWidget`.
+- **Features**:
+  - Non-intrusive ad placement.
+  - Seamless integration with the order flow.
+
+### Watchlist Stream (v0.27.0)
+- **Component**: Added watchlist stream functionality in `SearchWidget`.
+- **Features**:
+  - Real-time updates of user watchlists.
+  - Direct display of watchlist items in the search interface.
+
 ### Navigation Bar Upgrade (v0.21.1)
 - **Component**: Replaced `BottomNavigationBar` (Material 2) with `NavigationBar` (Material 3).
 - **Benefits**:
@@ -12,6 +31,23 @@
 - **Configuration**:
   - Labels are configured to `alwaysShow` in `main.dart` theme.
   - Uses the app's color scheme for the indicator and icons.
+
+### Risk Heatmap Widget
+- **Component**: New interactive Treemap visualization for portfolio risk.
+- **Features**:
+  - **Treemap Layout**: Size represents equity, color represents performance.
+  - **Smart Grouping**: Automatically groups smaller positions into an "Others" category to reduce clutter.
+  - **Multi-View**: Toggle between Sector and Symbol views.
+  - **Multi-Metric**: Toggle between Daily Change and Total Return.
+  - **Drill-Down**: Tap to view detailed position lists for any sector or the "Others" group.
+
+### Portfolio Analytics Widget
+- **Component**: Comprehensive dashboard for advanced portfolio metrics.
+- **Features**:
+  - **Risk-Adjusted Returns**: Sharpe, Sortino, Treynor, Calmar, Omega, Information Ratio.
+  - **Market Comparison**: Alpha, Beta, Excess Return vs SPY/QQQ/DIA.
+  - **Risk Metrics**: Max Drawdown, Volatility, VaR (95%).
+  - **Integration**: Embeds the Risk Heatmap for visual context.
 
 ## Future UI Improvement Ideas
 
