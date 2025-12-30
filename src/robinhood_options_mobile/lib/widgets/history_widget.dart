@@ -35,6 +35,11 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
+import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 
 class HistoryPage extends StatefulWidget {
   /*
@@ -174,7 +179,7 @@ class _HistoryPageState extends State<HistoryPage>
         child: CustomScrollView(
           slivers: [
             ExpandedSliverAppBar(
-              title: const Text(''), // History
+              title: const Text(Constants.appTitle), // History
               auth: auth,
               firestoreService: _firestoreService,
               automaticallyImplyLeading: true,
@@ -540,6 +545,7 @@ class _HistoryPageState extends State<HistoryPage>
                   snap: true,
                   pinned: true,
                   centerTitle: false,
+                  title: const Text(Constants.appTitle), // History
                   // title: Wrap(
                   //     crossAxisAlignment: WrapCrossAlignment.end,
                   //     //runAlignment: WrapAlignment.end,
@@ -706,34 +712,41 @@ class _HistoryPageState extends State<HistoryPage>
                     //       );
                     //     })
                   ],
-                  bottom: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    dividerColor: Colors.transparent,
-                    // labelColor: Theme.of(context)
-                    //     .appBarTheme
-                    //     .foregroundColor, //  Colors.black87
-                    // unselectedLabelColor: Colors.black87,
-                    // indicatorColor: Colors.white,
-                    // indicatorWeight: 3.0,
-                    tabs: <Widget>[
-                      Tab(
-                        // icon: Icon(Icons.cloud_outlined)
-                        text: 'Stocks',
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(60),
+                    child: Container(
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(25),
                       ),
-                      Tab(
-                        //icon: Icon(Icons.beach_access_sharp)
-                        text: 'Options',
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: false,
+                        dividerColor: Colors.transparent,
+                        indicator: BoxDecoration(
+                          borderRadius: BorderRadius.circular(25),
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        labelColor: Theme.of(context).colorScheme.onPrimary,
+                        unselectedLabelColor:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        labelStyle: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                        unselectedLabelStyle: const TextStyle(
+                            fontWeight: FontWeight.normal, fontSize: 14),
+                        tabs: const <Widget>[
+                          Tab(text: 'Stocks'),
+                          Tab(text: 'Options'),
+                          Tab(text: 'Dividends'),
+                          Tab(text: 'Interests'),
+                        ],
                       ),
-                      Tab(
-                        //icon: Icon(Icons.brightness_5_sharp)
-                        text: 'Dividends',
-                      ),
-                      Tab(
-                        //icon: Icon(Icons.brightness_5_sharp)
-                        text: 'Interests',
-                      ),
-                    ],
+                    ),
                   ))
             ];
           },
@@ -744,218 +757,243 @@ class _HistoryPageState extends State<HistoryPage>
                 slivers: [
                   if (positionOrders != null) ...[
                     SliverToBoxAdapter(
-                        child: ListTile(
-                      title: const Text(
-                        "Stocks & ETFs",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
-                        // ${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders
-                      ),
-                      trailing: Wrap(
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                var future = showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  // constraints: BoxConstraints(maxHeight: 260),
-                                  builder:
-                                      /*
-                              (_) => OptionOrderFilterBottomSheet(
-                                  orderSymbols: orderSymbols,
-                                  optionPositions:
-                                      optionPositions)
-                                      */
-                                      (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context)
-                                          //     .colorScheme
-                                          //     .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Stock Orders",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          /*
-                                      trailing: TextButton(
-                                          child: const Text("APPLY"),
-                                          onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        // const ListTile(
-                                        //   title: Text("Order State & Date"),
-                                        // ),
-                                        orderFilterWidget,
-                                        orderDateFilterWidget,
-                                        // const ListTile(
-                                        //   title: Text("Symbols"),
-                                        // ),
-                                        SizedBox(
-                                          height: 25,
-                                        ),
-                                        stockOrderSymbolFilterWidget(4),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Stocks & ETFs",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.filter_list),
+                                  onPressed: () {
+                                    _showFilterBottomSheet(
+                                      title: "Filter Stock Orders",
+                                      builder: (setState) => [
+                                        buildOrderFilterWidget(setState),
+                                        const SizedBox(height: 8),
+                                        buildOrderDateFilterWidget(setState),
+                                        const SizedBox(height: 25),
+                                        buildStockOrderSymbolFilterWidget(
+                                            4, setState),
                                       ],
                                     );
                                   },
-                                );
-                                future.then((void value) => {});
-                              }),
-                          IconButton(
-                              tooltip: 'Share selections',
-                              onPressed: () => _showShareView(),
-                              icon: Icon(showShareView
-                                  ? Icons.check
-                                  : Icons.ios_share))
-                        ],
+                                ),
+                                IconButton(
+                                  tooltip: 'Share selections',
+                                  onPressed: () => _showShareView(),
+                                  icon: Icon(showShareView
+                                      ? Icons.check
+                                      : Icons.ios_share),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          var amount = 0.0;
-                          if (filteredPositionOrders![index].averagePrice !=
-                              null) {
-                            amount = filteredPositionOrders![index]
-                                    .averagePrice! *
-                                filteredPositionOrders![index].quantity! *
-                                (filteredPositionOrders![index].side == "buy"
-                                    ? -1
-                                    : 1);
-                          }
-                          return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  showShareView
-                                      ? CheckboxListTile(
-                                          value: selectedPositionOrdersToShare
-                                              .contains(
-                                                  filteredPositionOrders![index]
-                                                      .id),
-                                          onChanged: (bool? newValue) {
-                                            if (newValue!) {
-                                              setState(() {
-                                                selectedPositionOrdersToShare
-                                                    .add(
-                                                        filteredPositionOrders![
-                                                                index]
-                                                            .id);
-                                              });
-                                            } else {
-                                              setState(() {
-                                                selectedPositionOrdersToShare
-                                                    .remove(
-                                                        filteredPositionOrders![
-                                                                index]
-                                                            .id);
-                                              });
-                                            }
-                                          },
-                                          title: Text(
-                                              "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                          subtitle: Text(
-                                              "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                                        )
-                                      : ListTile(
-                                          leading: CircleAvatar(
-                                              //backgroundImage: AssetImage(user.profilePicture),
+                    ),
+                    if (filteredPositionOrders!.isEmpty)
+                      _buildEmptyState("No stock orders found.")
+                    else
+                      SliverList(
+                        // delegate: SliverChildListDelegate(widgets),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            var amount = 0.0;
+                            if (filteredPositionOrders![index].averagePrice !=
+                                null) {
+                              amount = filteredPositionOrders![index]
+                                      .averagePrice! *
+                                  filteredPositionOrders![index].quantity! *
+                                  (filteredPositionOrders![index].side == "buy"
+                                      ? -1
+                                      : 1);
+                            }
+                            var order = filteredPositionOrders![index];
+                            return _buildCard(
+                                child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                showShareView
+                                    ? CheckboxListTile(
+                                        value: selectedPositionOrdersToShare
+                                            .contains(order.id),
+                                        onChanged: (bool? newValue) {
+                                          if (newValue!) {
+                                            setState(() {
+                                              selectedPositionOrdersToShare
+                                                  .add(order.id);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              selectedPositionOrdersToShare
+                                                  .remove(order.id);
+                                            });
+                                          }
+                                        },
+                                        title: Text(
+                                            "${order.instrumentObj?.symbol ?? ""} ${order.type} ${order.side} ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : ""}"),
+                                        subtitle: Text(
+                                            "${order.state} ${formatDate.format(order.updatedAt!)}"),
+                                      )
+                                    : ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 4),
+                                        leading: CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor: order.side == 'buy'
+                                                ? Colors.green.withOpacity(0.1)
+                                                : Colors.red.withOpacity(0.1),
+                                            foregroundColor: order.side == 'buy'
+                                                ? Colors.green
+                                                : Colors.red,
+                                            child: Text(
+                                              formatCompactNumber
+                                                  .format(order.quantity!),
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold),
+                                            )),
+                                        title: Row(
+                                          children: [
+                                            Text(
+                                              order.instrumentObj?.symbol ?? "",
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: (order.side == 'buy'
+                                                        ? Colors.green
+                                                        : Colors.red)
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
                                               child: Text(
-                                            formatCompactNumber.format(
-                                                filteredPositionOrders![index]
-                                                    .quantity!),
-                                            style:
-                                                const TextStyle(fontSize: 17),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                          )),
-                                          title: Text(
-                                              "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                          subtitle: Text(
-                                              "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                                          trailing: Wrap(spacing: 8, children: [
-                                            if (filteredPositionOrders![index]
-                                                    .averagePrice !=
-                                                null)
-                                              Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                      color: _amountColor(
-                                                              amount)
-                                                          .withOpacity(0.12),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: _amountColor(
-                                                              amount))),
-                                                  child: Text(
-                                                    "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}",
-                                                    style: TextStyle(
-                                                        fontSize: 16.5,
-                                                        fontWeight:
-                                                            FontWeight.w600,
+                                                order.side.toUpperCase(),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: order.side == 'buy'
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                "${order.type} @ ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : "-"}"),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              "${order.state} • ${formatDate.format(order.updatedAt!)}",
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color),
+                                            ),
+                                          ],
+                                        ),
+                                        trailing: order.averagePrice != null
+                                            ? Wrap(spacing: 8, children: [
+                                                Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                    decoration: BoxDecoration(
                                                         color: _amountColor(
-                                                            amount)),
-                                                  ))
-                                          ]),
-
-                                          //isThreeLine: true,
-                                          onTap: () {
-                                            /* For navigation within this tab, uncomment
+                                                                amount)
+                                                            .withOpacity(0.12),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                        border: Border.all(
+                                                            color: _amountColor(
+                                                                amount))),
+                                                    child: Text(
+                                                      "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}",
+                                                      style: TextStyle(
+                                                          fontSize: 16.5,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: _amountColor(
+                                                              amount)),
+                                                    ))
+                                              ])
+                                            : null,
+                                        onTap: () {
+                                          /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           filteredPositionOrders![index])));
                                           */
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        PositionOrderWidget(
-                                                          widget.brokerageUser!,
-                                                          widget.service!,
-                                                          filteredPositionOrders![
-                                                              index],
-                                                          analytics:
-                                                              widget.analytics,
-                                                          observer:
-                                                              widget.observer,
-                                                          generativeService: widget
-                                                              .generativeService,
-                                                          user: widget.user,
-                                                          userDocRef:
-                                                              widget.userDoc,
-                                                        )));
-                                          },
-                                        ),
-                                ],
-                              ));
-                        },
-                        childCount: filteredPositionOrders!.length,
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      PositionOrderWidget(
+                                                        widget.brokerageUser!,
+                                                        widget.service!,
+                                                        filteredPositionOrders![
+                                                            index],
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService,
+                                                        user: widget.user,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
+                                        },
+                                      ),
+                              ],
+                            ));
+                          },
+                          childCount: filteredPositionOrders!.length,
+                        ),
                       ),
-                    ),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
@@ -985,220 +1023,246 @@ class _HistoryPageState extends State<HistoryPage>
                 slivers: [
                   if (optionOrders != null) ...[
                     SliverToBoxAdapter(
-                        child: ListTile(
-                      title: const Text(
-                        "Options",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                          "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                      // ${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders
-                      trailing: Wrap(
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                var future = showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  // constraints: BoxConstraints(maxHeight: 260),
-                                  builder:
-                                      /*
-                              (_) => OptionOrderFilterBottomSheet(
-                                  orderSymbols: orderSymbols,
-                                  optionPositions:
-                                      optionPositions)
-                                      */
-                                      (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context)
-                                          //     .colorScheme
-                                          //     .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Option Orders",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          /*
-                                      trailing: TextButton(
-                                          child: const Text("APPLY"),
-                                          onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        // const ListTile(
-                                        //   title: Text("Order State & Date"),
-                                        // ),
-                                        orderFilterWidget,
-                                        orderDateFilterWidget,
-                                        // const ListTile(
-                                        //   title: Text("Symbols"),
-                                        // ),
-                                        SizedBox(
-                                          height: 25,
-                                        ),
-                                        optionOrderSymbolFilterWidget(4),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Options",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}",
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.filter_list),
+                                  onPressed: () {
+                                    _showFilterBottomSheet(
+                                      title: "Filter Option Orders",
+                                      builder: (setState) => [
+                                        buildOrderFilterWidget(setState),
+                                        const SizedBox(height: 8),
+                                        buildOrderDateFilterWidget(setState),
+                                        const SizedBox(height: 25),
+                                        buildOptionOrderSymbolFilterWidget(
+                                            4, setState),
                                       ],
                                     );
                                   },
-                                );
-                                future.then((void value) => {});
-                              }),
-                          IconButton(
-                              tooltip: 'Share selections',
-                              onPressed: () => _showShareView(),
-                              icon: Icon(showShareView
-                                  ? Icons.check
-                                  : Icons.ios_share))
-                        ],
+                                ),
+                                IconButton(
+                                  tooltip: 'Share selections',
+                                  onPressed: () => _showShareView(),
+                                  icon: Icon(showShareView
+                                      ? Icons.check
+                                      : Icons.ios_share),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          var optionOrder = filteredOptionOrders![index];
-                          var subtitle = Text(
-                              "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
-                          if (optionOrder.optionEvents != null) {
-                            var optionEvent = optionOrder.optionEvents!.first;
-                            subtitle = Text(
-                                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
-                          }
-                          double displayPremium =
-                              (optionOrder.processedPremium ?? 0) *
-                                  (optionOrder.direction == "credit" ? 1 : -1);
-                          return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  showShareView
-                                      ? CheckboxListTile(
-                                          value: selectedOptionOrdersToShare
-                                              .contains(
-                                                  filteredOptionOrders![index]
-                                                      .id),
-                                          onChanged: (bool? newValue) {
-                                            if (newValue!) {
-                                              setState(() {
-                                                selectedOptionOrdersToShare.add(
-                                                    filteredOptionOrders![index]
-                                                        .id);
-                                              });
-                                            } else {
-                                              setState(() {
-                                                selectedOptionOrdersToShare
-                                                    .remove(
-                                                        filteredOptionOrders![
-                                                                index]
-                                                            .id);
-                                              });
-                                            }
-                                          },
-                                          title: Text(
-                                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                          subtitle: subtitle,
-                                        )
-                                      : ListTile(
-                                          leading: CircleAvatar(
-                                              //backgroundImage: AssetImage(user.profilePicture),
-                                              /*
-                          backgroundColor: optionOrder.optionEvents != null
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.secondary,
-                              */
-                                              child: optionOrder.optionEvents !=
-                                                      null
-                                                  ? const Icon(Icons.check)
-                                                  : Text(
-                                                      '${optionOrder.quantity!.round()}',
-                                                      style: const TextStyle(
-                                                          fontSize: 17))),
-                                          title: Text(
-                                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                          subtitle: subtitle,
-                                          trailing: Wrap(spacing: 8, children: [
+                    ),
+                    if (filteredOptionOrders!.isEmpty)
+                      _buildEmptyState("No option orders found.")
+                    else
+                      SliverList(
+                        // delegate: SliverChildListDelegate(widgets),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            var optionOrder = filteredOptionOrders![index];
+                            var subtitle = Text(
+                                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
+                            if (optionOrder.optionEvents != null) {
+                              var optionEvent = optionOrder.optionEvents!.first;
+                              subtitle = Text(
+                                  "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
+                            }
+                            double displayPremium =
+                                (optionOrder.processedPremium ?? 0) *
+                                    (optionOrder.direction == "credit"
+                                        ? 1
+                                        : -1);
+                            return _buildCard(
+                                child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                showShareView
+                                    ? CheckboxListTile(
+                                        value: selectedOptionOrdersToShare
+                                            .contains(optionOrder.id),
+                                        onChanged: (bool? newValue) {
+                                          if (newValue!) {
+                                            setState(() {
+                                              selectedOptionOrdersToShare
+                                                  .add(optionOrder.id);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              selectedOptionOrdersToShare
+                                                  .remove(optionOrder.id);
+                                            });
+                                          }
+                                        },
+                                        title: Text(
+                                            "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"),
+                                        subtitle: subtitle,
+                                      )
+                                    : ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 4),
+                                        leading: CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor: optionOrder
+                                                        .direction ==
+                                                    'credit'
+                                                ? Colors.green.withOpacity(0.1)
+                                                : Colors.red.withOpacity(0.1),
+                                            foregroundColor:
+                                                optionOrder.direction ==
+                                                        'credit'
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                            child: optionOrder.optionEvents !=
+                                                    null
+                                                ? const Icon(Icons.check,
+                                                    size: 20)
+                                                : Text(
+                                                    '${optionOrder.quantity!.round()}',
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.bold))),
+                                        title: Row(
+                                          children: [
+                                            Text(
+                                              optionOrder.chainSymbol,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            const SizedBox(width: 8),
                                             Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                decoration: BoxDecoration(
-                                                    color: _amountColor(
-                                                            displayPremium)
-                                                        .withOpacity(0.12),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                        color: _amountColor(
-                                                            displayPremium))),
-                                                child: Text(
-                                                  (displayPremium > 0
-                                                          ? "+"
-                                                          : displayPremium < 0
-                                                              ? "-"
-                                                              : "") +
-                                                      formatCurrency.format(
-                                                          displayPremium.abs()),
-                                                  style: TextStyle(
-                                                      fontSize: 16.5,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                optionOrder.strategy
+                                                    .toUpperCase(),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                "\$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.legs.first.optionType.toUpperCase()} • ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"),
+                                            const SizedBox(height: 2),
+                                            subtitle,
+                                          ],
+                                        ),
+                                        trailing: Wrap(spacing: 8, children: [
+                                          Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color: _amountColor(
+                                                          displayPremium)
+                                                      .withOpacity(0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
                                                       color: _amountColor(
-                                                          displayPremium)),
-                                                ))
-                                          ]),
-
-                                          isThreeLine:
-                                              optionOrder.optionEvents != null,
-                                          onTap: () {
-                                            /* For navigation within this tab, uncomment
+                                                          displayPremium))),
+                                              child: Text(
+                                                (displayPremium > 0
+                                                        ? "+"
+                                                        : displayPremium < 0
+                                                            ? "-"
+                                                            : "") +
+                                                    formatCurrency.format(
+                                                        displayPremium.abs()),
+                                                style: TextStyle(
+                                                    fontSize: 16.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _amountColor(
+                                                        displayPremium)),
+                                              ))
+                                        ]),
+                                        isThreeLine: true,
+                                        onTap: () {
+                                          /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
                                           optionOrder)));
                                           */
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        OptionOrderWidget(
-                                                          widget.brokerageUser!,
-                                                          widget.service!,
-                                                          optionOrder,
-                                                          analytics:
-                                                              widget.analytics,
-                                                          observer:
-                                                              widget.observer,
-                                                          generativeService: widget
-                                                              .generativeService,
-                                                          user: widget.user,
-                                                          userDocRef:
-                                                              widget.userDoc,
-                                                        )));
-                                          },
-                                        ),
-                                ],
-                              ));
-                        },
-                        childCount: filteredOptionOrders!.length,
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      OptionOrderWidget(
+                                                        widget.brokerageUser!,
+                                                        widget.service!,
+                                                        optionOrder,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        generativeService: widget
+                                                            .generativeService,
+                                                        user: widget.user,
+                                                        userDocRef:
+                                                            widget.userDoc,
+                                                      )));
+                                        },
+                                      ),
+                              ],
+                            ));
+                          },
+                          childCount: filteredOptionOrders!.length,
+                        ),
                       ),
-                    ),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
@@ -1219,58 +1283,16 @@ class _HistoryPageState extends State<HistoryPage>
                           IconButton(
                               icon: const Icon(Icons.filter_list),
                               onPressed: () {
-                                var future = showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  // constraints: BoxConstraints(maxHeight: 260),
-                                  builder:
-                                      /*
-                              (_) => OptionOrderFilterBottomSheet(
-                                  orderSymbols: orderSymbols,
-                                  optionPositions:
-                                      optionPositions)
-                                      */
-                                      (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context)
-                                          //     .colorScheme
-                                          //     .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Option Events",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          /*
-                                      trailing: TextButton(
-                                          child: const Text("APPLY"),
-                                          onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        // const ListTile(
-                                        //   title: Text("Order State & Date"),
-                                        // ),
-                                        orderFilterWidget,
-                                        orderDateFilterWidget,
-                                        // const ListTile(
-                                        //   title: Text("Symbols"),
-                                        // ),
-                                        SizedBox(
-                                          height: 25,
-                                        ),
-                                        optionOrderSymbolFilterWidget(4),
-                                      ],
-                                    );
-                                  },
+                                _showFilterBottomSheet(
+                                  title: "Filter Option Events",
+                                  builder: (setState) => [
+                                    buildOrderFilterWidget(setState),
+                                    buildOrderDateFilterWidget(setState),
+                                    const SizedBox(height: 25),
+                                    buildOptionOrderSymbolFilterWidget(
+                                        4, setState),
+                                  ],
                                 );
-                                future.then((void value) => {});
                               }),
                           IconButton(
                               tooltip: 'Share selections',
@@ -1281,94 +1303,120 @@ class _HistoryPageState extends State<HistoryPage>
                         ],
                       ),
                     )),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          var eventCash =
-                              (filteredOptionEvents![index].totalCashAmount ??
-                                      0) *
-                                  (filteredOptionEvents![index].direction ==
-                                          "credit"
-                                      ? 1
-                                      : -1);
-                          return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  ListTile(
-                                    leading: CircleAvatar(
-                                        //backgroundImage: AssetImage(user.profilePicture),
-                                        child: Text(
-                                            '${filteredOptionEvents![index].quantity!.round()}',
-                                            style:
-                                                const TextStyle(fontSize: 17))),
-                                    title: Text(
-                                        "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
-                                    subtitle: Text(
-                                        "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
-                                    trailing: Wrap(spacing: 8, children: [
-                                      if (filteredOptionEvents![index]
-                                              .totalCashAmount !=
-                                          null)
-                                        Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                                color: _amountColor(eventCash)
-                                                    .withOpacity(0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                    color: _amountColor(
-                                                        eventCash))),
-                                            child: Text(
-                                              (eventCash > 0
-                                                      ? "+"
-                                                      : eventCash < 0
-                                                          ? "-"
-                                                          : "") +
-                                                  formatCurrency
-                                                      .format(eventCash.abs()),
-                                              style: TextStyle(
-                                                  fontSize: 16.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color:
-                                                      _amountColor(eventCash)),
-                                            ))
-                                    ]),
-
-                                    //isThreeLine: true,
-                                    onTap: () {
-                                      () => showDialog<String>(
-                                          context: context,
-                                          builder: (BuildContext context) =>
-                                              AlertDialog(
-                                                title: const Text('Alert'),
-                                                content: const Text(
-                                                    'This feature is not implemented.'),
-                                                actions: <Widget>[
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            context, 'OK'),
-                                                    child: const Text('OK'),
-                                                  ),
-                                                ],
-                                              ));
-                                    },
+                    if (filteredOptionEvents!.isEmpty)
+                      _buildEmptyState("No option events found.")
+                    else
+                      SliverList(
+                        // delegate: SliverChildListDelegate(widgets),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            var event = filteredOptionEvents![index];
+                            var eventCash = (event.totalCashAmount ?? 0) *
+                                (event.direction == "credit" ? 1 : -1);
+                            return _buildCard(
+                                child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  leading: CircleAvatar(
+                                      radius: 22,
+                                      backgroundColor:
+                                          event.direction == 'credit'
+                                              ? Colors.green.withOpacity(0.1)
+                                              : Colors.red.withOpacity(0.1),
+                                      foregroundColor:
+                                          event.direction == 'credit'
+                                              ? Colors.green
+                                              : Colors.red,
+                                      child: Text('${event.quantity!.round()}',
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold))),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        event.type.capitalize(),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (event.underlyingPrice != null)
+                                        Text(
+                                          "@ ${formatCurrency.format(event.underlyingPrice)}",
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                    ],
                                   ),
-                                ],
-                              ));
-                        },
-                        childCount: filteredOptionEvents!.length,
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          "${formatCompactDate.format(event.eventDate!)} • ${event.state}"),
+                                    ],
+                                  ),
+                                  trailing: event.totalCashAmount != null
+                                      ? Wrap(spacing: 8, children: [
+                                          Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color: _amountColor(eventCash)
+                                                      .withOpacity(0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color: _amountColor(
+                                                          eventCash))),
+                                              child: Text(
+                                                (eventCash > 0
+                                                        ? "+"
+                                                        : eventCash < 0
+                                                            ? "-"
+                                                            : "") +
+                                                    formatCurrency.format(
+                                                        eventCash.abs()),
+                                                style: TextStyle(
+                                                    fontSize: 16.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _amountColor(
+                                                        eventCash)),
+                                              ))
+                                        ])
+                                      : null,
+                                  onTap: () {
+                                    () => showDialog<String>(
+                                        context: context,
+                                        builder: (BuildContext context) =>
+                                            AlertDialog(
+                                              title: const Text('Alert'),
+                                              content: const Text(
+                                                  'This feature is not implemented.'),
+                                              actions: <Widget>[
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, 'OK'),
+                                                  child: const Text('OK'),
+                                                ),
+                                              ],
+                                            ));
+                                  },
+                                ),
+                              ],
+                            ));
+                          },
+                          childCount: filteredOptionEvents!.length,
+                        ),
                       ),
-                    ),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
@@ -1399,240 +1447,301 @@ class _HistoryPageState extends State<HistoryPage>
                 slivers: [
                   if (dividends != null) ...[
                     SliverToBoxAdapter(
-                        child: ListTile(
-                      title: const Text(
-                        "Dividends",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                          "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
-                      // ${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends
-                      trailing: Wrap(
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                var future = showModalBottomSheet<void>(
-                                  context: context,
-                                  // constraints: BoxConstraints(maxHeight: 260),
-                                  showDragHandle: true,
-                                  builder:
-                                      /*
-                              (_) => OptionOrderFilterBottomSheet(
-                                  orderSymbols: orderSymbols,
-                                  optionPositions:
-                                      optionPositions)
-                                      */
-                                      (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context)
-                                          //     .colorScheme
-                                          //     .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Dividends",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          /*
-                                      trailing: TextButton(
-                                          child: const Text("APPLY"),
-                                          onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        // const ListTile(
-                                        //   title: Text("Order State & Date"),
-                                        // ),
-                                        orderFilterWidget,
-                                        orderDateFilterWidget,
-                                        // const ListTile(
-                                        //   title: Text("Symbols"),
-                                        // ),
-                                        SizedBox(
-                                          height: 25,
-                                        ),
-                                        stockOrderSymbolFilterWidget(4),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Dividends",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}",
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.filter_list),
+                                  onPressed: () {
+                                    _showFilterBottomSheet(
+                                      title: "Filter Dividends",
+                                      builder: (setState) => [
+                                        buildOrderFilterWidget(setState),
+                                        buildOrderDateFilterWidget(setState),
+                                        const SizedBox(height: 25),
+                                        buildStockOrderSymbolFilterWidget(
+                                            4, setState),
                                       ],
                                     );
                                   },
-                                );
-                                future.then((void value) => {});
-                              }),
-                          IconButton(
-                              tooltip: 'Share selections',
-                              onPressed: () => _showShareView(),
-                              icon: Icon(showShareView
-                                  ? Icons.check
-                                  : Icons.ios_share))
-                        ],
-                      ),
-                    )),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          // if (index == 0) {
-                          //   return SizedBox(
-                          //       height: 240,
-                          //       child: Padding(
-                          //         padding: const EdgeInsets.fromLTRB(
-                          //             10.0, 0, 10, 10), //EdgeInsets.zero
-                          //         child: dividendChart(),
-                          //       ));
-                          // }
-                          var dividend = filteredDividends![index];
-                          var dividendAmount = double.parse(dividend["amount"]);
-                          return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  showShareView
-                                      ? CheckboxListTile(
-                                          value: selectionsToShare.contains(
-                                              filteredDividends![index]["id"]),
-                                          onChanged: (bool? newValue) {
-                                            if (newValue!) {
-                                              setState(() {
-                                                selectionsToShare.add(
-                                                    filteredDividends![index]
-                                                        ["id"]);
-                                              });
-                                            } else {
-                                              setState(() {
-                                                selectionsToShare.remove(
-                                                    filteredDividends![index]
-                                                        ["id"]);
-                                              });
-                                            }
-                                          },
-                                          title: Text(
-                                            dividend["instrumentObj"] != null
-                                                ? "${dividend["instrumentObj"].symbol}"
-                                                : ""
-                                                    "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                            style:
-                                                const TextStyle(fontSize: 18.0),
-                                            //overflow: TextOverflow.visible
-                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                          // title: Text(
-                                          //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
-                                          subtitle: Text(
-                                              "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                              style: const TextStyle(
-                                                  fontSize: 14)),
-                                          // subtitle: Text(
-                                          //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
-                                        )
-                                      : ListTile(
-                                          leading: CircleAvatar(
-                                              //backgroundImage: AssetImage(user.profilePicture),
-                                              child: Text(
-                                            dividend["instrumentObj"] != null
-                                                ? dividend["instrumentObj"]
-                                                    .symbol
-                                                : "",
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                          )),
-                                          title: Text(
-                                            dividend["instrumentObj"] != null
-                                                ? "${dividend["instrumentObj"].symbol}"
-                                                : ""
-                                                    "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                            style:
-                                                const TextStyle(fontSize: 18.0),
-                                            //overflow: TextOverflow.visible
-                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                          subtitle: Text(
-                                              "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                              style: const TextStyle(
-                                                  fontSize: 14)),
-                                          trailing: Wrap(spacing: 8, children: [
-                                            Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                decoration: BoxDecoration(
-                                                    color: _amountColor(
-                                                            dividendAmount)
-                                                        .withOpacity(0.12),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                        color: _amountColor(
-                                                            dividendAmount))),
-                                                child: Text(
-                                                  formatCurrency
-                                                      .format(dividendAmount),
-                                                  style: TextStyle(
-                                                      fontSize: 16.5,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: _amountColor(
-                                                          dividendAmount)),
-                                                ))
-                                          ]),
-                                          //   onTap: () {
-                                          //     /* For navigation within this tab, uncomment
-                                          // widget.navigatorKey!.currentState!.push(
-                                          //     MaterialPageRoute(
-                                          //         builder: (context) => PositionOrderWidget(
-                                          //             widget.user,
-                                          //             filteredDividends![index])));
-                                          //             */
-                                          //     showDialog<String>(
-                                          //       context: context,
-                                          //       builder: (BuildContext context) =>
-                                          //           AlertDialog(
-                                          //         title: const Text('Alert'),
-                                          //         content: const Text(
-                                          //             'This feature is not implemented.\n'),
-                                          //         actions: <Widget>[
-                                          //           TextButton(
-                                          //             onPressed: () =>
-                                          //                 Navigator.pop(context, 'OK'),
-                                          //             child: const Text('OK'),
-                                          //           ),
-                                          //         ],
-                                          //       ),
-                                          //     );
-
-                                          //     // Navigator.push(
-                                          //     //     context,
-                                          //     //     MaterialPageRoute(
-                                          //     //         builder: (context) => PositionOrderWidget(
-                                          //     //               widget.user,
-                                          //     //               filteredDividends![index],
-                                          //     //               analytics: widget.analytics,
-                                          //     //               observer: widget.observer,
-                                          //     //             )));
-                                          //   },
-
-                                          //isThreeLine: true,
-                                        ),
-                                ],
-                              ));
-                        },
-                        childCount: filteredDividends!.length,
+                                ),
+                                IconButton(
+                                  tooltip: 'Share selections',
+                                  onPressed: () => _showShareView(),
+                                  icon: Icon(showShareView
+                                      ? Icons.check
+                                      : Icons.ios_share),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    if (filteredDividends!.isEmpty)
+                      _buildEmptyState("No dividends found.")
+                    else
+                      SliverList(
+                        // delegate: SliverChildListDelegate(widgets),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            // if (index == 0) {
+                            //   return SizedBox(
+                            //       height: 240,
+                            //       child: Padding(
+                            //         padding: const EdgeInsets.fromLTRB(
+                            //             10.0, 0, 10, 10), //EdgeInsets.zero
+                            //         child: dividendChart(),
+                            //       ));
+                            // }
+                            var dividend = filteredDividends![index];
+                            var dividendAmount =
+                                double.parse(dividend["amount"]);
+                            return _buildCard(
+                                child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                showShareView
+                                    ? CheckboxListTile(
+                                        value: selectionsToShare.contains(
+                                            filteredDividends![index]["id"]),
+                                        onChanged: (bool? newValue) {
+                                          if (newValue!) {
+                                            setState(() {
+                                              selectionsToShare.add(
+                                                  filteredDividends![index]
+                                                      ["id"]);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              selectionsToShare.remove(
+                                                  filteredDividends![index]
+                                                      ["id"]);
+                                            });
+                                          }
+                                        },
+                                        title: Text(
+                                          dividend["instrumentObj"] != null
+                                              ? "${dividend["instrumentObj"].symbol}"
+                                              : ""
+                                                  "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                          style:
+                                              const TextStyle(fontSize: 18.0),
+                                          //overflow: TextOverflow.visible
+                                        ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                        // title: Text(
+                                        //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
+                                        subtitle: Text(
+                                            "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                            style:
+                                                const TextStyle(fontSize: 14)),
+                                        // subtitle: Text(
+                                        //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
+                                      )
+                                    : ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 4),
+                                        onTap: () {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      Scaffold(
+                                                          appBar: AppBar(
+                                                            title: const Text(
+                                                                'Income'),
+                                                          ),
+                                                          body:
+                                                              CustomScrollView(
+                                                                  slivers: [
+                                                                IncomeTransactionsWidget(
+                                                                  widget
+                                                                      .brokerageUser!,
+                                                                  widget
+                                                                      .service!,
+                                                                  Provider.of<
+                                                                          DividendStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false),
+                                                                  Provider.of<
+                                                                          InstrumentPositionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false),
+                                                                  Provider.of<
+                                                                          InstrumentOrderStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false),
+                                                                  Provider.of<
+                                                                          ChartSelectionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false),
+                                                                  interestStore: Provider.of<
+                                                                          InterestStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false),
+                                                                  transactionSymbolFilters:
+                                                                      dividend["instrumentObj"] !=
+                                                                              null
+                                                                          ? [
+                                                                              dividend["instrumentObj"].symbol
+                                                                            ]
+                                                                          : [],
+                                                                  transactionFilters: const [
+                                                                    'dividend'
+                                                                  ],
+                                                                  analytics: widget
+                                                                      .analytics,
+                                                                  observer: widget
+                                                                      .observer,
+                                                                )
+                                                              ]))));
+                                        },
+                                        leading: CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor:
+                                                Colors.green.withOpacity(0.1),
+                                            foregroundColor: Colors.green,
+                                            child: Text(
+                                              dividend["instrumentObj"] != null
+                                                  ? dividend["instrumentObj"]
+                                                      .symbol
+                                                  : "",
+                                              style: const TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold),
+                                              overflow: TextOverflow.fade,
+                                              softWrap: false,
+                                            )),
+                                        title: Text(
+                                          dividend["instrumentObj"] != null
+                                              ? "${dividend["instrumentObj"].symbol}"
+                                              : ""
+                                                  "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                          //overflow: TextOverflow.visible
+                                        ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.color)),
+                                          ],
+                                        ),
+                                        trailing: Wrap(spacing: 8, children: [
+                                          Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color: _amountColor(
+                                                          dividendAmount)
+                                                      .withOpacity(0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color: _amountColor(
+                                                          dividendAmount))),
+                                              child: Text(
+                                                (dividendAmount > 0
+                                                        ? "+"
+                                                        : dividendAmount < 0
+                                                            ? "-"
+                                                            : "") +
+                                                    formatCurrency.format(
+                                                        dividendAmount.abs()),
+                                                style: TextStyle(
+                                                    fontSize: 16.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _amountColor(
+                                                        dividendAmount)),
+                                              ))
+                                        ]),
+                                        //   onTap: () {
+                                        //     /* For navigation within this tab, uncomment
+                                        // widget.navigatorKey!.currentState!.push(
+                                        //     MaterialPageRoute(
+                                        //         builder: (context) => PositionOrderWidget(
+                                        //             widget.user,
+                                        //             filteredDividends![index])));
+                                        //             */
+                                        //     showDialog<String>(
+                                        //       context: context,
+                                        //       builder: (BuildContext context) =>
+                                        //           AlertDialog(
+                                        //         title: const Text('Alert'),
+                                        //         content: const Text(
+                                        //             'This feature is not implemented.\n'),
+                                        //         actions: <Widget>[
+                                        //           TextButton(
+                                        //             onPressed: () =>
+                                        //                 Navigator.pop(context, 'OK'),
+                                        //             child: const Text('OK'),
+                                        //           ),
+                                        //         ],
+                                        //       ),
+                                        //     );
+
+                                        //     // Navigator.push(
+                                        //     //     context,
+                                        //     //     MaterialPageRoute(
+                                        //     //         builder: (context) => PositionOrderWidget(
+                                        //     //               widget.user,
+                                        //     //               filteredDividends![index],
+                                        //     //               analytics: widget.analytics,
+                                        //     //               observer: widget.observer,
+                                        //     //             )));
+                                        //   },
+
+                                        //isThreeLine: true,
+                                      ),
+                              ],
+                            ));
+                          },
+                          childCount: filteredDividends!.length,
+                        ),
+                      ),
                   ],
 
                   // TODO: Introduce web banner
@@ -1659,166 +1768,229 @@ class _HistoryPageState extends State<HistoryPage>
                 slivers: [
                   if (interests != null) ...[
                     SliverToBoxAdapter(
-                        child: ListTile(
-                      title: const Text(
-                        "Interest Payments",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                          "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}"),
-                      // ${formatCompactNumber.format(filteredInterests!.length)} of ${formatCompactNumber.format(interests.length)} interest
-                      trailing: Wrap(
-                        children: [
-                          IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                var future = showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  // constraints: BoxConstraints(maxHeight: 260),
-                                  builder: (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Interest Payments",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        // const ListTile(
-                                        //   title: Text("Order State & Date"),
-                                        // ),
-                                        orderFilterWidget,
-                                        orderDateFilterWidget,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Interest Payments",
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}",
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.filter_list),
+                                  onPressed: () {
+                                    _showFilterBottomSheet(
+                                      title: "Filter Interest Payments",
+                                      builder: (setState) => [
+                                        buildOrderFilterWidget(setState),
+                                        buildOrderDateFilterWidget(setState),
                                       ],
                                     );
                                   },
-                                );
-                                future.then((void value) => {});
-                              }),
-                          IconButton(
-                              tooltip: 'Share selections',
-                              onPressed: () => _showShareView(),
-                              icon: Icon(showShareView
-                                  ? Icons.check
-                                  : Icons.ios_share))
-                        ],
-                      ),
-                    )),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          // if (index == 0) {
-                          //   return SizedBox(
-                          //       height: 240,
-                          //       child: Padding(
-                          //         padding: const EdgeInsets.fromLTRB(
-                          //             10.0, 0, 10, 10), //EdgeInsets.zero
-                          //         child: interestChart(),
-                          //       ));
-                          // }
-                          var interest = filteredInterests![index];
-                          var interestAmount =
-                              double.parse(interest["amount"]["amount"]);
-                          return Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  showShareView
-                                      ? CheckboxListTile(
-                                          value: selectionsToShare
-                                              .contains(interest["id"]),
-                                          onChanged: (bool? newValue) {
-                                            if (newValue!) {
-                                              setState(() {
-                                                selectionsToShare
-                                                    .add(interest["id"]);
-                                              });
-                                            } else {
-                                              setState(() {
-                                                selectionsToShare
-                                                    .remove(interest["id"]);
-                                              });
-                                            }
-                                          },
-                                          title: Text(interest["payout_type"]
-                                              .toString()
-                                              .replaceAll("_", " ")
-                                              .capitalize()),
-                                          subtitle: Text(
-                                              "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
-                                        )
-                                      : ListTile(
-                                          // leading: CircleAvatar(
-                                          //     //backgroundImage: AssetImage(user.profilePicture),
-                                          //     child: Text(
-                                          //   "INT",
-                                          //   style: const TextStyle(fontSize: 14),
-                                          //   overflow: TextOverflow.fade,
-                                          //   softWrap: false,
-                                          // )),
-                                          title: Text(
-                                            interest["payout_type"]
-                                                .toString()
-                                                .replaceAll("_", " ")
-                                                .capitalize(),
-                                            // style: const TextStyle(fontSize: 18.0),
-                                            //overflow: TextOverflow.visible
-                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                          subtitle: Text(
-                                              "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                              style: const TextStyle(
-                                                  fontSize: 14)),
-                                          trailing: Wrap(spacing: 8, children: [
-                                            Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4),
-                                                decoration: BoxDecoration(
-                                                    color: _amountColor(
-                                                            interestAmount)
-                                                        .withOpacity(0.12),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                        color: _amountColor(
-                                                            interestAmount))),
-                                                child: Text(
-                                                  formatCurrency
-                                                      .format(interestAmount),
-                                                  style: TextStyle(
-                                                      fontSize: 16.5,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: _amountColor(
-                                                          interestAmount)),
-                                                ))
-                                          ]),
-                                          //isThreeLine: true,
-                                        ),
-                                ],
-                              ));
-                        },
-                        childCount: filteredInterests!.length,
+                                ),
+                                IconButton(
+                                  tooltip: 'Share selections',
+                                  onPressed: () => _showShareView(),
+                                  icon: Icon(showShareView
+                                      ? Icons.check
+                                      : Icons.ios_share),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    if (filteredInterests!.isEmpty)
+                      _buildEmptyState("No interest payments found.")
+                    else
+                      SliverList(
+                        // delegate: SliverChildListDelegate(widgets),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            // if (index == 0) {
+                            //   return SizedBox(
+                            //       height: 240,
+                            //       child: Padding(
+                            //         padding: const EdgeInsets.fromLTRB(
+                            //             10.0, 0, 10, 10), //EdgeInsets.zero
+                            //         child: interestChart(),
+                            //       ));
+                            // }
+                            var interest = filteredInterests![index];
+                            var interestAmount =
+                                double.parse(interest["amount"]["amount"]);
+                            return _buildCard(
+                                child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                showShareView
+                                    ? CheckboxListTile(
+                                        value: selectionsToShare
+                                            .contains(interest["id"]),
+                                        onChanged: (bool? newValue) {
+                                          if (newValue!) {
+                                            setState(() {
+                                              selectionsToShare
+                                                  .add(interest["id"]);
+                                            });
+                                          } else {
+                                            setState(() {
+                                              selectionsToShare
+                                                  .remove(interest["id"]);
+                                            });
+                                          }
+                                        },
+                                        title: Text(interest["payout_type"]
+                                            .toString()
+                                            .replaceAll("_", " ")
+                                            .capitalize()),
+                                        subtitle: Text(
+                                            "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
+                                      )
+                                    : ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 16, vertical: 4),
+                                        leading: CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor:
+                                                Colors.green.withOpacity(0.1),
+                                            foregroundColor: Colors.green,
+                                            child: const Icon(
+                                                Icons.attach_money,
+                                                size: 20)),
+                                        title: Text(
+                                          interest["payout_type"]
+                                              .toString()
+                                              .replaceAll("_", " ")
+                                              .capitalize(),
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}"),
+                                          ],
+                                        ),
+                                        trailing: Wrap(spacing: 8, children: [
+                                          Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                  color: _amountColor(
+                                                          interestAmount)
+                                                      .withOpacity(0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color: _amountColor(
+                                                          interestAmount))),
+                                              child: Text(
+                                                (interestAmount > 0
+                                                        ? "+"
+                                                        : interestAmount < 0
+                                                            ? "-"
+                                                            : "") +
+                                                    formatCurrency.format(
+                                                        interestAmount.abs()),
+                                                style: TextStyle(
+                                                    fontSize: 16.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _amountColor(
+                                                        interestAmount)),
+                                              ))
+                                        ]),
+                                        onTap: () {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      Material(
+                                                          child: Scaffold(
+                                                              appBar: AppBar(
+                                                                title: const Text(
+                                                                    'Income'),
+                                                              ),
+                                                              body:
+                                                                  CustomScrollView(
+                                                                      slivers: [
+                                                                    IncomeTransactionsWidget(
+                                                                      widget
+                                                                          .brokerageUser!,
+                                                                      widget
+                                                                          .service!,
+                                                                      Provider.of<
+                                                                              DividendStore>(
+                                                                          context,
+                                                                          listen:
+                                                                              false),
+                                                                      Provider.of<
+                                                                              InstrumentPositionStore>(
+                                                                          context,
+                                                                          listen:
+                                                                              false),
+                                                                      Provider.of<
+                                                                              InstrumentOrderStore>(
+                                                                          context,
+                                                                          listen:
+                                                                              false),
+                                                                      Provider.of<
+                                                                              ChartSelectionStore>(
+                                                                          context,
+                                                                          listen:
+                                                                              false),
+                                                                      interestStore: Provider.of<
+                                                                              InterestStore>(
+                                                                          context,
+                                                                          listen:
+                                                                              false),
+                                                                      transactionFilters: const [
+                                                                        'interest'
+                                                                      ],
+                                                                      analytics:
+                                                                          widget
+                                                                              .analytics,
+                                                                      observer:
+                                                                          widget
+                                                                              .observer,
+                                                                    )
+                                                                  ])))));
+                                        },
+                                      ),
+                              ],
+                            ));
+                          },
+                          childCount: filteredInterests!.length,
+                        ),
+                      ),
                   ],
                   // TODO: Introduce web banner
                   if (!kIsWeb) ...[
@@ -2218,18 +2390,10 @@ class _HistoryPageState extends State<HistoryPage>
     for (int i = 0; i < lists.length; i++) {
       var list = lists[i];
       rows.add(
-        SizedBox(
-            height: 56,
-            child: ListView.builder(
-              //physics: NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(4.0),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                return Row(children: list);
-              },
-              itemCount: 1,
-            )),
+        SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(4.0),
+            child: Row(children: list)),
       );
     }
 
@@ -2250,123 +2414,125 @@ class _HistoryPageState extends State<HistoryPage>
     //             : (orderDateFilterSelected == 3 ? "past year" : "")));
   }
 
-  Widget get orderFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Confirmed'),
-                  selected: orderFilters.contains("confirmed"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("confirmed");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "confirmed";
-                        });
-                      }
+  Widget buildOrderFilterWidget(StateSetter setState) {
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(children: [
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Confirmed'),
+              selected: orderFilters.contains("confirmed"),
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderFilters.add("confirmed");
+                  } else {
+                    orderFilters.removeWhere((String name) {
+                      return name == "confirmed";
                     });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Queued'),
-                  selected: orderFilters.contains("queued"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("queued");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "queued";
-                        });
-                      }
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Queued'),
+              selected: orderFilters.contains("queued"),
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderFilters.add("queued");
+                  } else {
+                    orderFilters.removeWhere((String name) {
+                      return name == "queued";
                     });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Filled'),
-                  selected: orderFilters.contains("filled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("filled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "filled";
-                        });
-                      }
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Filled'),
+              selected: orderFilters.contains("filled"),
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderFilters.add("filled");
+                  } else {
+                    orderFilters.removeWhere((String name) {
+                      return name == "filled";
                     });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Cancelled'),
-                  selected: orderFilters.contains("cancelled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("cancelled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "cancelled";
-                        });
-                      }
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Cancelled'),
+              selected: orderFilters.contains("cancelled"),
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderFilters.add("cancelled");
+                  } else {
+                    orderFilters.removeWhere((String name) {
+                      return name == "cancelled";
                     });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+        ]));
   }
 
-  Widget optionOrderSymbolFilterWidget(int rowCount) {
-    var widgets =
-        symbolFilterWidgets(optionOrderSymbols, optionSymbolFilters).toList();
+  Widget buildOptionOrderSymbolFilterWidget(int rowCount,
+      [StateSetter? bottomSheetSetState]) {
+    var widgets = symbolFilterWidgets(optionOrderSymbols, optionSymbolFilters,
+            bottomSheetSetState: bottomSheetSetState)
+        .toList();
     return symbolWidgets(widgets, rowCount: rowCount);
   }
 
-  Widget stockOrderSymbolFilterWidget(int rowCount) {
-    var widgets =
-        symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters).toList();
+  Widget buildStockOrderSymbolFilterWidget(int rowCount,
+      [StateSetter? bottomSheetSetState]) {
+    var widgets = symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters,
+            bottomSheetSetState: bottomSheetSetState)
+        .toList();
     return symbolWidgets(widgets, rowCount: rowCount);
   }
 
-  Widget cryptoFilterWidget(int rowCount) {
-    var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters).toList();
+  Widget buildCryptoFilterWidget(int rowCount,
+      [StateSetter? bottomSheetSetState]) {
+    var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters,
+            bottomSheetSetState: bottomSheetSetState)
+        .toList();
     return symbolWidgets(widgets, rowCount: rowCount);
   }
 
   Iterable<Widget> symbolFilterWidgets(
-      List<String> symbols, List<String> selectedSymbols) sync* {
+      List<String> symbols, List<String> selectedSymbols,
+      {StateSetter? bottomSheetSetState}) sync* {
     for (final String chainSymbol in symbols) {
       yield Padding(
         padding: const EdgeInsets.all(4.0),
@@ -2384,133 +2550,130 @@ class _HistoryPageState extends State<HistoryPage>
                 });
               }
             });
-            Navigator.pop(context, 'dialog');
+            if (bottomSheetSetState != null) {
+              bottomSheetSetState(() {});
+            }
+            // Navigator.pop(context, 'dialog');
           },
         ),
       );
     }
   }
 
-  Widget get orderDateFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Today'),
-                  selected: orderDateFilterSelection == 'Today',
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'Today';
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Week'),
-                  selected: orderDateFilterSelection == 'Past Week',
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'Past Week';
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Month'),
-                  selected: orderDateFilterSelection == 'Past Month',
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'Past Month';
-                      } else {}
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past 90 days'),
-                  selected: orderDateFilterSelection ==
-                      'Past 90 days', // orderDateFilterSelected == 2,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'Past 90 days';
-                        // orderDateFilterSelected = 2;
-                      } else {}
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Year'),
-                  selected: orderDateFilterSelection == 'Past Year',
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'Past Year';
-                      } else {}
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('All Time'),
-                  selected: orderDateFilterSelection == 'All Time',
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelection = 'All Time';
-                      } else {}
-                    });
-                    Navigator.pop(context, 'dialog');
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
+  Widget buildOrderDateFilterWidget(StateSetter setState) {
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(children: [
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Today'),
+              selected: orderDateFilterSelection == 'Today',
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'Today';
+                  } else {
+                    //dateFilterSelected = null;
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Past Week'),
+              selected: orderDateFilterSelection == 'Past Week',
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'Past Week';
+                  } else {
+                    //dateFilterSelected = null;
+                  }
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Past Month'),
+              selected: orderDateFilterSelection == 'Past Month',
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'Past Month';
+                  } else {}
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Past 90 days'),
+              selected: orderDateFilterSelection ==
+                  'Past 90 days', // orderDateFilterSelected == 2,
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'Past 90 days';
+                    // orderDateFilterSelected = 2;
+                  } else {}
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Past Year'),
+              selected: orderDateFilterSelection == 'Past Year',
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'Past Year';
+                  } else {}
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ChoiceChip(
+              //avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('All Time'),
+              selected: orderDateFilterSelection == 'All Time',
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    orderDateFilterSelection = 'All Time';
+                  } else {}
+                });
+                // Navigator.pop(context, 'dialog');
+              },
+            ),
+          ),
+        ]));
   }
 
   Future<void> _showShareView() async {
@@ -2519,7 +2682,7 @@ class _HistoryPageState extends State<HistoryPage>
           .where((element) => selectedOptionOrdersToShare.contains(element.id));
       var positionOrdersToShare = positionOrders!.where(
           (element) => selectedPositionOrdersToShare.contains(element.id));
-      String ordersText = "";
+
       var optionOrdersTexts = optionOrdersToShare.map((e) =>
           "${e.chainSymbol} \$${formatCompactNumber.format(e.legs.first.strikePrice)} ${e.strategy} ${formatCompactDate.format(e.legs.first.expirationDate!)} for ${e.direction == "credit" ? "+" : "-"}${formatCurrency.format(e.processedPremium)} (${e.quantity!.round()} ${e.openingStrategy != null ? e.openingStrategy!.split("_")[0] : e.closingStrategy!.split("_")[0]} contract${e.quantity! > 1 ? "s" : ""} at ${formatCurrency.format(e.price)})");
       var optionOrdersIdMap = optionOrdersToShare.map((e) {
@@ -2530,111 +2693,191 @@ class _HistoryPageState extends State<HistoryPage>
           "${e.instrumentObj != null ? e.instrumentObj!.symbol : ""} ${e.type} ${e.side} ${e.averagePrice != null ? formatCurrency.format(e.averagePrice) : ""}");
       var positionOrdersIdMap =
           positionOrdersToShare.map((e) => e.instrumentId);
-      if (shareText) {
-        // ordersText += "Here are my";
-        if (optionOrdersTexts.isNotEmpty) {
-          ordersText += "Option orders:\n";
-        }
-        ordersText += optionOrdersTexts.join("\n");
 
-        if (positionOrdersMap.isNotEmpty) {
-          ordersText += "Stock orders:\n";
-        }
-        ordersText += positionOrdersMap.join("\n");
-      }
-      if (shareLink) {
-        ordersText +=
-            "\n\nClick the link to import this data into RealizeAlpha: https://realizealpha.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
-      }
-      /*
-adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://robinhood-options-mobile.web.app/?options=123"
-      */
-      final box = context.findRenderObject() as RenderBox?;
-      // final url =
-      //     'https://realizealpha.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}';
-      // debugPrint(url);
-      await SharePlus.instance.share(ShareParams(
-          text: ordersText,
-          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size));
-      selectedOptionOrdersToShare.clear();
-      selectedPositionOrdersToShare.clear();
-      selectionsToShare.clear();
+      await showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Share Selection",
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text("Include Text Summary"),
+                    value: shareText,
+                    onChanged: (bool value) {
+                      setState(() {
+                        shareText = value;
+                      });
+                    },
+                  ),
+                  SwitchListTile(
+                    title: const Text("Include Import Link"),
+                    value: shareLink,
+                    onChanged: (bool value) {
+                      setState(() {
+                        shareLink = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.share),
+                        label: Text(
+                            "Share ${selectedPositionOrdersToShare.length + selectedOptionOrdersToShare.length + selectionsToShare.length} Items"),
+                        onPressed: () {
+                          Navigator.pop(context);
 
-      // await showModalBottomSheet<void>(
-      //   context: context,
-      //   showDragHandle: true,
-      //   //isScrollControlled: true,
-      //   //useRootNavigator: true,
-      //   //constraints: BoxConstraints(maxHeight: 260),
-      //   builder: (BuildContext context) {
-      //     return Scaffold(
-      //         // appBar: AppBar(
-      //         //   // leading: const CloseButton(),
-      //         //   title: const Text('Sharing Options'),
-      //         //   actions: [
-      //         //     IconButton(
-      //         //       icon: const Icon(Icons.send),
-      //         //       onPressed: () {
-      //         //         Navigator.pop(context);
-      //         //         Share.share(ordersText);
-      //         //       },
-      //         //     )
-      //         //   ],
-      //         // ),
-      //         body: ListView(
-      //       //Column(
-      //       //mainAxisAlignment: MainAxisAlignment.start,
-      //       //crossAxisAlignment: CrossAxisAlignment.center,
+                          String ordersText = "";
+                          if (shareText) {
+                            if (optionOrdersTexts.isNotEmpty) {
+                              ordersText += "Option orders:\n";
+                              ordersText += optionOrdersTexts.join("\n");
+                              ordersText += "\n";
+                            }
+                            if (positionOrdersMap.isNotEmpty) {
+                              if (ordersText.isNotEmpty) ordersText += "\n";
+                              ordersText += "Stock orders:\n";
+                              ordersText += positionOrdersMap.join("\n");
+                            }
+                          }
 
-      //       children: [
-      //         ListTile(
-      //           title: const Text('Sharing Options'),
-      //           trailing: IconButton(
-      //             icon: const Icon(Icons.send),
-      //             onPressed: () {
-      //               Navigator.pop(context);
-      //               Share.share(ordersText);
-      //             },
-      //           ),
-      //         ),
-      //         CheckboxListTile(
-      //           value: shareText,
-      //           onChanged: (bool? newValue) {
-      //             setState(() {
-      //               shareText = newValue!;
-      //             });
-      //           },
-      //           title: const Text(
-      //               "Share Text"), // , style: TextStyle(fontSize: 18.0)),
-      //           //subtitle: subtitle,
-      //         ),
-      //         CheckboxListTile(
-      //           value: shareLink,
-      //           onChanged: (bool? newValue) {
-      //             setState(() {
-      //               shareLink = newValue!;
-      //             });
-      //           },
-      //           title: const Text(
-      //               "Share Link"), // , style: TextStyle(fontSize: 18.0)),
-      //           //subtitle: subtitle,
-      //         ),
-      //         ListTile(
-      //           subtitle: Text(ordersText,
-      //               maxLines: 17, overflow: TextOverflow.ellipsis),
-      //           /*
-      //                             trailing: TextButton(
-      //                                 child: const Text("APPLY"),
-      //                                 onPressed: () => Navigator.pop(context))*/
-      //         ),
-      //       ],
-      //     ));
-      //   },
-      // );
+                          if (shareLink) {
+                            if (ordersText.isNotEmpty) ordersText += "\n\n";
+                            ordersText +=
+                                "Click the link to import this data into RealizeAlpha: https://realizealpha.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
+                          }
+
+                          final box = context.findRenderObject() as RenderBox?;
+                          SharePlus.instance.share(ShareParams(
+                              text: ordersText,
+                              sharePositionOrigin:
+                                  box!.localToGlobal(Offset.zero) & box.size));
+
+                          // Clear selections
+                          this.setState(() {
+                            selectedOptionOrdersToShare.clear();
+                            selectedPositionOrdersToShare.clear();
+                            selectionsToShare.clear();
+                            showShareView = false;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          });
+        },
+      );
+    } else {
+      setState(() {
+        showShareView = true;
+      });
     }
-    setState(() {
-      showShareView = !showShareView;
-    });
+  }
+
+  Future<void> _showFilterBottomSheet({
+    required String title,
+    required List<Widget> Function(StateSetter setState) builder,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.filter_list),
+                    title: Text(
+                      title,
+                      style: const TextStyle(
+                          fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ...builder(setState),
+                  const SizedBox(height: 25),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+    setState(() {});
+  }
+
+  Widget _buildEmptyState(String message) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.history,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: child,
+      ),
+    );
   }
 
   Future<void> _pullRefresh() async {

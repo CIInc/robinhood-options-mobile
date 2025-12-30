@@ -7,6 +7,8 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -29,6 +31,10 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:robinhood_options_mobile/widgets/list_widget.dart';
+import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -73,6 +79,7 @@ class _SearchWidgetState extends State<SearchWidget>
   Future<List<Instrument>>? futureListMovers;
   Future<List<Instrument>>? futureListMostPopular;
   Future<List<Map<String, dynamic>>>? futureTradeSignals;
+  Stream<List<Watchlist>>? watchlistStream;
 
   InstrumentStore? instrumentStore;
 
@@ -139,6 +146,10 @@ class _SearchWidgetState extends State<SearchWidget>
           widget.service!.getMovers(widget.brokerageUser!, direction: "down");
       futureListMovers ??=
           widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+        watchlistStream ??= widget.service!.streamLists(widget.brokerageUser!,
+            instrumentStore!, Provider.of<QuoteStore>(context, listen: false));
+      }
     } else {
       futureMovers = Future.value([]);
       futureLosers = Future.value([]);
@@ -220,7 +231,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       snap: false,
                       pinned: true,
                       centerTitle: false,
-                      title: const Text(''), // Search
+                      title: const Text(Constants.appTitle), // Search
                       actions: [
                         if (auth.currentUser != null)
                           AutoTradeStatusBadgeWidget(
@@ -346,6 +357,85 @@ class _SearchWidgetState extends State<SearchWidget>
                           ),
                         )),
                   ),
+                  if (watchlistStream != null &&
+                      (search == null ||
+                          (search is List && search.isEmpty))) ...[
+                    SliverToBoxAdapter(
+                      child: StreamBuilder<List<Watchlist>>(
+                        stream: watchlistStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            var lists = snapshot.data!;
+                            return SizedBox(
+                              height: 50,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0),
+                                scrollDirection: Axis.horizontal,
+                                itemCount: lists.length + 1,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
+                                      child: ActionChip(
+                                        avatar: const Icon(Icons.list),
+                                        label: const Text('All Lists'),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => ListsWidget(
+                                                widget.brokerageUser!,
+                                                widget.service!,
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                generativeService:
+                                                    widget.generativeService,
+                                                user: widget.user,
+                                                userDocRef: widget.userDocRef,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }
+                                  var list = lists[index - 1];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: ActionChip(
+                                      label: Text(list.displayName),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ListWidget(
+                                              widget.brokerageUser!,
+                                              widget.service!,
+                                              list.id,
+                                              ownerType: "custom",
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              user: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }
+                          return Container();
+                        },
+                      ),
+                    ),
+                  ],
                   if (welcomeWidget != null) ...[
                     SliverToBoxAdapter(
                         child: SizedBox(

@@ -40,9 +40,11 @@ class _AdBannerWidget extends State<AdBannerWidget> {
         // Called when an ad is successfully received.
         onAdLoaded: (Ad ad) {
           debugPrint('Ad loaded.');
-          setState(() {
-            _bannerReady = true;
-          });
+          if (mounted) {
+            setState(() {
+              _bannerReady = true;
+            });
+          }
         },
         // Called when an ad request failed.
         onAdFailedToLoad: (Ad ad, LoadAdError error) {

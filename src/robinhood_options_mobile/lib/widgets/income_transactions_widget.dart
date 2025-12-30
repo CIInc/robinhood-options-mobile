@@ -58,6 +58,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
     this.chartSelectionStore, {
     this.interestStore,
     this.transactionSymbolFilters = const <String>[],
+    this.transactionFilters,
     this.showList = true,
     this.showFooter = true,
     this.showChips = true,
@@ -76,6 +77,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final InstrumentPositionStore instrumentPositionStore;
   final InstrumentOrderStore instrumentOrderStore;
   final List<String> transactionSymbolFilters;
+  final List<String>? transactionFilters;
   final ChartSelectionStore chartSelectionStore;
   final bool showList;
   final bool showFooter;
@@ -109,6 +111,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   void initState() {
     super.initState();
     transactionSymbolFilters.addAll(widget.transactionSymbolFilters);
+    if (widget.transactionFilters != null) {
+      transactionFilters = List.from(widget.transactionFilters!);
+    }
+  }
+
+  Color _amountColor(double amount) {
+    return amount == 0
+        ? Theme.of(context).textTheme.bodyLarge!.color!
+        : amount > 0
+            ? Colors.green
+            : Colors.red;
   }
 
   @override
@@ -1785,168 +1798,182 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               var transaction = incomeTransactions[index];
               if (transaction["payable_date"] != null) {
                 var instrument = transaction["instrumentObj"];
+                var amount = double.parse(transaction!["amount"]);
                 return Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: instrument == null
-                          ? CircleAvatar(
-                              child: Text(
-                              // transaction["instrumentObj"] != null
-                              //     ? transaction["instrumentObj"].symbol
-                              //     :
-                              "DIV",
-                              // style: const TextStyle(fontSize: 14),
-                              overflow: TextOverflow.fade,
-                              softWrap: false,
-                            ))
-                          : instrument.logoUrl != null
-                              ? Image.network(
-                                  instrument.logoUrl!,
-                                  width: 40,
-                                  height: 40,
-                                  errorBuilder: (BuildContext context,
-                                      Object exception,
-                                      StackTrace? stackTrace) {
-                                    RobinhoodService.removeLogo(instrument);
-                                    return CircleAvatar(
-                                        // radius: 25,
-                                        // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
-                                        //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                                        child: Text(instrument.symbol,
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false));
-                                  },
-                                )
-                              : CircleAvatar(
-                                  // radius: 25,
-                                  child: Text(instrument.symbol,
-                                      overflow: TextOverflow.fade,
-                                      softWrap: false)),
-                      //     Text(
-                      //   transaction["instrumentObj"] != null
-                      //       ? transaction["instrumentObj"].symbol
-                      //       : "DIV",
-                      //   // style: const TextStyle(fontSize: 14),
-                      //   overflow: TextOverflow.fade,
-                      //   softWrap: false,
-                      // )
-                      title: Text(
-                        "${transaction["instrumentObj"] != null ? "${transaction["instrumentObj"].symbol} " : ""}${double.parse(transaction!["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(transaction!["rate"])) : formatCurrency.format(double.parse(transaction!["rate"]))} ${transaction!["state"]}",
-                        // style: const TextStyle(fontSize: 18.0),
-                        //overflow: TextOverflow.visible
-                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                      subtitle: Text(
-                        "${formatNumber.format(double.parse(transaction!["position"]))} shares on ${formatDate.format(DateTime.parse(transaction!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                        // style: const TextStyle(fontSize: 14)
-                      ),
-                      trailing: Wrap(spacing: 10.0, children: [
-                        Column(children: [
-                          // const Text("Actual", style: TextStyle(fontSize: 11)),
-                          Text(
-                              formatCurrency
-                                  .format(double.parse(transaction!["amount"])),
-                              style: const TextStyle(fontSize: 18))
-                        ])
-                      ]),
-                      // onTap: () {
-                      //   if (transaction["instrumentObj"] != null) {
-                      //     setState(() {
-                      //       transactionFilters.removeWhere((String name) {
-                      //         return name == "interest";
-                      //       });
-                      //       transactionSymbolFilters.clear();
-                      //       transactionSymbolFilters
-                      //           .add(transaction["instrumentObj"].symbol);
-                      //     });
-                      //   }
-                      //   scrollController.animateTo(
-                      //     750, // scrollController.position.minScrollExtent,
-                      //     duration: const Duration(milliseconds: 500),
-                      //     curve: Curves.easeInOut,
-                      //   );
-
-                      //   /* For navigation within this tab, uncomment
-                      // widget.navigatorKey!.currentState!.push(
-                      //     MaterialPageRoute(
-                      //         builder: (context) => PositionOrderWidget(
-                      //             widget.user,
-                      //             filteredDividends![index])));
-                      //             */
-                      //   // showDialog<String>(
-                      //   //   context: context,
-                      //   //   builder: (BuildContext context) =>
-                      //   //       AlertDialog(
-                      //   //     title: const Text('Alert'),
-                      //   //     content: const Text(
-                      //   //         'This feature is not implemented.\n'),
-                      //   //     actions: <Widget>[
-                      //   //       TextButton(
-                      //   //         onPressed: () =>
-                      //   //             Navigator.pop(context, 'OK'),
-                      //   //         child: const Text('OK'),
-                      //   //       ),
-                      //   //     ],
-                      //   //   ),
-                      //   // );
-
-                      //   // Navigator.push(
-                      //   //     context,
-                      //   //     MaterialPageRoute(
-                      //   //         builder: (context) => PositionOrderWidget(
-                      //   //               widget.user,
-                      //   //               filteredDividends![index],
-                      //   //               analytics: widget.analytics,
-                      //   //               observer: widget.observer,
-                      //   //             )));
-                      // },
-
-                      // isThreeLine: true,
-                    ),
-                  ],
-                ));
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          leading: instrument == null
+                              ? CircleAvatar(
+                                  backgroundColor:
+                                      Colors.blueGrey.withOpacity(0.1),
+                                  foregroundColor: Colors.blueGrey,
+                                  child: Text(
+                                    "DIV",
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.fade,
+                                    softWrap: false,
+                                  ))
+                              : instrument.logoUrl != null
+                                  ? CircleAvatar(
+                                      backgroundColor: Colors.transparent,
+                                      child: Image.network(
+                                        instrument.logoUrl!,
+                                        width: 40,
+                                        height: 40,
+                                        errorBuilder: (BuildContext context,
+                                            Object exception,
+                                            StackTrace? stackTrace) {
+                                          return CircleAvatar(
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primaryContainer,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onPrimaryContainer,
+                                              child: Text(instrument.symbol,
+                                                  style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                  overflow: TextOverflow.fade,
+                                                  softWrap: false));
+                                        },
+                                      ))
+                                  : CircleAvatar(
+                                      backgroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
+                                      foregroundColor: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      child: Text(instrument.symbol,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false)),
+                          title: Text(
+                            "${transaction["instrumentObj"] != null ? "${transaction["instrumentObj"].symbol} " : ""}${double.parse(transaction!["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(transaction!["rate"])) : formatCurrency.format(double.parse(transaction!["rate"]))} ${transaction!["state"]}",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(
+                                "${formatNumber.format(double.parse(transaction!["position"]))} shares on ${formatDate.format(DateTime.parse(transaction!["payable_date"]))}",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
+                              ),
+                            ],
+                          ),
+                          trailing: Wrap(spacing: 8, children: [
+                            Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color:
+                                        _amountColor(amount).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: _amountColor(amount))),
+                                child: Text(
+                                  formatCurrency.format(amount),
+                                  style: TextStyle(
+                                      fontSize: 16.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: _amountColor(amount)),
+                                ))
+                          ]),
+                        ),
+                      ],
+                    ));
               } else {
+                var amount = double.parse(transaction!["amount"]["amount"]);
                 return Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          backgroundColor:
-                              charts.ColorUtil.toDartColor(shades[1]),
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                            "INT",
-                            // style: const TextStyle(fontSize: 14),
-                            overflow: TextOverflow.fade,
-                            softWrap: false,
-                          )),
-                      title: Text(
-                        transaction["payout_type"]
-                            .toString()
-                            .replaceAll("_", " ")
-                            .capitalize(),
-                        // style: const TextStyle(fontSize: 18.0),
-                        //overflow: TextOverflow.visible
-                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                      subtitle: Text(
-                        "on ${formatDate.format(DateTime.parse(transaction!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                        // style: const TextStyle(fontSize: 14)
-                      ),
-                      trailing: Wrap(spacing: 10.0, children: [
-                        Column(children: [
-                          // const Text("Actual", style: TextStyle(fontSize: 11)),
-                          Text(
-                              formatCurrency.format(double.parse(
-                                  transaction!["amount"]["amount"])),
-                              style: const TextStyle(fontSize: 18))
-                        ])
-                      ]),
-                      //isThreeLine: true,
-                    ),
-                  ],
-                ));
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          leading: CircleAvatar(
+                              backgroundColor: Colors.green.withOpacity(0.1),
+                              foregroundColor: Colors.green,
+                              child: const Icon(Icons.attach_money)),
+                          title: Text(
+                            transaction["payout_type"]
+                                .toString()
+                                .replaceAll("_", " ")
+                                .capitalize(),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              Text(
+                                "on ${formatDate.format(DateTime.parse(transaction!["pay_date"]))}",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
+                              ),
+                            ],
+                          ),
+                          trailing: Wrap(spacing: 8, children: [
+                            Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                    color:
+                                        _amountColor(amount).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: _amountColor(amount))),
+                                child: Text(
+                                  formatCurrency.format(amount),
+                                  style: TextStyle(
+                                      fontSize: 16.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: _amountColor(amount)),
+                                ))
+                          ]),
+                        ),
+                      ],
+                    ));
               }
               // return _buildCryptoRow(context, filteredHoldings, index);
             },

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
@@ -72,8 +73,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
             snap: true,
             pinned: true,
             centerTitle: false,
-            title: const Text('',
-                style: TextStyle(fontSize: 20.0)), // Investor Groups
+            title: const Text(Constants.appTitle), // Investor Groups
+            // title: const Text('',
+            //     style: TextStyle(fontSize: 20.0)), // Investor Groups
             actions: [
               IconButton(
                 icon: const Icon(Icons.history),

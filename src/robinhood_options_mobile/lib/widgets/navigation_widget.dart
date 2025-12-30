@@ -26,7 +26,6 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
-import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -457,18 +456,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           generativeService: _generativeService,
           navigatorKey: navigatorKeys[2],
           userDocRef: userDoc),
-      if (userStore.currentUser != null &&
-          service != null &&
-          (userStore.currentUser!.source == BrokerageSource.robinhood ||
-              userStore.currentUser!.source == BrokerageSource.demo)) ...[
-        ListsWidget(userStore.currentUser!, service!,
-            user: user,
-            userDocRef: userDoc,
-            analytics: widget.analytics,
-            observer: widget.observer,
-            generativeService: _generativeService,
-            navigatorKey: navigatorKeys[3]),
-      ],
       InvestorGroupsWidget(
         firestoreService: _firestoreService,
         brokerageUser: userStore.currentUser,
@@ -540,61 +527,42 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                   physics: const NeverScrollableScrollPhysics(),
                   children: tabPages,
                 ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          const BottomNavigationBarItem(
+      bottomNavigationBar: NavigationBar(
+        // backgroundColor: Colors.black.withValues(alpha: 0.05),
+        height:
+            56, // Default is 56 for BottomNavigationBar, 80 for NavigationBar
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
             icon: Icon(Icons.account_balance), //home
             label: 'Portfolio',
           ),
-          const BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.history),
             label: 'History',
           ),
-          const BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.search),
             label: 'Search',
           ),
-          if (userStore.currentUser != null &&
-              (userStore.currentUser!.source == BrokerageSource.robinhood ||
-                  userStore.currentUser!.source == BrokerageSource.demo)) ...[
-            /*
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.payments), //inventory //history
-                  label: 'Orders',
-                ),
-                */
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.collections_bookmark), //bookmarks //visibility
-              label: 'Lists',
-            ),
-          ],
-          const BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.groups),
             label: 'Investors',
           ),
-          // BottomNavigationBarItem(
+          // NavigationDestination(
           //   icon: Icon(Icons.account_circle), // manage_accounts //person
           //   label: 'Accounts',
           // ),
           // if (auth.currentUser != null) ...[
           //   if (userRole == UserRole.admin) ...[
-          //     const BottomNavigationBarItem(
+          //     const NavigationDestination(
           //       icon: Icon(Icons.person_search),
           //       label: 'Users',
           //     ),
           //   ]
           // ]
         ],
-        currentIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
-        type: BottomNavigationBarType.fixed,
-        //fixedColor: Colors.grey,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        //selectedItemColor: Colors.blue,
-        unselectedItemColor:
-            Colors.grey.shade400, // Theme.of(context).colorScheme.background,
-        //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-        onTap: _onPageChanged,
-        //onTap: _onIndexedViewChanged,
+        selectedIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
+        onDestinationSelected: _onPageChanged,
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -12,6 +14,8 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 class OptionOrderWidget extends StatefulWidget {
@@ -45,6 +49,7 @@ class OptionOrderWidget extends StatefulWidget {
 class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   late Future<Quote?> futureQuote;
   late Future<Instrument> futureInstrument;
+  bool _isCancelling = false;
 
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
@@ -115,221 +120,188 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   }
 
   Widget _buildPage(Instrument instrument) {
-    /*
-    final DateTime today =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final int dte =
-        optionOrder.legs.first.expirationDate!.difference(today).inDays;
-    final DateTime createdAt = DateTime(widget.optionOrder.createdAt!.year,
-        widget.optionOrder.createdAt!.month, widget.optionOrder.createdAt!.day);
-    final int originalDte =
-        optionOrder.legs.first.expirationDate!.difference(createdAt).inDays;
-        */
     return CustomScrollView(slivers: [
       SliverAppBar(
-        //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
-        expandedHeight: 160.0,
-        floating: true,
-        snap: true,
-        pinned: false,
+        expandedHeight: 120.0,
+        floating: false,
+        snap: false,
+        pinned: true,
         centerTitle: false,
         flexibleSpace: FlexibleSpaceBar(
             title: SingleChildScrollView(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 5,
                     children: [
-              // const Row(children: [SizedBox(height: 70)]),
-              Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  //runAlignment: WrapAlignment.end,
-                  //alignment: WrapAlignment.end,
-                  spacing: 5,
-                  //runSpacing: 5,
-                  children: [
-                    Text(
-                        "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
-                        style: TextStyle(
-                            fontSize: 16.0,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor)),
-                    Text(
-                        formatDate.format(
-                            widget.optionOrder.legs.first.expirationDate!),
-                        style: TextStyle(
-                            fontSize: 16.0,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor))
-                  ]),
+              Text(
+                  "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).appBarTheme.foregroundColor)),
+              Text(
+                  formatDate
+                      .format(widget.optionOrder.legs.first.expirationDate!),
+                  style: TextStyle(
+                      fontSize: 14.0,
+                      color: Theme.of(context)
+                          .appBarTheme
+                          .foregroundColor
+                          ?.withOpacity(0.7)))
             ]))),
-        /*
-        actions: <Widget>[
-          IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              tooltip: 'Trade',
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => TradeOptionWidget(user,
-                          optionOrder: optionOrder))))
-        ],*/
       ),
-      /*
-      SliverToBoxAdapter(
-          child: Align(alignment: Alignment.center, child: buildOverview())),
-          */
       SliverToBoxAdapter(
         child: _buildOverview(widget.brokerageUser, instrument),
       ),
       SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const ListTile(
-              title: Text("Order Detail", style: TextStyle(fontSize: 20))),
-          ListTile(
-            title: const Text("Opening Strategy"),
-            trailing: Text(
-              widget.optionOrder.openingStrategy ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
+        child: Card(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                title: const Text("Order Detail",
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                trailing: Chip(
+                  label: Text(widget.optionOrder.state.toUpperCase()),
+                  backgroundColor: widget.optionOrder.state == 'filled'
+                      ? Colors.green.withOpacity(0.2)
+                      : (widget.optionOrder.state == 'cancelled' ||
+                              widget.optionOrder.state == 'rejected')
+                          ? Colors.red.withOpacity(0.2)
+                          : Colors.orange.withOpacity(0.2),
+                ),
+              ),
+              const Divider(),
+              _buildSectionHeader("Execution"),
+              _buildDetailRow("Quantity",
+                  formatCompactNumber.format(widget.optionOrder.quantity)),
+              _buildDetailRow(
+                  "Processed Quantity",
+                  formatCompactNumber
+                      .format(widget.optionOrder.processedQuantity)),
+              _buildDetailRow(
+                  "Price",
+                  widget.optionOrder.price != null
+                      ? formatCurrency.format(widget.optionOrder.price)
+                      : ''),
+              _buildDetailRow(
+                  "Premium",
+                  widget.optionOrder.premium != null
+                      ? formatCurrency.format(widget.optionOrder.premium)
+                      : ''),
+              _buildDetailRow(
+                  "Processed Premium",
+                  widget.optionOrder.processedPremium != null
+                      ? formatCurrency
+                          .format(widget.optionOrder.processedPremium)
+                      : ''),
+              const Divider(),
+              _buildSectionHeader("Order Settings"),
+              _buildDetailRow("Direction", widget.optionOrder.direction),
+              _buildDetailRow("Type", widget.optionOrder.type),
+              _buildDetailRow("Time in Force", widget.optionOrder.timeInForce),
+              _buildDetailRow("Trigger", widget.optionOrder.trigger),
+              if (widget.optionOrder.stopPrice != null)
+                _buildDetailRow("Stop Price",
+                    formatCurrency.format(widget.optionOrder.stopPrice)),
+              if (widget.optionOrder.openingStrategy != null)
+                _buildDetailRow(
+                    "Opening Strategy", widget.optionOrder.openingStrategy!),
+              if (widget.optionOrder.closingStrategy != null)
+                _buildDetailRow(
+                    "Closing Strategy", widget.optionOrder.closingStrategy!),
+              const Divider(),
+              _buildSectionHeader("Timestamps"),
+              _buildDetailRow(
+                  "Created", formatDate.format(widget.optionOrder.createdAt!)),
+              _buildDetailRow(
+                  "Updated", formatDate.format(widget.optionOrder.updatedAt!)),
+              if (widget.optionOrder.cancelUrl != null)
+                _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
+            ],
           ),
-          ListTile(
-            title: const Text("Closing Strategy"),
-            trailing: Text(
-              widget.optionOrder.closingStrategy ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Created"),
-            trailing: Text(
-              formatDate.format(widget.optionOrder.createdAt!),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Updated"),
-            trailing: Text(
-              formatDate.format(widget.optionOrder.updatedAt!),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Direction"),
-            trailing: Text(
-              widget.optionOrder.direction,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(widget.optionOrder.quantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Processed Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(widget.optionOrder.processedQuantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Cancelled Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(widget.optionOrder.canceledQuantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Pending Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(widget.optionOrder.pendingQuantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Premium"),
-            trailing: Text(
-              formatCurrency.format(widget.optionOrder.premium),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Processed Premium"),
-            trailing: Text(
-              formatCurrency.format(widget.optionOrder.processedPremium),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Price"),
-            trailing: Text(
-              formatCurrency.format(widget.optionOrder.price),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Stop Price"),
-            trailing: Text(
-              widget.optionOrder.stopPrice != null
-                  ? formatCurrency.format(widget.optionOrder.stopPrice)
-                  : "-",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("State"),
-            trailing: Text(
-              widget.optionOrder.state,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Time in Force"),
-            trailing: Text(
-              widget.optionOrder.timeInForce,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Trigger"),
-            trailing: Text(
-              widget.optionOrder.trigger,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Type"),
-            trailing: Text(
-              widget.optionOrder.type,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Response Category"),
-            trailing: Text(
-              widget.optionOrder.responseCategory ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Cancel Url"),
-            trailing: Text(
-              widget.optionOrder.cancelUrl ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-        ],
-      ))),
+        ),
+      ),
       SliverToBoxAdapter(
           child: Card(
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: _buildLegs(widget.optionOrder).toList(),
       ))),
+      if (widget.optionOrder.cancelUrl != null) ...[
+        SliverToBoxAdapter(
+            child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton(
+                  onPressed: _isCancelling
+                      ? null
+                      : () async {
+                          setState(() {
+                            _isCancelling = true;
+                          });
+                          try {
+                            var response = await widget.service.cancelOrder(
+                                widget.brokerageUser,
+                                widget.optionOrder.cancelUrl!);
+                            if (mounted) {
+                              // TODO: Handle response properly, maybe it returns an object or map
+                              // Assuming response is dynamic and we might need to check something
+                              // For now, just show success if no error thrown
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Order cancelled successfully')),
+                              );
+                              Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content:
+                                        Text('Error cancelling order: $e')),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _isCancelling = false;
+                              });
+                            }
+                          }
+                        },
+                  child: _isCancelling
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('CANCEL')),
+              const SizedBox(width: 4),
+            ],
+          ),
+        )),
+      ],
+      if (!kIsWeb) ...[
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
+      ],
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
+      const SliverToBoxAdapter(child: DisclaimerWidget()),
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      ))
     ]);
   }
 
@@ -337,76 +309,62 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     for (int i = 0; i < optionOrder.legs.length; i++) {
       var leg = optionOrder.legs[i];
       yield ListTile(
-          title: Text("Leg ${i + 1}", style: const TextStyle(fontSize: 20)));
-      // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
-      yield ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Position Type"),
-        trailing:
-            Text("${leg.positionType}", style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Position Effect"),
-        trailing:
-            Text("${leg.positionEffect}", style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Option Type"),
-        trailing: Text(leg.optionType, style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Strike Price"),
-        trailing: Text(formatCurrency.format(leg.strikePrice),
-            style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Ratio Quantity"),
-        trailing:
-            Text("${leg.ratioQuantity}", style: const TextStyle(fontSize: 18)),
-      );
+          title: Text("Leg ${i + 1}",
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)));
+      yield const Divider();
+      yield _buildDetailRow(
+          "Expiration Date", formatDate.format(leg.expirationDate!));
+      yield _buildDetailRow("Position Type", "${leg.positionType}");
+      yield _buildDetailRow("Position Effect", "${leg.positionEffect}");
+      yield _buildDetailRow("Option Type", leg.optionType);
+      yield _buildDetailRow(
+          "Strike Price", formatCurrency.format(leg.strikePrice));
+      yield _buildDetailRow("Ratio Quantity", "${leg.ratioQuantity}");
     }
   }
 
-  /*
-  Card buildOverview() {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-                child: Text(optionOrder.direction == "debit"
-                    ? "BUY"
-                    : "BUY TO CLOSE"),
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TradeOptionWidget(user,
-                            optionOrder: optionOrder,
-                            positionType: "Buy")))),
-            TextButton(
-                child: Text(optionOrder.direction == "debit"
-                    ? "SELL"
-                    : "SELL TO OPEN"),
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TradeOptionWidget(user,
-                            optionOrder: optionOrder,
-                            positionType: "Sell")))),
-            const SizedBox(width: 8),
-          ],
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
-      ],
-    ));
+      ),
+    );
   }
-  */
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Card _buildOverview(BrokerageUser user, Instrument instrument) {
     return Card(

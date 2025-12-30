@@ -153,6 +153,9 @@ class MyApp extends StatelessWidget {
         //   // shape: LinearBorder()
         //   // StadiumBorder(side: BorderSide.none)
         // ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        ),
       );
       ThemeData darkTheme = ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -171,6 +174,9 @@ class MyApp extends StatelessWidget {
         //   // shape: LinearBorder()
         //   // StadiumBorder(side: BorderSide.none)
         // ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        ),
       );
       return MultiProvider(
           providers: [

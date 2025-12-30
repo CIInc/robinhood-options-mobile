@@ -83,15 +83,7 @@ class _ListsWidgetState extends State<ListsWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return PopScope(
-        canPop: false, //When false, blocks the current route from being popped.
-        onPopInvokedWithResult: (didPop, result) {
-          //do your logic here
-          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
-          // do your logic ends
-          return;
-        },
-        child: _buildPage());
+    return _buildPage();
   }
 
   Widget _buildPage() {
@@ -238,110 +230,8 @@ class _ListsWidgetState extends State<ListsWidget>
           watchlists!.map((e) => e.items.length).reduce((a, b) => a + b);
     }
     */
-    return /*Scaffold(
-        appBar: AppBar(
-          title: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 20,
-              //runSpacing: 5,
-              children: [
-                const Text('Lists', style: TextStyle(fontSize: 20.0)),
-                Text(
-                  "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
-                  style: TextStyle(fontSize: 16.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                )
-              ]),
-          actions: [
-            IconButton(
-                icon: const Icon(Icons.sort),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true
-                    //constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            // tileColor: Theme.of(context).colorScheme.primary,
-                            leading: const Icon(Icons.sort),
-                            title: const Text(
-                              "Sort Watch List",
-                              style: TextStyle(
-                                  fontSize: 20.0, fontWeight: FontWeight.bold),
-                            ),
-                            /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Ascending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Descending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Ascending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Descending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                            ],
-                          )
-                        ],
-                      );
-                    },
-                  );
-                })
-          ],
-        ),
-        body: */
-        CustomScrollView(slivers: [
+    return Scaffold(
+        body: CustomScrollView(slivers: [
       SliverAppBar(
         floating: false,
         snap: false,
@@ -783,28 +673,7 @@ class _ListsWidgetState extends State<ListsWidget>
           child: SizedBox(
         height: 25.0,
       )),
-    ])
-
-        /*body: Builder(builder: (context) {
-          return Text("Lists");
-        })*/
-        /*
-        body: new FutureBuilder(
-            future: futureOptionPosition,
-            builder: (context, AsyncSnapshot<OptionPosition> snapshot) {
-              if (snapshot.hasData) {
-                return _buildPosition(snapshot.data);
-              } else if (snapshot.hasError) {
-                print("${snapshot.error}");
-                return Text("${snapshot.error}");
-              }
-              // By default, show a loading spinner
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }));
-            */
-        ;
+    ]));
   }
 
   Widget watchListWidget(List<WatchlistItem> watchLists) {
