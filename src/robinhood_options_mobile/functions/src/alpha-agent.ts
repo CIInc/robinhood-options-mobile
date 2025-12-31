@@ -384,30 +384,34 @@ export async function handleAlphaTask(marketData: any,
   // If not all indicators are green, hold
   if (overallSignal === "HOLD") {
     // Persist signal even when holding
-    try {
-      const { getFirestore } = await import("firebase-admin/firestore");
-      const db = getFirestore();
-      const signalDocId = interval === "1d" ?
-        `signals_${symbol}` : `signals_${symbol}_${interval}`;
-      const signalDoc = {
-        timestamp: Date.now(),
-        symbol: symbol,
-        interval: interval,
-        signal: overallSignal,
-        reason,
-        multiIndicatorResult,
-        optimization,
-        currentPrice: marketData.currentPrice,
-        config,
-        portfolioState,
-      };
-      await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-      logger.info(
-        `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
-        signalDoc
-      );
-    } catch (err) {
-      logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+    if (!config?.skipSignalUpdate) {
+      try {
+        const { getFirestore } = await import("firebase-admin/firestore");
+        const db = getFirestore();
+        const signalDocId = interval === "1d" ?
+          `signals_${symbol}` : `signals_${symbol}_${interval}`;
+        const signalDoc = {
+          timestamp: Date.now(),
+          symbol: symbol,
+          interval: interval,
+          signal: overallSignal,
+          reason,
+          multiIndicatorResult,
+          optimization,
+          currentPrice: marketData.currentPrice,
+          config,
+          portfolioState,
+        };
+        await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
+        logger.info(
+          `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
+          signalDoc
+        );
+      } catch (err) {
+        logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+      }
+    } else {
+      logger.info(`Skipping signal update for ${symbol} (HOLD)`);
     }
 
     return {
@@ -533,39 +537,44 @@ export async function handleAlphaTask(marketData: any,
     });
 
   // Persist trade signal to Firestore
-  try {
-    const { getFirestore } = await import("firebase-admin/firestore");
-    const db = getFirestore();
-    const signalDocId = interval === "1d" ?
-      `signals_${symbol}` : `signals_${symbol}_${interval}`;
-    const signalDoc = {
-      timestamp: Date.now(),
-      symbol: symbol,
-      interval: interval,
-      signal: overallSignal,
-      reason,
-      multiIndicatorResult,
-      optimization,
-      currentPrice: marketData.currentPrice,
-      pricesLength: Array.isArray(marketData.prices) ?
-        marketData.prices.length : 0,
-      volumesLength: Array.isArray(marketData.volumes) ?
-        marketData.volumes.length : 0,
-      config,
-      portfolioState,
-      proposal,
-      assessment,
-    };
-    await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-    logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
-  } catch (err) {
-    logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+  if (!config?.skipSignalUpdate) {
+    try {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const db = getFirestore();
+      const signalDocId = interval === "1d" ?
+        `signals_${symbol}` : `signals_${symbol}_${interval}`;
+      const signalDoc = {
+        timestamp: Date.now(),
+        symbol: symbol,
+        interval: interval,
+        signal: overallSignal,
+        reason,
+        multiIndicatorResult,
+        optimization,
+        currentPrice: marketData.currentPrice,
+        pricesLength: Array.isArray(marketData.prices) ?
+          marketData.prices.length : 0,
+        volumesLength: Array.isArray(marketData.volumes) ?
+          marketData.volumes.length : 0,
+        config,
+        portfolioState,
+        proposal,
+        assessment,
+      };
+      await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
+      logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
+    } catch (err) {
+      logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+    }
+  } else {
+    logger.info(`Skipping signal update for ${symbol} (${overallSignal})`);
   }
 
   if (!assessment.approved) {
     return {
       status: "rejected",
       message: "RiskGuard agent rejected the proposal",
+      reason: assessment.reason,
       proposal: proposal,
       assessment: assessment,
       interval,

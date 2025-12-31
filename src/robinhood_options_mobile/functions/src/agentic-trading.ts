@@ -128,23 +128,24 @@ export async function getMarketData(symbol: string,
   // If still no prices, fetch from Yahoo Finance
   if (!closes.length) {
     try {
-      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow);
+      // Ensure we have enough data for MACD (35) and RSI (15)
+      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 35);
 
       // Determine range based on interval and period
       let dataRange = range;
       if (!dataRange) {
         if (interval === "1d") {
-          dataRange = maxPeriod > 30 * 24 ? "5y" :
-            (maxPeriod > 30 * 12 ? "2y" : "1y");
+          dataRange = maxPeriod > 250 ? "2y" : "1y";
         } else if (interval === "1h") {
-          // For hourly, we can get up to 730 hours (1mo)
-          dataRange = maxPeriod > 168 ? "1mo" : "5d";
+          // 1h: 7 candles/day. 5d = 35 candles.
+          // If we need 35, 5d is tight. Use 1mo.
+          dataRange = maxPeriod > 30 ? "1mo" : "5d";
         } else if (interval === "30m") {
-          // For 30m, we can get up to 60 days
-          dataRange = maxPeriod > 48 ? "5d" : "1d";
+          // 30m: 13 candles/day. 1d = 13 candles.
+          dataRange = maxPeriod > 13 ? "5d" : "1d";
         } else if (interval === "15m") {
-          // For 15m, we can get up to 60 days
-          dataRange = maxPeriod > 96 ? "5d" : "1d";
+          // 15m: 26 candles/day. 1d = 26 candles.
+          dataRange = maxPeriod > 26 ? "5d" : "1d";
         }
       }
 
@@ -219,6 +220,7 @@ export async function performTradeProposal(request: any) {
     tradeQuantity: request.data.tradeQuantity || 1,
     maxPositionSize: request.data.maxPositionSize || 100,
     maxPortfolioConcentration: request.data.maxPortfolioConcentration || 0.5,
+    skipSignalUpdate: request.data.skipSignalUpdate || false,
   };
 
   logger.info("Agentic Trading Configuration:", config);
