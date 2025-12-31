@@ -529,13 +529,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-            SliverToBoxAdapter(
-              child: GenerativeActionsWidget(
-                generativeService: widget.generativeService,
-                user: widget.user,
-              ),
-            ),
-
             if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
                 widget.brokerageUser!.source == BrokerageSource.demo) ...[
               SliverToBoxAdapter(
@@ -696,6 +689,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ),
                   ),
                 ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: GenerativeActionsWidget(
+                generativeService: widget.generativeService,
+                user: widget.user,
               ),
             ),
             SliverToBoxAdapter(
