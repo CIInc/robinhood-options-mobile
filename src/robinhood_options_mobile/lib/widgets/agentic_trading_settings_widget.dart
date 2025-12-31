@@ -13,17 +13,20 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:intl/intl.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
   final IBrokerageService? service;
+  final String? initialSection;
 
   const AgenticTradingSettingsWidget({
     super.key,
     required this.user,
     required this.userDocRef,
     this.service,
+    this.initialSection,
   });
 
   @override
@@ -34,6 +37,7 @@ class AgenticTradingSettingsWidget extends StatefulWidget {
 class _AgenticTradingSettingsWidgetState
     extends State<AgenticTradingSettingsWidget> {
   final _formKey = GlobalKey<FormState>();
+  final GlobalKey _entryStrategiesKey = GlobalKey();
   late TextEditingController _tradeQuantityController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
@@ -60,6 +64,19 @@ class _AgenticTradingSettingsWidgetState
   @override
   void initState() {
     super.initState();
+
+    if (widget.initialSection == 'entryStrategies') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_entryStrategiesKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _entryStrategiesKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.0,
+          );
+        }
+      });
+    }
 
     // Load config after frame to avoid setState during build
     // WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -191,8 +208,8 @@ class _AgenticTradingSettingsWidgetState
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isEnabled
-              ? colorScheme.primary.withOpacity(0.3)
-              : colorScheme.outline.withOpacity(0.2),
+              ? colorScheme.primary.withValues(alpha: 0.3)
+              : colorScheme.outline.withValues(alpha: 0.2),
           width: isEnabled ? 1.5 : 1,
         ),
       ),
@@ -205,9 +222,9 @@ class _AgenticTradingSettingsWidgetState
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isEnabled
-                          ? colorScheme.primary.withOpacity(0.1)
+                          ? colorScheme.primary.withValues(alpha: 0.1)
                           : colorScheme.surfaceContainerHighest
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -225,7 +242,7 @@ class _AgenticTradingSettingsWidgetState
                 fontWeight: FontWeight.w600,
                 color: isEnabled
                     ? colorScheme.onSurface
-                    : colorScheme.onSurface.withOpacity(0.6),
+                    : colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             subtitle: Text(
@@ -233,8 +250,8 @@ class _AgenticTradingSettingsWidgetState
               style: TextStyle(
                 fontSize: 13,
                 color: isEnabled
-                    ? colorScheme.onSurface.withOpacity(0.7)
-                    : colorScheme.onSurface.withOpacity(0.5),
+                    ? colorScheme.onSurface.withValues(alpha: 0.7)
+                    : colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
             value: isEnabled,
@@ -252,7 +269,8 @@ class _AgenticTradingSettingsWidgetState
           if (settings != null && isEnabled)
             Container(
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(12),
                   bottomRight: Radius.circular(12),
@@ -294,7 +312,7 @@ class _AgenticTradingSettingsWidgetState
               fontSize: titleFontSize,
               color: isEnabled
                   ? colorScheme.onSurface
-                  : colorScheme.onSurface.withOpacity(0.6),
+                  : colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           subtitle: Text(
@@ -302,8 +320,8 @@ class _AgenticTradingSettingsWidgetState
             style: TextStyle(
               fontSize: subtitleFontSize,
               color: isEnabled
-                  ? colorScheme.onSurface.withOpacity(0.7)
-                  : colorScheme.onSurface.withOpacity(0.5),
+                  ? colorScheme.onSurface.withValues(alpha: 0.7)
+                  : colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           value: isEnabled,
@@ -321,7 +339,7 @@ class _AgenticTradingSettingsWidgetState
           contentPadding: contentPadding,
         ),
         if (isEnabled && extraContent != null)
-          Container(
+          SizedBox(
             width: double.infinity,
             // padding: const EdgeInsets.only(bottom: 16.0),
             child: extraContent,
@@ -540,19 +558,25 @@ class _AgenticTradingSettingsWidgetState
         builder: (context, agenticTradingProvider, child) {
           return Form(
             key: _formKey,
-            child: ListView(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              children: [
-                _buildStatusHeader(context, agenticTradingProvider),
-                const SizedBox(height: 16),
-                _buildPendingOrders(context, agenticTradingProvider),
-                _buildExecutionSettings(context, agenticTradingProvider),
-                _buildRiskManagement(context, agenticTradingProvider),
-                _buildExitStrategies(context, agenticTradingProvider),
-                _buildEntryStrategies(context, agenticTradingProvider),
-                _buildNotificationSettings(context, agenticTradingProvider),
-                _buildBacktesting(context, agenticTradingProvider),
-              ],
+              child: Column(
+                children: [
+                  _buildStatusHeader(context, agenticTradingProvider),
+                  const SizedBox(height: 16),
+                  // _buildSignalQueue(context, agenticTradingProvider),
+                  _buildPendingOrders(context, agenticTradingProvider),
+                  _buildExecutionSettings(context, agenticTradingProvider),
+                  _buildRiskManagement(context, agenticTradingProvider),
+                  _buildExitStrategies(context, agenticTradingProvider),
+                  _buildEntryStrategies(context, agenticTradingProvider,
+                      initiallyExpanded:
+                          widget.initialSection == 'entryStrategies',
+                      key: _entryStrategiesKey),
+                  _buildNotificationSettings(context, agenticTradingProvider),
+                  _buildBacktesting(context, agenticTradingProvider),
+                ],
+              ),
             ),
           );
         },
@@ -575,14 +599,14 @@ class _AgenticTradingSettingsWidgetState
             Icon(
               icon,
               size: 12,
-              color: colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
-                color: colorScheme.onSurface.withOpacity(0.6),
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -604,7 +628,170 @@ class _AgenticTradingSettingsWidgetState
     return Container(
       height: 24,
       width: 1,
-      color: colorScheme.outlineVariant.withOpacity(0.5),
+      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+    );
+  }
+
+  Widget _buildSignalQueue(
+      BuildContext context, AgenticTradingProvider provider) {
+    final signals = provider.signalProcessingHistory;
+    if (signals.isEmpty) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: ExpansionTile(
+        title: Text(
+          'Signal Processing Queue',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          '${signals.length} signals processed',
+          style: TextStyle(
+            fontSize: 12,
+            color: colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        children: [
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: signals.length > 10 ? 10 : signals.length, // Show max 10
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            itemBuilder: (context, index) =>
+                _buildSignalListTile(context, signals[index]),
+          ),
+          if (signals.length > 10)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextButton(
+                onPressed: () {
+                  _showAllSignalsDialog(context, signals);
+                },
+                child: Text('Show all ${signals.length} signals'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllSignalsDialog(BuildContext context, List<dynamic> signals) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Signal Processing Queue'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: signals.length,
+            separatorBuilder: (context, index) => const Divider(),
+            itemBuilder: (context, index) =>
+                _buildSignalListTile(context, signals[index]),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignalListTile(BuildContext context, dynamic signal) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final symbol = signal['symbol'] as String? ?? 'UNKNOWN';
+    final status = signal['processedStatus'] as String? ?? 'Unknown';
+    final reason = signal['rejectionReason'] as String?;
+    final timestamp = signal['timestamp'] != null
+        ? (signal['timestamp'] is Timestamp
+            ? (signal['timestamp'] as Timestamp).toDate()
+            : DateTime.tryParse(signal['timestamp'].toString()))
+        : null;
+
+    final isAccepted = status == 'Accepted';
+
+    return ListTile(
+      dense: true,
+      leading: CircleAvatar(
+        radius: 16,
+        backgroundColor: isAccepted
+            ? colorScheme.primaryContainer
+            : colorScheme.errorContainer,
+        child: Icon(
+          isAccepted ? Icons.check : Icons.close,
+          size: 16,
+          color: isAccepted ? colorScheme.primary : colorScheme.error,
+        ),
+      ),
+      title: Row(
+        children: [
+          Text(
+            symbol,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isAccepted
+                  ? colorScheme.primary.withValues(alpha: 0.1)
+                  : colorScheme.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: isAccepted ? colorScheme.primary : colorScheme.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (reason != null)
+            Text(
+              reason,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (timestamp != null)
+            Text(
+              _formatTime(timestamp),
+              style: TextStyle(
+                fontSize: 10,
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -622,8 +809,8 @@ class _AgenticTradingSettingsWidgetState
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
               color: isEnabled
-                  ? colorScheme.primary.withOpacity(0.5)
-                  : colorScheme.outline.withOpacity(0.2),
+                  ? colorScheme.primary.withValues(alpha: 0.5)
+                  : colorScheme.outline.withValues(alpha: 0.2),
               width: isEnabled ? 2 : 1,
             ),
           ),
@@ -635,8 +822,9 @@ class _AgenticTradingSettingsWidgetState
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isEnabled
-                      ? colorScheme.primaryContainer.withOpacity(0.3)
-                      : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                      : colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
                 ),
                 child: Row(
                   children: [
@@ -645,7 +833,7 @@ class _AgenticTradingSettingsWidgetState
                       decoration: BoxDecoration(
                         color: isEnabled
                             ? colorScheme.primary
-                            : colorScheme.onSurface.withOpacity(0.1),
+                            : colorScheme.onSurface.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -732,7 +920,7 @@ class _AgenticTradingSettingsWidgetState
                                   'Trading halted manually.',
                                   style: TextStyle(
                                     color: colorScheme.onErrorContainer
-                                        .withOpacity(0.8),
+                                        .withValues(alpha: 0.8),
                                     fontSize: 12,
                                   ),
                                 ),
@@ -796,10 +984,11 @@ class _AgenticTradingSettingsWidgetState
                             vertical: 12, horizontal: 16),
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: colorScheme.outlineVariant.withOpacity(0.5),
+                            color: colorScheme.outlineVariant
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                         child: Row(
@@ -955,6 +1144,8 @@ class _AgenticTradingSettingsWidgetState
                                   ),
                                 );
 
+                                if (!context.mounted) return;
+
                                 if (confirm == true) {
                                   agenticTradingProvider.runAutoTradeCycle(
                                     context: context,
@@ -996,26 +1187,20 @@ class _AgenticTradingSettingsWidgetState
         ),
 
         // Last Execution Result
-        Consumer<TradeSignalsProvider>(
-          builder: (context, tradeSignalsProvider, child) {
+        Consumer<AgenticTradingProvider>(
+          builder: (context, agenticTradingProvider, child) {
             final hasAutoTradeResult =
                 agenticTradingProvider.lastAutoTradeResult != null;
-            final hasTradeProposal =
-                tradeSignalsProvider.tradeProposalMessage != null;
 
-            if (!hasAutoTradeResult && !hasTradeProposal) {
+            if (!hasAutoTradeResult) {
               return const SizedBox.shrink();
             }
 
             final result = agenticTradingProvider.lastAutoTradeResult;
-            final isSuccess = (hasAutoTradeResult &&
-                    result!['success'] == true) ||
-                (!hasAutoTradeResult &&
-                    hasTradeProposal &&
-                    tradeSignalsProvider.lastTradeProposalStatus == 'approved');
+            final isSuccess = result!['success'] == true;
 
             DateTime? executionTime;
-            if (hasAutoTradeResult && result!.containsKey('timestamp')) {
+            if (result.containsKey('timestamp')) {
               final ts = result['timestamp'];
               if (ts is String) {
                 executionTime = DateTime.tryParse(ts);
@@ -1026,12 +1211,13 @@ class _AgenticTradingSettingsWidgetState
             // Fallback to now if no timestamp
             executionTime ??= DateTime.now();
 
-            final message = hasAutoTradeResult
-                ? result!['message']?.toString() ?? 'No message'
-                : tradeSignalsProvider.tradeProposalMessage ?? 'No message';
+            final message = result['message']?.toString() ?? 'No message';
 
-            final trades = hasAutoTradeResult && result!['trades'] is List
-                ? result['trades'] as List
+            final trades =
+                result['trades'] is List ? result['trades'] as List : [];
+
+            final processedSignals = result['processedSignals'] is List
+                ? result['processedSignals'] as List
                 : [];
 
             return Column(
@@ -1041,13 +1227,13 @@ class _AgenticTradingSettingsWidgetState
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSuccess
-                        ? Colors.green.withOpacity(0.1)
-                        : colorScheme.error.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : colorScheme.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSuccess
-                          ? Colors.green.withOpacity(0.3)
-                          : colorScheme.error.withOpacity(0.3),
+                          ? Colors.green.withValues(alpha: 0.3)
+                          : colorScheme.error.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
@@ -1095,8 +1281,7 @@ class _AgenticTradingSettingsWidgetState
                       ),
                       const SizedBox(height: 8),
                       Tooltip(
-                        message: tradeSignalsProvider.tradeProposalMessage ??
-                            message,
+                        message: message,
                         triggerMode: TooltipTriggerMode.tap,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1110,16 +1295,6 @@ class _AgenticTradingSettingsWidgetState
                                 ),
                               ),
                             ),
-                            if (tradeSignalsProvider.tradeProposalMessage !=
-                                null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: Icon(
-                                  Icons.info_outline,
-                                  size: 16,
-                                  color: colorScheme.primary.withOpacity(0.7),
-                                ),
-                              ),
                           ],
                         ),
                       ),
@@ -1146,7 +1321,7 @@ class _AgenticTradingSettingsWidgetState
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: colorScheme.surface.withOpacity(0.5),
+                              color: colorScheme.surface.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -1155,10 +1330,10 @@ class _AgenticTradingSettingsWidgetState
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 4, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color:
-                                        side.toString().toLowerCase() == 'buy'
-                                            ? Colors.green.withOpacity(0.2)
-                                            : Colors.red.withOpacity(0.2),
+                                    color: side.toString().toLowerCase() ==
+                                            'buy'
+                                        ? Colors.green.withValues(alpha: 0.2)
+                                        : Colors.red.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -1199,205 +1374,350 @@ class _AgenticTradingSettingsWidgetState
                         }),
                       ],
                       if (agenticTradingProvider
-                          .lastProcessedSignals.isNotEmpty) ...[
+                          .signalProcessingHistory.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         const Divider(height: 1),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Text(
-                              'Processed Signals:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${agenticTradingProvider.lastProcessedSignals.length} total',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: colorScheme.onSurfaceVariant
-                                    .withOpacity(0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: agenticTradingProvider.lastProcessedSignals
-                              .take(12)
-                              .map((s) {
-                            final symbol = s['symbol'] as String?;
-                            final strength = s['multiIndicatorResult']
-                                ?['signalStrength'] as int?;
-                            final isAccepted =
-                                s['processedStatus'] == 'Accepted';
-                            final rejectionReason =
-                                s['rejectionReason'] as String?;
-                            final optimization =
-                                s['optimization'] as Map<String, dynamic>?;
-
-                            String tooltipMessage = rejectionReason ??
-                                (isAccepted
-                                    ? 'Accepted for trade'
-                                    : 'Rejected');
-
-                            if (optimization != null) {
-                              tooltipMessage += '\n\nAI Optimization:\n'
-                                  'Signal: ${optimization['refinedSignal']}\n'
-                                  'Confidence: ${optimization['confidenceScore']}%\n'
-                                  'Reason: ${optimization['reasoning']}';
-                            }
-
-                            return Tooltip(
-                              message: tooltipMessage,
-                              triggerMode: TooltipTriggerMode.tap,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isAccepted
-                                      ? Colors.green.withOpacity(0.15)
-                                      : colorScheme.surfaceContainerHighest
-                                          .withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: isAccepted
-                                        ? Colors.green.withOpacity(0.4)
-                                        : colorScheme.outline.withOpacity(0.2),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      symbol ?? 'Unknown',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isAccepted
-                                            ? Colors.green.shade700
-                                            : colorScheme.onSurface
-                                                .withOpacity(0.7),
-                                      ),
-                                    ),
-                                    if (strength != null) ...[
-                                      const SizedBox(width: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 3, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: isAccepted
-                                              ? Colors.green.withOpacity(0.2)
-                                              : colorScheme.onSurface
-                                                  .withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(3),
-                                        ),
-                                        child: Text(
-                                          '$strength%',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: isAccepted
-                                                ? Colors.green.shade800
-                                                : colorScheme.onSurface
-                                                    .withOpacity(0.6),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    if (optimization != null) ...[
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.auto_awesome,
-                                        size: 12,
-                                        color: Colors.purple.shade300,
-                                      ),
-                                    ],
-                                    if (!isAccepted &&
-                                        optimization == null) ...[
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.block,
-                                        size: 12,
-                                        color:
-                                            colorScheme.error.withOpacity(0.6),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        if (agenticTradingProvider.lastProcessedSignals.length >
-                            12)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Center(
-                              child: Text(
-                                '+${agenticTradingProvider.lastProcessedSignals.length - 12} more signals processed',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontStyle: FontStyle.italic,
-                                  color: colorScheme.onSurface.withOpacity(0.5),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                      if (hasTradeProposal && !hasAutoTradeResult) ...[
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color:
-                                colorScheme.primaryContainer.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: colorScheme.primary.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ExpansionTile(
+                          shape: const Border(),
+                          tilePadding: EdgeInsets.zero,
+                          title: Row(
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.lightbulb_outline,
-                                    size: 14,
-                                    color: colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Trade Proposal',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
                               Text(
-                                tradeSignalsProvider.tradeProposalMessage!,
+                                'Processed Signals',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,
-                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.secondaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${agenticTradingProvider.signalProcessingHistory.length}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                          initiallyExpanded: true,
+                          children: [
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: agenticTradingProvider
+                                  .signalProcessingHistory
+                                  .take(20)
+                                  .length,
+                              itemBuilder: (context, index) {
+                                final s = agenticTradingProvider
+                                    .signalProcessingHistory[index];
+                                final symbol =
+                                    s['symbol'] as String? ?? "Unknown";
+                                final price = s['currentPrice'];
+                                final strength = s['multiIndicatorResult']
+                                    ?['signalStrength'] as int?;
+                                final isAccepted =
+                                    s['processedStatus'] == 'Accepted';
+                                final rejectionReason =
+                                    s['rejectionReason'] as String?;
+                                final optimization =
+                                    s['optimization'] as Map<String, dynamic>?;
+                                final timestamp = s['timestamp'] as int?;
+
+                                return Card(
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: Row(
+                                            children: [
+                                              Text('$symbol Signal'),
+                                              const Spacer(),
+                                              if (strength != null)
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: (strength >= 80
+                                                            ? Colors.green
+                                                            : (strength >= 60
+                                                                ? Colors.orange
+                                                                : Colors.red))
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                  child: Text(
+                                                    '$strength%',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: strength >= 80
+                                                          ? Colors.green
+                                                          : (strength >= 60
+                                                              ? Colors.orange
+                                                              : Colors.red),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          content: SingleChildScrollView(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                _buildDetailRow(
+                                                    'Status',
+                                                    isAccepted
+                                                        ? 'Accepted'
+                                                        : 'Rejected',
+                                                    color: isAccepted
+                                                        ? Colors.green
+                                                        : Colors.red),
+                                                if (price != null)
+                                                  _buildDetailRow('Price',
+                                                      '\$${price.toStringAsFixed(2)}'),
+                                                if (timestamp != null)
+                                                  _buildDetailRow(
+                                                      'Time',
+                                                      DateFormat(
+                                                              'MMM d, yyyy h:mm:ss a')
+                                                          .format(DateTime
+                                                              .fromMillisecondsSinceEpoch(
+                                                                  timestamp))),
+                                                if (rejectionReason !=
+                                                    null) ...[
+                                                  const SizedBox(height: 12),
+                                                  const Text(
+                                                      'Rejection Reason:',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  const SizedBox(height: 4),
+                                                  Text(rejectionReason,
+                                                      style: TextStyle(
+                                                          color: colorScheme
+                                                              .error)),
+                                                ],
+                                                if (optimization != null) ...[
+                                                  const SizedBox(height: 12),
+                                                  const Text('AI Optimization:',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  const SizedBox(height: 4),
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(8),
+                                                    decoration: BoxDecoration(
+                                                      color: colorScheme
+                                                          .primaryContainer
+                                                          .withOpacity(0.3),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                            'Signal: ${optimization['refinedSignal']}'),
+                                                        Text(
+                                                            'Confidence: ${optimization['confidenceScore']}%'),
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        Text(
+                                                            'Reasoning: ${optimization['reasoning']}',
+                                                            style:
+                                                                const TextStyle(
+                                                                    fontSize:
+                                                                        12)),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: const Text('Close'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                isAccepted
+                                                    ? Icons.check_circle
+                                                    : Icons.cancel,
+                                                color: isAccepted
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                symbol,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15),
+                                              ),
+                                              if (price != null) ...[
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  '\$${price.toStringAsFixed(2)}',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                              const Spacer(),
+                                              if (strength != null)
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: (strength >= 80
+                                                            ? Colors.green
+                                                            : (strength >= 60
+                                                                ? Colors.orange
+                                                                : Colors.red))
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            4),
+                                                  ),
+                                                  child: Text(
+                                                    '$strength%',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: strength >= 80
+                                                          ? Colors.green
+                                                          : (strength >= 60
+                                                              ? Colors.orange
+                                                              : Colors.red),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          if (rejectionReason != null ||
+                                              optimization != null ||
+                                              timestamp != null) ...[
+                                            const SizedBox(height: 8),
+                                            if (rejectionReason != null)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 4),
+                                                child: Text(
+                                                  rejectionReason,
+                                                  style: TextStyle(
+                                                    color: colorScheme.error,
+                                                    fontSize: 12,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            if (optimization != null)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 4),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.auto_awesome,
+                                                        size: 12,
+                                                        color: colorScheme
+                                                            .primary),
+                                                    const SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: Text(
+                                                        'AI: ${optimization['refinedSignal']} (${optimization['confidenceScore']}%)',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: colorScheme
+                                                              .primary,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            if (timestamp != null)
+                                              Text(
+                                                DateFormat('MMM d, h:mm a')
+                                                    .format(DateTime
+                                                        .fromMillisecondsSinceEpoch(
+                                                            timestamp)),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant
+                                                      .withOpacity(0.6),
+                                                ),
+                                              ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -1429,7 +1749,7 @@ class _AgenticTradingSettingsWidgetState
                 side: BorderSide(
                     color: isEnabled
                         ? colorScheme.error
-                        : colorScheme.error.withOpacity(0.3)),
+                        : colorScheme.error.withValues(alpha: 0.3)),
                 padding: const EdgeInsets.symmetric(
                   vertical: 12,
                   horizontal: 16,
@@ -1531,8 +1851,8 @@ class _AgenticTradingSettingsWidgetState
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: action.toUpperCase() == 'BUY'
-                                  ? Colors.green.withOpacity(0.2)
-                                  : Colors.red.withOpacity(0.2),
+                                  ? Colors.green.withValues(alpha: 0.2)
+                                  : Colors.red.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1560,7 +1880,7 @@ class _AgenticTradingSettingsWidgetState
                         _formatTime(timestamp),
                         style: TextStyle(
                           fontSize: 12,
-                          color: colorScheme.onSurface.withOpacity(0.6),
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -1575,8 +1895,9 @@ class _AgenticTradingSettingsWidgetState
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () {
-                          agenticTradingProvider.rejectOrder(order);
+                        onPressed: () async {
+                          await agenticTradingProvider.rejectOrder(order,
+                              userDocRef: widget.userDocRef);
                         },
                         child: const Text('Reject'),
                       ),
@@ -1615,15 +1936,15 @@ class _AgenticTradingSettingsWidgetState
                     (agenticTradingProvider.config['paperTradingMode']
                             as bool? ??
                         false))
-                ? Colors.blue.withOpacity(0.1)
-                : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ? Colors.blue.withValues(alpha: 0.1)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: (widget.service == null ||
                       (agenticTradingProvider.config['paperTradingMode']
                               as bool? ??
                           false))
-                  ? Colors.blue.withOpacity(0.5)
+                  ? Colors.blue.withValues(alpha: 0.5)
                   : Colors.transparent,
               width: 2,
             ),
@@ -1796,7 +2117,7 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -1834,10 +2155,10 @@ class _AgenticTradingSettingsWidgetState
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: colorScheme.outline.withOpacity(0.3),
+              color: colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
@@ -2321,7 +2642,7 @@ class _AgenticTradingSettingsWidgetState
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.6),
+                          .withValues(alpha: 0.6),
                       fontStyle: FontStyle.italic,
                     ),
                     textAlign: TextAlign.center,
@@ -2336,13 +2657,13 @@ class _AgenticTradingSettingsWidgetState
                     color: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Theme.of(context)
                           .colorScheme
                           .outline
-                          .withOpacity(0.1),
+                          .withValues(alpha: 0.1),
                     ),
                   ),
                   padding: const EdgeInsets.all(12),
@@ -2375,7 +2696,7 @@ class _AgenticTradingSettingsWidgetState
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                             ),
                           ),
@@ -2462,7 +2783,7 @@ class _AgenticTradingSettingsWidgetState
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -2579,12 +2900,15 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildEntryStrategies(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+      BuildContext context, AgenticTradingProvider agenticTradingProvider,
+      {bool initiallyExpanded = false, Key? key}) {
     final colorScheme = Theme.of(context).colorScheme;
     return _buildSection(
+      key: key,
       context: context,
       title: 'Entry Strategies',
       icon: Icons.show_chart,
+      initiallyExpanded: initiallyExpanded,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -2649,7 +2973,7 @@ class _AgenticTradingSettingsWidgetState
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: colorScheme.outline.withOpacity(0.2),
+              color: colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Column(
@@ -2855,7 +3179,7 @@ class _AgenticTradingSettingsWidgetState
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: colorScheme.outline.withOpacity(0.2),
+                color: colorScheme.outline.withValues(alpha: 0.2),
               ),
             ),
             child: const Padding(
@@ -2873,7 +3197,7 @@ class _AgenticTradingSettingsWidgetState
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: colorScheme.outline.withOpacity(0.2),
+                  color: colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: ListTile(
@@ -3100,6 +3424,7 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildSection({
+    Key? key,
     required BuildContext context,
     required String title,
     required IconData icon,
@@ -3108,12 +3433,13 @@ class _AgenticTradingSettingsWidgetState
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
+      key: key,
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: colorScheme.outline.withOpacity(0.2),
+          color: colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -3145,7 +3471,7 @@ class _AgenticTradingSettingsWidgetState
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.5),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -3170,6 +3496,36 @@ class _AgenticTradingSettingsWidgetState
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
             ),
           ),
         ],

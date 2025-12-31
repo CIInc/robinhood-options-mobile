@@ -147,6 +147,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Portfolio Allocation Widget Enhancements
 - ✅ Options Flow Analysis Refinements
 
+### v0.27.1 ✅ (Released Dec 30, 2025)
+**Agentic Trading Reliability & UI Polish**
+- ✅ Processed Signals UI Overhaul (Card layout, detailed inspection)
+- ✅ Signal Deduplication (Local persistence)
+- ✅ Server-Side Safety (Prevent timestamp updates during auto-trade checks)
+- ✅ Market Data Fetching Improvements
+
 ### v0.27.0 ✅ (Released Dec 30, 2025)
 **Portfolio Analytics, AI Enhancements & UI Improvements**
 - ✅ **Risk Heatmap**: Interactive treemap visualization of portfolio exposure and performance
@@ -158,6 +165,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Ad Integration**: Integrated ad banners into OptionOrderWidget
 - ✅ **Watchlist Streaming**: Real-time watchlist updates in SearchWidget
 - ✅ **Order Management**: Added "Cancel Order" functionality in OptionOrderWidget
+
+### v0.27.1 ✅ (Released Dec 30, 2025)
+**Bug Fixes**
+- ✅ **Agentic Trading**: Enhanced market data fetching logic to ensure sufficient historical data for MACD and other indicators
+- ✅ **Trade Signals**: Improved trade signal sorting functionality and reliability
 
 ### v0.28.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

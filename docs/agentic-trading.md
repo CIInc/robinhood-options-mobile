@@ -78,6 +78,17 @@ To prevent conflicting queries, the system enforces exclusivity between high-lev
 - **Server-Side Filtering:** All filtering logic (strength ranges, indicator states, date ranges) is executed on Firestore to minimize data transfer and client-side processing.
 - **Efficient Indexing:** Custom composite indexes support complex queries like "Show me all signals where RSI is BUY and MACD is BUY, sorted by time."
 
+### Signal Processing & Deduplication
+
+To ensure reliability and prevent duplicate trades, the system implements robust signal processing logic:
+
+- **Local Persistence:** The IDs of processed signals are saved locally to the device. This ensures that even if the app is restarted, the system remembers which signals have already been acted upon (or rejected) for the current day.
+- **Server-Side Safety:** When the auto-trading system checks for signals, it uses a special flag (`skipSignalUpdate`) to prevent the server from updating the timestamp of existing signals. This ensures that the "freshness" of a signal is preserved based on its original generation time, not the time it was last checked.
+- **Detailed Inspection:** You can view the history of processed signals in the **Agentic Trading Settings**. Tapping on any processed signal reveals a detailed dialog showing:
+  - The full AI reasoning for the decision.
+  - Specific rejection reasons (if applicable).
+  - Timestamp of processing.
+
 ### Paper Trading Mode
 
 The system includes a fully functional **Paper Trading Mode** for risk-free strategy testing and validation.
@@ -1239,6 +1250,10 @@ Navigator.push(
 ```
 
 ## Version History
+
+- **v1.5** (2025-12-30): Intraday Data & Sorting Fixes
+  - Enhanced market data fetching logic to ensure sufficient historical data for MACD.
+  - Improved trade signal sorting functionality and reliability.
 
 - **v1.4** (2025-12-19): Signal Performance Metrics
   - Added Signal Strength Performance Card (Win Rate by strength bucket)

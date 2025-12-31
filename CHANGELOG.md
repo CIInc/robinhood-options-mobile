@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.1] - 2025-12-30
+
+### Added
+- **Agentic Trading UI:**
+  - **Processed Signals:** Overhauled the "Processed Signals" section in settings with a cleaner card-based layout and detailed inspection dialogs.
+  - **Signal Inspection:** Added ability to tap on processed signals to view detailed AI reasoning and rejection reasons.
+- **Reliability:**
+  - **Signal Deduplication:** Implemented local persistence for processed signal IDs to prevent re-processing of signals across app restarts.
+  - **Server-Side Safety:** Added `skipSignalUpdate` parameter to trade proposal API to prevent auto-trading checks from inadvertently updating signal timestamps on the server.
+
+### Fixed
+- **Agentic Trading:** Enhanced market data fetching logic to ensure sufficient historical data for MACD and other indicators.
+- **Trade Signals:** Improved trade signal sorting functionality and reliability.
+
+
 ## [0.27.0] - 2025-12-30
 
 ### Added

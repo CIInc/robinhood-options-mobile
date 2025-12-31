@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
@@ -80,7 +81,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Last auto-trade execution result
   Map<String, dynamic>? _lastAutoTradeResult;
-  List<Map<String, dynamic>> _lastProcessedSignals = [];
+  List<Map<String, dynamic>> _signalProcessingHistory = [];
 
   // Signal processing tracking
   DateTime? _lastSignalCheckTime;
@@ -100,7 +101,8 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
   int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
-  List<Map<String, dynamic>> get lastProcessedSignals => _lastProcessedSignals;
+  List<Map<String, dynamic>> get signalProcessingHistory =>
+      _signalProcessingHistory;
 
   AgenticTradingProvider();
 
@@ -224,6 +226,10 @@ class AgenticTradingProvider with ChangeNotifier {
           Provider.of<PortfolioStore>(context, listen: false);
       final tradeSignalsProvider =
           Provider.of<TradeSignalsProvider>(context, listen: false);
+      final instrumentPositionStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionPositionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
 
       // Check auto-trade enabled
       final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
@@ -252,13 +258,50 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Build portfolio state
-      final portfolioState = {
+      final Map<String, dynamic> portfolioState = {
         'portfolioValue': portfolioStore.items.isNotEmpty
             ? portfolioStore.items.first.equity
             : 0.0,
+        'buyingPower': firstAccount?.buyingPower ?? 0.0,
         'cashAvailable': firstAccount?.portfolioCash ?? 0.0,
         'positions': portfolioStore.items.length,
       };
+
+      // Add stock positions
+      for (var pos in instrumentPositionStore.items) {
+        if (pos.instrumentObj != null &&
+            pos.quantity != null &&
+            pos.quantity! != 0) {
+          double? price = pos.instrumentObj!.quoteObj?.lastTradePrice ??
+              pos.averageBuyPrice;
+          if (price != null) {
+            portfolioState[pos.instrumentObj!.symbol] = {
+              'quantity': pos.quantity,
+              'price': price
+            };
+          }
+        }
+      }
+
+      // Add option positions
+      for (var pos in optionPositionStore.items) {
+        if (pos.optionInstrument != null &&
+            pos.quantity != null &&
+            pos.quantity! != 0) {
+          double? price =
+              pos.optionInstrument!.optionMarketData?.adjustedMarkPrice ??
+                  pos.averageOpenPrice;
+          if (price != null) {
+            // Use position ID as key since we don't have a simple option symbol
+            // and we want to ensure uniqueness and inclusion in total value
+            portfolioState[pos.id] = {
+              'quantity':
+                  (pos.quantity ?? 0) * 100, // Adjust for contract multiplier
+              'price': price
+            };
+          }
+        }
+      }
 
       debugPrint('🤖 Auto-trade check: executing auto-trade...');
 
@@ -275,10 +318,16 @@ class AgenticTradingProvider with ChangeNotifier {
 
       final requireAllIndicatorsGreen =
           _config['requireAllIndicatorsGreen'] as bool? ?? true;
+      final minSignalStrength =
+          (_config['minSignalStrength'] as num?)?.toInt() ?? 0;
 
       Map<String, String>? indicatorFilters;
+      int? minStrengthFilter;
+
       if (requireAllIndicatorsGreen && activeIndicators.isNotEmpty) {
         indicatorFilters = {for (var i in activeIndicators) i: 'BUY'};
+      } else if (!requireAllIndicatorsGreen) {
+        minStrengthFilter = minSignalStrength;
       }
 
       // Determine start date for signal fetch (since last run or recent window)
@@ -287,10 +336,11 @@ class AgenticTradingProvider with ChangeNotifier {
           DateTime.now().subtract(const Duration(minutes: 60));
 
       debugPrint(
-          '🤖 Auto-trade check: fetching signals since $startDate (Strategy: ${requireAllIndicatorsGreen ? "All Green" : "Min Strength"})...');
+          '🤖 Auto-trade check: fetching signals since $startDate (Strategy: ${requireAllIndicatorsGreen ? "All Green" : "Min Strength >= $minStrengthFilter"})...');
 
       var tradeSignals = await tradeSignalsProvider.fetchSignals(
         indicatorFilters: indicatorFilters,
+        minSignalStrength: minStrengthFilter,
         sortBy: 'timestamp',
         startDate: startDate,
       );
@@ -347,8 +397,8 @@ class AgenticTradingProvider with ChangeNotifier {
       _processedSignalTimestamps.removeWhere((_, ts) => ts < cutoff);
 
       // Monitor TP/SL when positions exist
-      final instrumentPositionStore =
-          Provider.of<InstrumentPositionStore>(context, listen: false);
+      // final instrumentPositionStore =
+      //    Provider.of<InstrumentPositionStore>(context, listen: false);
       if (instrumentPositionStore.items.isNotEmpty) {
         debugPrint(
             '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
@@ -515,6 +565,96 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  /// Add a single pending order to Firestore
+  Future<void> _addPendingOrderToFirestore(
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
+    try {
+      final ordersCollection = userDocRef.collection('pending_orders');
+      final orderToSave = Map<String, dynamic>.from(order);
+
+      // Remove UI-specific or complex objects before saving
+      if (orderToSave.containsKey('instrument') &&
+          orderToSave['instrument'] is! String &&
+          orderToSave['instrument'] is! Map) {
+        orderToSave.remove('instrument');
+      }
+      // Remove internal ID if present to avoid confusion, or keep it.
+      // Firestore will generate its own ID, which we'll store in 'firestoreId'
+
+      final docRef = await ordersCollection.add(orderToSave);
+      order['firestoreId'] = docRef.id;
+
+      debugPrint('💾 Added pending order to Firestore: ${docRef.id}');
+    } catch (e) {
+      debugPrint('❌ Failed to add pending order to Firestore: $e');
+    }
+  }
+
+  /// Remove a single pending order from Firestore
+  Future<void> _removePendingOrderFromFirestore(
+      DocumentReference userDocRef, Map<String, dynamic> order) async {
+    try {
+      final firestoreId = order['firestoreId'] as String?;
+      if (firestoreId == null) {
+        debugPrint('⚠️ Cannot remove pending order: missing firestoreId');
+        // Fallback: try to find by internal ID if available, or just return
+        // For now, we assume firestoreId is present if loaded/saved correctly
+        return;
+      }
+
+      final ordersCollection = userDocRef.collection('pending_orders');
+      await ordersCollection.doc(firestoreId).delete();
+
+      debugPrint('🗑️ Removed pending order from Firestore: $firestoreId');
+    } catch (e) {
+      debugPrint('❌ Failed to remove pending order from Firestore: $e');
+    }
+  }
+
+  /// Load pending orders from Firestore
+  Future<void> loadPendingOrdersFromFirestore(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      debugPrint('⚠️ Cannot load pending orders: userDocRef is null');
+      return;
+    }
+
+    try {
+      final ordersCollection = userDocRef.collection('pending_orders');
+      final snapshot = await ordersCollection.get();
+
+      _pendingOrders.clear();
+
+      for (final doc in snapshot.docs) {
+        final order = doc.data();
+        // Basic validation
+        if (order.containsKey('symbol') &&
+            order.containsKey('quantity') &&
+            order.containsKey('action')) {
+          // Store the Firestore document ID for future updates/deletes
+          order['firestoreId'] = doc.id;
+          _pendingOrders.add(order);
+        }
+      }
+
+      debugPrint(
+          '📥 Loaded ${_pendingOrders.length} pending orders from Firestore');
+
+      _analytics.logEvent(
+        name: 'agentic_trading_pending_orders_loaded',
+        parameters: {'count': _pendingOrders.length},
+      );
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Failed to load pending orders from Firestore: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_pending_orders_load_failed',
+        parameters: {'error': e.toString()},
+      );
+    }
+  }
+
   // Public getter for market status (delegates to utility)
   bool get isMarketOpen {
     final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
@@ -661,6 +801,52 @@ class AgenticTradingProvider with ChangeNotifier {
     return null;
   }
 
+  /// Helper to fetch instrument safely
+  Future<dynamic> _getInstrument(
+    dynamic brokerageService,
+    dynamic brokerageUser,
+    dynamic instrumentStore,
+    String symbol,
+  ) async {
+    if (brokerageService == null || brokerageUser == null) return null;
+    try {
+      return await brokerageService.getInstrumentBySymbol(
+        brokerageUser,
+        instrumentStore,
+        symbol,
+      );
+    } catch (e) {
+      debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+      return null;
+    }
+  }
+
+  /// Helper to execute order (handles paper vs real)
+  Future<http.Response> _executeOrder({
+    required dynamic brokerageService,
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic instrument,
+    required String symbol,
+    required String action,
+    required double price,
+    required int quantity,
+    required bool isPaperMode,
+  }) async {
+    if (isPaperMode) {
+      return _simulatePaperOrder(action, symbol, quantity, price);
+    }
+    return await brokerageService.placeInstrumentOrder(
+      brokerageUser,
+      account,
+      instrument,
+      symbol,
+      action.toLowerCase(),
+      price,
+      quantity,
+    );
+  }
+
   /// Executes automatic trading based on current signals
   ///
   /// This method:
@@ -691,6 +877,8 @@ class AgenticTradingProvider with ChangeNotifier {
     _autoTradingVisualTimer?.cancel(); // Cancel any existing timer
     notifyListeners();
 
+    final processedSignals = <Map<String, dynamic>>[];
+
     try {
       final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
 
@@ -710,6 +898,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'message':
               'Missing required parameters (brokerageUser, account, service, or store)',
           'trades': [],
+          'processedSignals': processedSignals,
         };
       }
 
@@ -724,6 +913,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'tradesExecuted': 0,
           'message': 'Auto-trade conditions not met: $conditionCheck',
           'trades': [],
+          'processedSignals': processedSignals,
         };
       }
 
@@ -746,7 +936,8 @@ class AgenticTradingProvider with ChangeNotifier {
           '📊 Strategy: ${requireAllIndicatorsGreen ? "All Indicators Green" : "Min Signal Strength ($minSignalStrength)"}');
 
       // Get current signals - filter for BUY signals that pass enabled indicators
-      final processedSignals = <Map<String, dynamic>>[];
+      // processedSignals is defined at the top of the method
+
       final buySignals = <Map<String, dynamic>>[];
 
       for (final signal in tradeSignals) {
@@ -864,7 +1055,11 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      _lastProcessedSignals = processedSignals;
+      // Update history (keep last 50)
+      _signalProcessingHistory.insertAll(0, processedSignals);
+      if (_signalProcessingHistory.length > 50) {
+        _signalProcessingHistory = _signalProcessingHistory.sublist(0, 50);
+      }
 
       if (buySignals.isEmpty) {
         debugPrint('📭 No BUY signals available matching enabled indicators');
@@ -876,6 +1071,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'tradesExecuted': 0,
           'message': 'No BUY signals matching enabled indicators',
           'trades': [],
+          'processedSignals': processedSignals,
         };
       }
 
@@ -907,20 +1103,28 @@ class AgenticTradingProvider with ChangeNotifier {
           debugPrint('🤖 Auto-trading $symbol at \$$currentPrice');
 
           // Initiate trade proposal via TradeSignalsProvider
-          await tradeSignalsProvider.initiateTradeProposal(
+          final proposalResult =
+              await tradeSignalsProvider.initiateTradeProposal(
             symbol: symbol,
             currentPrice: currentPrice,
             portfolioState: portfolioState,
             config: _config,
             interval: signal['interval'] as String?,
+            skipSignalUpdate: true,
           );
 
+          final proposalStatus = proposalResult['status'] as String?;
+          final proposal = proposalResult['proposal'] != null
+              ? Map<String, dynamic>.from(proposalResult['proposal'] as Map)
+              : null;
+          final assessment = proposalResult['assessment'] != null
+              ? Map<String, dynamic>.from(proposalResult['assessment'] as Map)
+              : null;
+
           // If proposal was approved, execute the order
-          if (tradeSignalsProvider.lastTradeProposal != null) {
-            final action =
-                tradeSignalsProvider.lastTradeProposal!['action'] as String?;
-            final quantity =
-                tradeSignalsProvider.lastTradeProposal!['quantity'] as int?;
+          if (proposal != null && proposalStatus == 'approved') {
+            final action = proposal['action'] as String?;
+            final quantity = proposal['quantity'] as int?;
 
             if (action == null || quantity == null || quantity <= 0) {
               debugPrint('⚠️ Invalid proposal for $symbol, skipping execution');
@@ -928,28 +1132,17 @@ class AgenticTradingProvider with ChangeNotifier {
             }
 
             // Get instrument from store
-            dynamic instrument;
-            if (brokerageService != null && brokerageUser != null) {
-              try {
-                // Get instrument by symbol
-                instrument = await brokerageService.getInstrumentBySymbol(
-                  brokerageUser,
-                  instrumentStore,
-                  symbol,
-                );
-                if (instrument == null) {
-                  debugPrint(
-                      '⚠️ Could not find instrument for $symbol, skipping');
-                  if (!isPaperMode) continue;
-                }
-              } catch (e) {
-                debugPrint('⚠️ Error fetching instrument for $symbol: $e');
-                if (!isPaperMode) continue;
+            dynamic instrument = await _getInstrument(
+                brokerageService, brokerageUser, instrumentStore, symbol);
+
+            if (instrument == null) {
+              if (!isPaperMode) {
+                debugPrint(
+                    '⚠️ Could not find instrument for $symbol (or service missing), skipping real trade');
+                continue;
               }
-            } else if (!isPaperMode) {
-              debugPrint(
-                  '⚠️ Missing brokerage service or user for real trade, skipping');
-              continue;
+              // In paper mode, we can proceed without instrument object if needed,
+              // but usually it's better to have it. The original code allowed proceeding.
             }
 
             // Execute the order through brokerage service
@@ -980,6 +1173,9 @@ class AgenticTradingProvider with ChangeNotifier {
                   'reason': 'Auto-trade signal',
                 };
                 _pendingOrders.add(pendingOrder);
+                if (userDocRef != null) {
+                  await _addPendingOrderToFirestore(userDocRef, pendingOrder);
+                }
                 notifyListeners();
                 debugPrint('📝 Order added to pending approval: $symbol');
                 continue;
@@ -988,19 +1184,17 @@ class AgenticTradingProvider with ChangeNotifier {
               debugPrint(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
 
-              // In paper trading mode, simulate order without calling broker API
-              final orderResponse = isPaperMode
-                  ? _simulatePaperOrder(
-                      normalizedAction, symbol, quantity, currentPrice)
-                  : await brokerageService.placeInstrumentOrder(
-                      brokerageUser,
-                      account,
-                      instrument,
-                      symbol,
-                      side,
-                      currentPrice,
-                      quantity,
-                    );
+              final orderResponse = await _executeOrder(
+                brokerageService: brokerageService,
+                brokerageUser: brokerageUser,
+                account: account,
+                instrument: instrument,
+                symbol: symbol,
+                action: side,
+                price: currentPrice,
+                quantity: quantity,
+                isPaperMode: isPaperMode,
+              );
 
               // Check if order was successful (HTTP 200 OK or 201 Created)
               const httpOk = 200;
@@ -1014,11 +1208,9 @@ class AgenticTradingProvider with ChangeNotifier {
                   'quantity': quantity,
                   'price': currentPrice,
                   'paperMode': isPaperMode,
-                  'proposal': Map<String, dynamic>.from(
-                      tradeSignalsProvider.lastTradeProposal!),
-                  'assessment': tradeSignalsProvider.lastAssessment != null
-                      ? Map<String, dynamic>.from(
-                          tradeSignalsProvider.lastAssessment!)
+                  'proposal': Map<String, dynamic>.from(proposal),
+                  'assessment': assessment != null
+                      ? Map<String, dynamic>.from(assessment)
                       : null,
                   'orderResponse': orderResponse.body,
                 };
@@ -1106,6 +1298,20 @@ class AgenticTradingProvider with ChangeNotifier {
             }
           } else {
             debugPrint('❌ Trade proposal rejected for $symbol');
+            // Update processedSignals with the rejection reason from assessment
+            if (assessment != null && assessment['approved'] == false) {
+              final assessmentReason = assessment['reason'] as String?;
+              if (assessmentReason != null) {
+                final processedSignalIndex =
+                    processedSignals.indexWhere((s) => s['symbol'] == symbol);
+                if (processedSignalIndex != -1) {
+                  processedSignals[processedSignalIndex]['processedStatus'] =
+                      'Rejected';
+                  processedSignals[processedSignalIndex]['rejectionReason'] =
+                      assessmentReason;
+                }
+              }
+            }
           }
 
           // Delay between trades to avoid rate limiting
@@ -1130,11 +1336,15 @@ class AgenticTradingProvider with ChangeNotifier {
           ? 'No trades executed'
           : 'Executed ${executedTrades.length} trade(s)';
 
+      debugPrint(
+          '📊 Auto-trade summary: ${executedTrades.length} executed, ${processedSignals.length} processed');
+
       return {
         'success': executedTrades.isNotEmpty,
         'tradesExecuted': executedTrades.length,
         'message': message,
         'trades': executedTrades,
+        'processedSignals': processedSignals,
       };
     } catch (e) {
       _isAutoTrading = false;
@@ -1146,6 +1356,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'tradesExecuted': 0,
         'message': 'Error: $e',
         'trades': [],
+        'processedSignals': processedSignals,
       };
     }
   }
@@ -1182,17 +1393,17 @@ class AgenticTradingProvider with ChangeNotifier {
           '${isPaperMode ? '📝 PAPER' : '📤'} Approving order: $action $quantity shares of $symbol at \$$price');
 
       // Execute order
-      final orderResponse = isPaperMode
-          ? _simulatePaperOrder(action, symbol, quantity, price)
-          : await brokerageService.placeInstrumentOrder(
-              brokerageUser,
-              account,
-              instrument,
-              symbol,
-              side,
-              price,
-              quantity,
-            );
+      final orderResponse = await _executeOrder(
+        brokerageService: brokerageService,
+        brokerageUser: brokerageUser,
+        account: account,
+        instrument: instrument,
+        symbol: symbol,
+        action: side,
+        price: price,
+        quantity: quantity,
+        isPaperMode: isPaperMode,
+      );
 
       const httpOk = 200;
       const httpCreated = 201;
@@ -1242,6 +1453,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
         // Remove from pending
         _pendingOrders.remove(order);
+        if (userDocRef != null) {
+          await _removePendingOrderFromFirestore(userDocRef, order);
+        }
         notifyListeners();
 
         debugPrint('✅ Approved order executed for $symbol');
@@ -1255,9 +1469,13 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Rejects a pending order
-  void rejectOrder(Map<String, dynamic> order) {
+  Future<void> rejectOrder(Map<String, dynamic> order,
+      {DocumentReference? userDocRef}) async {
     if (_pendingOrders.contains(order)) {
       _pendingOrders.remove(order);
+      if (userDocRef != null) {
+        await _removePendingOrderFromFirestore(userDocRef, order);
+      }
       notifyListeners();
       debugPrint('🚫 Order rejected: ${order['symbol']}');
     }
@@ -1324,6 +1542,9 @@ class AgenticTradingProvider with ChangeNotifier {
       final executedExits = <Map<String, dynamic>>[];
       final tradesToRemove = <Map<String, dynamic>>[];
 
+      // Create a map for faster position lookup
+      final positionMap = {for (var p in positions) p.symbol: p};
+
       // Check each automated buy trade
       for (final buyTrade in _automatedBuyTrades) {
         try {
@@ -1344,12 +1565,7 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           // Find the corresponding position in the portfolio
-          dynamic position;
-          try {
-            position = positions.firstWhere((p) => p.symbol == symbol);
-          } catch (e) {
-            position = null;
-          }
+          final position = positionMap[symbol];
 
           if (position == null) {
             // Position no longer exists (might have been manually closed)
@@ -1491,35 +1707,31 @@ class AgenticTradingProvider with ChangeNotifier {
 
           if (shouldExit) {
             // Get instrument data
-            dynamic instrument;
-            try {
-              instrument = await brokerageService.getInstrumentBySymbol(
-                brokerageUser,
-                instrumentStore,
-                symbol,
-              );
-              if (instrument == null) {
-                debugPrint('⚠️ Could not find instrument for $symbol');
-                continue;
-              }
-            } catch (e) {
-              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+            final instrument = await _getInstrument(
+                brokerageService, brokerageUser, instrumentStore, symbol);
+
+            if (instrument == null) {
+              debugPrint(
+                  '⚠️ Could not find instrument for $symbol, skipping exit');
               continue;
             }
 
             // Execute sell order for the automated buy quantity
             try {
+              final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
               debugPrint(
-                  '📤 Placing exit order: SELL $quantityToSell shares of $symbol at \$$currentPrice ($exitReason)');
+                  '${isPaperMode ? '📝 PAPER' : '📤'} Placing exit order: SELL $quantityToSell shares of $symbol at \$$currentPrice ($exitReason)');
 
-              final orderResponse = await brokerageService.placeInstrumentOrder(
-                brokerageUser,
-                account,
-                instrument,
-                symbol,
-                'sell',
-                currentPrice,
-                quantityToSell,
+              final orderResponse = await _executeOrder(
+                brokerageService: brokerageService,
+                brokerageUser: brokerageUser,
+                account: account,
+                instrument: instrument,
+                symbol: symbol,
+                action: 'sell',
+                price: currentPrice,
+                quantity: quantityToSell,
+                isPaperMode: isPaperMode,
               );
 
               // Check if order was successful
