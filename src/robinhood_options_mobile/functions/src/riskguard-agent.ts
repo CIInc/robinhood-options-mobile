@@ -82,11 +82,13 @@ function calculateVolatility(prices: number[]): number {
 export function calculatePortfolioValue(portfolioState: any): number {
   if (!portfolioState) return 0;
 
-  const cash = Number(portfolioState.cash) || 0;
+  const cash = Number(portfolioState.buyingPower ??
+    portfolioState.cashAvailable ?? 0);
   let totalValue = cash;
 
   for (const [symbol, data] of Object.entries(portfolioState)) {
-    if (symbol === "cash" || symbol === "highWaterMark") continue;
+    if (symbol === "cashAvailable" ||
+      symbol === "buyingPower" || symbol === "highWaterMark") continue;
 
     let quantity = 0;
     let price = 0;
@@ -185,19 +187,44 @@ export async function assessTrade(proposal: any,
   const price = proposal?.price || 0;
   const action = proposal?.action || "BUY";
 
+  const metrics: any = {};
+
+  // Check for sufficient funds (Cash Check)
+  const cash = Number(portfolioState?.buyingPower ??
+    portfolioState?.cashAvailable ?? 0);
+  metrics.cashAvailable = cash;
+
+  if (action === "BUY") {
+    const tradeCost = Math.abs(qty * price);
+    metrics.tradeCost = tradeCost;
+    if (tradeCost > cash) {
+      return {
+        approved: false,
+        reason: `Insufficient funds: Cost ${tradeCost.toFixed(2)} > ` +
+          `Buying Power ${cash.toFixed(2)}`,
+        metrics,
+      };
+    }
+  }
+
   // Handle SELL actions - quantity should be negative or we need to adjust
   const adjustedQty = action === "SELL" ? -Math.abs(qty) : Math.abs(qty);
 
   // Extract current position for the symbol being traded
   const currentPosition = getCurrentPosition(portfolioState, symbol);
+  metrics.currentPosition = currentPosition;
 
   // Check max position size (absolute value after trade)
   const proposedPosition = currentPosition + adjustedQty;
+  metrics.proposedPosition = proposedPosition;
+  metrics.maxPositionSize = maxPositionSize;
+
   if (Math.abs(proposedPosition) > maxPositionSize) {
     return {
       approved: false,
-      reason: `Max position size exceeded: 
-      ${Math.abs(proposedPosition)} > ${maxPositionSize}`,
+      reason: `Max position size exceeded: ${Math.abs(proposedPosition)} ` +
+        `> ${maxPositionSize}`,
+      metrics,
     };
   }
 
@@ -205,12 +232,14 @@ export async function assessTrade(proposal: any,
   // We use the helper but we also need to handle the case where portfolioState
   // entries might not have price, but we have the proposal price for the
   // current symbol.
-  let totalPortfolioValue = Number(portfolioState?.cash || 0);
+  let totalPortfolioValue = Number(portfolioState?.buyingPower ??
+    portfolioState?.cashAvailable ?? 0);
   const positions: { [key: string]: { quantity: number, price: number } } = {};
 
   // Iterate through all positions in portfolioState
   for (const [posSymbol, posData] of Object.entries(portfolioState)) {
-    if (posSymbol === "cash" || posSymbol === "highWaterMark") continue;
+    if (posSymbol === "cashAvailable" ||
+      posSymbol === "buyingPower" || posSymbol === "highWaterMark") continue;
 
     let posQuantity = 0;
     let posPrice: number | null = null;
@@ -241,6 +270,11 @@ export async function assessTrade(proposal: any,
   const proposedConcentration = totalPortfolioValue > 0 ?
     (Math.abs(proposedPositionValue) / totalPortfolioValue) : 1.0;
 
+  metrics.totalPortfolioValue = totalPortfolioValue;
+  metrics.proposedPositionValue = proposedPositionValue;
+  metrics.proposedConcentration = proposedConcentration;
+  metrics.maxPortfolioConcentration = maxPortfolioConcentration;
+
   logger.info("RiskGuard: Portfolio analysis", {
     symbol,
     currentPosition,
@@ -256,9 +290,9 @@ export async function assessTrade(proposal: any,
   if (proposedConcentration > maxPortfolioConcentration) {
     return {
       approved: false,
-      reason: "Proposed concentration " +
-        `${proposedConcentration.toFixed(2)} exceeds max ` +
-        `${maxPortfolioConcentration}`,
+      reason: `Proposed concentration ${proposedConcentration.toFixed(2)} ` +
+        `exceeds max ${maxPortfolioConcentration}`,
+      metrics,
     };
   }
 
@@ -272,11 +306,16 @@ export async function assessTrade(proposal: any,
       // positions, which is expensive. For now, we check if this single
       // position exceeds the sector limit.
       const sectorExposure = proposedConcentration * 100;
+      metrics.sector = symbolInfo.sector;
+      metrics.sectorExposure = sectorExposure;
+      metrics.maxSectorExposure = config.maxSectorExposure;
+
       if (sectorExposure > config.maxSectorExposure) {
         return {
           approved: false,
-          reason: `Sector exposure ${sectorExposure.toFixed(2)}% ` +
-            `for ${symbolInfo.sector} exceeds max ${config.maxSectorExposure}%`,
+          reason: `Sector exposure ${sectorExposure.toFixed(2)}% for ` +
+            `${symbolInfo.sector} exceeds max ${config.maxSectorExposure}%`,
+          metrics,
         };
       }
       logger.info(`RiskGuard: Sector check passed for ${symbol} ` +
@@ -289,12 +328,16 @@ export async function assessTrade(proposal: any,
     marketData?.closes && marketData?.marketIndexCloses) {
     const correlation = calculateCorrelation(marketData.closes,
       marketData.marketIndexCloses);
+    metrics.correlation = correlation;
+    metrics.maxCorrelation = config.maxCorrelation;
+
     logger.info(`RiskGuard: Correlation with market: ${correlation}`);
     if (Math.abs(correlation) > config.maxCorrelation) {
       return {
         approved: false,
         reason: `Correlation with market ${correlation.toFixed(2)} ` +
           `exceeds max ${config.maxCorrelation}`,
+        metrics,
       };
     }
   }
@@ -302,12 +345,17 @@ export async function assessTrade(proposal: any,
   // 3. Volatility Filters
   if (config?.enableVolatilityFilters && marketData?.closes) {
     const volatility = calculateVolatility(marketData.closes);
+    metrics.volatility = volatility;
+    metrics.minVolatility = config.minVolatility;
+    metrics.maxVolatility = config.maxVolatility;
+
     logger.info(`RiskGuard: Volatility: ${volatility}`);
     if (config.minVolatility && volatility < config.minVolatility) {
       return {
         approved: false,
         reason: `Volatility ${volatility.toFixed(2)} is below min ` +
           `${config.minVolatility}`,
+        metrics,
       };
     }
     if (config.maxVolatility && volatility > config.maxVolatility) {
@@ -315,6 +363,7 @@ export async function assessTrade(proposal: any,
         approved: false,
         reason: `Volatility ${volatility.toFixed(2)} exceeds max ` +
           `${config.maxVolatility}`,
+        metrics,
       };
     }
   }
@@ -326,18 +375,23 @@ export async function assessTrade(proposal: any,
       const highWaterMark = Number(portfolioState.highWaterMark);
       const drawdown = (highWaterMark - totalPortfolioValue) /
         highWaterMark * 100;
+      metrics.drawdown = drawdown;
+      metrics.maxDrawdown = config.maxDrawdown;
+      metrics.highWaterMark = highWaterMark;
+
       if (drawdown > config.maxDrawdown) {
         return {
           approved: false,
-          reason: `Portfolio drawdown ${drawdown.toFixed(2)}% ` +
-            `exceeds max ${config.maxDrawdown}%`,
+          reason: `Portfolio drawdown ${drawdown.toFixed(2)}% exceeds max ` +
+            `${config.maxDrawdown}%`,
+          metrics,
         };
       }
     }
   }
 
   // Passed basic risk checks
-  return { approved: true };
+  return { approved: true, metrics };
 }
 
 /**
