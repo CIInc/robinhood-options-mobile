@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:candlesticks/candlesticks.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,12 +13,14 @@ import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/full_screen_instrument_chart_widget.dart';
 
 class InstrumentChartWidget extends StatefulWidget {
   final Instrument instrument;
   final ChartDateSpan chartDateSpanFilter;
   final Bounds chartBoundsFilter;
   final Function(ChartDateSpan, Bounds) onFilterChanged;
+  final bool isFullScreen;
 
   const InstrumentChartWidget({
     super.key,
@@ -24,6 +28,7 @@ class InstrumentChartWidget extends StatefulWidget {
     required this.chartDateSpanFilter,
     required this.chartBoundsFilter,
     required this.onFilterChanged,
+    this.isFullScreen = false,
   });
 
   @override
@@ -34,6 +39,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   TimeSeriesChart? chart;
   InstrumentHistorical? selection;
   InstrumentHistoricals? _lastValidHistoricals;
+  bool _showCandles = false;
 
   @override
   Widget build(BuildContext context) {
@@ -89,35 +95,6 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               measureFn: (InstrumentHistorical history, _) => history.openPrice,
               data: _lastValidHistoricals!.historicals,
             ),
-            charts.Series<InstrumentHistorical, DateTime>(
-              id: 'Close',
-              colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) =>
-                  history.closePrice,
-              data: _lastValidHistoricals!.historicals,
-            ),
-            charts.Series<InstrumentHistorical, DateTime>(
-                id: 'Volume',
-                colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
-                domainFn: (InstrumentHistorical history, _) =>
-                    history.beginsAt!,
-                measureFn: (InstrumentHistorical history, _) => history.volume,
-                data: _lastValidHistoricals!.historicals),
-            charts.Series<InstrumentHistorical, DateTime>(
-              id: 'Low',
-              colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) => history.lowPrice,
-              data: _lastValidHistoricals!.historicals,
-            ),
-            charts.Series<InstrumentHistorical, DateTime>(
-              id: 'High',
-              colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) => history.highPrice,
-              data: _lastValidHistoricals!.historicals,
-            ),
           ];
           var extents = charts.NumericExtents.fromValues(
               seriesList[0].data.map((e) => e.openPrice!));
@@ -127,17 +104,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               context,
               listen: false);
 
-          chart = TimeSeriesChart(seriesList,
-              open: open,
-              close: close,
-              seriesLegend: charts.SeriesLegend(
-                horizontalFirst: true,
-                position: charts.BehaviorPosition.top,
-                defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
-                showMeasures: true,
-                measureFormatter: (measure) =>
-                    measure != null ? formatCurrency.format(measure) : '',
-              ), onSelected: (charts.SelectionModel<DateTime>? historical) {
+          chart = TimeSeriesChart(seriesList, open: open, close: close,
+              onSelected: (charts.SelectionModel<DateTime>? historical) {
             provider.selectionChanged(historical?.selectedDatum.first.datum);
           },
               symbolRenderer: TextSymbolRenderer(() {
@@ -151,15 +119,69 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               zeroBound: false,
               viewport: extents);
 
-          return SliverToBoxAdapter(
-              child: Column(
+          return Column(
             children: [
-              SizedBox(
-                  height: 340,
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: chart,
-                  )),
+              widget.isFullScreen
+                  ? Expanded(
+                      child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Stack(
+                        children: [
+                          _showCandles
+                              ? Candlesticks(
+                                  candles: _generateCandles(
+                                      _lastValidHistoricals!.historicals),
+                                )
+                              : chart!,
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              icon: Icon(_showCandles
+                                  ? Icons.show_chart
+                                  : Icons.candlestick_chart),
+                              onPressed: () {
+                                setState(() {
+                                  _showCandles = !_showCandles;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ))
+                  : Stack(
+                      children: [
+                        SizedBox(
+                            height: 340,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: chart,
+                            )),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: const Icon(Icons.fullscreen),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      FullScreenInstrumentChartWidget(
+                                    instrument: widget.instrument,
+                                    chartDateSpanFilter:
+                                        widget.chartDateSpanFilter,
+                                    chartBoundsFilter: widget.chartBoundsFilter,
+                                    onFilterChanged: widget.onFilterChanged,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
               Consumer<InstrumentHistoricalsSelectionStore>(
                   builder: (context, value, child) {
                 selection = value.selection;
@@ -245,10 +267,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     itemCount: 1,
                   ))
             ],
-          ));
+          );
         }
-        return SliverToBoxAdapter(
-            child: Column(
+        return Column(
           children: [
             const SizedBox(
                 height: 340,
@@ -275,7 +296,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                   itemCount: 1,
                 ))
           ],
-        ));
+        );
       },
     );
   }
@@ -293,5 +314,54 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         },
       ),
     );
+  }
+
+  List<Candle> _generateCandles(List<InstrumentHistorical> historicals) {
+    if (historicals.isEmpty) return [];
+
+    // Determine bucket size based on total points to get roughly 60 candles
+    int bucketSize = (historicals.length / 60).ceil();
+    if (bucketSize < 1) {
+      bucketSize = 1;
+    }
+
+    List<Candle> candles = [];
+    for (int i = 0; i < historicals.length; i += bucketSize) {
+      int end = (i + bucketSize < historicals.length)
+          ? i + bucketSize
+          : historicals.length;
+      var chunk = historicals.sublist(i, end);
+
+      double open = chunk.first.openPrice ?? 0;
+      double close = chunk.last.closePrice ?? 0;
+
+      // Calculate High/Low from the chunk
+      double high = chunk
+          .map((e) => math.max(e.highPrice ?? 0, e.openPrice ?? 0))
+          .reduce(math.max);
+      double low = chunk
+          .map((e) => math.min(e.lowPrice ?? 0, e.openPrice ?? 0))
+          .reduce(math.min);
+      double volume =
+          chunk.map((e) => e.volume.toDouble()).reduce((a, b) => a + b);
+
+      // Ensure values are positive to avoid log10(0) errors in candlesticks package
+      const double minPrice = 0.01;
+      if (high < minPrice) high = minPrice;
+      if (low < minPrice) low = minPrice;
+      if (open < minPrice) open = minPrice;
+      if (close < minPrice) close = minPrice;
+
+      candles.add(Candle(
+        date: chunk.first.beginsAt!,
+        high: high,
+        low: low,
+        open: open,
+        close: close,
+        volume: volume,
+      ));
+    }
+    // Candlesticks package expects newest first
+    return candles.reversed.toList();
   }
 }

@@ -417,10 +417,12 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 children: [
               ListTile(
                 title: Wrap(children: [
-                  const Text(
+                  Text(
                     "Options",
-                    style:
-                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   if (!widget.showList) ...[
                     SizedBox(

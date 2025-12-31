@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_chart_widget.dart';
 
 class PerformanceChartWidget extends StatefulWidget {
   final Future<dynamic>? futureMarketIndexHistoricalsSp500;
@@ -17,6 +18,7 @@ class PerformanceChartWidget extends StatefulWidget {
   final Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
   final ChartDateSpan benchmarkChartDateSpanFilter;
   final Function(ChartDateSpan) onFilterChanged;
+  final bool isFullScreen;
 
   const PerformanceChartWidget({
     super.key,
@@ -26,6 +28,7 @@ class PerformanceChartWidget extends StatefulWidget {
     required this.futurePortfolioHistoricalsYear,
     required this.benchmarkChartDateSpanFilter,
     required this.onFilterChanged,
+    this.isFullScreen = false,
   });
 
   @override
@@ -272,13 +275,53 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                         _buildChip('5Y', ChartDateSpan.year_5),
                       ],
                     )),
-                SizedBox(
-                    height: 380,
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                      child: marketIndicesChart,
-                    )),
+                widget.isFullScreen
+                    ? Expanded(
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                          child: marketIndicesChart,
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          SizedBox(
+                              height: 380,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    10.0, 10.0, 10.0, 10.0),
+                                child: marketIndicesChart,
+                              )),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              icon: const Icon(Icons.fullscreen),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        FullScreenPerformanceChartWidget(
+                                      futureMarketIndexHistoricalsSp500: widget
+                                          .futureMarketIndexHistoricalsSp500,
+                                      futureMarketIndexHistoricalsNasdaq: widget
+                                          .futureMarketIndexHistoricalsNasdaq,
+                                      futureMarketIndexHistoricalsDow: widget
+                                          .futureMarketIndexHistoricalsDow,
+                                      futurePortfolioHistoricalsYear:
+                                          widget.futurePortfolioHistoricalsYear,
+                                      benchmarkChartDateSpanFilter:
+                                          widget.benchmarkChartDateSpanFilter,
+                                      onFilterChanged: widget.onFilterChanged,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
               ],
             );
           }

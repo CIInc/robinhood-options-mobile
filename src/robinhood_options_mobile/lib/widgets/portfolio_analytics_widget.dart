@@ -397,29 +397,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      children: [
-                        Icon(Icons.grid_view,
-                            color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 12),
-                        Text('Risk Heatmap',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                )),
-                      ],
-                    ),
-                  ),
-                  const RiskHeatmapWidget(),
-                ],
-              ),
+              child: const RiskHeatmapWidget(),
             ),
             const SizedBox(height: 16),
           ],
@@ -566,9 +544,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Text('Portfolio Insights',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
+                    style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
             const SizedBox(height: 20),
@@ -595,14 +571,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 0.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('Portfolio Analytics',
               style: Theme.of(context)
                   .textTheme
-                  .headlineSmall
+                  .titleLarge
                   ?.copyWith(fontWeight: FontWeight.bold)),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -696,9 +672,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Text('Risk-Adjusted Return',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
+                    style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
             const SizedBox(height: 20),
@@ -751,9 +725,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 12),
                 Text('Market Comparison',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
+                    style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
             const SizedBox(height: 20),
@@ -803,9 +775,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     color: Theme.of(context).colorScheme.error),
                 const SizedBox(width: 12),
                 Text('Risk Metrics',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
+                    style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
             const SizedBox(height: 20),
@@ -926,6 +896,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
     return Tooltip(
       message: definitions[label] ?? '',
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      showDuration: const Duration(seconds: 5),
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: const TextStyle(color: Colors.white),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(

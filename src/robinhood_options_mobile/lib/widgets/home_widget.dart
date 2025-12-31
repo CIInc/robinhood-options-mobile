@@ -754,6 +754,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 onFilterChanged: (span) {
                   setState(() {
                     benchmarkChartDateSpanFilter = span;
+                    _loadPortfolioHistoricals();
+                    _loadMarketIndices();
                   });
                 },
               ),

@@ -13,7 +13,8 @@ enum HeatmapMetric { dailyChange, totalReturn }
 enum HeatmapView { sector, symbol }
 
 class RiskHeatmapWidget extends StatefulWidget {
-  const RiskHeatmapWidget({super.key});
+  final bool isFullscreen;
+  const RiskHeatmapWidget({super.key, this.isFullscreen = false});
 
   @override
   State<RiskHeatmapWidget> createState() => _RiskHeatmapWidgetState();
@@ -54,7 +55,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
           totalEquity > 0 ? totalWeightedChangeSum / totalEquity : 0;
 
       // Group small items if too many (keeps UI clean)
-      const int maxItems = 17;
+      int maxItems = widget.isFullscreen ? 20 : 15;
       if (sortedItems.length > maxItems + 1) {
         var topItems = sortedItems.take(maxItems).toList();
         var otherItems = sortedItems.skip(maxItems).toList();
@@ -88,104 +89,81 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Risk Heatmap",
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          NumberFormat.compactSimpleCurrency()
-                              .format(totalEquity),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          "${(totalWeightedChange * 100).toStringAsFixed(2)}%",
-                          style: TextStyle(
-                            color: totalWeightedChange >= 0
-                                ? Colors.green
-                                : Colors.red,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
+                if (!widget.isFullscreen) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SegmentedButton<HeatmapView>(
-                        segments: const [
-                          ButtonSegment(
-                            value: HeatmapView.sector,
-                            label: Text('Sector'),
-                            icon: Icon(Icons.pie_chart, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: HeatmapView.symbol,
-                            label: Text('Symbol'),
-                            icon: Icon(Icons.show_chart, size: 16),
-                          ),
+                      Row(
+                        children: [
+                          Icon(Icons.grid_view,
+                              color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Text("Risk Heatmap",
+                              style: Theme.of(context).textTheme.titleLarge
+                              // ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                         ],
-                        selected: {_selectedView},
-                        onSelectionChanged: (Set<HeatmapView> newSelection) {
-                          setState(() {
-                            _selectedView = newSelection.first;
-                          });
-                        },
-                        style: ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                          padding: MaterialStateProperty.all(EdgeInsets.zero),
-                        ),
                       ),
-                      const SizedBox(width: 8),
-                      SegmentedButton<HeatmapMetric>(
-                        segments: const [
-                          ButtonSegment(
-                            value: HeatmapMetric.dailyChange,
-                            label: Text('Daily'),
-                            icon: Icon(Icons.today, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: HeatmapMetric.totalReturn,
-                            label: Text('Total'),
-                            icon: Icon(Icons.history, size: 16),
-                          ),
-                        ],
-                        selected: {_selectedMetric},
-                        onSelectionChanged: (Set<HeatmapMetric> newSelection) {
-                          setState(() {
-                            _selectedMetric = newSelection.first;
-                          });
-                        },
-                        style: ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                          padding: MaterialStateProperty.all(EdgeInsets.zero),
-                        ),
-                      ),
+                      _buildTotals(context, totalEquity, totalWeightedChange),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  _buildControls(),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: _buildControls()),
+                      const SizedBox(width: 16),
+                      _buildTotals(context, totalEquity, totalWeightedChange),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 4),
-          SizedBox(
-            height: 350,
-            child: _buildTreemap(sortedItems, totalEquity),
-          ),
+          if (widget.isFullscreen)
+            Expanded(
+              child: _buildTreemap(sortedItems, totalEquity),
+            )
+          else
+            Stack(
+              children: [
+                SizedBox(
+                  height: 350,
+                  child: _buildTreemap(sortedItems, totalEquity),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: const Icon(Icons.fullscreen),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text("Risk Heatmap"),
+                            ),
+                            body: const SafeArea(
+                              child: RiskHeatmapWidget(
+                                isFullscreen: true,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           // Legend
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -219,6 +197,86 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         ],
       );
     });
+  }
+
+  Widget _buildTotals(
+      BuildContext context, double totalEquity, double totalWeightedChange) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          NumberFormat.compactSimpleCurrency().format(totalEquity),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        Text(
+          "${(totalWeightedChange * 100).toStringAsFixed(2)}%",
+          style: TextStyle(
+            color: totalWeightedChange >= 0 ? Colors.green : Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControls() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          SegmentedButton<HeatmapView>(
+            segments: const [
+              ButtonSegment(
+                value: HeatmapView.sector,
+                label: Text('Sector'),
+                icon: Icon(Icons.pie_chart, size: 16),
+              ),
+              ButtonSegment(
+                value: HeatmapView.symbol,
+                label: Text('Symbol'),
+                icon: Icon(Icons.show_chart, size: 16),
+              ),
+            ],
+            selected: {_selectedView},
+            onSelectionChanged: (Set<HeatmapView> newSelection) {
+              setState(() {
+                _selectedView = newSelection.first;
+              });
+            },
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              padding: MaterialStateProperty.all(EdgeInsets.zero),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SegmentedButton<HeatmapMetric>(
+            segments: const [
+              ButtonSegment(
+                value: HeatmapMetric.dailyChange,
+                label: Text('Daily'),
+                icon: Icon(Icons.today, size: 16),
+              ),
+              ButtonSegment(
+                value: HeatmapMetric.totalReturn,
+                label: Text('Total'),
+                icon: Icon(Icons.history, size: 16),
+              ),
+            ],
+            selected: {_selectedMetric},
+            onSelectionChanged: (Set<HeatmapMetric> newSelection) {
+              setState(() {
+                _selectedMetric = newSelection.first;
+              });
+            },
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              padding: MaterialStateProperty.all(EdgeInsets.zero),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTreemap(List<MapEntry<String, _SectorPerformance>> items,
@@ -326,11 +384,12 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withOpacity(0.8),
+              color.withOpacity(0.9),
               color,
             ],
           ),

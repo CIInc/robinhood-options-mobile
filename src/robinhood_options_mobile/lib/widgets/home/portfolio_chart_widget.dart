@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'package:candlesticks/candlesticks.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
@@ -12,6 +14,7 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_s
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/full_screen_portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 
 class PortfolioChartWidget extends StatefulWidget {
@@ -19,6 +22,7 @@ class PortfolioChartWidget extends StatefulWidget {
   final ChartDateSpan chartDateSpanFilter;
   final Bounds chartBoundsFilter;
   final Function(ChartDateSpan, Bounds) onFilterChanged;
+  final bool isFullScreen;
 
   const PortfolioChartWidget({
     super.key,
@@ -26,6 +30,7 @@ class PortfolioChartWidget extends StatefulWidget {
     required this.chartDateSpanFilter,
     required this.chartBoundsFilter,
     required this.onFilterChanged,
+    this.isFullScreen = false,
   });
 
   @override
@@ -36,6 +41,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
   PortfolioHistoricals? _previousPortfolioHistoricals;
   late ChartDateSpan _chartDateSpanFilter;
   late Bounds _chartBoundsFilter;
+  bool _showCandles = false;
 
   @override
   void initState() {
@@ -218,33 +224,42 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                   formatCompactNumber.format((history.adjustedOpenEquity)),
               data: allHistoricals,
             ),
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Equity',
-                colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                measureFn: (EquityHistorical history, index) =>
-                    history.openEquity,
-                data: allHistoricals),
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Market Value',
-                colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                measureFn: (EquityHistorical history, index) =>
-                    history.openMarketValue,
-                data: allHistoricals),
+            if (allHistoricals.any((element) => element.openEquity! > 0)) ...[
+              charts.Series<EquityHistorical, DateTime>(
+                  id: 'Equity',
+                  colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+                  domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                  measureFn: (EquityHistorical history, index) =>
+                      history.openEquity,
+                  data: allHistoricals),
+            ],
+            if (allHistoricals
+                .any((element) => element.openMarketValue! > 0)) ...[
+              charts.Series<EquityHistorical, DateTime>(
+                  id: 'Market Value',
+                  colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+                  domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                  measureFn: (EquityHistorical history, index) =>
+                      history.openMarketValue,
+                  data: allHistoricals),
+            ]
           ],
           animate: shouldAnimate,
           zeroBound: false,
           open: open,
           close: close,
-          seriesLegend: charts.SeriesLegend(
-            horizontalFirst: true,
-            position: charts.BehaviorPosition.top,
-            defaultHiddenSeries: const ['Equity', 'Market Value'],
-            showMeasures: false,
-            measureFormatter: (measure) =>
-                measure != null ? formatPercentage.format(measure) : '',
-          ),
+          seriesLegend: (allHistoricals
+                      .any((element) => element.openEquity! > 0) ||
+                  allHistoricals.any((element) => element.openMarketValue! > 0))
+              ? charts.SeriesLegend(
+                  horizontalFirst: true,
+                  position: charts.BehaviorPosition.top,
+                  defaultHiddenSeries: const ['Equity', 'Market Value'],
+                  showMeasures: false,
+                  measureFormatter: (measure) =>
+                      measure != null ? formatPercentage.format(measure) : '',
+                )
+              : null,
           onSelected: (charts.SelectionModel<dynamic>? model) {
             provider.selectionChanged(model?.selectedDatum.first.datum);
           },
@@ -297,6 +312,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
                                       PnlBadge(
+                                          neutral: true,
                                           child: AnimatedPriceText(
                                               price: selection != null
                                                   ? selection
@@ -309,8 +325,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                                   fontWeight: FontWeight.w600,
                                                   color: Theme.of(context)
                                                       .colorScheme
-                                                      .onSurfaceVariant)),
-                                          neutral: true),
+                                                      .onSurfaceVariant))),
                                       Text(
                                           formatMediumDateTime.format(
                                               selection != null
@@ -354,12 +369,66 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               ],
             ));
           }),
-          SizedBox(
-              height: 460,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
-                child: historicalChart,
-              )),
+          widget.isFullScreen
+              ? Expanded(
+                  child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                  child: Stack(
+                    children: [
+                      _showCandles
+                          ? Candlesticks(
+                              candles: _generateCandles(allHistoricals),
+                            )
+                          : historicalChart,
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          icon: Icon(_showCandles
+                              ? Icons.show_chart
+                              : Icons.candlestick_chart),
+                          onPressed: () {
+                            setState(() {
+                              _showCandles = !_showCandles;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ))
+              : Stack(
+                  children: [
+                    SizedBox(
+                        height: 460,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+                          child: historicalChart,
+                        )),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.fullscreen),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FullScreenPortfolioChartWidget(
+                                brokerageUser: widget.brokerageUser,
+                                chartDateSpanFilter: widget.chartDateSpanFilter,
+                                chartBoundsFilter: widget.chartBoundsFilter,
+                                onFilterChanged: widget.onFilterChanged,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
           SizedBox(
               height: 56,
               child: ListView.builder(
@@ -421,5 +490,57 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         },
       ),
     );
+  }
+
+  List<Candle> _generateCandles(List<EquityHistorical> historicals) {
+    if (historicals.isEmpty) return [];
+
+    // Determine bucket size based on total points to get roughly 60 candles
+    int bucketSize = (historicals.length / 60).ceil();
+    if (bucketSize < 2) {
+      bucketSize = 2; // Ensure at least 2 points to have some High/Low diff
+    }
+
+    List<Candle> candles = [];
+    for (int i = 0; i < historicals.length; i += bucketSize) {
+      int end = (i + bucketSize < historicals.length)
+          ? i + bucketSize
+          : historicals.length;
+      var chunk = historicals.sublist(i, end);
+
+      double open = chunk.first.adjustedOpenEquity ?? 0;
+      double close = chunk.last.adjustedCloseEquity ?? 0;
+
+      // Calculate High/Low from the chunk
+      double high = chunk
+          .map((e) =>
+              math.max(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0))
+          .reduce(math.max);
+      double low = chunk
+          .map((e) =>
+              math.min(e.adjustedOpenEquity ?? 0, e.adjustedCloseEquity ?? 0))
+          .reduce(math.min);
+
+      // Ensure values are positive to avoid log10(0) errors in candlesticks package
+      const double minPrice = 0.01;
+      if (high < minPrice) high = minPrice;
+      if (low < minPrice) low = minPrice;
+      if (open < minPrice) open = minPrice;
+      if (close < minPrice) close = minPrice;
+
+      // Volume is not available in EquityHistorical, set to 1 to avoid log10(0) error
+      double volume = 1;
+
+      candles.add(Candle(
+        date: chunk.first.beginsAt!,
+        high: high,
+        low: low,
+        open: open,
+        close: close,
+        volume: volume,
+      ));
+    }
+    // Candlesticks package expects newest first
+    return candles.reversed.toList();
   }
 }

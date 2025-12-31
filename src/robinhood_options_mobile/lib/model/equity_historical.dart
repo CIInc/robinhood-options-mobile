@@ -102,18 +102,22 @@ class EquityHistorical {
         adjustedCloseEquity = double.tryParse(json['primary_value']['value']
             .replaceAll('\$', '')
             .replaceAll(',', '')),
-        openEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        closeEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        openMarketValue = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        closeMarketValue = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
+        openEquity = 0,
+        //  double.tryParse(json['primary_value']['value']
+        //     .replaceAll('\$', '')
+        //     .replaceAll(',', '')),
+        closeEquity = 0,
+        //  double.tryParse(json['primary_value']['value']
+        //     .replaceAll('\$', '')
+        //     .replaceAll(',', '')),
+        openMarketValue = 0,
+        //  double.tryParse(json['primary_value']['value']
+        //     .replaceAll('\$', '')
+        //     .replaceAll(',', '')),
+        closeMarketValue = 0,
+        //  double.tryParse(json['primary_value']['value']
+        //     .replaceAll('\$', '')
+        //     .replaceAll(',', '')),
         beginsAt = null, // DateTime.tryParse(json['label']['value']),
         netReturn = double.tryParse(json['secondary_value']['main']['value']),
         session = json['label']['value'] {
@@ -131,7 +135,8 @@ class EquityHistorical {
       return;
     }
     // For chart span: week
-    beginsAt = DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
+    beginsAt =
+        DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
         DateTime.now().year,

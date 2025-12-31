@@ -62,6 +62,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
     this.showFooter = true,
     this.showChips = true,
     this.showYield = true,
+    this.isFullScreen = false,
     super.key,
     required this.analytics,
     required this.observer,
@@ -82,6 +83,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final bool showFooter;
   final bool showChips;
   final bool showYield;
+  final bool isFullScreen;
 
   @override
   State<IncomeTransactionsWidget> createState() =>
@@ -1096,155 +1098,204 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       );
     }
 
-    return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      if (widget.showChips) ...[
-        SliverToBoxAdapter(
-          child: AnimatedSwitcher(
-            duration: Durations.short4,
-            child: transactionFilters.contains("dividend")
-                ? SizedBox(
-                    key: ValueKey(transactionFilters.contains("dividend")),
-                    height: 80, // 56
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.all(4.0),
-                      child: Row(
-                        children: [
-                          // Divider(indent: 12),
-                          for (var entry in dividendSymbolYields) ...[
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: InkWell(
+    Widget? dividendYieldsChips;
+    if (widget.showChips) {
+      dividendYieldsChips = AnimatedSwitcher(
+        duration: Durations.short4,
+        child: transactionFilters.contains("dividend")
+            ? SizedBox(
+                key: ValueKey(transactionFilters.contains("dividend")),
+                height: 80, // 56
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.all(4.0),
+                  child: Row(
+                    children: [
+                      // Divider(indent: 12),
+                      for (var entry in dividendSymbolYields) ...[
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () async {
+                              var dividend = widget.dividendStore.items
+                                  .where((d) =>
+                                      d['instrumentObj'] != null &&
+                                      d['instrumentObj']!.symbol ==
+                                          entry['symbol'])
+                                  .firstOrNull;
+                              if (dividend != null &&
+                                  !widget.instrumentOrderStore.items.any((o) =>
+                                      o.instrument == dividend['instrument'])) {
+                                await widget.service.getInstrumentOrders(
+                                    widget.brokerageUser,
+                                    widget.instrumentOrderStore,
+                                    [dividend['instrument']]);
+                              }
+                              setState(() {
+                                transactionFilters.removeWhere(
+                                    (String name) => name == "interest");
+                                transactionSymbolFilters.clear();
+                                transactionSymbolFilters.add(entry['symbol']);
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: transactionSymbolFilters
+                                        .contains(entry['symbol'])
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.2)
+                                    : null,
                                 borderRadius: BorderRadius.circular(20),
-                                onTap: () async {
-                                  var dividend = widget.dividendStore.items
-                                      .where((d) =>
-                                          d['instrumentObj'] != null &&
-                                          d['instrumentObj']!.symbol ==
-                                              entry['symbol'])
-                                      .firstOrNull;
-                                  if (dividend != null &&
-                                      !widget.instrumentOrderStore.items.any(
-                                          (o) =>
-                                              o.instrument ==
-                                              dividend['instrument'])) {
-                                    await widget.service.getInstrumentOrders(
-                                        widget.brokerageUser,
-                                        widget.instrumentOrderStore,
-                                        [dividend['instrument']]);
-                                  }
-                                  setState(() {
-                                    transactionFilters.removeWhere(
-                                        (String name) => name == "interest");
-                                    transactionSymbolFilters.clear();
-                                    transactionSymbolFilters
-                                        .add(entry['symbol']);
-                                  });
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: transactionSymbolFilters
-                                            .contains(entry['symbol'])
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withValues(alpha: 0.2)
-                                        : null,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
+                                border: Border.all(
+                                  color: transactionSymbolFilters
+                                          .contains(entry['symbol'])
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey.shade400,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    formatPercentage.format(entry['yield']),
+                                    style: TextStyle(
+                                        color: Colors.green.shade700,
+                                        fontSize: summaryValueFontSize
+                                        // greekValueFontSize // 13,
+                                        ),
+                                    // textAlign: TextAlign.start,
+                                  ),
+                                  // SizedBox(width: 8),
+                                  Text(
+                                    entry['symbol'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                       color: transactionSymbolFilters
                                               .contains(entry['symbol'])
                                           ? Theme.of(context)
                                               .colorScheme
                                               .primary
-                                          : Colors.grey.shade400,
+                                          : null,
                                     ),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        formatPercentage.format(entry['yield']),
-                                        style: TextStyle(
-                                            color: Colors.green.shade700,
-                                            fontSize: summaryValueFontSize
-                                            // greekValueFontSize // 13,
-                                            ),
-                                        // textAlign: TextAlign.start,
-                                      ),
-                                      // SizedBox(width: 8),
-                                      Text(
-                                        entry['symbol'],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: transactionSymbolFilters
-                                                  .contains(entry['symbol'])
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      // Add a 'Clear' chip if any symbol is selected
+                      if (transactionSymbolFilters.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: FilterChip(
+                            label: const Text('Clear'),
+                            selected: false,
+                            onSelected: (bool value) {
+                              setState(() {
+                                transactionSymbolFilters.clear();
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ))
+            : null,
+      );
+    }
+
+    var header = Column(children: [
+      InkWell(
+        onTap: !widget.showList ? () => navigateToFullPage(context) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
+                    style: const TextStyle(
+                        fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
+                  if (!widget.showList)
+                    const SizedBox(
+                      height: 28,
+                      child: Icon(Icons.chevron_right),
+                    )
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Card(
+                      elevation: 0,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.history,
+                                    size: 16,
+                                    color: Theme.of(context).hintColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "Past 12 Months",
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: Theme.of(context).hintColor),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
+                                return ScaleTransition(
+                                    scale: animation, child: child);
+                              },
+                              child: Text(
+                                key: ValueKey<String>(
+                                    pastYearTotalIncome.toString()),
+                                formatCurrency.format(pastYearTotalIncome),
+                                style: const TextStyle(
+                                    fontSize: 24.0,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
-                          ],
-                          // Add a 'Clear' chip if any symbol is selected
-                          if (transactionSymbolFilters.isNotEmpty) ...[
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4.0),
-                              child: FilterChip(
-                                label: const Text('Clear'),
-                                selected: false,
-                                onSelected: (bool value) {
-                                  setState(() {
-                                    transactionSymbolFilters.clear();
-                                  });
-                                },
-                              ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "~${formatCurrency.format(pastYearTotalIncome / 12)}/mo",
+                              style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: Theme.of(context).hintColor),
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ))
-                : null,
-          ),
-        ),
-      ],
-      SliverToBoxAdapter(
-          child: Column(children: [
-        InkWell(
-          onTap: !widget.showList ? () => navigateToFullPage(context) : null,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
-                      style: const TextStyle(
-                          fontSize: 20.0, fontWeight: FontWeight.bold),
                     ),
-                    if (!widget.showList)
-                      const SizedBox(
-                        height: 28,
-                        child: Icon(Icons.chevron_right),
-                      )
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  ),
+                  if (totalProjectedIncome > 0) ...[
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Card(
                         elevation: 0,
@@ -1261,12 +1312,15 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.history,
+                                  Icon(Icons.trending_up,
                                       size: 16,
                                       color: Theme.of(context).hintColor),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "Past 12 Months",
+                                    transactionFilters.contains('projected') &&
+                                            projectionYears > 1
+                                        ? "Next $projectionYears Years"
+                                        : "Next 12 Months",
                                     style: TextStyle(
                                         fontSize: 12.0,
                                         color: Theme.of(context).hintColor),
@@ -1283,8 +1337,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                 },
                                 child: Text(
                                   key: ValueKey<String>(
-                                      pastYearTotalIncome.toString()),
-                                  formatCurrency.format(pastYearTotalIncome),
+                                      totalProjectedIncome.toString()),
+                                  formatCurrency.format(totalProjectedIncome),
                                   style: const TextStyle(
                                       fontSize: 24.0,
                                       fontWeight: FontWeight.bold),
@@ -1292,7 +1346,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "~${formatCurrency.format(pastYearTotalIncome / 12)}/mo",
+                                "~${formatCurrency.format(totalProjectedIncome / (12 * (transactionFilters.contains('projected') ? projectionYears : 1)))}/mo",
                                 style: TextStyle(
                                     fontSize: 12.0,
                                     color: Theme.of(context).hintColor),
@@ -1302,491 +1356,435 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                         ),
                       ),
                     ),
-                    if (totalProjectedIncome > 0) ...[
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Card(
-                          elevation: 0,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.trending_up,
-                                        size: 16,
-                                        color: Theme.of(context).hintColor),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      transactionFilters
-                                                  .contains('projected') &&
-                                              projectionYears > 1
-                                          ? "Next $projectionYears Years"
-                                          : "Next 12 Months",
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context).hintColor),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  transitionBuilder: (Widget child,
-                                      Animation<double> animation) {
-                                    return ScaleTransition(
-                                        scale: animation, child: child);
-                                  },
-                                  child: Text(
-                                    key: ValueKey<String>(
-                                        totalProjectedIncome.toString()),
-                                    formatCurrency.format(totalProjectedIncome),
-                                    style: const TextStyle(
-                                        fontSize: 24.0,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "~${formatCurrency.format(totalProjectedIncome / (12 * (transactionFilters.contains('projected') ? projectionYears : 1)))}/mo",
-                                  style: TextStyle(
-                                      fontSize: 12.0,
-                                      color: Theme.of(context).hintColor),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (incomeTransactions.isNotEmpty &&
-            transactionSymbolFilters.isNotEmpty &&
-            widget.showYield &&
-            yield != null) ...[
-          SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    SummaryStatCard(
-                      label: "Last yield",
-                      value: formatPercentage.format(yield),
-                      onTap: () {
-                        showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) => AlertDialog(
-                                  title: const Text('Dividend Yield'),
-                                  content: Text(
-                                      """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
-                                                                Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
-                                                                Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.brokerageUser.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
-                                                                Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ));
-                      },
-                    ),
-                    if (yieldOnCost != null)
-                      SummaryStatCard(
-                        label: "Yield on cost",
-                        value: formatPercentage.format(yieldOnCost),
-                      ),
-                    if (adjustedCost != null)
-                      SummaryStatCard(
-                        label: "Adj. cost basis",
-                        value: formatCurrency.format(positionAdjCost),
-                      ),
-                    if (adjustedReturnPercent != null)
-                      SummaryStatCard(
-                        label: "Adj. return %",
-                        value: formatPercentage.format(adjustedReturnPercent),
-                        icon: adjustedReturnPercent != 0
-                            ? Icon(
-                                adjustedReturnPercent > 0
-                                    ? Icons.arrow_drop_up
-                                    : Icons.arrow_drop_down,
-                                color: adjustedReturnPercent > 0
-                                    ? Colors.green
-                                    : Colors.red,
-                                size: 27)
-                            : null,
-                      ),
-                    if (adjustedReturn != null)
-                      SummaryStatCard(
-                        label: "Adj. return",
-                        value: formatCurrency.format(adjustedReturn),
-                      ),
-                    if (totalValue != null)
-                      SummaryStatCard(
-                        label: "Total value",
-                        value: formatCurrency.format(totalValue),
-                      ),
-                    SummaryStatCard(
-                      label: "Total income",
-                      value: formatCurrency.format(totalIncome),
-                    ),
-                    if (totalProjectedIncome > 0 &&
-                        transactionFilters.contains('projected'))
-                      SummaryStatCard(
-                        label: "Projected",
-                        value: formatCurrency.format(totalProjectedIncome),
-                      ),
-                    if (totalSells != null && totalSells > 0)
-                      SummaryStatCard(
-                        label: "Total sells",
-                        value: formatCurrency.format(totalSells),
-                      ),
-                    if (marketValue != null)
-                      SummaryStatCard(
-                        label: "Position value",
-                        value: formatCurrency.format(marketValue),
-                      ),
-                    SummaryStatCard(
-                      label: "Shares",
-                      value: formatNumber.format(position?.quantity ?? 0),
-                    ),
-                  ]),
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    SummaryStatCard(
-                      label: "Last distribution",
-                      value: double.parse(incomeTransactions[0]["rate"]) < 0.005
-                          ? formatPreciseCurrency.format(
-                              double.parse(incomeTransactions[0]["rate"]))
-                          : formatCurrency.format(
-                              double.parse(incomeTransactions[0]["rate"])),
-                    ),
-                    if (position?.instrumentObj != null)
-                      SummaryStatCard(
-                        label: "Last price",
-                        value: widget.brokerageUser.getDisplayText(
-                            position!.instrumentObj!.quoteObj!
-                                    .lastExtendedHoursTradePrice ??
-                                position
-                                    .instrumentObj!.quoteObj!.lastTradePrice!,
-                            displayValue: DisplayValue.lastPrice),
-                      ),
-                    if (position?.averageBuyPrice != null)
-                      SummaryStatCard(
-                        label: "Avg. cost basis",
-                        value: widget.brokerageUser.getDisplayText(
-                            position!.averageBuyPrice!,
-                            displayValue: DisplayValue.lastPrice),
-                      ),
-                    if (gainLossPercent != null)
-                      SummaryStatCard(
-                        label: "Total return",
-                        value: widget.brokerageUser.getDisplayText(
-                            gainLossPercent,
-                            displayValue: DisplayValue.totalReturnPercent),
-                        icon: gainLossPercent != 0
-                            ? Icon(
-                                gainLossPercent > 0
-                                    ? Icons.arrow_drop_up
-                                    : Icons.arrow_drop_down,
-                                color: gainLossPercent > 0
-                                    ? Colors.green
-                                    : Colors.red,
-                                size: 27)
-                            : null,
-                      ),
-                    if (gainLoss != null)
-                      SummaryStatCard(
-                        label: "Total return",
-                        value: widget.brokerageUser.getDisplayText(gainLoss,
-                            displayValue: DisplayValue.totalReturn),
-                      ),
-                    if (totalCost != null)
-                      SummaryStatCard(
-                        label: "Total cost",
-                        value: formatCurrency.format(totalCost),
-                      ),
-                    if (countBuys != null && countSells != null)
-                      SummaryStatCard(
-                        label: "Buys / Sells",
-                        value:
-                            "${formatNumber.format(countBuys)} / ${formatNumber.format(countSells)}",
-                      ),
-                    if (positionCost != null && countSells! > 0)
-                      SummaryStatCard(
-                        label: "Position cost",
-                        value: formatCurrency.format(positionCost),
-                      ),
-                    if (positionGainLossPercent != null && countSells! > 0)
-                      SummaryStatCard(
-                        label: "Position return",
-                        value: widget.brokerageUser.getDisplayText(
-                            positionGainLossPercent,
-                            displayValue: DisplayValue.totalReturnPercent),
-                        icon: positionGainLossPercent != 0
-                            ? Icon(
-                                positionGainLossPercent > 0
-                                    ? Icons.arrow_drop_up
-                                    : Icons.arrow_drop_down,
-                                color: positionGainLossPercent > 0
-                                    ? Colors.green
-                                    : Colors.red,
-                                size: 27)
-                            : null,
-                      ),
-                    if (positionGainLoss != null && countSells! > 0)
-                      SummaryStatCard(
-                        label: "Position return",
-                        value: widget.brokerageUser.getDisplayText(
-                            positionGainLoss,
-                            displayValue: DisplayValue.totalReturn),
-                      ),
-                    if (dividendInterval.isNotEmpty)
-                      SummaryStatCard(
-                        label: "Distributions",
-                        value: dividendInterval.capitalize(),
-                      ),
-                  ])
-                ],
-              )),
-        ],
-        SizedBox(
-            height: 340,
-            child: Card(
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10.0, 16.0, 10.0, 10.0),
-                  //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                  //padding: const EdgeInsets.all(10.0),
-                  child: incomeChart,
-                ))),
-      ])),
-      if (widget.showChips) ...[
-        // SliverPersistentHeader(
-        //   pinned: true,
-        //   // floating: true,
-        //   delegate: PersistentHeader(formatDate.format(
-        //       DateTime.parse(incomeTransactions.first!["payable_date"]))),
-        // ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-              height: 56,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(4.0),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    _buildChoiceChip('1Y', dateFilter == 'Year', (bool value) {
-                      setState(() {
-                        if (value) {
-                          dateFilter = 'Year';
-                        }
-                      });
-                    }),
-                    _buildChoiceChip('3Y', dateFilter == '3Year', (bool value) {
-                      setState(() {
-                        if (value) {
-                          dateFilter = '3Year';
-                        }
-                      });
-                    }),
-                    _buildChoiceChip('All', dateFilter == 'All', (bool value) {
-                      setState(() {
-                        if (value) {
-                          dateFilter = 'All';
-                        }
-                      });
-                    }),
-                    _buildDivider(),
-                    _buildFilterChip(
-                        'Interest', transactionFilters.contains("interest"),
-                        (bool value) {
-                      setState(() {
-                        if (value) {
-                          transactionFilters.add("interest");
-                        } else {
-                          transactionFilters.remove("interest");
-                        }
-                      });
-                    }, icon: Icons.savings_outlined),
-                    _buildFilterChip(
-                        'Dividend', transactionFilters.contains("dividend"),
-                        (bool value) {
-                      setState(() {
-                        if (value) {
-                          transactionFilters.add("dividend");
-                        } else {
-                          transactionFilters.remove("dividend");
-                          transactionSymbolFilters.clear();
-                        }
-                      });
-                    }, icon: Icons.payments_outlined),
-                    AnimatedSwitcher(
-                      duration: Durations.short4,
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                        return SizeTransition(
-                          sizeFactor: animation,
-                          axis: Axis.horizontal,
-                          axisAlignment: -1.0,
-                          child:
-                              FadeTransition(opacity: animation, child: child),
-                        );
-                      },
-                      child: !transactionFilters.contains("dividend")
-                          ? const SizedBox.shrink()
-                          : Row(
-                              children: [
-                                _buildDivider(),
-                                _buildFilterChip(
-                                    'Paid', transactionFilters.contains("paid"),
-                                    (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      transactionFilters.add("paid");
-                                    } else {
-                                      transactionFilters.remove("paid");
-                                    }
-                                  });
-                                }, icon: Icons.check_circle_outline),
-                                _buildFilterChip('Reinvested',
-                                    transactionFilters.contains("reinvested"),
-                                    (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      transactionFilters.add("reinvested");
-                                    } else {
-                                      transactionFilters.remove("reinvested");
-                                    }
-                                  });
-                                }, icon: Icons.autorenew),
-                                _buildFilterChip('Announced',
-                                    transactionFilters.contains("pending"),
-                                    (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      transactionFilters.add("pending");
-                                    } else {
-                                      transactionFilters.remove("pending");
-                                    }
-                                  });
-                                }, icon: Icons.schedule),
-                                const SizedBox(width: 12),
-                              ],
-                            ),
-                    )
-                  ],
-                ),
-              )),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 56,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(4.0),
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  _buildFilterChip(
-                      'Projected', transactionFilters.contains("projected"),
-                      (bool value) {
-                    setState(() {
-                      if (value) {
-                        transactionFilters.add("projected");
-                      } else {
-                        transactionFilters.remove("projected");
-                        transactionFilters.remove("reinvest_projected");
-                      }
-                    });
-                  }, icon: Icons.trending_up),
-                  AnimatedSwitcher(
-                    duration: Durations.short4,
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                      return SizeTransition(
-                        sizeFactor: animation,
-                        axis: Axis.horizontal,
-                        axisAlignment: -1.0,
-                        child: FadeTransition(opacity: animation, child: child),
-                      );
-                    },
-                    child: !transactionFilters.contains("projected")
-                        ? const SizedBox.shrink()
-                        : Row(
-                            children: [
-                              _buildDivider(),
-                              _buildFilterChip(
-                                  'DRIP',
-                                  transactionFilters.contains(
-                                      "reinvest_projected"), (bool value) {
-                                setState(() {
-                                  if (value) {
-                                    transactionFilters
-                                        .add("reinvest_projected");
-                                  } else {
-                                    transactionFilters
-                                        .remove("reinvest_projected");
-                                  }
-                                });
-                              }, icon: Icons.loop),
-                              _buildDivider(),
-                              _buildChoiceChip('1Y', projectionYears == 1,
-                                  (bool value) {
-                                setState(() {
-                                  projectionYears = 1;
-                                });
-                              }),
-                              _buildChoiceChip('3Y', projectionYears == 3,
-                                  (bool value) {
-                                setState(() {
-                                  projectionYears = 3;
-                                });
-                              }),
-                              _buildChoiceChip('5Y', projectionYears == 5,
-                                  (bool value) {
-                                setState(() {
-                                  projectionYears = 5;
-                                });
-                              }),
-                              _buildChoiceChip('10Y', projectionYears == 10,
-                                  (bool value) {
-                                setState(() {
-                                  projectionYears = 10;
-                                });
-                              }),
-                            ],
-                          ),
-                  ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
+      ),
+      if (incomeTransactions.isNotEmpty &&
+          transactionSymbolFilters.isNotEmpty &&
+          widget.showYield &&
+          yield != null) ...[
+        SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  SummaryStatCard(
+                    label: "Last yield",
+                    value: formatPercentage.format(yield),
+                    onTap: () {
+                      showDialog<String>(
+                          context: context,
+                          builder: (BuildContext context) => AlertDialog(
+                                title: const Text('Dividend Yield'),
+                                content: Text(
+                                    """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
+                                                              Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
+                                                              Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.brokerageUser.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
+                                                              Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ));
+                    },
+                  ),
+                  if (yieldOnCost != null)
+                    SummaryStatCard(
+                      label: "Yield on cost",
+                      value: formatPercentage.format(yieldOnCost),
+                    ),
+                  if (adjustedCost != null)
+                    SummaryStatCard(
+                      label: "Adj. cost basis",
+                      value: formatCurrency.format(positionAdjCost),
+                    ),
+                  if (adjustedReturnPercent != null)
+                    SummaryStatCard(
+                      label: "Adj. return %",
+                      value: formatPercentage.format(adjustedReturnPercent),
+                      icon: adjustedReturnPercent != 0
+                          ? Icon(
+                              adjustedReturnPercent > 0
+                                  ? Icons.arrow_drop_up
+                                  : Icons.arrow_drop_down,
+                              color: adjustedReturnPercent > 0
+                                  ? Colors.green
+                                  : Colors.red,
+                              size: 27)
+                          : null,
+                    ),
+                  if (adjustedReturn != null)
+                    SummaryStatCard(
+                      label: "Adj. return",
+                      value: formatCurrency.format(adjustedReturn),
+                    ),
+                  if (totalValue != null)
+                    SummaryStatCard(
+                      label: "Total value",
+                      value: formatCurrency.format(totalValue),
+                    ),
+                  SummaryStatCard(
+                    label: "Total income",
+                    value: formatCurrency.format(totalIncome),
+                  ),
+                  if (totalProjectedIncome > 0 &&
+                      transactionFilters.contains('projected'))
+                    SummaryStatCard(
+                      label: "Projected",
+                      value: formatCurrency.format(totalProjectedIncome),
+                    ),
+                  if (totalSells != null && totalSells > 0)
+                    SummaryStatCard(
+                      label: "Total sells",
+                      value: formatCurrency.format(totalSells),
+                    ),
+                  if (marketValue != null)
+                    SummaryStatCard(
+                      label: "Position value",
+                      value: formatCurrency.format(marketValue),
+                    ),
+                  SummaryStatCard(
+                    label: "Shares",
+                    value: formatNumber.format(position?.quantity ?? 0),
+                  ),
+                ]),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  SummaryStatCard(
+                    label: "Last distribution",
+                    value: double.parse(incomeTransactions[0]["rate"]) < 0.005
+                        ? formatPreciseCurrency
+                            .format(double.parse(incomeTransactions[0]["rate"]))
+                        : formatCurrency.format(
+                            double.parse(incomeTransactions[0]["rate"])),
+                  ),
+                  if (position?.instrumentObj != null)
+                    SummaryStatCard(
+                      label: "Last price",
+                      value: widget.brokerageUser.getDisplayText(
+                          position!.instrumentObj!.quoteObj!
+                                  .lastExtendedHoursTradePrice ??
+                              position.instrumentObj!.quoteObj!.lastTradePrice!,
+                          displayValue: DisplayValue.lastPrice),
+                    ),
+                  if (position?.averageBuyPrice != null)
+                    SummaryStatCard(
+                      label: "Avg. cost basis",
+                      value: widget.brokerageUser.getDisplayText(
+                          position!.averageBuyPrice!,
+                          displayValue: DisplayValue.lastPrice),
+                    ),
+                  if (gainLossPercent != null)
+                    SummaryStatCard(
+                      label: "Total return",
+                      value: widget.brokerageUser.getDisplayText(
+                          gainLossPercent,
+                          displayValue: DisplayValue.totalReturnPercent),
+                      icon: gainLossPercent != 0
+                          ? Icon(
+                              gainLossPercent > 0
+                                  ? Icons.arrow_drop_up
+                                  : Icons.arrow_drop_down,
+                              color: gainLossPercent > 0
+                                  ? Colors.green
+                                  : Colors.red,
+                              size: 27)
+                          : null,
+                    ),
+                  if (gainLoss != null)
+                    SummaryStatCard(
+                      label: "Total return",
+                      value: widget.brokerageUser.getDisplayText(gainLoss,
+                          displayValue: DisplayValue.totalReturn),
+                    ),
+                  if (totalCost != null)
+                    SummaryStatCard(
+                      label: "Total cost",
+                      value: formatCurrency.format(totalCost),
+                    ),
+                  if (countBuys != null && countSells != null)
+                    SummaryStatCard(
+                      label: "Buys / Sells",
+                      value:
+                          "${formatNumber.format(countBuys)} / ${formatNumber.format(countSells)}",
+                    ),
+                  if (positionCost != null && countSells! > 0)
+                    SummaryStatCard(
+                      label: "Position cost",
+                      value: formatCurrency.format(positionCost),
+                    ),
+                  if (positionGainLossPercent != null && countSells! > 0)
+                    SummaryStatCard(
+                      label: "Position return",
+                      value: widget.brokerageUser.getDisplayText(
+                          positionGainLossPercent,
+                          displayValue: DisplayValue.totalReturnPercent),
+                      icon: positionGainLossPercent != 0
+                          ? Icon(
+                              positionGainLossPercent > 0
+                                  ? Icons.arrow_drop_up
+                                  : Icons.arrow_drop_down,
+                              color: positionGainLossPercent > 0
+                                  ? Colors.green
+                                  : Colors.red,
+                              size: 27)
+                          : null,
+                    ),
+                  if (positionGainLoss != null && countSells! > 0)
+                    SummaryStatCard(
+                      label: "Position return",
+                      value: widget.brokerageUser.getDisplayText(
+                          positionGainLoss,
+                          displayValue: DisplayValue.totalReturn),
+                    ),
+                  if (dividendInterval.isNotEmpty)
+                    SummaryStatCard(
+                      label: "Distributions",
+                      value: dividendInterval.capitalize(),
+                    ),
+                ])
+              ],
+            )),
       ],
+    ]);
+
+    var chartCard = Card(
+        elevation: 0,
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10.0, 16.0, 10.0, 10.0),
+          child: incomeChart,
+        ));
+
+    Widget? filterChips1;
+    Widget? filterChips2;
+    if (widget.showChips) {
+      filterChips1 = SizedBox(
+          height: 56,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(4.0),
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                _buildChoiceChip('1Y', dateFilter == 'Year', (bool value) {
+                  setState(() {
+                    if (value) {
+                      dateFilter = 'Year';
+                    }
+                  });
+                }),
+                _buildChoiceChip('3Y', dateFilter == '3Year', (bool value) {
+                  setState(() {
+                    if (value) {
+                      dateFilter = '3Year';
+                    }
+                  });
+                }),
+                _buildChoiceChip('All', dateFilter == 'All', (bool value) {
+                  setState(() {
+                    if (value) {
+                      dateFilter = 'All';
+                    }
+                  });
+                }),
+                _buildDivider(),
+                _buildFilterChip(
+                    'Interest', transactionFilters.contains("interest"),
+                    (bool value) {
+                  setState(() {
+                    if (value) {
+                      transactionFilters.add("interest");
+                    } else {
+                      transactionFilters.remove("interest");
+                    }
+                  });
+                }, icon: Icons.savings_outlined),
+                _buildFilterChip(
+                    'Dividend', transactionFilters.contains("dividend"),
+                    (bool value) {
+                  setState(() {
+                    if (value) {
+                      transactionFilters.add("dividend");
+                    } else {
+                      transactionFilters.remove("dividend");
+                      transactionSymbolFilters.clear();
+                    }
+                  });
+                }, icon: Icons.payments_outlined),
+                AnimatedSwitcher(
+                  duration: Durations.short4,
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    return SizeTransition(
+                      sizeFactor: animation,
+                      axis: Axis.horizontal,
+                      axisAlignment: -1.0,
+                      child: FadeTransition(opacity: animation, child: child),
+                    );
+                  },
+                  child: !transactionFilters.contains("dividend")
+                      ? const SizedBox.shrink()
+                      : Row(
+                          children: [
+                            _buildDivider(),
+                            _buildFilterChip(
+                                'Paid', transactionFilters.contains("paid"),
+                                (bool value) {
+                              setState(() {
+                                if (value) {
+                                  transactionFilters.add("paid");
+                                } else {
+                                  transactionFilters.remove("paid");
+                                }
+                              });
+                            }, icon: Icons.check_circle_outline),
+                            _buildFilterChip('Reinvested',
+                                transactionFilters.contains("reinvested"),
+                                (bool value) {
+                              setState(() {
+                                if (value) {
+                                  transactionFilters.add("reinvested");
+                                } else {
+                                  transactionFilters.remove("reinvested");
+                                }
+                              });
+                            }, icon: Icons.autorenew),
+                            _buildFilterChip('Announced',
+                                transactionFilters.contains("pending"),
+                                (bool value) {
+                              setState(() {
+                                if (value) {
+                                  transactionFilters.add("pending");
+                                } else {
+                                  transactionFilters.remove("pending");
+                                }
+                              });
+                            }, icon: Icons.schedule),
+                            const SizedBox(width: 12),
+                          ],
+                        ),
+                )
+              ],
+            ),
+          ));
+
+      filterChips2 = SizedBox(
+        height: 56,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.all(4.0),
+          child: Row(
+            children: [
+              const SizedBox(width: 12),
+              _buildFilterChip(
+                  'Projected', transactionFilters.contains("projected"),
+                  (bool value) {
+                setState(() {
+                  if (value) {
+                    transactionFilters.add("projected");
+                  } else {
+                    transactionFilters.remove("projected");
+                    transactionFilters.remove("reinvest_projected");
+                  }
+                });
+              }, icon: Icons.trending_up),
+              AnimatedSwitcher(
+                duration: Durations.short4,
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return SizeTransition(
+                    sizeFactor: animation,
+                    axis: Axis.horizontal,
+                    axisAlignment: -1.0,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: !transactionFilters.contains("projected")
+                    ? const SizedBox.shrink()
+                    : Row(
+                        children: [
+                          _buildDivider(),
+                          _buildFilterChip('DRIP',
+                              transactionFilters.contains("reinvest_projected"),
+                              (bool value) {
+                            setState(() {
+                              if (value) {
+                                transactionFilters.add("reinvest_projected");
+                              } else {
+                                transactionFilters.remove("reinvest_projected");
+                              }
+                            });
+                          }, icon: Icons.loop),
+                          _buildDivider(),
+                          _buildChoiceChip('1Y', projectionYears == 1,
+                              (bool value) {
+                            setState(() {
+                              projectionYears = 1;
+                            });
+                          }),
+                          _buildChoiceChip('3Y', projectionYears == 3,
+                              (bool value) {
+                            setState(() {
+                              projectionYears = 3;
+                            });
+                          }),
+                          _buildChoiceChip('5Y', projectionYears == 5,
+                              (bool value) {
+                            setState(() {
+                              projectionYears = 5;
+                            });
+                          }),
+                          _buildChoiceChip('10Y', projectionYears == 10,
+                              (bool value) {
+                            setState(() {
+                              projectionYears = 10;
+                            });
+                          }),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (widget.isFullScreen) {
+      return SliverFillRemaining(
+          child: Column(children: [
+        if (dividendYieldsChips != null) dividendYieldsChips,
+        header,
+        Expanded(child: chartCard),
+        if (filterChips1 != null) filterChips1,
+        if (filterChips2 != null) filterChips2,
+      ]));
+    }
+
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      if (dividendYieldsChips != null)
+        SliverToBoxAdapter(child: dividendYieldsChips),
+      SliverToBoxAdapter(
+          child: Column(children: [
+        header,
+        SizedBox(height: 340, child: chartCard),
+      ])),
+      if (filterChips1 != null) SliverToBoxAdapter(child: filterChips1),
+      if (filterChips2 != null) SliverToBoxAdapter(child: filterChips2),
       if (widget.showList) ...[
         SliverList(
           // delegate: SliverChildListDelegate(widgets),
@@ -1901,6 +1899,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   interestStore: widget.interestStore,
                   analytics: widget.analytics,
                   observer: widget.observer,
+                  isFullScreen: true,
+                  showList: false,
                 )
               ]))),
     );

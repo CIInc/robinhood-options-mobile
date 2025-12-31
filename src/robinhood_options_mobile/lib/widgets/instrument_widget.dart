@@ -814,13 +814,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ],
             buildOverview(instrument)
           ])),
-          InstrumentChartWidget(
-            instrument: instrument,
-            chartDateSpanFilter: chartDateSpanFilter,
-            chartBoundsFilter: chartBoundsFilter,
-            onFilterChanged: (span, bounds) {
-              resetChart(span, bounds);
-            },
+          SliverToBoxAdapter(
+            child: InstrumentChartWidget(
+              instrument: instrument,
+              chartDateSpanFilter: chartDateSpanFilter,
+              chartBoundsFilter: chartBoundsFilter,
+              onFilterChanged: (span, bounds) {
+                resetChart(span, bounds);
+              },
+            ),
           ),
           if (instrument.quoteObj != null) ...[
             const SliverToBoxAdapter(
