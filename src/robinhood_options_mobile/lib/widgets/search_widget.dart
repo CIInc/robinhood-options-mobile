@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -95,7 +96,6 @@ class _SearchWidgetState extends State<SearchWidget>
   DateTime? tradeSignalStartDate;
   DateTime? tradeSignalEndDate;
   int tradeSignalLimit = 50; // Default limit
-  String sortBy = 'signalStrength'; // 'signalStrength' or 'timestamp'
 
   _SearchWidgetState();
 
@@ -530,7 +530,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .primaryContainer
-                                                .withOpacity(0.15),
+                                                .withValues(alpha: 0.15),
                                             borderRadius:
                                                 BorderRadius.circular(8),
                                           ),
@@ -540,57 +540,92 @@ class _SearchWidgetState extends State<SearchWidget>
                                                   .primary,
                                               size: 22),
                                         ),
-                                        title: Row(
+                                        title: Text(
+                                          "Trade Signals",
+                                          style: TextStyle(
+                                            fontSize: 20.0,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              "Trade Signals",
-                                              style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
-                                              ),
-                                            ),
-                                            const Spacer(),
-                                            IconButton(
+                                            PopupMenuButton<String>(
                                               icon: const Icon(Icons.settings,
                                                   size: 20),
-                                              tooltip:
-                                                  'Agentic Trading Settings',
+                                              tooltip: 'Settings',
                                               padding: EdgeInsets.zero,
                                               constraints:
                                                   const BoxConstraints(),
-                                              onPressed: () async {
-                                                // Navigate to agentic trading settings
+                                              itemBuilder:
+                                                  (BuildContext context) =>
+                                                      <PopupMenuEntry<String>>[
+                                                const PopupMenuItem<String>(
+                                                  value: 'notifications',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons
+                                                          .notifications_outlined),
+                                                      SizedBox(width: 8),
+                                                      Text('Notifications'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const PopupMenuItem<String>(
+                                                  value: 'agentic_settings',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.tune),
+                                                      SizedBox(width: 8),
+                                                      Text('Configuration'),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                              onSelected: (String value) async {
                                                 if (!mounted ||
                                                     widget.user == null ||
                                                     widget.userDocRef == null) {
                                                   return;
                                                 }
-                                                // if (widget.service == null) {
-                                                //   ScaffoldMessenger.of(context)
-                                                //       .showSnackBar(const SnackBar(
-                                                //           content: Text(
-                                                //               "Please link a brokerage account to use this feature.")));
-                                                //   return;
-                                                // }
-                                                final result =
-                                                    await Navigator.of(context)
-                                                        .push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        AgenticTradingSettingsWidget(
-                                                      user: widget.user!,
-                                                      userDocRef:
-                                                          widget.userDocRef!,
-                                                      service: widget.service,
+                                                if (value == 'notifications') {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          TradeSignalNotificationSettingsWidget(
+                                                        user: widget.user!,
+                                                        userDocRef:
+                                                            widget.userDocRef!,
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
-                                                // Refresh signals when returning from settings
-                                                if (result == true && mounted) {
-                                                  _fetchTradeSignalsWithFilters();
+                                                  );
+                                                } else if (value ==
+                                                    'agentic_settings') {
+                                                  final result =
+                                                      await Navigator.of(
+                                                              context)
+                                                          .push(
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          AgenticTradingSettingsWidget(
+                                                        user: widget.user!,
+                                                        userDocRef:
+                                                            widget.userDocRef!,
+                                                        service: widget.service,
+                                                        initialSection:
+                                                            'entryStrategies',
+                                                      ),
+                                                    ),
+                                                  );
+                                                  if (result == true &&
+                                                      mounted) {
+                                                    _fetchTradeSignalsWithFilters();
+                                                  }
                                                 }
                                               },
                                             ),
@@ -604,6 +639,9 @@ class _SearchWidgetState extends State<SearchWidget>
                                                     .onSurface,
                                               ),
                                               tooltip: 'Sort by',
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(),
                                               itemBuilder:
                                                   (BuildContext context) {
                                                 return [
@@ -613,7 +651,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                                       children: [
                                                         const Text(
                                                             'Signal Strength'),
-                                                        if (sortBy ==
+                                                        if (tradeSignalsProvider
+                                                                .sortBy ==
                                                             'signalStrength') ...[
                                                           const SizedBox(
                                                               width: 8),
@@ -631,7 +670,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                                     child: Row(
                                                       children: [
                                                         const Text('Recent'),
-                                                        if (sortBy ==
+                                                        if (tradeSignalsProvider
+                                                                .sortBy ==
                                                             'timestamp') ...[
                                                           const SizedBox(
                                                               width: 8),
@@ -647,9 +687,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                                 ];
                                               },
                                               onSelected: (String value) {
-                                                setState(() {
-                                                  sortBy = value;
-                                                });
+                                                tradeSignalsProvider.sortBy =
+                                                    value;
                                                 _fetchTradeSignalsWithFilters();
                                               },
                                             ),
@@ -804,7 +843,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                                   color: Theme.of(context)
                                                       .colorScheme
                                                       .onSurface
-                                                      .withOpacity(0.7),
+                                                      .withValues(alpha: 0.7),
                                                 ),
                                           ),
                                         ],
@@ -923,7 +962,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.15),
+                                      color:
+                                          Colors.green.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(Icons.trending_up,
@@ -974,7 +1014,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.15),
+                                      color: Colors.red.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(Icons.trending_down,
@@ -1028,7 +1068,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                       color: Theme.of(context)
                                           .colorScheme
                                           .primaryContainer
-                                          .withOpacity(0.15),
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(Icons.show_chart,
@@ -1087,7 +1127,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                       color: Theme.of(context)
                                           .colorScheme
                                           .primaryContainer
-                                          .withOpacity(0.15),
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(Icons.star,
@@ -1174,11 +1214,12 @@ class _SearchWidgetState extends State<SearchWidget>
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
             color: isPositive
-                ? Colors.green.withOpacity(0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : (isNegative
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(
-                        0.2)), // Theme.of(context).colorScheme.outlineVariant)
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(
+                        alpha:
+                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
             width: 1.5,
           ),
         ),
@@ -1242,7 +1283,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -1294,8 +1335,8 @@ class _SearchWidgetState extends State<SearchWidget>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
-            color: Colors.grey.withOpacity(
-                0.2), // Theme.of(context).colorScheme.outlineVariant,
+            color: Colors.grey.withValues(
+                alpha: 0.2), // Theme.of(context).colorScheme.outlineVariant,
             width: 1,
           ),
         ),
@@ -1333,7 +1374,7 @@ class _SearchWidgetState extends State<SearchWidget>
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                         ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
@@ -1353,7 +1394,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                     color: Theme.of(context)
                                         .colorScheme
                                         .secondaryContainer
-                                        .withOpacity(0.5),
+                                        .withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
@@ -1387,7 +1428,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                     color: Theme.of(context)
                                         .colorScheme
                                         .tertiaryContainer
-                                        .withOpacity(0.5),
+                                        .withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
@@ -1418,6 +1459,8 @@ class _SearchWidgetState extends State<SearchWidget>
                   Provider.of<InstrumentStore>(context, listen: false);
               var instrument = await widget.service!.getInstrumentBySymbol(
                   widget.brokerageUser!, instrumentStore, data["symbol"]);
+
+              if (!mounted) return;
 
               // var instrument = Instrument.fromJson(data);
               if (instrument != null) {
@@ -1536,10 +1579,10 @@ class _SearchWidgetState extends State<SearchWidget>
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
             color: isBuy
-                ? Colors.green.withOpacity(0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : (isSell
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2)),
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.2)),
             width: 1.5,
           ),
         ),
@@ -1567,10 +1610,10 @@ class _SearchWidgetState extends State<SearchWidget>
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: isBuy
-                                  ? Colors.green.withOpacity(0.15)
+                                  ? Colors.green.withValues(alpha: 0.15)
                                   : (isSell
-                                      ? Colors.red.withOpacity(0.15)
-                                      : Colors.grey.withOpacity(0.15)),
+                                      ? Colors.red.withValues(alpha: 0.15)
+                                      : Colors.grey.withValues(alpha: 0.15)),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -1621,7 +1664,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: _getSignalStrengthColor(signalStrength)
-                                    .withOpacity(0.15),
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -1704,12 +1747,12 @@ class _SearchWidgetState extends State<SearchWidget>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 2),
                               decoration: BoxDecoration(
-                                color:
-                                    finalTagColor.withOpacity(0.15 * opacity),
+                                color: finalTagColor.withValues(
+                                    alpha: 0.15 * opacity),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color:
-                                      finalTagColor.withOpacity(0.4 * opacity),
+                                  color: finalTagColor.withValues(
+                                      alpha: 0.4 * opacity),
                                   width: 0.5,
                                 ),
                               ),
@@ -1784,11 +1827,12 @@ class _SearchWidgetState extends State<SearchWidget>
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
             color: changeToday > 0
-                ? Colors.green.withOpacity(0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : (changeToday < 0
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(
-                        0.2)), // Theme.of(context).colorScheme.outlineVariant)
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(
+                        alpha:
+                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
             width: 1.5,
           ),
         ),
@@ -1879,7 +1923,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
+                                    .withValues(alpha: 0.6),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis),
@@ -1937,7 +1981,7 @@ class _SearchWidgetState extends State<SearchWidget>
       startDate: tradeSignalStartDate,
       endDate: tradeSignalEndDate,
       limit: tradeSignalLimit,
-      sortBy: sortBy,
+      sortBy: tradeSignalsProvider.sortBy,
     );
   }
 
@@ -2010,7 +2054,7 @@ class _SearchWidgetState extends State<SearchWidget>
               _fetchTradeSignalsWithFilters();
             },
             backgroundColor: Colors.transparent,
-            selectedColor: Colors.green.withOpacity(0.15),
+            selectedColor: Colors.green.withValues(alpha: 0.15),
             side: BorderSide(
               color: signalStrengthCategory == 'STRONG'
                   ? Colors.green.shade400
@@ -2054,7 +2098,7 @@ class _SearchWidgetState extends State<SearchWidget>
               _fetchTradeSignalsWithFilters();
             },
             backgroundColor: Colors.transparent,
-            selectedColor: Colors.orange.withOpacity(0.15),
+            selectedColor: Colors.orange.withValues(alpha: 0.15),
             side: BorderSide(
               color: signalStrengthCategory == 'MODERATE'
                   ? Colors.orange.shade400
@@ -2099,7 +2143,7 @@ class _SearchWidgetState extends State<SearchWidget>
               _fetchTradeSignalsWithFilters();
             },
             backgroundColor: Colors.transparent,
-            selectedColor: Colors.red.withOpacity(0.12),
+            selectedColor: Colors.red.withValues(alpha: 0.12),
             side: BorderSide(
               color: signalStrengthCategory == 'WEAK'
                   ? Colors.red.shade400
@@ -2154,10 +2198,10 @@ class _SearchWidgetState extends State<SearchWidget>
                 },
                 backgroundColor: Colors.transparent,
                 selectedColor: currentSignal == 'BUY'
-                    ? Colors.green.withOpacity(0.15)
+                    ? Colors.green.withValues(alpha: 0.15)
                     : currentSignal == 'SELL'
-                        ? Colors.red.withOpacity(0.15)
-                        : Colors.grey.withOpacity(0.15),
+                        ? Colors.red.withValues(alpha: 0.15)
+                        : Colors.grey.withValues(alpha: 0.15),
                 side: BorderSide(
                   color: currentSignal == 'BUY'
                       ? Colors.green.shade400

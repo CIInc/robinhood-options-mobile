@@ -305,21 +305,22 @@ class TradeSignalsProvider with ChangeNotifier {
   int _currentLimit = 50;
   String? _selectedInterval; // Will be auto-set based on market hours
 
-  String? _tradeProposalMessage;
-  String? _lastTradeProposalStatus;
   String? _error;
-  Map<String, dynamic>? _lastTradeProposal;
-  Map<String, dynamic>? _lastAssessment;
   bool _isTradeInProgress = false;
   bool _isLoading = false;
   Map<String, dynamic>? _tradeSignal;
 
+  String _sortBy = 'signalStrength';
+  String get sortBy => _sortBy;
+  set sortBy(String value) {
+    if (_sortBy != value) {
+      _sortBy = value;
+      notifyListeners();
+    }
+  }
+
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
-  String? get tradeProposalMessage => _tradeProposalMessage;
-  String? get lastTradeProposalStatus => _lastTradeProposalStatus;
   String? get error => _error;
-  Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
-  Map<String, dynamic>? get lastAssessment => _lastAssessment;
   bool get isTradeInProgress => _isTradeInProgress;
   bool get isLoading => _isLoading;
   Map<String, dynamic>? get tradeSignal => _tradeSignal;
@@ -363,36 +364,13 @@ class TradeSignalsProvider with ChangeNotifier {
           .get(const GetOptions(source: Source.server));
       if (doc.exists && doc.data() != null) {
         _tradeSignal = doc.data();
-
-        // Also update the signal in the _tradeSignals list
-        final signalData = doc.data()!;
-        final index = _tradeSignals.indexWhere((s) =>
-            s['symbol'] == symbol &&
-            (s['interval'] ?? '1d') == effectiveInterval);
-        if (index != -1) {
-          // Update existing signal in the list
-          _tradeSignals[index] = signalData;
-        } else {
-          // Add new signal to the list
-          _tradeSignals.insert(0, signalData);
-        }
-        // Re-sort by timestamp
-        _tradeSignals.sort((a, b) {
-          final aTimestamp = a['timestamp'] as int? ?? 0;
-          final bTimestamp = b['timestamp'] as int? ?? 0;
-          return bTimestamp.compareTo(aTimestamp);
-        });
       } else {
         _tradeSignal = null;
-        // Remove signal from list if it no longer exists
-        _tradeSignals.removeWhere((s) =>
-            s['symbol'] == symbol &&
-            (s['interval'] ?? '1d') == effectiveInterval);
       }
       notifyListeners();
     } catch (e) {
       _tradeSignal = null;
-      _tradeProposalMessage = 'Failed to fetch trade signal: ${e.toString()}';
+      _error = 'Failed to fetch trade signal: ${e.toString()}';
       notifyListeners();
     }
   }
@@ -706,15 +684,15 @@ class TradeSignalsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> initiateTradeProposal({
+  Future<Map<String, dynamic>> initiateTradeProposal({
     required String symbol,
     required double currentPrice,
     required Map<String, dynamic> portfolioState,
     required Map<String, dynamic> config,
     String? interval,
+    bool skipSignalUpdate = false,
   }) async {
     _isTradeInProgress = true;
-    _tradeProposalMessage = 'Initiating trade proposal...';
     notifyListeners();
 
     final effectiveInterval = interval ?? selectedInterval;
@@ -728,6 +706,7 @@ class TradeSignalsProvider with ChangeNotifier {
       'tradeQuantity': config['tradeQuantity'],
       'maxPositionSize': config['maxPositionSize'],
       'maxPortfolioConcentration': config['maxPortfolioConcentration'],
+      'skipSignalUpdate': skipSignalUpdate,
     };
 
     try {
@@ -747,40 +726,26 @@ class TradeSignalsProvider with ChangeNotifier {
                   : effectiveInterval == '15m'
                       ? '15-min'
                       : effectiveInterval;
-      _lastTradeProposalStatus = status;
+
+      final proposal =
+          Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
+
       if (status == 'approved') {
-        // _lastTradeProposalStatus = 'approved';
-        final proposal =
-            Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
-        _lastTradeProposal = proposal;
-        final assessment =
-            Map<String, dynamic>.from(data['assessment'] as Map? ?? {});
-        _lastAssessment = assessment;
-        final reasonMsg =
-            (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
-        _tradeProposalMessage =
-            'Trade proposal approved for $symbol ($intervalLabel).\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
         _analytics.logEvent(
             name: 'trade_signals_trade_approved',
             parameters: {'interval': effectiveInterval});
       } else {
-        // _lastTradeProposalStatus = 'rejected';
-        _lastTradeProposal = null;
-        _lastAssessment = null;
         final message = data['message']?.toString() ?? 'Rejected by agent';
-        final reasonMsg =
-            (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
-        _tradeProposalMessage =
-            'Trade proposal rejected for $symbol ($intervalLabel).\n$message\n$reasonMsg';
         _analytics.logEvent(name: 'trade_signals_trade_rejected', parameters: {
           'reason': reason ?? message,
           'interval': effectiveInterval
         });
       }
+
+      _isTradeInProgress = false;
+      notifyListeners();
+      return data;
     } catch (e) {
-      _lastTradeProposalStatus = 'error';
-      _tradeProposalMessage =
-          'Function call failed, falling back to local simulation: ${e.toString()}';
       await Future.delayed(const Duration(seconds: 1));
       final simulatedTradeProposal = {
         'symbol': symbol,
@@ -788,16 +753,18 @@ class TradeSignalsProvider with ChangeNotifier {
         'quantity': config['tradeQuantity'],
         'price': currentPrice,
       };
-      _lastTradeProposal = Map<String, dynamic>.from(simulatedTradeProposal);
-      _tradeProposalMessage =
-          'Trade proposal (simulated): ${_lastTradeProposal!['action']} ${_lastTradeProposal!['quantity']} of ${_lastTradeProposal!['symbol']}';
       _analytics.logEvent(
           name: 'trade_signals_trade_approved_simulated',
           parameters: {'error': e.toString()});
-    }
 
-    _isTradeInProgress = false;
-    notifyListeners();
+      _isTradeInProgress = false;
+      notifyListeners();
+      return {
+        'status': 'error',
+        'message': e.toString(),
+        'proposal': simulatedTradeProposal
+      };
+    }
   }
 
   Future<Map<String, dynamic>> assessTradeRisk({
