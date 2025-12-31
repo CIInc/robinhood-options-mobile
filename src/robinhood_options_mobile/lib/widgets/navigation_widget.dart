@@ -96,6 +96,37 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   Timer? refreshCredentialsTimer;
   // Moved to AgenticTradingProvider: autoTradeTimer
 
+  Future<List<dynamic>>? _initFuture;
+  BrokerageUser? _lastUser;
+  String? _lastAuthUserUid;
+
+  Future<List<dynamic>> _loadData(BrokerageUserStore userStore) {
+    final packageInfoFuture = PackageInfo.fromPlatform();
+    List<Future> futureArr = [packageInfoFuture];
+
+    if (userStore.items.isNotEmpty) {
+      service = userStore.currentUser!.source == BrokerageSource.robinhood
+          ? RobinhoodService()
+          : userStore.currentUser!.source == BrokerageSource.schwab
+              ? SchwabService()
+              : userStore.currentUser!.source == BrokerageSource.plaid
+                  ? PlaidService()
+                  : DemoService();
+
+      var futureUserInfo = service!.getUser(userStore.currentUser!);
+      futureArr.add(futureUserInfo);
+    } else {
+      service = null;
+    }
+
+    if (auth.currentUser != null) {
+      userDoc = _firestoreService.userCollection.doc(auth.currentUser!.uid);
+      futureArr.add(userDoc!.get());
+    }
+
+    return Future.wait(futureArr);
+  }
+
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
     // a terminated state.
@@ -172,15 +203,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     RobinhoodService.loadLogos();
 
     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-    if (userStore.items.isNotEmpty) {
-      service = userStore.currentUser!.source == BrokerageSource.robinhood
-          ? RobinhoodService()
-          : userStore.currentUser!.source == BrokerageSource.schwab
-              ? SchwabService()
-              : userStore.currentUser!.source == BrokerageSource.plaid
-                  ? PlaidService()
-                  : DemoService();
-    }
+
+    _lastUser = userStore.currentUser;
+    _lastAuthUserUid = auth.currentUser?.uid;
+    _initFuture = _loadData(userStore);
+
     initTabs(userStore);
     if (userStore.items.isEmpty) {
       userStore.load();
@@ -245,36 +272,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     // TODO: Figure out better approach to handle only authentication changes.
     var userStore = Provider.of<BrokerageUserStore>(context, listen: true);
 
-    final packageInfoFuture = PackageInfo.fromPlatform();
-    List<Future> futureArr = [packageInfoFuture];
-    //var accountStore = Provider.of<AccountStore>(context, listen: true);
-    if (userStore.items.isNotEmpty) {
-      service = userStore.currentUser!.source == BrokerageSource.robinhood
-          ? RobinhoodService()
-          : userStore.currentUser!.source == BrokerageSource.schwab
-              ? SchwabService()
-              : userStore.currentUser!.source == BrokerageSource.plaid
-                  ? PlaidService()
-                  : DemoService();
+    bool shouldReload = false;
+    var currentUser = userStore.currentUser;
+    if (_lastUser?.userName != currentUser?.userName ||
+        _lastUser?.source != currentUser?.source) {
+      _lastUser = currentUser;
+      shouldReload = true;
+    }
+    if (_lastAuthUserUid != auth.currentUser?.uid) {
+      _lastAuthUserUid = auth.currentUser?.uid;
+      shouldReload = true;
+    }
 
-      var futureUserInfo = service!.getUser(userStore.currentUser!);
-      futureArr.add(futureUserInfo);
-      //futureAccounts ??= widget.service.getAccounts(robinhoodUser!);
-    } else {
-      service = null;
+    if (shouldReload) {
+      _initFuture = _loadData(userStore);
     }
-    if (auth.currentUser != null) {
-      userDoc = _firestoreService.userCollection.doc(auth.currentUser!.uid);
-    }
-    // debugPrint(info.toString());
-    if (userDoc != null) {
-      futureArr.add(userDoc!.get());
-    }
+
     return FutureBuilder(
-        future:
-            // futureUser,
-            // Future.wait([futureUser as Future, futureAccounts as Future]),
-            Future.wait(futureArr),
+        future: _initFuture,
         builder: (context1, dataSnapshot) {
           if (dataSnapshot.hasData &&
               dataSnapshot.connectionState == ConnectionState.done) {
@@ -326,6 +341,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
               // Load automated buy trades from Firestore
               agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+              // Load pending orders from Firestore
+              agenticProvider.loadPendingOrdersFromFirestore(userDoc);
 
               // Start auto-trade timer via provider (prevents duplicate starts)
               agenticProvider.startAutoTradeTimer(

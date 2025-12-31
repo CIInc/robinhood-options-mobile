@@ -262,8 +262,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 SizedBox(
                     height: 56,
                     child: ListView(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12.0, vertical: 8.0),
+                      padding: const EdgeInsets.all(5.0),
                       scrollDirection: Axis.horizontal,
                       children: [
                         _buildChip('YTD', ChartDateSpan.ytd),

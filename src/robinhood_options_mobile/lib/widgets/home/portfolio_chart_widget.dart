@@ -34,14 +34,36 @@ class PortfolioChartWidget extends StatefulWidget {
 
 class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
   PortfolioHistoricals? _previousPortfolioHistoricals;
-  bool animateChart = true;
+  late ChartDateSpan _chartDateSpanFilter;
+  late Bounds _chartBoundsFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _chartDateSpanFilter = widget.chartDateSpanFilter;
+    _chartBoundsFilter = widget.chartBoundsFilter;
+  }
+
+  @override
+  void didUpdateWidget(PortfolioChartWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.chartDateSpanFilter != oldWidget.chartDateSpanFilter) {
+      _chartDateSpanFilter = widget.chartDateSpanFilter;
+    }
+    if (widget.chartBoundsFilter != oldWidget.chartBoundsFilter) {
+      _chartBoundsFilter = widget.chartBoundsFilter;
+    }
+    if (widget.brokerageUser.userName != oldWidget.brokerageUser.userName) {
+      _previousPortfolioHistoricals = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Selector<PortfolioHistoricalsStore, PortfolioHistoricals?>(
       selector: (context, store) {
         final baseData = store.items.firstWhereOrNull((element) =>
-            element.span == convertChartSpanFilter(widget.chartDateSpanFilter));
+            element.span == convertChartSpanFilter(_chartDateSpanFilter));
 
         // Append hour data if available for fresher updates on all date filters
         if (baseData != null) {
@@ -76,58 +98,16 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                 [...baseData.equityHistoricals, ...newerHourData],
                 baseData.useNewHp,
               );
-
-              // Only disable animation if we had previous data and are appending
-              if (_previousPortfolioHistoricals != null &&
-                  _previousPortfolioHistoricals!.equityHistoricals.isNotEmpty) {
-                animateChart = false;
-              } else {
-                animateChart = true;
-              }
-
-              _previousPortfolioHistoricals = mergedData;
               return mergedData;
             }
           }
         }
-
-        // Check if this is truly new data or just a rebuild
-        if (baseData != null && _previousPortfolioHistoricals != null) {
-          // If data length changed, it's new data - disable animation for smooth append
-          if (baseData.equityHistoricals.length >
-              _previousPortfolioHistoricals!.equityHistoricals.length) {
-            animateChart = false;
-          } else if (baseData.equityHistoricals.length ==
-              _previousPortfolioHistoricals!.equityHistoricals.length) {
-            // Same length - check if last timestamp changed
-            final currentLast = baseData.equityHistoricals.isNotEmpty
-                ? baseData.equityHistoricals.last.beginsAt
-                : null;
-            final previousLast = _previousPortfolioHistoricals!
-                    .equityHistoricals.isNotEmpty
-                ? _previousPortfolioHistoricals!.equityHistoricals.last.beginsAt
-                : null;
-            if (currentLast != null &&
-                previousLast != null &&
-                currentLast.isAfter(previousLast)) {
-              animateChart = false;
-            } else {
-              animateChart = true;
-            }
-          } else {
-            // Data got shorter - full refresh
-            animateChart = true;
-          }
-        } else {
-          // First load or no previous data
-          animateChart = true;
-        }
-
-        _previousPortfolioHistoricals = baseData;
         return baseData;
       },
       builder: (context, portfolioHistoricals, child) {
-        if (portfolioHistoricals == null) {
+        var dataToShow = portfolioHistoricals ?? _previousPortfolioHistoricals;
+
+        if (dataToShow == null) {
           return SizedBox(
             height: 300,
             child: Center(
@@ -151,6 +131,61 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
           );
         }
 
+        // Determine animation state
+        bool shouldAnimate = true;
+        if (portfolioHistoricals != null &&
+            _previousPortfolioHistoricals != null) {
+          if (portfolioHistoricals.span !=
+              _previousPortfolioHistoricals!.span) {
+            shouldAnimate = true;
+          } else if (portfolioHistoricals.equityHistoricals.length >
+              _previousPortfolioHistoricals!.equityHistoricals.length) {
+            shouldAnimate = false;
+          } else if (portfolioHistoricals.equityHistoricals.length ==
+              _previousPortfolioHistoricals!.equityHistoricals.length) {
+            // Same length - check if last timestamp changed
+            final currentLast =
+                portfolioHistoricals.equityHistoricals.isNotEmpty
+                    ? portfolioHistoricals.equityHistoricals.last.beginsAt
+                    : null;
+            final previousLast = _previousPortfolioHistoricals!
+                    .equityHistoricals.isNotEmpty
+                ? _previousPortfolioHistoricals!.equityHistoricals.last.beginsAt
+                : null;
+            final currentFirst =
+                portfolioHistoricals.equityHistoricals.isNotEmpty
+                    ? portfolioHistoricals.equityHistoricals.first.beginsAt
+                    : null;
+            final previousFirst =
+                _previousPortfolioHistoricals!.equityHistoricals.isNotEmpty
+                    ? _previousPortfolioHistoricals!
+                        .equityHistoricals.first.beginsAt
+                    : null;
+
+            if (currentLast != null &&
+                previousLast != null &&
+                currentLast.isAfter(previousLast) &&
+                currentFirst == previousFirst) {
+              shouldAnimate = false;
+            } else {
+              shouldAnimate = false;
+            }
+          } else {
+            // Data got shorter - full refresh
+            shouldAnimate = true;
+          }
+        } else if (portfolioHistoricals == null) {
+          // Showing old data while loading new data - don't re-animate static chart
+          shouldAnimate = false;
+        } else {
+          // First load
+          shouldAnimate = true;
+        }
+
+        if (portfolioHistoricals != null) {
+          _previousPortfolioHistoricals = portfolioHistoricals;
+        }
+
         EquityHistorical? firstHistorical;
         EquityHistorical? lastHistorical;
         double open = 0;
@@ -158,9 +193,9 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         double changeInPeriod = 0;
         double changePercentInPeriod = 0;
 
-        firstHistorical = portfolioHistoricals.equityHistoricals.first;
-        lastHistorical = portfolioHistoricals.equityHistoricals.last;
-        var allHistoricals = portfolioHistoricals.equityHistoricals;
+        firstHistorical = dataToShow.equityHistoricals.first;
+        lastHistorical = dataToShow.equityHistoricals.last;
+        var allHistoricals = dataToShow.equityHistoricals;
 
         open = firstHistorical.adjustedOpenEquity!;
         close = lastHistorical.adjustedCloseEquity!;
@@ -198,7 +233,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                     history.openMarketValue,
                 data: allHistoricals),
           ],
-          animate: animateChart,
+          animate: shouldAnimate,
           zeroBound: false,
           open: open,
           close: close,
@@ -214,7 +249,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             provider.selectionChanged(model?.selectedDatum.first.datum);
           },
           symbolRenderer: TextSymbolRenderer(() {
-            firstHistorical = portfolioHistoricals.equityHistoricals[0];
+            firstHistorical = dataToShow.equityHistoricals[0];
             open = firstHistorical!.adjustedOpenEquity!;
             if (provider.selection != null) {
               changeInPeriod = provider.selection!.adjustedCloseEquity! - open;
@@ -357,10 +392,13 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       padding: const EdgeInsets.all(4.0),
       child: ChoiceChip(
         label: Text(label),
-        selected: widget.chartDateSpanFilter == span,
+        selected: _chartDateSpanFilter == span,
         onSelected: (bool value) {
           if (value) {
-            widget.onFilterChanged(span, widget.chartBoundsFilter);
+            setState(() {
+              _chartDateSpanFilter = span;
+            });
+            widget.onFilterChanged(span, _chartBoundsFilter);
           }
         },
       ),
@@ -372,10 +410,13 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       padding: const EdgeInsets.all(4.0),
       child: ChoiceChip(
         label: Text(label),
-        selected: widget.chartBoundsFilter == bounds,
+        selected: _chartBoundsFilter == bounds,
         onSelected: (bool value) {
           if (value) {
-            widget.onFilterChanged(widget.chartDateSpanFilter, bounds);
+            setState(() {
+              _chartBoundsFilter = bounds;
+            });
+            widget.onFilterChanged(_chartDateSpanFilter, bounds);
           }
         },
       ),
