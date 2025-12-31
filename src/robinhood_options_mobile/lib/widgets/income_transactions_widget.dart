@@ -32,7 +32,6 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -94,6 +93,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   List<String> transactionFilters = <String>[
     'interest',
     'dividend',
+    'projected',
+    'reinvest_projected',
     'paid',
     'reinvested',
     // 'pending',
@@ -106,6 +107,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   List<String> transactionSymbolFilters = [];
   bool showAllTransactions = false;
   final int maxTransactionsToShow = 3;
+  int projectionYears = 1;
 
   @override
   void initState() {
@@ -116,16 +118,293 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     }
   }
 
-  Color _amountColor(double amount) {
-    return amount == 0
-        ? Theme.of(context).textTheme.bodyLarge!.color!
-        : amount > 0
-            ? Colors.green
-            : Colors.red;
+  Widget _buildFilterChip(
+      String label, bool selected, Function(bool) onSelected,
+      {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: FilterChip(
+        label: Text(label),
+        avatar: icon != null ? Icon(icon, size: 18) : null,
+        selected: selected,
+        onSelected: onSelected,
+        showCheckmark: false,
+      ),
+    );
+  }
+
+  Widget _buildChoiceChip(
+      String label, bool selected, Function(bool) onSelected,
+      {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: ChoiceChip(
+        label: Text(label),
+        avatar: icon != null ? Icon(icon, size: 18) : null,
+        selected: selected,
+        onSelected: onSelected,
+        showCheckmark: false,
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const SizedBox(
+      height: 20,
+      child: VerticalDivider(
+        indent: 4,
+        endIndent: 4,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    double totalProjectedIncome = 0;
+    final groupedProjectedData = <MapEntry<DateTime, double>>[];
+
+    List<InstrumentPosition> positions = widget.instrumentPositionStore.items;
+    if (transactionSymbolFilters.isNotEmpty) {
+      positions = positions
+          .where(
+              (p) => transactionSymbolFilters.contains(p.instrumentObj?.symbol))
+          .toList();
+    }
+
+    // Initialize map for next 12 months
+    var now = DateTime.now();
+    var projectedDividendMap = <DateTime, double>{};
+    var projectedInterestMap = <DateTime, double>{};
+    for (int i = 1; i <= 12 * projectionYears; i++) {
+      var d = DateTime(now.year, now.month + i, 1);
+      projectedDividendMap[d] = 0.0;
+      projectedInterestMap[d] = 0.0;
+    }
+
+    for (var position in positions) {
+      double? yield;
+      if (position.instrumentObj?.etpDetails != null) {
+        var secYield = position.instrumentObj?.etpDetails['sec_yield'];
+        if (secYield is String) {
+          secYield = double.tryParse(secYield);
+        }
+        yield = (secYield ?? 0) / 100;
+      }
+      if (position.instrumentObj?.fundamentalsObj?.dividendYield != null &&
+          (position.instrumentObj?.fundamentalsObj?.dividendYield ?? 0) / 100 >
+              (yield ?? 0)) {
+        yield =
+            (position.instrumentObj!.fundamentalsObj!.dividendYield ?? 0) / 100;
+      }
+
+      if (yield != null && yield > 0) {
+        double annualIncome = position.marketValue * yield;
+
+        if (transactionFilters.contains('projected')) {
+          // Try to find payment history
+          var dividends = widget.dividendStore.items
+              .where((d) =>
+                  d['instrumentObj']?.id == position.instrumentId &&
+                  d['payable_date'] != null)
+              .sortedBy((d) => DateTime.parse(d['payable_date']))
+              .toList();
+
+          String frequency =
+              'monthly'; // Default to monthly distribution if unknown
+          DateTime? lastPaymentDate;
+
+          if (dividends.isNotEmpty) {
+            lastPaymentDate = DateTime.parse(dividends.last['payable_date']);
+            if (dividends.length >= 2) {
+              var prev = DateTime.parse(
+                  dividends[dividends.length - 2]['payable_date']);
+              var diff = lastPaymentDate.difference(prev).inDays;
+
+              if (diff <= 10) {
+                frequency = 'weekly';
+              } else if (diff <= 45) {
+                frequency = 'monthly';
+              } else if (diff <= 100) {
+                frequency = 'quarterly';
+              } else if (diff <= 200) {
+                frequency = 'semi-annually';
+              } else {
+                frequency = 'annually';
+              }
+            } else {
+              // If only 1 payment, guess based on instrument type?
+              // For now, default to quarterly as it's most common for stocks
+              frequency = 'quarterly';
+            }
+          } else {
+            // No history, default to monthly average for smooth projection
+            frequency = 'monthly';
+          }
+
+          double currentMarketValue = position.marketValue;
+          double totalPositionIncome = 0;
+          bool reinvest = transactionFilters.contains('reinvest_projected');
+
+          if (frequency == 'weekly') {
+            double periodYield = yield / 52;
+            if (lastPaymentDate != null) {
+              for (int i = 1; i <= 52 * projectionYears; i++) {
+                var nextDate = lastPaymentDate.add(Duration(days: 7 * i));
+                var key = DateTime(nextDate.year, nextDate.month, 1);
+
+                double payment = currentMarketValue * periodYield;
+                if (projectedDividendMap.containsKey(key)) {
+                  projectedDividendMap[key] =
+                      (projectedDividendMap[key] ?? 0) + payment;
+                }
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            } else {
+              double periodYield = yield / 12; // Fallback to monthly buckets
+              for (var key in projectedDividendMap.keys) {
+                double payment = currentMarketValue * periodYield;
+                projectedDividendMap[key] =
+                    (projectedDividendMap[key] ?? 0) + payment;
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            }
+          } else if (frequency == 'monthly') {
+            double periodYield = yield / 12;
+            for (var key in projectedDividendMap.keys) {
+              double payment = currentMarketValue * periodYield;
+              projectedDividendMap[key] =
+                  (projectedDividendMap[key] ?? 0) + payment;
+              totalPositionIncome += payment;
+              if (reinvest) currentMarketValue += payment;
+            }
+          } else if (frequency == 'quarterly') {
+            if (lastPaymentDate != null) {
+              double periodYield = yield / 4;
+              for (int i = 1; i <= 4 * projectionYears; i++) {
+                var nextDate = DateTime(
+                    lastPaymentDate.year, lastPaymentDate.month + (i * 3), 1);
+                var key = DateTime(nextDate.year, nextDate.month, 1);
+
+                double payment = currentMarketValue * periodYield;
+                if (projectedDividendMap.containsKey(key)) {
+                  projectedDividendMap[key] =
+                      (projectedDividendMap[key] ?? 0) + payment;
+                }
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            } else {
+              double periodYield = yield / 12;
+              for (var key in projectedDividendMap.keys) {
+                double payment = currentMarketValue * periodYield;
+                projectedDividendMap[key] =
+                    (projectedDividendMap[key] ?? 0) + payment;
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            }
+          } else if (frequency == 'semi-annually') {
+            if (lastPaymentDate != null) {
+              double periodYield = yield / 2;
+              for (int i = 1; i <= 2 * projectionYears; i++) {
+                var nextDate = DateTime(
+                    lastPaymentDate.year, lastPaymentDate.month + (i * 6), 1);
+                var key = DateTime(nextDate.year, nextDate.month, 1);
+
+                double payment = currentMarketValue * periodYield;
+                if (projectedDividendMap.containsKey(key)) {
+                  projectedDividendMap[key] =
+                      (projectedDividendMap[key] ?? 0) + payment;
+                }
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            } else {
+              double periodYield = yield / 12;
+              for (var key in projectedDividendMap.keys) {
+                double payment = currentMarketValue * periodYield;
+                projectedDividendMap[key] =
+                    (projectedDividendMap[key] ?? 0) + payment;
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            }
+          } else if (frequency == 'annually') {
+            if (lastPaymentDate != null) {
+              double periodYield = yield;
+              for (int i = 1; i <= projectionYears; i++) {
+                var nextDate = DateTime(
+                    lastPaymentDate.year + i, lastPaymentDate.month, 1);
+                var key = DateTime(nextDate.year, nextDate.month, 1);
+
+                double payment = currentMarketValue * periodYield;
+                if (projectedDividendMap.containsKey(key)) {
+                  projectedDividendMap[key] =
+                      (projectedDividendMap[key] ?? 0) + payment;
+                }
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            } else {
+              double periodYield = yield / 12;
+              for (var key in projectedDividendMap.keys) {
+                double payment = currentMarketValue * periodYield;
+                projectedDividendMap[key] =
+                    (projectedDividendMap[key] ?? 0) + payment;
+                totalPositionIncome += payment;
+                if (reinvest) currentMarketValue += payment;
+              }
+            }
+          }
+          totalProjectedIncome += totalPositionIncome;
+        } else {
+          totalProjectedIncome += annualIncome;
+        }
+      }
+    }
+
+    if (transactionFilters.contains('interest')) {
+      var interestPayments = widget.interestStore?.items
+          .where((e) => e["state"] != "voided")
+          .sortedBy((e) => DateTime.parse(e["pay_date"]))
+          .toList();
+
+      if (interestPayments != null && interestPayments.isNotEmpty) {
+        var lastPayment = interestPayments.last;
+        var lastDate = DateTime.parse(lastPayment["pay_date"]);
+        // Only project if the last payment was recent (e.g. < 45 days ago)
+        if (DateTime.now().difference(lastDate).inDays <= 45) {
+          double monthlyAmount =
+              double.tryParse(lastPayment["amount"]["amount"]) ?? 0;
+
+          if (monthlyAmount > 0) {
+            if (transactionFilters.contains('projected')) {
+              // We'll assume monthly frequency for interest
+              for (var key in projectedInterestMap.keys) {
+                projectedInterestMap[key] =
+                    (projectedInterestMap[key] ?? 0) + monthlyAmount;
+                totalProjectedIncome += monthlyAmount;
+              }
+            } else {
+              // Just add annualized amount to total
+              totalProjectedIncome += monthlyAmount * 12;
+            }
+          }
+        }
+      }
+    }
+
+    if (transactionFilters.contains('projected')) {
+      groupedProjectedData.addAll(projectedDividendMap.entries
+          .map((e) => MapEntry(e.key, e.value))
+          .sortedBy((e) => e.key));
+      groupedProjectedData.addAll(projectedInterestMap.entries
+          .map((e) => MapEntry(e.key, e.value))
+          .sortedBy((e) => e.key));
+    }
+
     var dividendSymbols = widget.dividendStore.items
         .where((e) =>
             e["instrumentObj"] != null &&
@@ -159,34 +438,24 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     // var priorTolastYear = lastYear - 1;
     // var priorYears = '<= ${priorTolastYear - 1}';
 
-    var dividendItems = widget.dividendStore.items
-        .where((e) =>
-                e["state"] != "voided" &&
-                transactionFilters.contains("dividend") &&
-                ((!transactionFilters.contains("pending") &&
-                        !transactionFilters.contains("paid") &&
-                        !transactionFilters.contains("reinvested")) ||
-                    (transactionFilters.contains("pending") ||
-                            e["state"] != "pending") &&
-                        (transactionFilters.contains("paid") ||
-                            e["state"] != "paid") &&
-                        (transactionFilters.contains("reinvested") ||
-                            e["state"] != "reinvested")) &&
-                (transactionSymbolFilters.isEmpty ||
-                    (e["instrumentObj"] != null &&
-                        transactionSymbolFilters
-                            .contains(e["instrumentObj"].symbol)))
-            //     &&
-            // (transactionFilters.contains(thisYear.toString()) ||
-            //     DateTime.parse(e["payable_date"]).year != thisYear) &&
-            // (transactionFilters.contains(lastYear.toString()) ||
-            //     DateTime.parse(e["payable_date"]).year != lastYear) &&
-            // (transactionFilters.contains(priorTolastYear.toString()) ||
-            //     DateTime.parse(e["payable_date"]).year != priorTolastYear) &&
-            // (transactionFilters.contains(priorYears.toString()) ||
-            //     DateTime.parse(e["payable_date"]).year >= priorTolastYear)
-            )
-        .toList();
+    var dividendItems = widget.dividendStore.items.where((e) {
+      final hasStateFilter = transactionFilters.contains("pending") ||
+          transactionFilters.contains("paid") ||
+          transactionFilters.contains("reinvested");
+      final matchesState = !hasStateFilter ||
+          ((transactionFilters.contains("pending") ||
+                  e["state"] != "pending") &&
+              (transactionFilters.contains("paid") || e["state"] != "paid") &&
+              (transactionFilters.contains("reinvested") ||
+                  e["state"] != "reinvested"));
+      return e["state"] != "voided" &&
+          transactionFilters.contains("dividend") &&
+          matchesState &&
+          (transactionSymbolFilters.isEmpty ||
+              (e["instrumentObj"] != null &&
+                  transactionSymbolFilters
+                      .contains(e["instrumentObj"].symbol)));
+    }).toList();
     var interestItems = widget.interestStore?.items
             .where((e) =>
                 e["state"] != "voided"
@@ -241,25 +510,13 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         .entries
         .toList()
         .sortedBy<DateTime>((e) => e.key);
-    final groupedCumulativeData = (groupedDividendsData + groupedInterestsData)
-        .groupListsBy((element) => element.key)
-        .map((k, v) =>
-            MapEntry(k, v.map((e1) => e1.value).reduce((a, b) => a + b)))
-        .entries
-        .toList()
-        .sortedBy<DateTime>((e) => e.key)
-        .fold(
-            [],
-            (sums, element) => sums
-              ..add(MapEntry(element.key,
-                  element.value + (sums.isEmpty ? 0 : sums.last.value))));
 
     var pastYearDate =
         DateTime(DateTime.now().year - 1, DateTime.now().month, 1);
     var pastYearInterest = groupedInterestsData.where((e) =>
         e.key.isAtSameMomentAs(pastYearDate) || e.key.isAfter(pastYearDate));
     var pastYearDividend = groupedDividendsData.where((e) =>
-        e.key.isAtSameMomentAs(pastYearDate) | e.key.isAfter(pastYearDate));
+        e.key.isAtSameMomentAs(pastYearDate) || e.key.isAfter(pastYearDate));
     var pastYearTotalIncome = (pastYearInterest.isNotEmpty
             ? pastYearInterest.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0) +
@@ -272,6 +529,46 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         (groupedDividendsData.isNotEmpty
             ? groupedDividendsData.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0);
+
+    if (transactionFilters.contains('projected')) {
+      groupedDividendsData.addAll(projectedDividendMap.entries
+          .where((e) => e.value > 0)
+          .map((e) => MapEntry(e.key, e.value)));
+      groupedDividendsData.sort((a, b) => a.key.compareTo(b.key));
+
+      groupedInterestsData.addAll(projectedInterestMap.entries
+          .where((e) => e.value > 0)
+          .map((e) => MapEntry(e.key, e.value)));
+      groupedInterestsData.sort((a, b) => a.key.compareTo(b.key));
+    }
+
+    final allCumulativeData = (groupedDividendsData + groupedInterestsData)
+        .groupListsBy((element) => element.key)
+        .map((k, v) =>
+            MapEntry(k, v.map((e1) => e1.value).reduce((a, b) => a + b)))
+        .entries
+        .toList()
+        .sortedBy<DateTime>((e) => e.key)
+        .fold<List<MapEntry<DateTime, double>>>(
+            [],
+            (sums, element) => sums
+              ..add(MapEntry(element.key,
+                  element.value + (sums.isEmpty ? 0 : sums.last.value))));
+
+    final groupedCumulativeData = allCumulativeData;
+    //     .where((e) =>
+    //         e.key.isBefore(DateTime.now()) ||
+    //         e.key.isAtSameMomentAs(DateTime.now()))
+    //     .toList();
+
+    // final groupedCumulativeProjectedData =
+    //     allCumulativeData.where((e) => e.key.isAfter(DateTime.now())).toList();
+
+    // if (groupedCumulativeData.isNotEmpty &&
+    //     groupedCumulativeProjectedData.isNotEmpty) {
+    //   groupedCumulativeProjectedData.insert(0, groupedCumulativeData.last);
+    // }
+
     double? yield;
     double? yieldOnCost;
     int multiplier = 1;
@@ -396,17 +693,25 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     }
     var shades = PieChart.makeShades(
         charts.ColorUtil.fromDartColor(
-            Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
+            Theme.of(context).colorScheme.primary), // .withValues(alpha: 0.75)
         3);
 
     var incomeChart = TimeSeriesChart(
+      key: ValueKey(transactionFilters.join(',')),
       [
         // if (groupedDividendsData.isNotEmpty) ...[
         charts.Series<dynamic, DateTime>(
             id: 'Dividend',
             //charts.MaterialPalette.blue.shadeDefault,
             // colorFn: (_, __) => shades[0],
-            seriesColor: shades[0],
+            colorFn: (datum, index) {
+              var date = (datum as MapEntry<DateTime, double>).key;
+              if (date.isAfter(DateTime.now())) {
+                return charts.MaterialPalette.gray.shade300;
+              }
+              return shades[0];
+            },
+            // seriesColor: shades[0],
             // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
             domainFn: (dynamic domain, _) =>
                 (domain as MapEntry<DateTime, double>).key,
@@ -423,7 +728,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           id: 'Interest',
           //charts.MaterialPalette.blue.shadeDefault,
           // colorFn: (_, __) => shades[1],
-          seriesColor: shades[1],
+          colorFn: (datum, index) {
+            var date = (datum as MapEntry<DateTime, double>).key;
+            if (date.isAfter(DateTime.now())) {
+              return charts.MaterialPalette.gray.shade300;
+            }
+            return shades[1];
+          },
+          // seriesColor: shades[1],
           //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
           // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
           domainFn: (dynamic domain, _) =>
@@ -441,6 +753,13 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           //charts.MaterialPalette.blue.shadeDefault,
           // colorFn: (_, __) => shades[2],
           seriesColor: shades[2],
+          dashPatternFn: (datum, index) {
+            var date = (datum as MapEntry<DateTime, double>).key;
+            if (date.isAfter(DateTime.now())) {
+              return [4, 4];
+            }
+            return null; // Solid line
+          },
           //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
           // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
           domainFn: (dynamic domain, _) =>
@@ -454,6 +773,27 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         )
           ..setAttribute(charts.measureAxisIdKey, 'secondaryMeasureAxisId')
           ..setAttribute(charts.rendererIdKey, 'customLine'),
+        // if (groupedCumulativeProjectedData.isNotEmpty) ...[
+        //   charts.Series<dynamic, DateTime>(
+        //     id: 'Cumulative (Proj)',
+        //     //charts.MaterialPalette.blue.shadeDefault,
+        //     // colorFn: (_, __) => shades[2],
+        //     seriesColor: shades[2],
+        //     dashPatternFn: (_, __) => [4, 4],
+        //     //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+        //     // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+        //     domainFn: (dynamic domain, _) =>
+        //         (domain as MapEntry<DateTime, double>).key,
+        //     // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+        //     measureFn: (dynamic measure, index) =>
+        //         (measure as MapEntry<DateTime, double>).value,
+        //     labelAccessorFn: (datum, index) => formatCurrency
+        //         .format((datum as MapEntry<DateTime, double>).value),
+        //     data: groupedCumulativeProjectedData,
+        //   )
+        //     ..setAttribute(charts.measureAxisIdKey, 'secondaryMeasureAxisId')
+        //     ..setAttribute(charts.rendererIdKey, 'customLine'),
+        // ],
       ],
       animate: true,
       onSelected: (charts.SelectionModel? model) {
@@ -577,7 +917,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                           1),
                   // DateTime.now().subtract(Duration(days: 365)),
                   // end: DateTime.now())),
-                  end: DateTime.now()
+                  end: groupedProjectedData.isNotEmpty
+                      ? groupedProjectedData.last.key
+                      : DateTime.now()
                   //.add(Duration(days: 29 - DateTime.now().day))
                   )),
       // .add(Duration(days: 30 - DateTime.now().day)))),
@@ -693,20 +1035,65 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         widget.interestStore != null &&
         widget.interestStore!.items.isEmpty) {
       return SliverToBoxAdapter(
-          child: ListTile(
-        title: Text(
-          "${widget.interestStore == null ? 'Dividend ' : ''}Income",
-          style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          child: Card(
+            elevation: 0,
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${widget.interestStore == null ? 'Dividend ' : ''}Income",
+                    style: const TextStyle(
+                        fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Last 12 months",
+                            style: TextStyle(
+                                fontSize: 12.0,
+                                color: Theme.of(context).hintColor),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "~${formatCurrency.format(0)}/mo",
+                            style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.color),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        formatCurrency.format(0),
+                        style: const TextStyle(
+                            fontSize: 24.0, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-        subtitle: const Text("last 12 months"),
-        trailing: Wrap(spacing: 8, children: [
-          Text(
-            formatCurrency.format(0),
-            style: const TextStyle(fontSize: assetValueFontSize),
-            textAlign: TextAlign.right,
-          )
-        ]),
-      ));
+      );
     }
 
     return SliverToBoxAdapter(
@@ -719,117 +1106,112 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 ? SizedBox(
                     key: ValueKey(transactionFilters.contains("dividend")),
                     height: 80, // 56
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(4.0),
+                    child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      controller: scrollController,
-                      itemBuilder: (context, index) {
-                        return Row(
-                          children: [
-                            // Divider(indent: 12),
-                            for (var entry in dividendSymbolYields) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  onTap: () async {
-                                    var dividend = widget.dividendStore.items
-                                        .where((d) =>
-                                            d['instrumentObj'] != null &&
-                                            d['instrumentObj']!.symbol ==
-                                                entry['symbol'])
-                                        .firstOrNull;
-                                    if (dividend != null &&
-                                        !widget.instrumentOrderStore.items.any(
-                                            (o) =>
-                                                o.instrument ==
-                                                dividend['instrument'])) {
-                                      await widget.service.getInstrumentOrders(
-                                          widget.brokerageUser,
-                                          widget.instrumentOrderStore,
-                                          [dividend['instrument']]);
-                                    }
-                                    setState(() {
-                                      transactionFilters.removeWhere(
-                                          (String name) => name == "interest");
-                                      transactionSymbolFilters.clear();
-                                      transactionSymbolFilters
-                                          .add(entry['symbol']);
-                                    });
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Row(
+                        children: [
+                          // Divider(indent: 12),
+                          for (var entry in dividendSymbolYields) ...[
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () async {
+                                  var dividend = widget.dividendStore.items
+                                      .where((d) =>
+                                          d['instrumentObj'] != null &&
+                                          d['instrumentObj']!.symbol ==
+                                              entry['symbol'])
+                                      .firstOrNull;
+                                  if (dividend != null &&
+                                      !widget.instrumentOrderStore.items.any(
+                                          (o) =>
+                                              o.instrument ==
+                                              dividend['instrument'])) {
+                                    await widget.service.getInstrumentOrders(
+                                        widget.brokerageUser,
+                                        widget.instrumentOrderStore,
+                                        [dividend['instrument']]);
+                                  }
+                                  setState(() {
+                                    transactionFilters.removeWhere(
+                                        (String name) => name == "interest");
+                                    transactionSymbolFilters.clear();
+                                    transactionSymbolFilters
+                                        .add(entry['symbol']);
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: transactionSymbolFilters
+                                            .contains(entry['symbol'])
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.2)
+                                        : null,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
                                       color: transactionSymbolFilters
                                               .contains(entry['symbol'])
                                           ? Theme.of(context)
                                               .colorScheme
                                               .primary
-                                              .withValues(alpha: 0.2)
-                                          : null,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: transactionSymbolFilters
-                                                .contains(entry['symbol'])
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                            : Colors.grey.shade400,
+                                          : Colors.grey.shade400,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        formatPercentage.format(entry['yield']),
+                                        style: TextStyle(
+                                            color: Colors.green.shade700,
+                                            fontSize: summaryValueFontSize
+                                            // greekValueFontSize // 13,
+                                            ),
+                                        // textAlign: TextAlign.start,
                                       ),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          formatPercentage
-                                              .format(entry['yield']),
-                                          style: TextStyle(
-                                              color: Colors.green.shade700,
-                                              fontSize: summaryValueFontSize
-                                              // greekValueFontSize // 13,
-                                              ),
-                                          // textAlign: TextAlign.start,
+                                      // SizedBox(width: 8),
+                                      Text(
+                                        entry['symbol'],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: transactionSymbolFilters
+                                                  .contains(entry['symbol'])
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : null,
                                         ),
-                                        // SizedBox(width: 8),
-                                        Text(
-                                          entry['symbol'],
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: transactionSymbolFilters
-                                                    .contains(entry['symbol'])
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                : null,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ],
-                            // Add a 'Clear' chip if any symbol is selected
-                            if (transactionSymbolFilters.isNotEmpty) ...[
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4.0),
-                                child: FilterChip(
-                                  label: const Text('Clear'),
-                                  selected: false,
-                                  onSelected: (bool value) {
-                                    setState(() {
-                                      transactionSymbolFilters.clear();
-                                    });
-                                  },
-                                ),
-                              ),
-                            ],
+                            ),
                           ],
-                        );
-                      },
-                      itemCount: 1,
+                          // Add a 'Clear' chip if any symbol is selected
+                          if (transactionSymbolFilters.isNotEmpty) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              child: FilterChip(
+                                label: const Text('Clear'),
+                                selected: false,
+                                onSelected: (bool value) {
+                                  setState(() {
+                                    transactionSymbolFilters.clear();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ))
                 : null,
           ),
@@ -837,751 +1219,369 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       ],
       SliverToBoxAdapter(
           child: Column(children: [
-        ListTile(
-          // leading: Icon(Icons.payments),
-          title: Wrap(children: [
-            Text(
-              "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-            ),
-            if (!widget.showList) ...[
-              SizedBox(
-                height: 28,
-                child: IconButton(
-                  // iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(Icons.chevron_right),
-                  onPressed: () {
-                    navigateToFullPage(context);
-                  },
+        InkWell(
+          onTap: !widget.showList ? () => navigateToFullPage(context) : null,
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
+                      style: const TextStyle(
+                          fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                    if (!widget.showList)
+                      const SizedBox(
+                        height: 28,
+                        child: Icon(Icons.chevron_right),
+                      )
+                  ],
                 ),
-              )
-            ]
-          ]),
-          subtitle: Text(
-              "last 12 months"), //  (total: ${formatCompactCurrency.format(totalIncome)})
-          trailing: Wrap(spacing: 8, children: [
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: 200),
-              // transitionBuilder:
-              //     (Widget child, Animation<double> animation) {
-              //   return SlideTransition(
-              //       position: (Tween<Offset>(
-              //               begin: Offset(0, -0.25), end: Offset.zero))
-              //           .animate(animation),
-              //       child: child);
-              // },
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(scale: animation, child: child);
-              },
-              child: Text(
-                key: ValueKey<String>(pastYearTotalIncome.toString()),
-                formatCurrency.format(pastYearTotalIncome),
-                style: const TextStyle(fontSize: assetValueFontSize),
-                textAlign: TextAlign.right,
-              ),
-            )
-            // if (pastYearYield != null) ...[
-            //   Text('${formatPercentage.format(pastYearYield)} yield',
-            //       style: const TextStyle(fontSize: 14)),
-            // ]
-          ]),
-          onTap: widget.showList
-              ? null
-              : () {
-                  navigateToFullPage(context);
-                },
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Card(
+                        elevation: 0,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.history,
+                                      size: 16,
+                                      color: Theme.of(context).hintColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "Past 12 Months",
+                                    style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: Theme.of(context).hintColor),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                transitionBuilder: (Widget child,
+                                    Animation<double> animation) {
+                                  return ScaleTransition(
+                                      scale: animation, child: child);
+                                },
+                                child: Text(
+                                  key: ValueKey<String>(
+                                      pastYearTotalIncome.toString()),
+                                  formatCurrency.format(pastYearTotalIncome),
+                                  style: const TextStyle(
+                                      fontSize: 24.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "~${formatCurrency.format(pastYearTotalIncome / 12)}/mo",
+                                style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: Theme.of(context).hintColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (totalProjectedIncome > 0) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Card(
+                          elevation: 0,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.trending_up,
+                                        size: 16,
+                                        color: Theme.of(context).hintColor),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      transactionFilters
+                                                  .contains('projected') &&
+                                              projectionYears > 1
+                                          ? "Next $projectionYears Years"
+                                          : "Next 12 Months",
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context).hintColor),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  transitionBuilder: (Widget child,
+                                      Animation<double> animation) {
+                                    return ScaleTransition(
+                                        scale: animation, child: child);
+                                  },
+                                  child: Text(
+                                    key: ValueKey<String>(
+                                        totalProjectedIncome.toString()),
+                                    formatCurrency.format(totalProjectedIncome),
+                                    style: const TextStyle(
+                                        fontSize: 24.0,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "~${formatCurrency.format(totalProjectedIncome / (12 * (transactionFilters.contains('projected') ? projectionYears : 1)))}/mo",
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: Theme.of(context).hintColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
         if (incomeTransactions.isNotEmpty &&
             transactionSymbolFilters.isNotEmpty &&
             widget.showYield &&
-            // position != null &&
             yield != null) ...[
           SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ConstrainedBox(
-                            //     constraints: BoxConstraints(maxHeight: 60), // 320
-                            //     child: CarouselView.weighted(
-                            //         padding: EdgeInsets.all(0),
-                            //         // shape: RoundedRectangleBorder(),
-                            //         scrollDirection: Axis.horizontal,
-                            //         itemSnapping: true,
-                            //         // itemExtent: 140,
-                            //         flexWeights: [1, 1, 1, 1],
-                            //         // shrinkExtent: 140,
-                            //         enableSplash: false,
-                            //         children: [
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                      formatPercentage.format(yield),
-                                      overflow: TextOverflow.fade,
-                                      softWrap: false,
-                                      style: const TextStyle(
-                                          fontSize:
-                                              summaryValueFontSize), //20.0
-                                      textAlign: TextAlign.right,
-                                    ),
-
-                                    //Container(height: 5),
-                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-
-                                    Row(
-                                      children: [
-                                        Text("Last yield",
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: TextStyle(
-                                                fontSize:
-                                                    summaryLabelFontSize)),
-                                        SizedBox(
-                                          height: 13,
-                                          width: 30,
-                                          child: IconButton(
-                                            iconSize: 12,
-                                            padding: EdgeInsets.zero,
-                                            icon: Icon(Icons.info_outline),
-                                            onPressed: () {
-                                              showDialog<String>(
-                                                  context: context,
-                                                  builder:
-                                                      (BuildContext context) =>
-                                                          AlertDialog(
-                                                            // context: context,
-                                                            title: Text(
-                                                                'Dividend Yield'),
-                                                            content: Text(
-                                                                """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SummaryStatCard(
+                      label: "Last yield",
+                      value: formatPercentage.format(yield),
+                      onTap: () {
+                        showDialog<String>(
+                            context: context,
+                            builder: (BuildContext context) => AlertDialog(
+                                  title: const Text('Dividend Yield'),
+                                  content: Text(
+                                      """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
                                                                 Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
                                                                 Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.brokerageUser.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
                                                                 Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
-                                                            // Yields are annualized from the $dividendInterval distribution period.
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  Navigator.of(
-                                                                          context)
-                                                                      .pop();
-                                                                },
-                                                                child:
-                                                                    const Text(
-                                                                        'OK'),
-                                                              ),
-                                                            ],
-                                                          ));
-                                            },
-                                          ),
-                                        )
-                                      ],
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('OK'),
                                     ),
-                                  ]),
-                            ),
-                            if (yieldOnCost != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                        formatPercentage.format(yieldOnCost),
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                        style: const TextStyle(
-                                            fontSize:
-                                                summaryValueFontSize), //20.0
-                                        textAlign: TextAlign.right,
-                                      ),
-                                      Text("Yield on cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (adjustedCost != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatCurrency.format(
-                                              positionAdjCost), // adjustedCost
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                      Text("Adj. cost basis",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (adjustedReturnPercent != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          if (adjustedReturnPercent != 0) ...[
-                                            // widget.user.getDisplayIcon(profitAndLoss)
-                                            Icon(
-                                                adjustedReturnPercent > 0
-                                                    ? Icons.arrow_drop_up
-                                                    : Icons.arrow_drop_down,
-                                                color: adjustedReturnPercent > 0
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                                size: 27),
-                                          ],
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatPercentage
-                                                .format(adjustedReturnPercent),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Adj. return %",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (adjustedReturn != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatCurrency
-                                                .format(adjustedReturn),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Adj. return",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (totalValue != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatCurrency.format(totalValue),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Total value",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Row(
-                                      children: [
-                                        Text(
-                                          // formatCurrency.format(adjustedReturn),
-                                          formatCurrency.format(totalIncome),
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ],
-                                    ),
-                                    // Text(formatCurrency.format(adjustedReturnPercent),
-                                    //     style:
-                                    //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Total income",
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            if (totalSells != null && totalSells > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatCurrency.format(totalSells),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Total sells",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (marketValue != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatCurrency.format(marketValue),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Position value",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            // if (position?.quantity != null) ...[
-                            // ],
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Row(
-                                      children: [
-                                        Text(
-                                          // formatCurrency.format(adjustedReturn),
-                                          formatNumber
-                                              .format(position?.quantity ?? 0),
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ],
-                                    ),
-                                    // Text(formatCurrency.format(adjustedReturnPercent),
-                                    //     style:
-                                    //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Shares",
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                          ])),
-                  Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        double.parse(incomeTransactions[0]
-                                                    ["rate"]) <
-                                                0.005
-                                            ? formatPreciseCurrency.format(
-                                                double.parse(
-                                                    incomeTransactions[0]
-                                                        ["rate"]))
-                                            : formatCurrency.format(
-                                                double.parse(
-                                                    incomeTransactions[0]
-                                                        ["rate"])),
-                                        style: TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                    Text(
-                                        "Last distribution", // ${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            if (position?.instrumentObj != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          widget.brokerageUser.getDisplayText(
-                                              position!.instrumentObj!.quoteObj!
-                                                      .lastExtendedHoursTradePrice ??
-                                                  position
-                                                      .instrumentObj!
-                                                      .quoteObj!
-                                                      .lastTradePrice!,
-                                              displayValue:
-                                                  DisplayValue.lastPrice),
-                                          style: TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                      Text("Last price",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (position?.averageBuyPrice != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          widget.brokerageUser.getDisplayText(
-                                              position!.averageBuyPrice!,
-                                              displayValue:
-                                                  DisplayValue.lastPrice),
-                                          style: TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                      Text("Avg. cost basis",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (gainLossPercent != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(children: [
-                                        if (gainLossPercent != 0) ...[
-                                          // widget.user.getDisplayIcon(profitAndLoss)
-                                          Icon(
-                                              gainLossPercent > 0
-                                                  ? Icons.arrow_drop_up
-                                                  : Icons.arrow_drop_down,
-                                              color: gainLossPercent > 0
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              size: 27),
-                                        ],
-                                        Text(
-                                            widget.brokerageUser.getDisplayText(
-                                                gainLossPercent,
-                                                displayValue: DisplayValue
-                                                    .totalReturnPercent),
-                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
-                                            style: TextStyle(
-                                                fontSize:
-                                                    summaryValueFontSize)),
-                                      ]),
-                                      Text("Total return",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (gainLoss != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(children: [
-                                        Text(
-                                            widget.brokerageUser.getDisplayText(
-                                                gainLoss,
-                                                displayValue:
-                                                    DisplayValue.totalReturn),
-                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
-                                            style: TextStyle(
-                                                fontSize:
-                                                    summaryValueFontSize)),
-                                      ]),
-                                      Text("Total return",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (totalCost != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatCurrency.format(totalCost),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Total cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (countBuys != null && countSells != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatNumber.format(countBuys),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            ' / ${formatNumber.format(countSells)}',
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Buys / Sells",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (positionCost != null && countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatCurrency.format(positionCost),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Position cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (positionGainLossPercent != null &&
-                                countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(children: [
-                                        if (gainLossPercent != 0) ...[
-                                          // widget.user.getDisplayIcon(profitAndLoss)
-                                          Icon(
-                                              positionGainLossPercent > 0
-                                                  ? Icons.arrow_drop_up
-                                                  : Icons.arrow_drop_down,
-                                              color: positionGainLossPercent > 0
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              size: 27),
-                                        ],
-                                        Text(
-                                            widget.brokerageUser.getDisplayText(
-                                                positionGainLossPercent,
-                                                displayValue: DisplayValue
-                                                    .totalReturnPercent),
-                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
-                                            style: TextStyle(
-                                                fontSize:
-                                                    summaryValueFontSize)),
-                                      ]),
-                                      Text("Position return",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (positionGainLoss != null &&
-                                countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(children: [
-                                        Text(
-                                            widget.brokerageUser.getDisplayText(
-                                                positionGainLoss,
-                                                displayValue:
-                                                    DisplayValue.totalReturn),
-                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
-                                            style: TextStyle(
-                                                fontSize:
-                                                    summaryValueFontSize)),
-                                      ]),
-                                      Text("Position return",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (dividendInterval.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            dividendInterval.capitalize(),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Distributions",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                          ]))
+                                  ],
+                                ));
+                      },
+                    ),
+                    if (yieldOnCost != null)
+                      SummaryStatCard(
+                        label: "Yield on cost",
+                        value: formatPercentage.format(yieldOnCost),
+                      ),
+                    if (adjustedCost != null)
+                      SummaryStatCard(
+                        label: "Adj. cost basis",
+                        value: formatCurrency.format(positionAdjCost),
+                      ),
+                    if (adjustedReturnPercent != null)
+                      SummaryStatCard(
+                        label: "Adj. return %",
+                        value: formatPercentage.format(adjustedReturnPercent),
+                        icon: adjustedReturnPercent != 0
+                            ? Icon(
+                                adjustedReturnPercent > 0
+                                    ? Icons.arrow_drop_up
+                                    : Icons.arrow_drop_down,
+                                color: adjustedReturnPercent > 0
+                                    ? Colors.green
+                                    : Colors.red,
+                                size: 27)
+                            : null,
+                      ),
+                    if (adjustedReturn != null)
+                      SummaryStatCard(
+                        label: "Adj. return",
+                        value: formatCurrency.format(adjustedReturn),
+                      ),
+                    if (totalValue != null)
+                      SummaryStatCard(
+                        label: "Total value",
+                        value: formatCurrency.format(totalValue),
+                      ),
+                    SummaryStatCard(
+                      label: "Total income",
+                      value: formatCurrency.format(totalIncome),
+                    ),
+                    if (totalProjectedIncome > 0 &&
+                        transactionFilters.contains('projected'))
+                      SummaryStatCard(
+                        label: "Projected",
+                        value: formatCurrency.format(totalProjectedIncome),
+                      ),
+                    if (totalSells != null && totalSells > 0)
+                      SummaryStatCard(
+                        label: "Total sells",
+                        value: formatCurrency.format(totalSells),
+                      ),
+                    if (marketValue != null)
+                      SummaryStatCard(
+                        label: "Position value",
+                        value: formatCurrency.format(marketValue),
+                      ),
+                    SummaryStatCard(
+                      label: "Shares",
+                      value: formatNumber.format(position?.quantity ?? 0),
+                    ),
+                  ]),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SummaryStatCard(
+                      label: "Last distribution",
+                      value: double.parse(incomeTransactions[0]["rate"]) < 0.005
+                          ? formatPreciseCurrency.format(
+                              double.parse(incomeTransactions[0]["rate"]))
+                          : formatCurrency.format(
+                              double.parse(incomeTransactions[0]["rate"])),
+                    ),
+                    if (position?.instrumentObj != null)
+                      SummaryStatCard(
+                        label: "Last price",
+                        value: widget.brokerageUser.getDisplayText(
+                            position!.instrumentObj!.quoteObj!
+                                    .lastExtendedHoursTradePrice ??
+                                position
+                                    .instrumentObj!.quoteObj!.lastTradePrice!,
+                            displayValue: DisplayValue.lastPrice),
+                      ),
+                    if (position?.averageBuyPrice != null)
+                      SummaryStatCard(
+                        label: "Avg. cost basis",
+                        value: widget.brokerageUser.getDisplayText(
+                            position!.averageBuyPrice!,
+                            displayValue: DisplayValue.lastPrice),
+                      ),
+                    if (gainLossPercent != null)
+                      SummaryStatCard(
+                        label: "Total return",
+                        value: widget.brokerageUser.getDisplayText(
+                            gainLossPercent,
+                            displayValue: DisplayValue.totalReturnPercent),
+                        icon: gainLossPercent != 0
+                            ? Icon(
+                                gainLossPercent > 0
+                                    ? Icons.arrow_drop_up
+                                    : Icons.arrow_drop_down,
+                                color: gainLossPercent > 0
+                                    ? Colors.green
+                                    : Colors.red,
+                                size: 27)
+                            : null,
+                      ),
+                    if (gainLoss != null)
+                      SummaryStatCard(
+                        label: "Total return",
+                        value: widget.brokerageUser.getDisplayText(gainLoss,
+                            displayValue: DisplayValue.totalReturn),
+                      ),
+                    if (totalCost != null)
+                      SummaryStatCard(
+                        label: "Total cost",
+                        value: formatCurrency.format(totalCost),
+                      ),
+                    if (countBuys != null && countSells != null)
+                      SummaryStatCard(
+                        label: "Buys / Sells",
+                        value:
+                            "${formatNumber.format(countBuys)} / ${formatNumber.format(countSells)}",
+                      ),
+                    if (positionCost != null && countSells! > 0)
+                      SummaryStatCard(
+                        label: "Position cost",
+                        value: formatCurrency.format(positionCost),
+                      ),
+                    if (positionGainLossPercent != null && countSells! > 0)
+                      SummaryStatCard(
+                        label: "Position return",
+                        value: widget.brokerageUser.getDisplayText(
+                            positionGainLossPercent,
+                            displayValue: DisplayValue.totalReturnPercent),
+                        icon: positionGainLossPercent != 0
+                            ? Icon(
+                                positionGainLossPercent > 0
+                                    ? Icons.arrow_drop_up
+                                    : Icons.arrow_drop_down,
+                                color: positionGainLossPercent > 0
+                                    ? Colors.green
+                                    : Colors.red,
+                                size: 27)
+                            : null,
+                      ),
+                    if (positionGainLoss != null && countSells! > 0)
+                      SummaryStatCard(
+                        label: "Position return",
+                        value: widget.brokerageUser.getDisplayText(
+                            positionGainLoss,
+                            displayValue: DisplayValue.totalReturn),
+                      ),
+                    if (dividendInterval.isNotEmpty)
+                      SummaryStatCard(
+                        label: "Distributions",
+                        value: dividendInterval.capitalize(),
+                      ),
+                  ])
                 ],
               )),
         ],
         SizedBox(
             height: 340,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-              //padding: EdgeInsets.symmetric(horizontal: 10.0),
-              //padding: const EdgeInsets.all(10.0),
-              child: incomeChart,
-            )),
+            child: Card(
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10.0, 16.0, 10.0, 10.0),
+                  //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                  //padding: const EdgeInsets.all(10.0),
+                  child: incomeChart,
+                ))),
       ])),
       if (widget.showChips) ...[
         // SliverPersistentHeader(
@@ -1593,201 +1593,198 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         SliverToBoxAdapter(
           child: SizedBox(
               height: 56,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(4.0),
+              child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                controller: scrollController,
-                itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      Divider(indent: 12),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('1Y'), // Positions
-                          selected: dateFilter == 'Year',
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                dateFilter = 'Year';
-                              } else {
-                                // dateFilter = 'All';
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('3Y'), // Positions
-                          selected: dateFilter == '3Year',
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                dateFilter = '3Year';
-                              } else {
-                                // dateFilter = 'All';
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('All'),
-                          selected: dateFilter == 'All',
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                dateFilter = 'All';
-                              } else {
-                                // dateFilter = 'Year';
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Divider(indent: 12),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Interest'), // Positions
-                          selected: transactionFilters.contains("interest"),
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                transactionFilters.add("interest");
-                              } else {
-                                transactionFilters.removeWhere((String name) {
-                                  return name == "interest";
-                                });
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Dividend'),
-                          selected: transactionFilters.contains("dividend"),
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                transactionFilters.add("dividend");
-                              } else {
-                                transactionFilters.removeWhere((String name) {
-                                  return name == "dividend";
-                                });
-                                transactionSymbolFilters.clear();
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      AnimatedSwitcher(
-                        duration: Durations.short4,
-                        // transitionBuilder:
-                        //     (Widget child, Animation<double> animation) {
-                        //   return
-                        //       // SizeTransition(
-                        //       //     sizeFactor: animation, child: child);
-                        //       ScaleTransition(scale: animation, child: child);
-                        // },
-                        child: !transactionFilters.contains("dividend")
-                            ? null
-                            : Row(
-                                children: [
-                                  Divider(indent: 12),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: FilterChip(
-                                      //avatar: const Icon(Icons.history_outlined),
-                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                      label: const Text('Paid'),
-                                      selected:
-                                          transactionFilters.contains("paid"),
-                                      onSelected: (bool value) {
-                                        setState(() {
-                                          if (value) {
-                                            transactionFilters.add("paid");
-                                          } else {
-                                            transactionFilters
-                                                .removeWhere((String name) {
-                                              return name == "paid";
-                                            });
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: FilterChip(
-                                      //avatar: const Icon(Icons.history_outlined),
-                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                      label: const Text('Reinvested'),
-                                      selected: transactionFilters
-                                          .contains("reinvested"),
-                                      onSelected: (bool value) {
-                                        setState(() {
-                                          if (value) {
-                                            transactionFilters
-                                                .add("reinvested");
-                                          } else {
-                                            transactionFilters
-                                                .removeWhere((String name) {
-                                              return name == "reinvested";
-                                            });
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: FilterChip(
-                                      //avatar: const Icon(Icons.history_outlined),
-                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                      label:
-                                          const Text('Announced'), // Positions
-                                      selected: transactionFilters
-                                          .contains("pending"),
-                                      onSelected: (bool value) {
-                                        setState(() {
-                                          if (value) {
-                                            transactionFilters.add("pending");
-                                          } else {
-                                            transactionFilters
-                                                .removeWhere((String name) {
-                                              return name == "pending";
-                                            });
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Divider(indent: 12),
-                                ],
-                              ),
-                      )
-                    ],
-                  );
-                },
-                itemCount: 1,
+                padding: const EdgeInsets.all(4.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    _buildChoiceChip('1Y', dateFilter == 'Year', (bool value) {
+                      setState(() {
+                        if (value) {
+                          dateFilter = 'Year';
+                        }
+                      });
+                    }),
+                    _buildChoiceChip('3Y', dateFilter == '3Year', (bool value) {
+                      setState(() {
+                        if (value) {
+                          dateFilter = '3Year';
+                        }
+                      });
+                    }),
+                    _buildChoiceChip('All', dateFilter == 'All', (bool value) {
+                      setState(() {
+                        if (value) {
+                          dateFilter = 'All';
+                        }
+                      });
+                    }),
+                    _buildDivider(),
+                    _buildFilterChip(
+                        'Interest', transactionFilters.contains("interest"),
+                        (bool value) {
+                      setState(() {
+                        if (value) {
+                          transactionFilters.add("interest");
+                        } else {
+                          transactionFilters.remove("interest");
+                        }
+                      });
+                    }, icon: Icons.savings_outlined),
+                    _buildFilterChip(
+                        'Dividend', transactionFilters.contains("dividend"),
+                        (bool value) {
+                      setState(() {
+                        if (value) {
+                          transactionFilters.add("dividend");
+                        } else {
+                          transactionFilters.remove("dividend");
+                          transactionSymbolFilters.clear();
+                        }
+                      });
+                    }, icon: Icons.payments_outlined),
+                    AnimatedSwitcher(
+                      duration: Durations.short4,
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        return SizeTransition(
+                          sizeFactor: animation,
+                          axis: Axis.horizontal,
+                          axisAlignment: -1.0,
+                          child:
+                              FadeTransition(opacity: animation, child: child),
+                        );
+                      },
+                      child: !transactionFilters.contains("dividend")
+                          ? const SizedBox.shrink()
+                          : Row(
+                              children: [
+                                _buildDivider(),
+                                _buildFilterChip(
+                                    'Paid', transactionFilters.contains("paid"),
+                                    (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      transactionFilters.add("paid");
+                                    } else {
+                                      transactionFilters.remove("paid");
+                                    }
+                                  });
+                                }, icon: Icons.check_circle_outline),
+                                _buildFilterChip('Reinvested',
+                                    transactionFilters.contains("reinvested"),
+                                    (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      transactionFilters.add("reinvested");
+                                    } else {
+                                      transactionFilters.remove("reinvested");
+                                    }
+                                  });
+                                }, icon: Icons.autorenew),
+                                _buildFilterChip('Announced',
+                                    transactionFilters.contains("pending"),
+                                    (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      transactionFilters.add("pending");
+                                    } else {
+                                      transactionFilters.remove("pending");
+                                    }
+                                  });
+                                }, icon: Icons.schedule),
+                                const SizedBox(width: 12),
+                              ],
+                            ),
+                    )
+                  ],
+                ),
               )),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 56,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(4.0),
+              child: Row(
+                children: [
+                  const SizedBox(width: 12),
+                  _buildFilterChip(
+                      'Projected', transactionFilters.contains("projected"),
+                      (bool value) {
+                    setState(() {
+                      if (value) {
+                        transactionFilters.add("projected");
+                      } else {
+                        transactionFilters.remove("projected");
+                        transactionFilters.remove("reinvest_projected");
+                      }
+                    });
+                  }, icon: Icons.trending_up),
+                  AnimatedSwitcher(
+                    duration: Durations.short4,
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return SizeTransition(
+                        sizeFactor: animation,
+                        axis: Axis.horizontal,
+                        axisAlignment: -1.0,
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
+                    child: !transactionFilters.contains("projected")
+                        ? const SizedBox.shrink()
+                        : Row(
+                            children: [
+                              _buildDivider(),
+                              _buildFilterChip(
+                                  'DRIP',
+                                  transactionFilters.contains(
+                                      "reinvest_projected"), (bool value) {
+                                setState(() {
+                                  if (value) {
+                                    transactionFilters
+                                        .add("reinvest_projected");
+                                  } else {
+                                    transactionFilters
+                                        .remove("reinvest_projected");
+                                  }
+                                });
+                              }, icon: Icons.loop),
+                              _buildDivider(),
+                              _buildChoiceChip('1Y', projectionYears == 1,
+                                  (bool value) {
+                                setState(() {
+                                  projectionYears = 1;
+                                });
+                              }),
+                              _buildChoiceChip('3Y', projectionYears == 3,
+                                  (bool value) {
+                                setState(() {
+                                  projectionYears = 3;
+                                });
+                              }),
+                              _buildChoiceChip('5Y', projectionYears == 5,
+                                  (bool value) {
+                                setState(() {
+                                  projectionYears = 5;
+                                });
+                              }),
+                              _buildChoiceChip('10Y', projectionYears == 10,
+                                  (bool value) {
+                                setState(() {
+                                  projectionYears = 10;
+                                });
+                              }),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
       if (widget.showList) ...[
@@ -1796,186 +1793,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
               var transaction = incomeTransactions[index];
-              if (transaction["payable_date"] != null) {
-                var instrument = transaction["instrumentObj"];
-                var amount = double.parse(transaction!["amount"]);
-                return Card(
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          leading: instrument == null
-                              ? CircleAvatar(
-                                  backgroundColor:
-                                      Colors.blueGrey.withOpacity(0.1),
-                                  foregroundColor: Colors.blueGrey,
-                                  child: Text(
-                                    "DIV",
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold),
-                                    overflow: TextOverflow.fade,
-                                    softWrap: false,
-                                  ))
-                              : instrument.logoUrl != null
-                                  ? CircleAvatar(
-                                      backgroundColor: Colors.transparent,
-                                      child: Image.network(
-                                        instrument.logoUrl!,
-                                        width: 40,
-                                        height: 40,
-                                        errorBuilder: (BuildContext context,
-                                            Object exception,
-                                            StackTrace? stackTrace) {
-                                          return CircleAvatar(
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .primaryContainer,
-                                              foregroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .onPrimaryContainer,
-                                              child: Text(instrument.symbol,
-                                                  style: const TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                  overflow: TextOverflow.fade,
-                                                  softWrap: false));
-                                        },
-                                      ))
-                                  : CircleAvatar(
-                                      backgroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer,
-                                      foregroundColor: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimaryContainer,
-                                      child: Text(instrument.symbol,
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold),
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false)),
-                          title: Text(
-                            "${transaction["instrumentObj"] != null ? "${transaction["instrumentObj"].symbol} " : ""}${double.parse(transaction!["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(transaction!["rate"])) : formatCurrency.format(double.parse(transaction!["rate"]))} ${transaction!["state"]}",
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                "${formatNumber.format(double.parse(transaction!["position"]))} shares on ${formatDate.format(DateTime.parse(transaction!["payable_date"]))}",
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color),
-                              ),
-                            ],
-                          ),
-                          trailing: Wrap(spacing: 8, children: [
-                            Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                    color:
-                                        _amountColor(amount).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: _amountColor(amount))),
-                                child: Text(
-                                  formatCurrency.format(amount),
-                                  style: TextStyle(
-                                      fontSize: 16.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: _amountColor(amount)),
-                                ))
-                          ]),
-                        ),
-                      ],
-                    ));
-              } else {
-                var amount = double.parse(transaction!["amount"]["amount"]);
-                return Card(
-                    elevation: 0,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          leading: CircleAvatar(
-                              backgroundColor: Colors.green.withOpacity(0.1),
-                              foregroundColor: Colors.green,
-                              child: const Icon(Icons.attach_money)),
-                          title: Text(
-                            transaction["payout_type"]
-                                .toString()
-                                .replaceAll("_", " ")
-                                .capitalize(),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                "on ${formatDate.format(DateTime.parse(transaction!["pay_date"]))}",
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color),
-                              ),
-                            ],
-                          ),
-                          trailing: Wrap(spacing: 8, children: [
-                            Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                    color:
-                                        _amountColor(amount).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: _amountColor(amount))),
-                                child: Text(
-                                  formatCurrency.format(amount),
-                                  style: TextStyle(
-                                      fontSize: 16.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: _amountColor(amount)),
-                                ))
-                          ]),
-                        ),
-                      ],
-                    ));
-              }
-              // return _buildCryptoRow(context, filteredHoldings, index);
+              return IncomeTransactionTile(transaction: transaction);
             },
             childCount: showAllTransactions
                 ? incomeTransactions.length
@@ -2041,8 +1859,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 SliverAppBar(
                     centerTitle: false,
                     title: Text("Income"),
-                    floating: true,
-                    snap: true,
+                    floating: false,
+                    snap: false,
+                    pinned: true,
                     stretch: false,
                     actions: [
                       IconButton(
@@ -2084,6 +1903,225 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   observer: widget.observer,
                 )
               ]))),
+    );
+  }
+}
+
+class IncomeTransactionTile extends StatelessWidget {
+  final Map<String, dynamic> transaction;
+
+  const IncomeTransactionTile({
+    super.key,
+    required this.transaction,
+  });
+
+  Color _amountColor(BuildContext context, double amount) {
+    return amount == 0
+        ? Theme.of(context).textTheme.bodyLarge!.color!
+        : amount > 0
+            ? Colors.green
+            : Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDividend = transaction["payable_date"] != null;
+    final amount = isDividend
+        ? double.parse(transaction["amount"])
+        : double.parse(transaction["amount"]["amount"]);
+    final date = DateTime.parse(
+        isDividend ? transaction["payable_date"] : transaction["pay_date"]);
+
+    Widget leading;
+    Widget title;
+    Widget subtitle;
+
+    if (isDividend) {
+      final instrument = transaction["instrumentObj"];
+      leading = instrument == null
+          ? CircleAvatar(
+              backgroundColor: Colors.blueGrey.withValues(alpha: 0.1),
+              foregroundColor: Colors.blueGrey,
+              child: const Text(
+                "DIV",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.fade,
+                softWrap: false,
+              ))
+          : instrument.logoUrl != null
+              ? CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  child: CachedNetworkImage(
+                    imageUrl: instrument.logoUrl!,
+                    width: 40,
+                    height: 40,
+                    errorWidget: (context, url, error) {
+                      return CircleAvatar(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primaryContainer,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          child: Text(instrument.symbol,
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.fade,
+                              softWrap: false));
+                    },
+                  ))
+              : CircleAvatar(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onPrimaryContainer,
+                  child: Text(instrument.symbol,
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.fade,
+                      softWrap: false));
+
+      title = Text(
+        instrument?.symbol ?? "Dividend",
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      );
+
+      final rate = double.parse(transaction["rate"]);
+      final rateStr = rate < 0.005
+          ? formatPreciseCurrency.format(rate)
+          : formatCurrency.format(rate);
+      final state = transaction["state"];
+      final shares = double.parse(transaction["position"]);
+
+      subtitle = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("$rateStr/share • $state"),
+          Text(
+            "${formatNumber.format(shares)} shares • ${formatDate.format(date)}",
+            style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+        ],
+      );
+    } else {
+      leading = CircleAvatar(
+          backgroundColor: Colors.green.withValues(alpha: 0.1),
+          foregroundColor: Colors.green,
+          child: const Icon(Icons.attach_money));
+      title = Text(
+        transaction["payout_type"].toString().replaceAll("_", " ").capitalize(),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      );
+      subtitle = Text(
+        formatDate.format(date),
+        style: TextStyle(
+            fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+      );
+    }
+
+    return Card(
+        elevation: 0,
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: leading,
+            title: title,
+            subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4), child: subtitle),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:
+                          _amountColor(context, amount).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      formatCurrency.format(amount),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: _amountColor(context, amount)),
+                    )),
+              ],
+            )));
+  }
+}
+
+class SummaryStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Widget? icon;
+  final VoidCallback? onTap;
+  final double valueFontSize;
+  final double labelFontSize;
+
+  const SummaryStatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+    this.onTap,
+    this.valueFontSize = summaryValueFontSize,
+    this.labelFontSize = summaryLabelFontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerHighest
+          .withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[icon!, const SizedBox(width: 4)],
+                  Text(
+                    value,
+                    style: TextStyle(
+                        fontSize: valueFontSize, fontWeight: FontWeight.bold),
+                  ),
+                  if (onTap != null) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.info_outline,
+                        size: 14, color: Theme.of(context).colorScheme.primary),
+                  ]
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                    fontSize: labelFontSize,
+                    color: Theme.of(context).textTheme.bodySmall?.color),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
