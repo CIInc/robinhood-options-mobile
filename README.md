@@ -29,6 +29,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **[Advanced Order Types](docs/advanced-order-types.md):** Support for Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for both stocks and options. Also includes **Order Templates** to save and reuse complex order configurations.
 *   **[RiskGuard](docs/risk-guard.md):** Advanced risk validation for manual and automated trading. Enforces portfolio safety rules (concentration, sector limits) with warning dialogs and override capabilities for manual trades. Now includes **Dynamic Position Sizing** to automatically calculate trade size based on risk parameters.
 *   **[Trade Signal Notifications](docs/trade-signal-notifications.md):** Configurable push notifications for trade signals with granular filtering by signal type (BUY/SELL/HOLD), symbol, interval, and confidence threshold. Includes rich notification content and deep linking for immediate analysis.
+*   **[Portfolio Rebalancing](docs/portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
 *   **UI Enhancements:** Modernized navigation with Material 3 NavigationBar, integrated ad banners for sustainability, and streamlined order management workflows.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 

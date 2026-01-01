@@ -384,7 +384,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    if (widget.brokerageUser == null || widget.service == null) {
+    if (widget.brokerageUser == null ||
+        widget.service == null ||
+        (widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true)) {
       return Scaffold(
           body: RefreshIndicator(
         onRefresh: () async {
@@ -412,6 +414,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             SliverFillRemaining(
               child: WelcomeWidget(
                 onLogin: widget.onLogin,
+                message: (widget.brokerageUser?.oauth2Client?.credentials
+                            .isExpired ??
+                        false)
+                    ? "Session expired. Please log in again."
+                    : null,
               ),
             ),
           ],
@@ -542,7 +549,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ),
               ),
             ],
-            SliverToBoxAdapter(child: AllocationWidget(account: account)),
+            SliverToBoxAdapter(
+                child: AllocationWidget(
+                    account: account,
+                    user: widget.user,
+                    userDocRef: widget.userDoc)),
             SliverToBoxAdapter(
               child:
                   // Promote Automated Trading & Backtesting

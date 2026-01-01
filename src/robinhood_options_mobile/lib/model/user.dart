@@ -38,6 +38,10 @@ class User {
   Map<String, Map<String, dynamic>>? optionFilterPresets;
   String? defaultOptionFilterPreset;
 
+  // Portfolio Allocation Targets
+  Map<String, double>? assetAllocationTargets;
+  Map<String, double>? sectorAllocationTargets;
+
   User(
       {this.name,
       this.nameLower,
@@ -58,7 +62,9 @@ class User {
       this.tradeSignalNotificationSettings,
       this.agenticTradingConfig,
       this.optionFilterPresets,
-      this.defaultOptionFilterPreset});
+      this.defaultOptionFilterPreset,
+      this.assetAllocationTargets,
+      this.sectorAllocationTargets});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -108,7 +114,9 @@ class User {
                 ? (json['optionFilterPresets'] as Map<String, dynamic>).map(
                     (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
                 : null,
-            defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?);
+            defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
+            assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
+            sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -132,7 +140,9 @@ class User {
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson(),
       'optionFilterPresets': optionFilterPresets,
-      'defaultOptionFilterPreset': defaultOptionFilterPreset
+      'defaultOptionFilterPreset': defaultOptionFilterPreset,
+      'assetAllocationTargets': assetAllocationTargets,
+      'sectorAllocationTargets': sectorAllocationTargets
     };
   }
 

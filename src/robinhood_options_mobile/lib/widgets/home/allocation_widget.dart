@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -10,12 +11,16 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
+import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 
 class AllocationWidget extends StatefulWidget {
   final Account? account;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
-  const AllocationWidget({super.key, this.account});
+  const AllocationWidget({super.key, this.account, this.user, this.userDocRef});
 
   @override
   State<AllocationWidget> createState() => _AllocationWidgetState();
@@ -57,8 +62,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
             OptionPositionStore, ForexHoldingStore>(
         builder: (context, portfolioStore, stockPositionStore,
             optionPositionStore, forexHoldingStore, child) {
-      final portfolioCash =
-          widget.account != null ? widget.account!.portfolioCash! : 0.0;
+      final portfolioCash = widget.account?.portfolioCash ?? 0.0;
 
       final totalAssets = _calculateTotalAssets(
           portfolioStore,
@@ -146,12 +150,42 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              "Allocation",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Allocation",
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                if (widget.user != null &&
+                    widget.userDocRef != null &&
+                    widget.account != null)
+                  TextButton(
+                    onPressed: () {
+                      final user = widget.user;
+                      final userDocRef = widget.userDocRef;
+                      final account = widget.account;
+                      if (user != null &&
+                          userDocRef != null &&
+                          account != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RebalancingWidget(
+                              user: user,
+                              userDocRef: userDocRef,
+                              account: account,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text("Rebalance"),
+                  ),
+              ],
             ),
           ),
           ConstrainedBox(

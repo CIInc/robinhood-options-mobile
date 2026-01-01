@@ -1899,8 +1899,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   interestStore: widget.interestStore,
                   analytics: widget.analytics,
                   observer: widget.observer,
-                  isFullScreen: true,
-                  showList: false,
+                  isFullScreen: false,
+                  showList: true,
                 )
               ]))),
     );

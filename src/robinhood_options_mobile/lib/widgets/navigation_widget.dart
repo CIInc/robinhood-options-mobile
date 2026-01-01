@@ -114,7 +114,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                   : DemoService();
 
       var futureUserInfo = service!.getUser(userStore.currentUser!);
-      futureArr.add(futureUserInfo);
+      futureArr.add(futureUserInfo.catchError((e) => null));
     } else {
       service = null;
     }
@@ -333,34 +333,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 }
               }
             }
-            // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final agenticProvider =
-                  Provider.of<AgenticTradingProvider>(context, listen: false);
-              agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
-
-              // Load automated buy trades from Firestore
-              agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
-              // Load pending orders from Firestore
-              agenticProvider.loadPendingOrdersFromFirestore(userDoc);
-
-              // Start auto-trade timer via provider (prevents duplicate starts)
-              agenticProvider.startAutoTradeTimer(
-                context: context,
-                brokerageService: service,
-                userDocRef: userDoc,
-              );
-
-              // Initialize CopyTradingProvider
-              if (auth.currentUser != null && userStore.currentUser != null) {
-                final copyTradingProvider =
-                    Provider.of<CopyTradingProvider>(context, listen: false);
-                copyTradingProvider.initialize(
-                    auth.currentUser!.uid, userStore.currentUser!, service!);
-              }
-            });
-
-            widget.analytics.setUserId(id: userInfo?.username ?? 'anonymous');
             /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -370,9 +342,41 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             _buildTabs(userStore);
           } else if (dataSnapshot.hasError) {
             debugPrint("${dataSnapshot.error}");
-            return buildScaffold(userStore,
-                message: "${dataSnapshot.error}", onLogin: () => _openLogin());
+            // Allow navigation even if data loading fails (e.g. no brokerage linked)
+            _buildTabs(userStore);
+            // return buildScaffold(userStore,
+            //     message: "${dataSnapshot.error}", onLogin: () => _openLogin());
           }
+
+          // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final agenticProvider =
+                Provider.of<AgenticTradingProvider>(context, listen: false);
+            agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+
+            // Load automated buy trades from Firestore
+            agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+            // Load pending orders from Firestore
+            agenticProvider.loadPendingOrdersFromFirestore(userDoc);
+
+            // Start auto-trade timer via provider (prevents duplicate starts)
+            agenticProvider.startAutoTradeTimer(
+              context: context,
+              brokerageService: service,
+              userDocRef: userDoc,
+            );
+
+            // Initialize CopyTradingProvider
+            if (auth.currentUser != null && userStore.currentUser != null) {
+              final copyTradingProvider =
+                  Provider.of<CopyTradingProvider>(context, listen: false);
+              copyTradingProvider.initialize(
+                  auth.currentUser!.uid, userStore.currentUser!, service!);
+            }
+          });
+
+          widget.analytics.setUserId(id: userInfo?.username ?? 'anonymous');
+
           return buildScaffold(userStore);
           // TODO: Figure out why adding a loading message property breaks the other tabs
           // , message: "Loading...", onLogin: null

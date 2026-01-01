@@ -168,7 +168,9 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    if (widget.brokerageUser == null || widget.service == null) {
+    if (widget.brokerageUser == null ||
+        widget.service == null ||
+        (widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true)) {
       return Scaffold(
           body: RefreshIndicator(
         onRefresh: () async {
@@ -196,6 +198,11 @@ class _HistoryPageState extends State<HistoryPage>
             SliverFillRemaining(
               child: WelcomeWidget(
                 onLogin: widget.onLogin,
+                message: (widget.brokerageUser?.oauth2Client?.credentials
+                            .isExpired ??
+                        false)
+                    ? "Session expired. Please log in again."
+                    : null,
               ),
             ),
           ],

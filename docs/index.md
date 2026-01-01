@@ -39,6 +39,7 @@
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
 - **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA).
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
+- **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
 
 ## Investment Profile Feature
 

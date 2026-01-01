@@ -3763,6 +3763,14 @@ WATCHLIST
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
+    if (user.oauth2Client!.credentials.isExpired) {
+      try {
+        user.oauth2Client = await user.oauth2Client!.refreshCredentials();
+        user.credentials = user.oauth2Client!.credentials.toJson();
+      } catch (e) {
+        throw Exception('Authorization expired. Please log back in.');
+      }
+    }
     String responseStr = await user.oauth2Client!
         .read(Uri.parse(url))
         .timeout(const Duration(seconds: 30));

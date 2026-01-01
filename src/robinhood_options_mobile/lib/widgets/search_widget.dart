@@ -439,7 +439,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (welcomeWidget != null) ...[
                     SliverToBoxAdapter(
                         child: SizedBox(
-                      height: 150.0,
+                      height: 80.0,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Align(

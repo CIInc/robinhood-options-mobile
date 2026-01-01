@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -177,6 +177,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Fullscreen Charts**: Immersive chart viewing experience
 - ✅ **Generative AI UI**: Enhanced layout and action cards
 - ✅ **Portfolio Analytics UI**: Refined headers and layout for consistency
+
+### v0.27.3 ✅ (Released Jan 1, 2026)
+**Portfolio Rebalancing & Tax Loss Harvesting**
+- ✅ **Tax Loss Harvesting** (Identify and realize losses for tax optimization)
+- ✅ **Portfolio Rebalancing Overhaul** (Complete UI Redesign, Dual Views, Drift Analysis)
+- ✅ Enhanced Edit Mode (Precision controls, Sliders, Presets)
+- ✅ Actionable Recommendations (Buy/Sell list sorted by impact)
+- ✅ Theme-aware Charting & Performance Optimizations
 
 ### v0.28.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

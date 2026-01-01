@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.3] - 2026-01-01
+
+### Added
+- **Tax Loss Harvesting:**
+  - **New Feature:** Intelligent tool to identify and realize losses for tax optimization.
+  - **Smart Suggestions:** Automatically identifies positions with unrealized losses that can be harvested.
+  - **Seasonality:** Seasonality awareness to suggest harvesting at optimal times.
+  - **Visibility Rules:** Smart visibility rules to filter out wash sales or insignificant losses.
+- **Portfolio Rebalancing:**
+  - **UI Overhaul:** Complete redesign of the rebalancing tool with a cleaner, card-based layout.
+  - **Dual Views:** Toggle between "Asset Class" and "Sector" allocation views.
+  - **Edit Mode:** Enhanced target editing with precision controls (+/- buttons), sliders, and smart presets (Aggressive, Tech Heavy, etc.).
+  - **Drift Analysis:** Visual drift indicators (Green/Orange) and stacked progress bars to instantly spot deviations.
+  - **Recommendations:** Auto-generated "Buy" and "Sell" recommendations sorted by impact, with a configurable drift threshold.
+  - **Visuals:** Theme-aware chart colors and optimized rendering to prevent flickering during edits.
+  - **Normalization:** One-tap button to ensure target allocations sum to 100%.
+
+### Fixed
+- **Allocation Widget:** Resolved a null safety issue causing crashes when navigating from the home screen.
+
 ## [0.27.2] - 2025-12-31
 
 ### Added
