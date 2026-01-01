@@ -171,6 +171,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Agentic Trading**: Enhanced market data fetching logic to ensure sufficient historical data for MACD and other indicators
 - ✅ **Trade Signals**: Improved trade signal sorting functionality and reliability
 
+### v0.27.2 ✅ (Released Dec 31, 2025)
+**Income Projection, Fullscreen Charts & UI Polish**
+- ✅ **Projected Income**: Dividend projection & tracking with filters
+- ✅ **Fullscreen Charts**: Immersive chart viewing experience
+- ✅ **Generative AI UI**: Enhanced layout and action cards
+- ✅ **Portfolio Analytics UI**: Refined headers and layout for consistency
+
 ### v0.28.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
@@ -211,7 +218,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - AI summaries & recommendations
 - Advanced portfolio analytics (Sharpe, alpha, beta)
 - Risk exposure heatmaps
-- Dividend projection & tracking
+
 
 ### v0.32.0 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**

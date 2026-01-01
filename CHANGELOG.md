@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.2] - 2025-12-31
+
+### Added
+- **Charts:**
+  - **Fullscreen Support:** Added fullscreen mode for charts to provide a more immersive and detailed viewing experience.
+- **Income Analysis:**
+  - **Projected Income:** Implemented projected income calculations and filtering capabilities in the `IncomeTransactionsWidget` to help users track future dividends and interest.
+
+### Changed
+- **Portfolio Analytics:**
+  - **UI Polish:** Updated header styles for better visual hierarchy and consistency with the homepage.
+  - **Layout:** Adjusted padding and card header sizes (`titleMedium`) to match the app's design system.
+- **Generative AI:**
+  - **UI Refactor:** Refactored `GenerativeActionsWidget` layout and enhanced action cards for improved usability and visual appeal.
+
 ## [0.27.1] - 2025-12-30
 
 ### Added

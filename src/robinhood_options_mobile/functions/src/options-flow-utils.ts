@@ -1,4 +1,6 @@
 import YahooFinance from "yahoo-finance2";
+import { getFirestore } from "firebase-admin/firestore";
+import { logger } from "firebase-functions/logger";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -104,51 +106,52 @@ interface YahooOptionsResult {
 
 // Simple in-memory cache with LRU eviction
 const CACHE_CONFIG = {
-  TTL: 60 * 1000, // 1 minute cache
-  MAX_SIZE: 1000, // Max items in cache
+  TTL: 24 * 60 * 60 * 1000, // 24 hour cache for Firestore
   SECTOR_TTL: 24 * 60 * 60 * 1000, // 24 hours for sector cache
 };
 
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-}
-
-const cache = new Map<string, CacheEntry<any>>();
-const sectorCache = new Map<string, CacheEntry<string>>();
-
-const getFromCache = <T>(
+const getFromFirestoreCache = async <T>(
   key: string,
-  targetCache: Map<string, CacheEntry<any>> = cache,
-  ttl: number = CACHE_CONFIG.TTL
-): T | null => {
-  const entry = targetCache.get(key);
-  if (!entry) return null;
+  ttl: number = CACHE_CONFIG.TTL,
+  collectionName = "options_flow_cache"
+): Promise<T | null> => {
+  try {
+    const db = getFirestore();
+    const docRef = db.collection(collectionName).doc(key);
+    const doc = await docRef.get();
 
-  if (Date.now() - entry.timestamp > ttl) {
-    targetCache.delete(key);
+    if (!doc.exists) return null;
+
+    const data = doc.data();
+    if (!data) return null;
+
+    if (Date.now() - data.timestamp > ttl) {
+      // Cache expired
+      return null;
+    }
+
+    return JSON.parse(data.data) as T;
+  } catch (e) {
+    console.error(`Error reading from Firestore cache for key ${key}:`, e);
     return null;
   }
-
-  // LRU: Refresh item position (delete and re-insert)
-  targetCache.delete(key);
-  targetCache.set(key, entry);
-
-  return entry.data;
 };
 
-const setInCache = <T>(
+const setInFirestoreCache = async <T>(
   key: string,
   data: T,
-  targetCache: Map<string, CacheEntry<any>> = cache
-): void => {
-  // Evict oldest if full
-  if (targetCache.size >= CACHE_CONFIG.MAX_SIZE) {
-    const firstKey = targetCache.keys().next().value;
-    if (firstKey) targetCache.delete(firstKey);
+  collectionName = "options_flow_cache"
+): Promise<void> => {
+  try {
+    const db = getFirestore();
+    const docRef = db.collection(collectionName).doc(key);
+    await docRef.set({
+      data: JSON.stringify(data),
+      timestamp: Date.now(),
+    });
+  } catch (e) {
+    console.error(`Error writing to Firestore cache for key ${key}:`, e);
   }
-
-  targetCache.set(key, { data, timestamp: Date.now() });
 };
 
 /**
@@ -192,15 +195,27 @@ const fetchForSymbol = async (
   expirationFilter?: string
 ): Promise<OptionFlowItem[]> => {
   const cacheKey = `options_flow_${symbol}_${expirationFilter || "all"}`;
-  const cached = getFromCache<OptionFlowItem[]>(cacheKey);
-  if (cached) {
-    return cached;
+
+  // Try Firestore cache
+  const firestoreCached = await getFromFirestoreCache<OptionFlowItem[]>(
+    cacheKey,
+    CACHE_CONFIG.TTL
+  );
+  if (firestoreCached) {
+    return firestoreCached;
   }
 
   try {
     // Fetch initial data to get expirations and quote info
-    const initialResult = (await yf.options(symbol, {})) as YahooOptionsResult;
-    const expirationDates = initialResult.expirationDates || [];
+    const initialResult = (await yf.options(symbol, {
+      // date: new Date("2024-03-15"),
+    })) as YahooOptionsResult;
+    const expirationDates = initialResult.expirationDates?.slice(0, 1) || [];
+    logger.info(
+      `Fetched ${initialResult.expirationDates?.length}` +
+      ` expiration dates for ${symbol}` +
+      ` (${expirationDates[0]?.toISOString()})`
+    );
     const quote = initialResult.quote;
 
     if (!quote) return [];
@@ -210,18 +225,23 @@ const fetchForSymbol = async (
     const earningsTimestamp = quote.earningsTimestamp;
     const changePercent = quote.regularMarketChangePercent || 0;
 
-    // Filter expiration dates based on filter
-    const targetDates = filterExpirationDates(
-      expirationDates,
-      expirationFilter
-    );
+    const resultsToProcess = [initialResult];
 
-    // Fetch option chains for target dates
-    const resultsToProcess = await fetchOptionChains(
-      symbol,
-      targetDates,
-      initialResult
-    );
+    // TODO: Re-enable multi-date fetching once fixed,
+    // initialResult already has multiple dates
+
+    // // Filter expiration dates based on filter
+    // const targetDates = filterExpirationDates(
+    //   expirationDates,
+    //   expirationFilter
+    // );
+
+    // // Fetch option chains for target dates
+    // const resultsToProcess = await fetchOptionChains(
+    //   symbol,
+    //   targetDates,
+    //   initialResult
+    // );
 
     // Process results
     const items = processOptionChains(symbol, resultsToProcess, {
@@ -231,7 +251,7 @@ const fetchForSymbol = async (
       sector,
     });
 
-    setInCache(cacheKey, items);
+    await setInFirestoreCache(cacheKey, items);
     return items;
   } catch (e) {
     console.error(`Failed to fetch options for ${symbol}`, e);
@@ -245,12 +265,15 @@ const ensureSector = async (
 ): Promise<string | undefined> => {
   if (quote.sector) return quote.sector;
 
-  const cachedSector = getFromCache<string>(
+  // Try Firestore cache
+  const firestoreCachedSector = await getFromFirestoreCache<string>(
     symbol,
-    sectorCache,
-    CACHE_CONFIG.SECTOR_TTL
+    CACHE_CONFIG.SECTOR_TTL,
+    "sector_cache"
   );
-  if (cachedSector) return cachedSector;
+  if (firestoreCachedSector) {
+    return firestoreCachedSector;
+  }
 
   try {
     const summary = await yf.quoteSummary(symbol, {
@@ -258,7 +281,7 @@ const ensureSector = async (
     });
     const sector = summary.assetProfile?.sector;
     if (sector) {
-      setInCache(symbol, sector, sectorCache);
+      await setInFirestoreCache(symbol, sector, "sector_cache");
     }
     return sector;
   } catch (e) {
@@ -267,59 +290,62 @@ const ensureSector = async (
   }
 };
 
-const filterExpirationDates = (dates: Date[], filter?: string): Date[] => {
-  if (!filter) return dates;
-  const now = new Date();
-  return dates.filter((date) => {
-    const days = getDaysDifference(now, date);
-    if (filter === "0-7") return days >= -1 && days <= 7;
-    if (filter === "8-30") return days > 7 && days <= 30;
-    if (filter === "30+") return days > 30;
-    return true;
-  });
-};
+// TODO: Re-enable multi-date fetching once fixed,
+// initialResult already has multiple dates
 
-const fetchOptionChains = async (
-  symbol: string,
-  targetDates: Date[],
-  initialResult: YahooOptionsResult
-): Promise<YahooOptionsResult[]> => {
-  const initialExpirationDate = initialResult.expirationDates?.[0];
-  let resultsToProcess: YahooOptionsResult[] = [];
+// const filterExpirationDates = (dates: Date[], filter?: string): Date[] => {
+//   if (!filter) return dates;
+//   const now = new Date();
+//   return dates.filter((date) => {
+//     const days = getDaysDifference(now, date);
+//     if (filter === "0-7") return days >= -1 && days <= 7;
+//     if (filter === "8-30") return days > 7 && days <= 30;
+//     if (filter === "30+") return days > 30;
+//     return true;
+//   });
+// };
 
-  // We want up to 4 dates from our filtered list to avoid excessive calls
-  const datesWeWant = targetDates.slice(0, 4);
+// const fetchOptionChains = async (
+//   symbol: string,
+//   targetDates: Date[],
+//   initialResult: YahooOptionsResult
+// ): Promise<YahooOptionsResult[]> => {
+//   const initialExpirationDate = initialResult.expirationDates?.[0];
+//   let resultsToProcess: YahooOptionsResult[] = [];
 
-  // Check if we can reuse initialResult
-  const reuseInitial =
-    initialExpirationDate &&
-    datesWeWant.some(
-      (d) => d.getTime() === initialExpirationDate.getTime()
-    );
+//   // We want up to 4 dates from our filtered list to avoid excessive calls
+//   const datesWeWant = targetDates.slice(0, 4);
 
-  let datesToFetch: Date[] = [];
+//   // Check if we can reuse initialResult
+//   const reuseInitial =
+//     initialExpirationDate &&
+//     datesWeWant.some(
+//       (d) => d.getTime() === initialExpirationDate.getTime()
+//     );
 
-  if (reuseInitial && initialExpirationDate) {
-    resultsToProcess.push(initialResult);
-    datesToFetch = datesWeWant.filter(
-      (d) => d.getTime() !== initialExpirationDate.getTime()
-    );
-  } else {
-    datesToFetch = datesWeWant;
-  }
+//   let datesToFetch: Date[] = [];
 
-  if (datesToFetch.length > 0) {
-    const additionalResults = await Promise.all(
-      datesToFetch.map((date) => yf.options(symbol, { date }))
-    );
-    resultsToProcess = [
-      ...resultsToProcess,
-      ...additionalResults,
-    ] as YahooOptionsResult[];
-  }
+//   if (reuseInitial && initialExpirationDate) {
+//     resultsToProcess.push(initialResult);
+//     datesToFetch = datesWeWant.filter(
+//       (d) => d.getTime() !== initialExpirationDate.getTime()
+//     );
+//   } else {
+//     datesToFetch = datesWeWant;
+//   }
 
-  return resultsToProcess;
-};
+//   if (datesToFetch.length > 0) {
+//     const additionalResults = await Promise.all(
+//       datesToFetch.map((date) => yf.options(symbol, { date }))
+//     );
+//     resultsToProcess = [
+//       ...resultsToProcess,
+//       ...additionalResults,
+//     ] as YahooOptionsResult[];
+//   }
+
+//   return resultsToProcess;
+// };
 
 const processOptionChains = (
   symbol: string,

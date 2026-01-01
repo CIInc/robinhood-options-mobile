@@ -166,9 +166,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
           store.setFilterSymbols(_defaultSymbols);
         }
       }
-      if (store.items.isEmpty) {
-        store.refresh();
-      }
+      // store.refresh() is already called in setFilterSymbol & setFilterSymbols above
+      // if (store.items.isEmpty) {
+      //   store.refresh();
+      // }
     });
   }
 
