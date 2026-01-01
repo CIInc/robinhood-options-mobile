@@ -1,18 +1,32 @@
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
+import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 
 class PortfolioAnalyticsWidget extends StatefulWidget {
   final BrokerageUser user;
   final IBrokerageService service;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final GenerativeService generativeService;
+  final User? appUser;
+  final DocumentReference<User>? userDocRef;
   final Future<PortfolioHistoricals>? portfolioHistoricalsFuture;
   final Future<dynamic>? futureMarketIndexHistoricalsSp500;
   final Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
@@ -22,6 +36,11 @@ class PortfolioAnalyticsWidget extends StatefulWidget {
       {super.key,
       required this.user,
       required this.service,
+      required this.analytics,
+      required this.observer,
+      required this.generativeService,
+      required this.appUser,
+      required this.userDocRef,
       this.portfolioHistoricalsFuture,
       this.futureMarketIndexHistoricalsSp500,
       this.futureMarketIndexHistoricalsNasdaq,
@@ -393,12 +412,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   color: Theme.of(context)
                       .colorScheme
                       .outlineVariant
-                      .withOpacity(0.5),
+                      .withValues(alpha: 0.5),
                 ),
               ),
               clipBehavior: Clip.antiAlias,
               child: const RiskHeatmapWidget(),
             ),
+            const SizedBox(height: 16),
+            _buildTaxOptimizationCard(context),
             const SizedBox(height: 16),
           ],
         );
@@ -428,7 +449,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   child: CircularProgressIndicator(
                     value: score / 100,
                     strokeWidth: 6,
-                    backgroundColor: scoreColor.withOpacity(0.2),
+                    backgroundColor: scoreColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                   ),
                 ),
@@ -529,7 +550,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -552,6 +573,226 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTaxOptimizationCard(BuildContext context) {
+    final instrumentPositionStore =
+        Provider.of<InstrumentPositionStore>(context);
+    final optionPositionStore = Provider.of<OptionPositionStore>(context);
+
+    final suggestions =
+        TaxOptimizationService.calculateTaxHarvestingOpportunities(
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+    );
+
+    final totalEstimatedLoss = suggestions.fold<double>(
+        0, (previousValue, element) => previousValue + element.estimatedLoss);
+
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    final urgency = TaxOptimizationService.getSeasonalityUrgency();
+
+    // Smart Visibility:
+    // - High/Medium Urgency (Oct-Dec): Show for any loss > $10
+    // - Low Urgency (Jan-Sep): Only show for significant losses > $100
+    final threshold = urgency > 0 ? -100.0 : -1000.0;
+    if (totalEstimatedLoss > threshold) return const SizedBox.shrink();
+
+    final formatCurrency = NumberFormat.simpleCurrency();
+
+    return FutureBuilder<PortfolioHistoricals>(
+      future: widget.portfolioHistoricalsFuture,
+      builder: (context, snapshot) {
+        final portfolioHistoricals = snapshot.data;
+        final estimatedRealizedGains =
+            TaxOptimizationService.calculateEstimatedRealizedGains(
+          portfolioHistoricals: portfolioHistoricals,
+          instrumentPositions: instrumentPositionStore.items,
+          optionPositions: optionPositionStore.items,
+        );
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.5),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TaxOptimizationWidget(
+                    user: widget.user,
+                    service: widget.service,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.appUser,
+                    userDocRef: widget.userDocRef,
+                    portfolioHistoricals: portfolioHistoricals, // Pass it down
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.savings_outlined,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text('Tax Loss Harvesting',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            if (urgency > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      urgency == 2 ? Colors.red : Colors.orange,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  urgency == 2 ? 'URGENT' : 'SEASON',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        formatCurrency.format(totalEstimatedLoss),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Potential Loss',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (estimatedRealizedGains > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Can offset ~${formatCurrency.format(estimatedRealizedGains)} of YTD gains',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  if (suggestions.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.surface,
+                            child: Text(
+                              suggestions.first.symbol.substring(0, 1),
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Top Opportunity',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  suggestions.first.symbol,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            formatCurrency
+                                .format(suggestions.first.estimatedLoss),
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  _buildInsightRow(
+                    context,
+                    Icons.info_outline,
+                    Colors.orange,
+                    '${suggestions.length} opportunities available to harvest.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -657,7 +898,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -710,7 +951,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -760,7 +1001,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -866,7 +1107,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       bool reverseColor = false}) {
     String valueStr = '-';
     Color? valueColor;
-    // Color borderColor = Theme.of(context).dividerColor.withOpacity(0.1);
+    // Color borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.1);
 
     if (value != null) {
       if (isPercent) {
@@ -890,7 +1131,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       }
 
       // if (valueColor != null) {
-      //   borderColor = valueColor.withOpacity(0.3);
+      //   borderColor = valueColor.withValues(alpha: 0.3);
       // }
     }
 
@@ -910,7 +1151,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           color: Theme.of(context)
               .colorScheme
               .surfaceContainerHighest
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
           // border: Border.all(color: borderColor),
         ),

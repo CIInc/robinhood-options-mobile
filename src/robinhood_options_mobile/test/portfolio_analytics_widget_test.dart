@@ -7,6 +7,10 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart'
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 
 class FakeBrokerageService implements IBrokerageService {
   @override
@@ -20,12 +24,27 @@ class FakeBrokerageService implements IBrokerageService {
   }
 }
 
+class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {}
+
+class FakeFirebaseAnalyticsObserver extends Fake
+    implements FirebaseAnalyticsObserver {}
+
+class FakeGenerativeService extends Fake implements GenerativeService {}
+
+class FakeDocumentReference<T> extends Fake implements DocumentReference<T> {}
+
 void main() {
   testWidgets('PortfolioAnalyticsWidget renders correctly',
       (WidgetTester tester) async {
     final fakeService = FakeBrokerageService();
     final user =
         BrokerageUser(BrokerageSource.robinhood, 'test_user', '123', null);
+    final appUser = User(
+      devices: [],
+      dateCreated: DateTime.now(),
+      brokerageUsers: [],
+      accounts: [],
+    );
 
     await tester.pumpWidget(
       MultiProvider(
@@ -38,6 +57,11 @@ void main() {
             body: PortfolioAnalyticsWidget(
               user: user,
               service: fakeService,
+              analytics: FakeFirebaseAnalytics(),
+              observer: FakeFirebaseAnalyticsObserver(),
+              generativeService: FakeGenerativeService(),
+              appUser: appUser,
+              userDocRef: FakeDocumentReference<User>(),
             ),
           ),
         ),

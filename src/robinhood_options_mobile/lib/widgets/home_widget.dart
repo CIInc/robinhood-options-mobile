@@ -769,6 +769,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   child: PortfolioAnalyticsWidget(
                     user: widget.brokerageUser!,
                     service: widget.service!,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.user,
+                    userDocRef: widget.userDoc,
                     portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
                     futureMarketIndexHistoricalsSp500:
                         futureMarketIndexHistoricalsSp500,

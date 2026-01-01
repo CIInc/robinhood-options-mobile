@@ -53,5 +53,8 @@ Quantify the potential downside.
 ### 6. Integrated Risk Heatmap
 The dashboard includes the **[Risk Heatmap](risk-heatmap.md)**, allowing you to visually correlate these high-level metrics with your specific position exposures.
 
+### 7. Tax Optimization
+- **[Tax Loss Harvesting](tax-loss-harvesting.md)**: An integrated tool that identifies opportunities to realize losses to offset gains. It features seasonality awareness (highlighting urgency near year-end) and smart visibility to keep your dashboard focused.
+
 ## Definitions Guide
 Unsure what a metric means? Tap the **Info (i)** icon in the header to view a built-in glossary with simple definitions for all supported metrics.
