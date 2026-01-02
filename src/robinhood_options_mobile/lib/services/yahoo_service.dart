@@ -667,6 +667,13 @@ class YahooService {
     return entryJson;
   }
 
+  Future<dynamic> getESGScores(String symbol) async {
+    var url =
+        "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
+    var responseJson = await getJson(url);
+    return responseJson;
+  }
+
   /// Fetch stock screener results from Yahoo Finance predefined screeners
   ///
   /// Uses Yahoo Finance's public API to retrieve stocks matching preset screening criteria.
@@ -725,11 +732,23 @@ class YahooService {
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
-    String responseStr = await httpClient.read(Uri.parse(url));
+    // String responseStr = await httpClient.read(Uri.parse(url));
+    var uri = Uri.parse(url);
+    var response = await httpClient.get(uri, headers: {
+      'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    });
+
     debugPrint(
-        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
-    dynamic responseJson = jsonDecode(responseStr);
-    return responseJson;
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
+
+    if (response.statusCode == 200) {
+      dynamic responseJson = jsonDecode(response.body);
+      return responseJson;
+    } else {
+      debugPrint("Yahoo API Error: ${response.statusCode} ${response.body}");
+      throw Exception("Failed to load data: ${response.statusCode}");
+    }
   }
 }
 

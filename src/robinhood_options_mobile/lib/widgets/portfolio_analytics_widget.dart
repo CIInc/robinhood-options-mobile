@@ -11,6 +11,8 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/esg_score.dart';
+import 'package:robinhood_options_mobile/services/esg_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
@@ -53,6 +55,8 @@ class PortfolioAnalyticsWidget extends StatefulWidget {
 
 class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
   Future<Map<String, dynamic>>? _analyticsFuture;
+  Future<Map<String, dynamic>>? _esgFuture;
+  final ESGService _esgService = ESGService();
   String _selectedBenchmark = 'SPY'; // Default to SPY
   final List<String> _benchmarks = ['SPY', 'QQQ', 'DIA'];
 
@@ -87,6 +91,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
   void initState() {
     super.initState();
     _analyticsFuture = _calculateAnalytics();
+    _esgFuture = _calculateESG();
   }
 
   @override
@@ -96,8 +101,63 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         oldWidget.portfolioHistoricalsFuture) {
       setState(() {
         _analyticsFuture = _calculateAnalytics();
+        _esgFuture = _calculateESG();
       });
     }
+  }
+
+  Future<Map<String, dynamic>> _calculateESG() async {
+    if (!mounted) return {};
+    // Wait for the widget to build so Provider is available
+    await Future.delayed(Duration.zero);
+    if (!mounted) return {};
+
+    var instrumentPositionStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+    var positions = instrumentPositionStore.items;
+
+    if (positions.isEmpty) return {};
+
+    var symbols = positions
+        .where((p) => p.instrumentObj != null)
+        .map((p) => p.instrumentObj!.symbol)
+        .toList();
+
+    if (symbols.isEmpty) return {};
+
+    var scores = await _esgService.getESGScores(symbols);
+
+    // Calculate weighted average
+    double totalWeightedScore = 0;
+    double totalWeightedEnv = 0;
+    double totalWeightedSoc = 0;
+    double totalWeightedGov = 0;
+    double totalValue = 0;
+
+    for (var position in positions) {
+      if (position.instrumentObj == null) continue;
+      var symbol = position.instrumentObj!.symbol;
+      var score = scores.firstWhereOrNull((s) => s.symbol == symbol);
+      if (score == null) continue;
+
+      double value = position.marketValue;
+
+      totalWeightedScore += score.totalScore * value;
+      totalWeightedEnv += score.environmentalScore * value;
+      totalWeightedSoc += score.socialScore * value;
+      totalWeightedGov += score.governanceScore * value;
+      totalValue += value;
+    }
+
+    if (totalValue == 0) return {};
+
+    return {
+      'totalScore': totalWeightedScore / totalValue,
+      'environmentalScore': totalWeightedEnv / totalValue,
+      'socialScore': totalWeightedSoc / totalValue,
+      'governanceScore': totalWeightedGov / totalValue,
+      'scores': scores,
+    };
   }
 
   Future<Map<String, dynamic>> _calculateAnalytics() async {
@@ -421,6 +481,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
             const SizedBox(height: 16),
             _buildTaxOptimizationCard(context),
             const SizedBox(height: 16),
+            _buildESGCard(context),
+            const SizedBox(height: 16),
           ],
         );
       },
@@ -550,7 +612,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -898,7 +963,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -951,7 +1019,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -1001,7 +1072,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -1177,6 +1251,236 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildESGCard(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _esgFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        var data = snapshot.data!;
+        double totalScore = data['totalScore'];
+        double envScore = data['environmentalScore'];
+        double socScore = data['socialScore'];
+        double govScore = data['governanceScore'];
+        List<ESGScore> scores = data['scores'] ?? [];
+
+        Color scoreColor = totalScore >= 70
+            ? Colors.green
+            : (totalScore >= 50 ? Colors.orange : Colors.red);
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.5),
+            ),
+          ),
+          child: InkWell(
+            onTap: () => _showESGDetails(context, scores),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'ESG Analysis',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          totalScore.toStringAsFixed(1),
+                          style: TextStyle(
+                            color: scoreColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Environmental, Social, and Governance Score',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildESGBar(
+                      context, 'Environmental', envScore, Colors.green),
+                  const SizedBox(height: 16),
+                  _buildESGBar(context, 'Social', socScore, Colors.blue),
+                  const SizedBox(height: 16),
+                  _buildESGBar(context, 'Governance', govScore, Colors.purple),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Based on weighted average of portfolio holdings.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showESGDetails(BuildContext context, List<ESGScore> scores) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // Sort scores by total score descending
+        var sortedScores = List<ESGScore>.from(scores)
+          ..sort((a, b) => b.totalScore.compareTo(a.totalScore));
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'ESG Breakdown',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: sortedScores.length,
+                    itemBuilder: (context, index) {
+                      var score = sortedScores[index];
+                      Color scoreColor = score.totalScore >= 70
+                          ? Colors.green
+                          : (score.totalScore >= 50
+                              ? Colors.orange
+                              : Colors.red);
+
+                      return ListTile(
+                        title: Text(
+                          score.symbol,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          score.description ?? 'No description available.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              score.totalScore.toStringAsFixed(1),
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              score.rating,
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          // Could show even more details here
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildESGBar(
+      BuildContext context, String label, double score, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            Text(score.toStringAsFixed(1),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    )),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: score / 100,
+            backgroundColor: color.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 8,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -67,6 +67,8 @@ import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/model/esg_score.dart';
+import 'package:robinhood_options_mobile/services/esg_service.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -98,6 +100,10 @@ class InstrumentWidget extends StatefulWidget {
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
+  Future<ESGScore>? _esgFuture;
+  final ESGService _esgService = ESGService();
+
+  // ... existing state variables ...
   final FirestoreService _firestoreService = FirestoreService();
 
   Future<Quote?>? futureQuote;
@@ -164,6 +170,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void _loadData() {
     var instrument = widget.instrument;
     var user = widget.brokerageUser;
+
+    _esgFuture = _esgService.getESGScore(instrument.symbol);
 
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
@@ -1024,6 +1032,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             fundamentalsWidget(instrument)
           ],
+          SliverToBoxAdapter(child: _buildESGCard()),
           if (instrument.ratingsObj != null &&
               instrument.ratingsObj["summary"] != null) ...[
             const SliverToBoxAdapter(
@@ -4807,6 +4816,126 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildESGCard() {
+    return FutureBuilder<ESGScore>(
+      future: _esgFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        var score = snapshot.data!;
+        Color scoreColor = score.totalScore >= 70
+            ? Colors.green
+            : (score.totalScore >= 50 ? Colors.orange : Colors.red);
+
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.5),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.eco, color: scoreColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ESG Score',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: scoreColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${score.totalScore.toStringAsFixed(1)} (${score.rating})',
+                        style: TextStyle(
+                          color: scoreColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (score.description != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    score.description!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _buildMiniESGBar(
+                            'Env', score.environmentalScore, Colors.green)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: _buildMiniESGBar(
+                            'Soc', score.socialScore, Colors.blue)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: _buildMiniESGBar(
+                            'Gov', score.governanceScore, Colors.purple)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMiniESGBar(String label, double score, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12)),
+            Text(score.toStringAsFixed(0),
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: score / 100,
+            backgroundColor: color.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 4,
+          ),
+        ),
+      ],
     );
   }
 

@@ -1151,6 +1151,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       futureNummusHoldings = null;
       futureOptionPositions = null;
       futureStockPositions = null;
+      _loadData();
     });
   }
 

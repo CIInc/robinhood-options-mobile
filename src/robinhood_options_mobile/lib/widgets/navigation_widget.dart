@@ -274,8 +274,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     bool shouldReload = false;
     var currentUser = userStore.currentUser;
-    if (_lastUser?.userName != currentUser?.userName ||
-        _lastUser?.source != currentUser?.source) {
+    if (_lastUser != currentUser) {
       _lastUser = currentUser;
       shouldReload = true;
     }
