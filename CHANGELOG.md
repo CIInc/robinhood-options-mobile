@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.4] - 2026-01-02
+
+### Added
+- **ESG Scoring:**
+  - **New Feature:** Comprehensive Environmental, Social, and Governance (ESG) scoring for individual instruments and the entire portfolio.
+  - **Portfolio Integration:** Weighted average ESG score calculation for the portfolio.
+  - **Instrument Details:** Dedicated ESG card on stock detail pages showing Total Score, Risk Rating, and component breakdowns (Environmental, Social, Governance).
+  - **Data Source:** Integration with Yahoo Finance for robust ESG data.
+- **Advanced Portfolio Analytics:**
+  - **New Metrics:** Added sophisticated risk and return metrics:
+    - **Correlation Matrix:** Measures how closely the portfolio moves with the benchmark.
+    - **CVaR (95%):** Conditional Value at Risk (Expected Shortfall) to capture tail risk.
+    - **Kelly Criterion:** Optimal position sizing based on win rate and payoff ratio.
+    - **Ulcer Index:** Measures the depth and duration of drawdowns (stress metric).
+    - **Tail Ratio:** Ratio of 95th percentile return to 5th percentile loss (skewness).
+  - **Documentation:** Comprehensive definitions added for all new metrics.
+
+### Changed
+- **Charts:**
+  - **Fullscreen UI:** Added bottom margin to fullscreen charts (`PortfolioChartWidget`, `InstrumentChartWidget`, `PerformanceChartWidget`, `RiskHeatmapWidget`) to prevent obstruction by system gestures and the home indicator.
+- **Home Widget:**
+  - **Refactor:** Improved layout and performance of the home screen widgets.
+  - **Performance Chart:** Enhanced data handling and animation logic.
+
 ## [0.27.3] - 2026-01-01
 
 ### Added

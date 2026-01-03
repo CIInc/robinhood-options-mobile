@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
@@ -1273,28 +1274,32 @@ class _AgenticTradingPerformanceWidgetState
 
     // Profit Factor = Gross Profit / Gross Loss
     final profitFactor =
-        totalLossAmount > 0 ? totalWinAmount / totalLossAmount : 0.0;
+        AnalyticsUtils.calculateProfitFactor(totalWinAmount, totalLossAmount);
 
     // Expectancy = (Avg Win * Win Rate) - (Avg Loss * Loss Rate)
     final avgWin = wins > 0 ? totalWinAmount / wins : 0.0;
     final avgLoss = losses > 0 ? totalLossAmount / losses : 0.0;
-    final expectancy = (avgWin * successRate) - (avgLoss * (1 - successRate));
+    final expectancy = AnalyticsUtils.calculateExpectancy(
+        avgWin, successRate, avgLoss, 1 - successRate);
 
-    // Calculate Sharpe Ratio (risk-adjusted returns)
+    // Calculate Risk-Adjusted Return Metrics
     double sharpeRatio = 0.0;
+    double sortinoRatio = 0.0;
+    double omegaRatio = 0.0;
+
     if (totalTrades > 1) {
       final pnLs = history
           .where((t) => t['profitLoss'] != null)
           .map((t) => t['profitLoss'] as double)
           .toList();
+
       if (pnLs.length > 1) {
-        final mean = pnLs.reduce((a, b) => a + b) / pnLs.length;
-        final variance =
-            pnLs.map((x) => (x - mean) * (x - mean)).reduce((a, b) => a + b) /
-                (pnLs.length - 1);
-        final stdDev = variance > 0 ? math.sqrt(variance) : 0.0;
-        // Sharpe = mean return / standard deviation (annualized by sqrt(252))
-        sharpeRatio = stdDev > 0 ? (mean / stdDev) * 15.87 : 0.0;
+        // Use 0.0 risk free rate for P&L based calculations
+        sharpeRatio =
+            AnalyticsUtils.calculateSharpeRatio(pnLs, riskFreeRate: 0.0);
+        sortinoRatio = AnalyticsUtils.calculateSortinoRatio(pnLs,
+            riskFreeRate: 0.0, targetReturn: 0.0);
+        omegaRatio = AnalyticsUtils.calculateOmegaRatio(pnLs, threshold: 0.0);
       }
     }
 
@@ -1467,6 +1472,8 @@ class _AgenticTradingPerformanceWidgetState
       'bestTrade': bestTrade,
       'worstTrade': worstTrade,
       'sharpeRatio': sharpeRatio,
+      'sortinoRatio': sortinoRatio,
+      'omegaRatio': omegaRatio,
       'symbolStats': symbolStats,
       'avgHoldTimeMinutes': avgHoldTimeMinutes,
       'timeOfDayStats': timeOfDayStats,
@@ -1486,6 +1493,8 @@ class _AgenticTradingPerformanceWidgetState
     ColorScheme colorScheme,
   ) {
     final sharpeRatio = stats['sharpeRatio'] as double? ?? 0.0;
+    final sortinoRatio = stats['sortinoRatio'] as double? ?? 0.0;
+    final omegaRatio = stats['omegaRatio'] as double? ?? 0.0;
     final avgHoldTimeMinutes = stats['avgHoldTimeMinutes'] as double? ?? 0.0;
     final profitFactor = stats['profitFactor'] as double? ?? 0.0;
     final expectancy = stats['expectancy'] as double? ?? 0.0;
@@ -1720,6 +1729,106 @@ class _AgenticTradingPerformanceWidgetState
                         ),
                         Text(
                           'Per trade',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.tertiaryContainer.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.tertiary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.analytics,
+                          size: 24,
+                          color: colorScheme.tertiary,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Sortino Ratio',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          sortinoRatio.toStringAsFixed(2),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.tertiary,
+                          ),
+                        ),
+                        Text(
+                          sortinoRatio > 1 ? 'Good' : 'Poor',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.tertiaryContainer.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.tertiary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.balance,
+                          size: 24,
+                          color: colorScheme.tertiary,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Omega Ratio',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          omegaRatio.toStringAsFixed(2),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.tertiary,
+                          ),
+                        ),
+                        Text(
+                          omegaRatio > 1 ? 'Positive' : 'Negative',
                           style: TextStyle(
                             fontSize: 9,
                             color: colorScheme.onSurface.withValues(alpha: 0.5),

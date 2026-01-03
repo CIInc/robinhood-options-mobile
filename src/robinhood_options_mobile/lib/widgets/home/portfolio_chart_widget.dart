@@ -451,6 +451,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                 },
                 itemCount: 1,
               )),
+          if (widget.isFullScreen) const SizedBox(height: 25),
         ]);
       },
     );

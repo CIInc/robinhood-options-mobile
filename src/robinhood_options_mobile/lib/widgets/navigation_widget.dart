@@ -359,14 +359,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             agenticProvider.loadPendingOrdersFromFirestore(userDoc);
 
             // Start auto-trade timer via provider (prevents duplicate starts)
-            agenticProvider.startAutoTradeTimer(
-              context: context,
-              brokerageService: service,
-              userDocRef: userDoc,
-            );
+            if (service != null) {
+              agenticProvider.startAutoTradeTimer(
+                context: context,
+                brokerageService: service,
+                userDocRef: userDoc,
+              );
+            }
 
             // Initialize CopyTradingProvider
-            if (auth.currentUser != null && userStore.currentUser != null) {
+            if (auth.currentUser != null &&
+                userStore.currentUser != null &&
+                service != null) {
               final copyTradingProvider =
                   Provider.of<CopyTradingProvider>(context, listen: false);
               copyTradingProvider.initialize(

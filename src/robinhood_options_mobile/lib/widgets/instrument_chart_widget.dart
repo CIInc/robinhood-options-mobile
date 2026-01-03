@@ -265,7 +265,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                       ]);
                     },
                     itemCount: 1,
-                  ))
+                  )),
+              if (widget.isFullScreen) const SizedBox(height: 25),
             ],
           );
         }
@@ -294,7 +295,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     ]);
                   },
                   itemCount: 1,
-                ))
+                )),
+            if (widget.isFullScreen) const SizedBox(height: 25),
           ],
         );
       },

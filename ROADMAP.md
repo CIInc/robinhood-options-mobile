@@ -178,6 +178,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Generative AI UI**: Enhanced layout and action cards
 - ✅ **Portfolio Analytics UI**: Refined headers and layout for consistency
 
+### v0.27.4 ✅ (Released Jan 2, 2026)
+**ESG Scoring & Advanced Analytics**
+- ✅ **ESG Scoring** (Portfolio & Instrument Level Scores, Yahoo Finance Integration)
+- ✅ **Advanced Portfolio Analytics** (Correlation, CVaR, Kelly Criterion, Ulcer Index)
+- ✅ **Fullscreen Charts**: Improved layout with bottom margin for system gestures
+- ✅ **Documentation**: Comprehensive updates for Portfolio Analytics metrics
+
 ### v0.27.3 ✅ (Released Jan 1, 2026)
 **Portfolio Rebalancing & Tax Loss Harvesting**
 - ✅ **Tax Loss Harvesting** (Identify and realize losses for tax optimization)
@@ -652,8 +659,8 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 #### Portfolio Management ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
 - [x] **Advanced Portfolio Analytics**: Sharpe ratio, alpha, beta calculations - **Medium** (2-3 weeks)
 - [x] **Risk Exposure Heatmaps**: Visualize portfolio risk distribution - **Medium** (2-3 weeks)
-- [ ] **Dividend Tracking**: Track and project dividend income - **Small** (1-2 weeks)
-- [ ] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
+- [x] **Dividend Tracking**: Track and project dividend income - **Small** (1-2 weeks)
+- [x] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
 - [ ] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
 - [x] **ESG Scoring**: Portfolio Environmental, Social, and Governance analysis - **Small** (1-2 weeks)
 - [ ] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)

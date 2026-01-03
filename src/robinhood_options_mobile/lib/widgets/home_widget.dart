@@ -157,6 +157,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<dynamic>? futureMarketIndexHistoricalsSp500;
   Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   Future<dynamic>? futureMarketIndexHistoricalsDow;
+  Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
   // final marketIndexHistoricalsNotifier = ValueNotifier<dynamic>(null);
 
   Future<InstrumentPositionStore>? futureStockPositions;
@@ -315,6 +316,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         yahooService.getMarketIndexHistoricals(symbol: '^IXIC', range: range);
     futureMarketIndexHistoricalsDow =
         yahooService.getMarketIndexHistoricals(symbol: '^DJI', range: range);
+    futureMarketIndexHistoricalsRussell2000 =
+        yahooService.getMarketIndexHistoricals(symbol: 'IWM', range: range);
   }
 
   @override
@@ -554,247 +557,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     account: account,
                     user: widget.user,
                     userDocRef: widget.userDoc)),
-            SliverToBoxAdapter(
-              child:
-                  // Promote Automated Trading & Backtesting
-                  Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Card(
-                  elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withOpacity(0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      width: 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.auto_graph,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Automated Trading',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  Text(
-                                    '& Backtesting',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Let the system trade for you or simulate strategies on historical data.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.settings, size: 18),
-                                label: const Text('Configure'),
-                                onPressed: (widget.user == null ||
-                                        widget.userDoc == null)
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                AgenticTradingSettingsWidget(
-                                              user: widget.user!,
-                                              userDocRef: widget.userDoc!,
-                                              service: widget.service!,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.history, size: 18),
-                                label: const Text('Backtest'),
-                                onPressed: (widget.user == null ||
-                                        widget.userDoc == null)
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BacktestingWidget(
-                                              userDocRef: widget.userDoc,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: GenerativeActionsWidget(
-                generativeService: widget.generativeService,
-                user: widget.user,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: OptionsFlowCardWidget(
-                brokerageUser: widget.brokerageUser,
-                service: widget.service,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                includePortfolioSymbols: true,
-              ),
-            ),
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-                widget.brokerageUser!.source == BrokerageSource.demo) ...[
-              Consumer2<DividendStore, InterestStore>(
-                  //, ChartSelectionStore
-                  builder: (context, dividendStore, interestStore, child) {
-                //, chartSelectionStore
-                // var dividendStore =
-                //     Provider.of<DividendStore>(context, listen: false);
-                // var interestStore =
-                //     Provider.of<InterestStore>(context, listen: false);
-                var instrumentPositionStore =
-                    Provider.of<InstrumentPositionStore>(context,
-                        listen: false);
-                var instrumentOrderStore =
-                    Provider.of<InstrumentOrderStore>(context, listen: false);
-                var chartSelectionStore =
-                    Provider.of<ChartSelectionStore>(context, listen: false);
-                return IncomeTransactionsWidget(
-                    widget.brokerageUser!,
-                    widget.service!,
-                    dividendStore,
-                    instrumentPositionStore,
-                    instrumentOrderStore,
-                    chartSelectionStore,
-                    interestStore: interestStore,
-                    showChips: false,
-                    showList: false,
-                    showFooter: false,
-                    analytics: widget.analytics,
-                    observer: widget.observer);
-              }),
-            ],
-            SliverToBoxAdapter(
-              child: PerformanceChartWidget(
-                futureMarketIndexHistoricalsSp500:
-                    futureMarketIndexHistoricalsSp500,
-                futureMarketIndexHistoricalsNasdaq:
-                    futureMarketIndexHistoricalsNasdaq,
-                futureMarketIndexHistoricalsDow:
-                    futureMarketIndexHistoricalsDow,
-                futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
-                benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
-                onFilterChanged: (span) {
-                  setState(() {
-                    benchmarkChartDateSpanFilter = span;
-                    _loadPortfolioHistoricals();
-                    _loadMarketIndices();
-                  });
-                },
-              ),
-            ),
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-                widget.brokerageUser!.source == BrokerageSource.demo)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: PortfolioAnalyticsWidget(
-                    user: widget.brokerageUser!,
-                    service: widget.service!,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    appUser: widget.user,
-                    userDocRef: widget.userDoc,
-                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
-                    futureMarketIndexHistoricalsSp500:
-                        futureMarketIndexHistoricalsSp500,
-                    futureMarketIndexHistoricalsNasdaq:
-                        futureMarketIndexHistoricalsNasdaq,
-                    futureMarketIndexHistoricalsDow:
-                        futureMarketIndexHistoricalsDow,
-                  ),
-                ),
-              ),
             // FUTURES: If we have futures accounts, stream aggregated positions
             if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
               FutureBuilder<List<dynamic>>(
@@ -979,7 +741,251 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       // ))
                     ]));
               },
-            ), // TODO: Introduce web banner
+            ),
+            SliverToBoxAdapter(
+              child: PerformanceChartWidget(
+                futureMarketIndexHistoricalsSp500:
+                    futureMarketIndexHistoricalsSp500,
+                futureMarketIndexHistoricalsNasdaq:
+                    futureMarketIndexHistoricalsNasdaq,
+                futureMarketIndexHistoricalsDow:
+                    futureMarketIndexHistoricalsDow,
+                futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
+                benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
+                onFilterChanged: (span) {
+                  setState(() {
+                    benchmarkChartDateSpanFilter = span;
+                    _loadPortfolioHistoricals();
+                    _loadMarketIndices();
+                  });
+                },
+              ),
+            ),
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: PortfolioAnalyticsWidget(
+                    user: widget.brokerageUser!,
+                    service: widget.service!,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.user,
+                    userDocRef: widget.userDoc,
+                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+                    futureMarketIndexHistoricalsSp500:
+                        futureMarketIndexHistoricalsSp500,
+                    futureMarketIndexHistoricalsNasdaq:
+                        futureMarketIndexHistoricalsNasdaq,
+                    futureMarketIndexHistoricalsDow:
+                        futureMarketIndexHistoricalsDow,
+                    futureMarketIndexHistoricalsRussell2000:
+                        futureMarketIndexHistoricalsRussell2000,
+                  ),
+                ),
+              ),
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo) ...[
+              Consumer2<DividendStore, InterestStore>(
+                  //, ChartSelectionStore
+                  builder: (context, dividendStore, interestStore, child) {
+                //, chartSelectionStore
+                // var dividendStore =
+                //     Provider.of<DividendStore>(context, listen: false);
+                // var interestStore =
+                //     Provider.of<InterestStore>(context, listen: false);
+                var instrumentPositionStore =
+                    Provider.of<InstrumentPositionStore>(context,
+                        listen: false);
+                var instrumentOrderStore =
+                    Provider.of<InstrumentOrderStore>(context, listen: false);
+                var chartSelectionStore =
+                    Provider.of<ChartSelectionStore>(context, listen: false);
+                return IncomeTransactionsWidget(
+                    widget.brokerageUser!,
+                    widget.service!,
+                    dividendStore,
+                    instrumentPositionStore,
+                    instrumentOrderStore,
+                    chartSelectionStore,
+                    interestStore: interestStore,
+                    showChips: false,
+                    showList: false,
+                    showFooter: false,
+                    analytics: widget.analytics,
+                    observer: widget.observer);
+              }),
+            ],
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                includePortfolioSymbols: true,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child:
+                  // Promote Automated Trading & Backtesting
+                  Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.auto_graph,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Automated Trading',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                  Text(
+                                    '& Backtesting',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Let the system trade for you or simulate strategies on historical data.',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.settings, size: 18),
+                                label: const Text('Configure'),
+                                onPressed: (widget.user == null ||
+                                        widget.userDoc == null)
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                AgenticTradingSettingsWidget(
+                                              user: widget.user!,
+                                              userDocRef: widget.userDoc!,
+                                              service: widget.service!,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.history, size: 18),
+                                label: const Text('Backtest'),
+                                onPressed: (widget.user == null ||
+                                        widget.userDoc == null)
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                BacktestingWidget(
+                                              userDocRef: widget.userDoc,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: GenerativeActionsWidget(
+                generativeService: widget.generativeService,
+                user: widget.user,
+              ),
+            ),
+
             if (!kIsWeb) ...[
               const SliverToBoxAdapter(
                   child: SizedBox(

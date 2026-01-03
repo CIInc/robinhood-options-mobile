@@ -901,7 +901,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             final targetPct = rec['targetPct'] as double;
             final action = amount > 0
                 ? (key == 'Cash' ? 'Raise' : 'Buy')
-                : (key == 'Cash' ? 'Spend' : 'Sell');
+                : (key == 'Cash' ? 'Invest' : 'Sell');
             final color = amount > 0 ? Colors.green : Colors.red;
 
             return ListTile(

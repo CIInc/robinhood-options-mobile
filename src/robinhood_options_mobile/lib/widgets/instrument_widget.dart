@@ -2491,22 +2491,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             similar[index]["logo_url"]
                                 .toString()
                                 .replaceAll("https:////", "https://"),
-                            // width: 50,
-                            // height: 50,
+                            width: 50,
+                            height: 50,
                             errorBuilder: (BuildContext context,
                                 Object exception, StackTrace? stackTrace) {
                               return CircleAvatar(
-                                  // radius: 25,
+                                  radius: 25,
                                   child: Text(
-                                similar[index]["symbol"],
-                              ));
+                                    similar[index]["symbol"],
+                                    overflow: TextOverflow.fade,
+                                    maxLines: 1,
+                                  ));
                             },
                           )
                         : CircleAvatar(
-                            // radius: 25,
+                            radius: 25,
                             child: Text(
-                            similar[index]["symbol"],
-                          ))),
+                              similar[index]["symbol"],
+                              overflow: TextOverflow.fade,
+                              maxLines: 1,
+                            ))),
                 title: Text(
                   "${similar[index]["symbol"]}",
                 ),

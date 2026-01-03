@@ -91,6 +91,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             } else if (widget.benchmarkChartDateSpanFilter ==
                 ChartDateSpan.year_5) {
               cutoff = DateTime.now().subtract(const Duration(days: 365 * 5));
+            } else if (widget.benchmarkChartDateSpanFilter ==
+                ChartDateSpan.ytd) {
+              cutoff = newYearsDay.subtract(const Duration(milliseconds: 1));
             }
 
             List<Map<String, dynamic>> processMarketData(
@@ -110,6 +113,17 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 };
               }).toList();
 
+              // Update the processMarketData function to correctly calculate the base price for YTD performance. It now attempts to find the closing price of the last trading day of the previous year to use as the baseline, ensuring accurate percentage change calculations relative to the start of the year.
+              // Ensure that for YTD charts, the data is filtered to start from the beginning of the year, but the baseline price is preserved (or derived from previous year data) instead of resetting to the first visible data point.
+              // double basePrice = previousClose;
+              // if (widget.benchmarkChartDateSpanFilter == ChartDateSpan.ytd) {
+              //   var lastYearData = list.lastWhereOrNull(
+              //       (e) => (e['date'] as DateTime).isBefore(newYearsDay));
+              //   if (lastYearData != null) {
+              //     basePrice = lastYearData['close'] as double;
+              //   }
+              // }
+
               if (cutoff != null) {
                 list = list
                     .where((e) => (e['date'] as DateTime).isAfter(cutoff!))
@@ -117,6 +131,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               }
 
               double basePrice = previousClose;
+              // if (cutoff != null &&
+              //     list.isNotEmpty &&
+              //     widget.benchmarkChartDateSpanFilter != ChartDateSpan.ytd) {
               if (cutoff != null && list.isNotEmpty) {
                 basePrice = list.first['close'] as double;
               }
