@@ -157,14 +157,13 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     // Trigger a refresh if the list is empty on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final store = Provider.of<OptionsFlowStore>(context, listen: false);
-      store.setFilterSymbol(widget.initialSymbol);
-      if (widget.initialSymbol == null) {
-        if (widget.initialSymbols != null &&
-            widget.initialSymbols!.isNotEmpty) {
-          store.setFilterSymbols(widget.initialSymbols);
-        } else {
-          store.setFilterSymbols(_defaultSymbols);
-        }
+      if (widget.initialSymbol != null) {
+        store.setFilterSymbol(widget.initialSymbol);
+      } else if (widget.initialSymbols != null &&
+          widget.initialSymbols!.isNotEmpty) {
+        store.setFilterSymbols(widget.initialSymbols);
+      } else {
+        store.setFilterSymbols(_defaultSymbols);
       }
       // store.refresh() is already called in setFilterSymbol & setFilterSymbols above
       // if (store.items.isEmpty) {
@@ -182,12 +181,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
           _defaultSymbols = saved;
         }
       });
-      // Update store if no specific symbol is selected
-      if (widget.initialSymbol == null &&
-          (widget.initialSymbols == null || widget.initialSymbols!.isEmpty)) {
-        Provider.of<OptionsFlowStore>(context, listen: false)
-            .setFilterSymbols(_defaultSymbols);
-      }
     }
   }
 
@@ -1536,7 +1529,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                             ],
                             const Spacer(),
                             Text(
-                              _timeFormat.format(item.time),
+                              _timeFormat.format(item.lastTradeDate ??
+                                  DateTime.fromMillisecondsSinceEpoch(0)),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

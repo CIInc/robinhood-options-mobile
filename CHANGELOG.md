@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.5] - 2026-01-07
+
+### Fixed
+- **Options Flow**: Resolved issue with Yahoo API integration
+- **ESG Scoring**: Fixed calculation errors in portfolio ESG aggregation
+- **Automated Trading**: Addressed edge cases in RiskGuard validation logic
+- **Auth Form**: Removed autofocus from authentication fields to prevent keyboard from hiding phone/email mode selector
+- **Daily Cron Job**: Fixed timezone handling for consistent signal generation with EST-based cache validation
+- **Toast Styling**: Improved message styling for better visibility and consistency
+
+
 ## [0.27.4] - 2026-01-02
 
 ### Added

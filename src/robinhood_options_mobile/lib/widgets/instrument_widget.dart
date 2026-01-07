@@ -225,17 +225,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       _firestoreService.upsertInstrument(widget.instrument);
     }
 
-    if (instrument.quoteObj == null) {
-      futureQuote = widget.service.getQuote(user,
-          Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
-      futureQuote?.then((value) {
-        if (mounted) {
-          setState(() {
-            instrument.quoteObj = value;
-          });
-        }
-      });
-    }
+    //if (instrument.quoteObj == null) {
+    futureQuote = widget.service.getQuote(user,
+        Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
+    futureQuote?.then((value) {
+      if (mounted) {
+        setState(() {
+          instrument.quoteObj = value;
+        });
+      }
+    });
+    //}
 
     if (instrument.fundamentalsObj == null) {
       futureFundamentals = widget.service.getFundamentals(user, instrument);

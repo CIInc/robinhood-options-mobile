@@ -12,7 +12,6 @@ import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
-import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:intl/intl.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
@@ -120,7 +119,7 @@ class _AgenticTradingSettingsWidgetState
     _maxPositionSizeController = TextEditingController(
         text: config['maxPositionSize']?.toString() ?? '100');
     _maxPortfolioConcentrationController = TextEditingController(
-        text: config['maxPortfolioConcentration']?.toString() ?? '0.5');
+        text: config['maxPortfolioConcentration']?.toString() ?? '50.0');
     _dailyTradeLimitController = TextEditingController(
         text: config['dailyTradeLimit']?.toString() ?? '5');
     _autoTradeCooldownController = TextEditingController(
@@ -1833,6 +1832,7 @@ class _AgenticTradingSettingsWidgetState
           final quantity = order['quantity'] as int;
           final price = order['price'] as double;
           final timestamp = DateTime.parse(order['timestamp']);
+          final reason = order['reason'] as String?;
 
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -1890,6 +1890,17 @@ class _AgenticTradingSettingsWidgetState
                     '$quantity shares @ \$${price.toStringAsFixed(2)}',
                     style: const TextStyle(fontSize: 14),
                   ),
+                  if (reason != null && reason.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -2221,8 +2232,8 @@ class _AgenticTradingSettingsWidgetState
         TextFormField(
           controller: _maxPortfolioConcentrationController,
           decoration: InputDecoration(
-            labelText: 'Max Portfolio Concentration',
-            helperText: 'Max % of portfolio (0.0 - 1.0)',
+            labelText: 'Max Portfolio Concentration %',
+            helperText: 'Max percentage of portfolio',
             prefixIcon: const Icon(Icons.pie_chart),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -2240,8 +2251,8 @@ class _AgenticTradingSettingsWidgetState
             if (parsed == null) {
               return 'Please enter a valid number';
             }
-            if (parsed < 0 || parsed > 1) {
-              return 'Must be between 0.0 and 1.0';
+            if (parsed < 0 || parsed > 100) {
+              return 'Must be between 0 and 100';
             }
             return null;
           },

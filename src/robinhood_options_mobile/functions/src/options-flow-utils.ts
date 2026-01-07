@@ -1,13 +1,10 @@
-import YahooFinance from "yahoo-finance2";
-import { getFirestore } from "firebase-admin/firestore";
-import { logger } from "firebase-functions/logger";
-
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
+// import { logger } from "firebase-functions/logger";
 
 // Constants for thresholds and configuration
 const CONFIG = {
   MIN_VOLUME: 50,
-  BATCH_SIZE: 5,
+  BATCH_SIZE: 1, // 5,
   PREMIUM_THRESHOLDS: {
     BLOCK: 100000,
     DARK_POOL: 2000000,
@@ -65,6 +62,7 @@ export interface OptionFlowItem {
   marketCap?: number;
   sector?: string;
   changePercent?: number;
+  lastPrice?: number;
   bid?: number;
   ask?: number;
 }
@@ -97,61 +95,270 @@ interface YahooOption {
 
 interface YahooOptionsResult {
   expirationDates?: Date[];
+  hasMiniOptions?: boolean;
   quote?: YahooQuote;
   options?: {
     calls?: YahooOption[];
     puts?: YahooOption[];
+    expirationDate?: Date;
+    hasMiniOptions?: boolean;
   }[];
+  strikes?: number[];
+  underlyingSymbol?: string;
+  lastUpdated?: number;
 }
 
 // Simple in-memory cache with LRU eviction
 const CACHE_CONFIG = {
-  TTL: 24 * 60 * 60 * 1000, // 24 hour cache for Firestore
-  SECTOR_TTL: 24 * 60 * 60 * 1000, // 24 hours for sector cache
+  TTL: 30 * 24 * 60 * 60 * 1000, // 30 day cache for Firestore
+  COLLECTION: "yahoo_options_results",
 };
 
-const getFromFirestoreCache = async <T>(
-  key: string,
-  ttl: number = CACHE_CONFIG.TTL,
-  collectionName = "options_flow_cache"
-): Promise<T | null> => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const convertTimestampsToDates = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Timestamp) return obj.toDate();
+  if (Array.isArray(obj)) return obj.map(convertTimestampsToDates);
+  if (typeof obj === "object") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newObj: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        newObj[key] = convertTimestampsToDates(obj[key]);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+};
+
+const getYahooOptionsResult = async (
+  symbol: string
+): Promise<YahooOptionsResult | null> => {
   try {
     const db = getFirestore();
-    const docRef = db.collection(collectionName).doc(key);
+    const docRef = db.collection(CACHE_CONFIG.COLLECTION).doc(symbol);
+    console.log(
+      `Fetching cached options for ${symbol} from ${CACHE_CONFIG.COLLECTION}`
+    );
     const doc = await docRef.get();
 
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      console.log(`No cached options found for ${symbol}`);
+      return null;
+    }
 
     const data = doc.data();
     if (!data) return null;
 
-    if (Date.now() - data.timestamp > ttl) {
-      // Cache expired
-      return null;
+    // if (Date.now() - (data.lastUpdated || 0) > CACHE_CONFIG.TTL) {
+    //   console.log(`Cached options for ${symbol} expired`);
+    //   return null;
+    // }
+
+    const result = convertTimestampsToDates(data) as YahooOptionsResult;
+
+    // Fetch expirations from subcollection
+    const expirationsSnapshot = await docRef.collection("expirations").get();
+    if (!expirationsSnapshot.empty) {
+      const options = expirationsSnapshot.docs.map((d) =>
+        convertTimestampsToDates(d.data())
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      result.options = options as any;
     }
 
-    return JSON.parse(data.data) as T;
+    console.log(`Returning cached options for ${symbol}`);
+    return result;
   } catch (e) {
-    console.error(`Error reading from Firestore cache for key ${key}:`, e);
+    console.error(`Error reading from Firestore for symbol ${symbol}:`, e);
     return null;
   }
 };
 
-const setInFirestoreCache = async <T>(
-  key: string,
-  data: T,
-  collectionName = "options_flow_cache"
+const saveYahooOptionsResult = async (
+  symbol: string,
+  data: YahooOptionsResult
 ): Promise<void> => {
   try {
+    console.log(`Saving options to Firestore for ${symbol}`);
     const db = getFirestore();
-    const docRef = db.collection(collectionName).doc(key);
+    const docRef = db.collection(CACHE_CONFIG.COLLECTION).doc(symbol);
+
+    // Separate options from metadata
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { options, ...metadata } = data;
+
     await docRef.set({
-      data: JSON.stringify(data),
-      timestamp: Date.now(),
+      ...metadata,
+      lastUpdated: Date.now(),
     });
+
+    if (options && options.length > 0) {
+      const batch = db.batch();
+      const expirationsRef = docRef.collection("expirations");
+
+      for (const opt of options) {
+        if (opt.expirationDate) {
+          const dateId = Math.floor(
+            opt.expirationDate.getTime() / 1000
+          ).toString();
+          const expDoc = expirationsRef.doc(dateId);
+          batch.set(expDoc, opt);
+        }
+      }
+      await batch.commit();
+    }
+
+    console.log(`Successfully saved options for ${symbol}`);
   } catch (e) {
-    console.error(`Error writing to Firestore cache for key ${key}:`, e);
+    console.error(`Error writing to Firestore for symbol ${symbol}:`, e);
   }
+};
+
+let yahooCrumb: string | null = null;
+let yahooCookie: string | null = null;
+
+const fetchCrumb = async (): Promise<void> => {
+  if (yahooCrumb && yahooCookie) return;
+
+  try {
+    // 1. Get cookie
+    const cookieResponse = await fetch("https://fc.yahoo.com", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+          "AppleWebKit/537.36 (KHTML, like Gecko) " +
+          "Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+
+    const setCookie = cookieResponse.headers.get("set-cookie");
+    if (!setCookie) throw new Error("No set-cookie header");
+    yahooCookie = setCookie.split(";")[0];
+
+    // 2. Get crumb
+    const crumbResponse = await fetch(
+      "https://query1.finance.yahoo.com/v1/test/getcrumb",
+      {
+        headers: {
+          "Cookie": yahooCookie,
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/120.0.0.0 Safari/537.36",
+        },
+      }
+    );
+
+    if (!crumbResponse.ok) {
+      throw new Error(`Failed to get crumb ${crumbResponse.statusText}`);
+    }
+    yahooCrumb = await crumbResponse.text();
+  } catch (e) {
+    console.error("Error fetching Yahoo crumb:", e);
+  }
+};
+
+const fetchYahooOptions = async (
+  symbol: string,
+  date?: Date
+): Promise<YahooOptionsResult> => {
+  console.log(
+    `Fetching options from Yahoo for ${symbol}${date ? ` (date: ${date})` : ""}`
+  );
+  await fetchCrumb();
+
+  let url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
+  if (yahooCrumb) {
+    url += `?crumb=${yahooCrumb}`;
+  }
+  if (date) {
+    url += `${yahooCrumb ? "&" : "?"}date=${Math.floor(date.getTime() / 1000)}`;
+  }
+  const headers: Record<string, string> = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+      "AppleWebKit/537.36 (KHTML, like Gecko) " +
+      "Chrome/120.0.0.0 Safari/537.36",
+  };
+
+  if (yahooCookie) {
+    headers["Cookie"] = yahooCookie;
+  }
+
+  const response = await fetch(url, {
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch options for ${symbol}: ${response.statusText}`
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await response.json() as any;
+  const result = data.optionChain.result[0];
+
+  console.log(`Successfully fetched options for ${symbol}`);
+
+  return {
+    expirationDates: result.expirationDates?.map(
+      (ts: number) => new Date(ts * 1000)
+    ) || [],
+    hasMiniOptions: result.hasMiniOptions,
+    quote: result.quote,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options: result.options?.map((opt: any) => ({
+      expirationDate: opt.expirationDate ?
+        new Date(opt.expirationDate * 1000) : undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      calls: opt.calls?.map((c: any) => ({
+        ...c,
+        expiration: c.expiration ? new Date(c.expiration * 1000) : undefined,
+        lastTradeDate: c.lastTradeDate ?
+          new Date(c.lastTradeDate * 1000) : undefined,
+      })) || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      puts: opt.puts?.map((p: any) => ({
+        ...p,
+        expiration: p.expiration ? new Date(p.expiration * 1000) : undefined,
+        lastTradeDate: p.lastTradeDate ?
+          new Date(p.lastTradeDate * 1000) : undefined,
+      })) || [],
+    })) || [],
+    strikes: result.strikes || [],
+    underlyingSymbol: result.underlyingSymbol,
+    lastUpdated: Date.now(),
+  };
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
+  await fetchCrumb();
+
+  let url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=assetProfile`;
+  if (yahooCrumb) {
+    url += `&crumb=${yahooCrumb}`;
+  }
+
+  const headers: Record<string, string> = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+      "AppleWebKit/537.36 (KHTML, like Gecko) " +
+      "Chrome/120.0.0.0 Safari/537.36",
+  };
+
+  if (yahooCookie) {
+    headers["Cookie"] = yahooCookie;
+  }
+
+  const response = await fetch(url, {
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch quote summary for ${symbol}: ${response.statusText}`
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = await response.json() as any;
+  return data.quoteSummary.result[0];
 };
 
 /**
@@ -178,6 +385,7 @@ export const fetchOptionsFlowForSymbols = async (
         items.push(...result.value);
       } else if (result.status === "rejected") {
         console.error("Error fetching batch item:", result.reason);
+        throw result.reason;
       }
     });
   }
@@ -194,69 +402,107 @@ const fetchForSymbol = async (
   symbol: string,
   expirationFilter?: string
 ): Promise<OptionFlowItem[]> => {
-  const cacheKey = `options_flow_${symbol}_${expirationFilter || "all"}`;
+  console.log(`Processing symbol: ${symbol}`);
+  // Try Firestore cache (Document Store)
+  let cachedResult = await getYahooOptionsResult(symbol);
 
-  // Try Firestore cache
-  const firestoreCached = await getFromFirestoreCache<OptionFlowItem[]>(
-    cacheKey,
-    CACHE_CONFIG.TTL
-  );
-  if (firestoreCached) {
-    return firestoreCached;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let quoteInfo: any = {};
 
   try {
-    // Fetch initial data to get expirations and quote info
-    const initialResult = (await yf.options(symbol, {
-      // date: new Date("2024-03-15"),
-    })) as YahooOptionsResult;
-    const expirationDates = initialResult.expirationDates?.slice(0, 1) || [];
-    logger.info(
-      `Fetched ${initialResult.expirationDates?.length}` +
-      ` expiration dates for ${symbol}` +
-      ` (${expirationDates[0]?.toISOString()})`
-    );
-    const quote = initialResult.quote;
+    if (!cachedResult) {
+      console.log(`Cache miss for ${symbol}, fetching fresh data`);
+      // Initial fetch if no cache
+      const initialResult = await fetchYahooOptions(symbol);
+      cachedResult = initialResult;
+      // {
+      //   expirationDates: initialResult.expirationDates,
+      //   hasMiniOptions: initialResult.hasMiniOptions,
+      //   quote: initialResult.quote,
+      // // initialResult usually contains options for the first expiration date
+      //   options: initialResult.options || [],
+      //   strikes: initialResult.strikes,
+      //   underlyingSymbol: initialResult.underlyingSymbol,
+      //   lastUpdated: Date.now(),
+      // };
+    }
+
+    // Now we have a cachedResult
+    const expirationDates = cachedResult.expirationDates || [];
+    const quote = cachedResult.quote;
 
     if (!quote) return [];
 
     const sector = await ensureSector(symbol, quote);
-    const marketCap = quote.marketCap;
-    const earningsTimestamp = quote.earningsTimestamp;
-    const changePercent = quote.regularMarketChangePercent || 0;
+    quoteInfo = {
+      changePercent: quote.regularMarketChangePercent || 0,
+      earningsTimestamp: quote.earningsTimestamp,
+      marketCap: quote.marketCap,
+      sector: sector,
+    };
 
-    const resultsToProcess = [initialResult];
+    const targetDates = filterExpirationDates(
+      expirationDates,
+      expirationFilter
+    );
 
-    // TODO: Re-enable multi-date fetching once fixed,
-    // initialResult already has multiple dates
+    // Identify missing dates
+    const existingOptions = cachedResult.options || [];
+    const missingDates = targetDates.filter(
+      (date) => !isDateInOptions(date, existingOptions)
+    );
 
-    // // Filter expiration dates based on filter
-    // const targetDates = filterExpirationDates(
-    //   expirationDates,
-    //   expirationFilter
-    // );
+    if (missingDates.length > 0) {
+      // Fetch missing dates
+      // We limit to 4 to avoid rate limits
+      const datesToFetch = missingDates.slice(0, 1);
 
-    // // Fetch option chains for target dates
-    // const resultsToProcess = await fetchOptionChains(
-    //   symbol,
-    //   targetDates,
-    //   initialResult
-    // );
+      if (datesToFetch.length > 0) {
+        const fetchedResults = await Promise.all(
+          datesToFetch.map((date) => fetchYahooOptions(symbol, date))
+        );
 
-    // Process results
-    const items = processOptionChains(symbol, resultsToProcess, {
-      changePercent,
-      earningsTimestamp,
-      marketCap,
-      sector,
-    });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newOptions = fetchedResults
+          .flatMap((r) => r.options || []) as any;
 
-    await setInFirestoreCache(cacheKey, items);
-    return items;
+        // Merge
+        cachedResult.options = [...existingOptions, ...newOptions];
+        cachedResult.lastUpdated = Date.now();
+
+        await saveYahooOptionsResult(symbol, cachedResult);
+      }
+    }
   } catch (e) {
-    console.error(`Failed to fetch options for ${symbol}`, e);
+    console.error(`Failed to fetch/update options for ${symbol}`, e);
+    throw e;
+    // if (
+    //   !cachedResult ||
+    //   !cachedResult.quote ||
+    //   !cachedResult.expirationDates?.every((d) =>
+    //     cachedResult?.options?.findIndex((o) =>
+    //       o.expirationDate === d) ?? -1 >= 0)) {
     return [];
+    // }
   }
+
+  // Process results
+  const items = processOptionChains(symbol, [cachedResult], quoteInfo);
+
+  // Apply expiration filter to items if needed
+  if (expirationFilter) {
+    const now = new Date();
+    return items.filter((item) => {
+      const itemDate = new Date(item.expirationDate);
+      const days = getDaysDifference(now, itemDate);
+      if (expirationFilter === "0-7") return days >= -1 && days <= 7;
+      if (expirationFilter === "8-30") return days > 7 && days <= 30;
+      if (expirationFilter === "30+") return days > 30;
+      return true;
+    });
+  }
+
+  return items;
 };
 
 const ensureSector = async (
@@ -265,24 +511,28 @@ const ensureSector = async (
 ): Promise<string | undefined> => {
   if (quote.sector) return quote.sector;
 
-  // Try Firestore cache
-  const firestoreCachedSector = await getFromFirestoreCache<string>(
-    symbol,
-    CACHE_CONFIG.SECTOR_TTL,
-    "sector_cache"
-  );
-  if (firestoreCachedSector) {
-    return firestoreCachedSector;
-  }
+  const db = getFirestore();
+  const summaryRef = db.collection("yahoo_quote_summaries").doc(symbol);
 
   try {
-    const summary = await yf.quoteSummary(symbol, {
-      modules: ["assetProfile"],
-    });
-    const sector = summary.assetProfile?.sector;
-    if (sector) {
-      await setInFirestoreCache(symbol, sector, "sector_cache");
+    const doc = await summaryRef.get();
+    if (doc.exists) {
+      const data = doc.data();
+      if (
+        data
+      ) {
+        return data.assetProfile?.sector;
+      }
     }
+
+    const summary = await fetchYahooQuoteSummary(symbol);
+    const sector = summary.assetProfile?.sector;
+
+    await summaryRef.set({
+      ...summary,
+      lastUpdated: Date.now(),
+    });
+
     return sector;
   } catch (e) {
     console.warn(`Failed to fetch sector for ${symbol}:`, e);
@@ -290,62 +540,38 @@ const ensureSector = async (
   }
 };
 
-// TODO: Re-enable multi-date fetching once fixed,
-// initialResult already has multiple dates
+const isDateInOptions = (
+  date: Date,
+  options: {
+    calls?: YahooOption[];
+    puts?: YahooOption[];
+    expirationDate?: Date;
+  }[]
+): boolean => {
+  return options.some((opt) => {
+    if (opt.expirationDate) {
+      return getDaysDifference(opt.expirationDate, date) === 0;
+    }
+    const c = opt.calls?.[0];
+    const p = opt.puts?.[0];
+    const exp = c?.expiration || p?.expiration;
+    if (!exp) return false;
+    return getDaysDifference(new Date(exp), date) === 0;
+  });
+};
 
-// const filterExpirationDates = (dates: Date[], filter?: string): Date[] => {
-//   if (!filter) return dates;
-//   const now = new Date();
-//   return dates.filter((date) => {
-//     const days = getDaysDifference(now, date);
-//     if (filter === "0-7") return days >= -1 && days <= 7;
-//     if (filter === "8-30") return days > 7 && days <= 30;
-//     if (filter === "30+") return days > 30;
-//     return true;
-//   });
-// };
+const filterExpirationDates = (dates: Date[], filter?: string): Date[] => {
+  if (!filter) return dates;
+  const now = new Date();
+  return dates.filter((date) => {
+    const days = getDaysDifference(now, date);
+    if (filter === "0-7") return days >= -1 && days <= 7;
+    if (filter === "8-30") return days > 7 && days <= 30;
+    if (filter === "30+") return days > 30;
+    return true;
+  });
+};
 
-// const fetchOptionChains = async (
-//   symbol: string,
-//   targetDates: Date[],
-//   initialResult: YahooOptionsResult
-// ): Promise<YahooOptionsResult[]> => {
-//   const initialExpirationDate = initialResult.expirationDates?.[0];
-//   let resultsToProcess: YahooOptionsResult[] = [];
-
-//   // We want up to 4 dates from our filtered list to avoid excessive calls
-//   const datesWeWant = targetDates.slice(0, 4);
-
-//   // Check if we can reuse initialResult
-//   const reuseInitial =
-//     initialExpirationDate &&
-//     datesWeWant.some(
-//       (d) => d.getTime() === initialExpirationDate.getTime()
-//     );
-
-//   let datesToFetch: Date[] = [];
-
-//   if (reuseInitial && initialExpirationDate) {
-//     resultsToProcess.push(initialResult);
-//     datesToFetch = datesWeWant.filter(
-//       (d) => d.getTime() !== initialExpirationDate.getTime()
-//     );
-//   } else {
-//     datesToFetch = datesWeWant;
-//   }
-
-//   if (datesToFetch.length > 0) {
-//     const additionalResults = await Promise.all(
-//       datesToFetch.map((date) => yf.options(symbol, { date }))
-//     );
-//     resultsToProcess = [
-//       ...resultsToProcess,
-//       ...additionalResults,
-//     ] as YahooOptionsResult[];
-//   }
-
-//   return resultsToProcess;
-// };
 
 const processOptionChains = (
   symbol: string,
@@ -500,6 +726,7 @@ const analyzeOption = (
     marketCap: marketCap,
     sector: sector,
     changePercent: changePercent,
+    lastPrice: lastPrice,
     bid: bid,
     ask: ask,
   };

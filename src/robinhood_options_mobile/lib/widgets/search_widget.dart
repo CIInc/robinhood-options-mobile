@@ -357,14 +357,14 @@ class _SearchWidgetState extends State<SearchWidget>
                           ),
                         )),
                   ),
-                  if (watchlistStream != null &&
-                      (search == null ||
-                          (search is List && search.isEmpty))) ...[
+                  if (watchlistStream != null) ...[
                     SliverToBoxAdapter(
                       child: StreamBuilder<List<Watchlist>>(
                         stream: watchlistStream,
                         builder: (context, snapshot) {
-                          if (snapshot.hasData) {
+                          final visible = search == null ||
+                              (search is List && search.isEmpty);
+                          if (visible && snapshot.hasData) {
                             var lists = snapshot.data!;
                             return SizedBox(
                               height: 50,
@@ -431,7 +431,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               ),
                             );
                           }
-                          return Container();
+                          return const SizedBox.shrink();
                         },
                       ),
                     ),

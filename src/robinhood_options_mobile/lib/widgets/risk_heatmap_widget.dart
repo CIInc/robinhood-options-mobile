@@ -246,7 +246,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
             },
             style: ButtonStyle(
               visualDensity: VisualDensity.compact,
-              padding: MaterialStateProperty.all(EdgeInsets.zero),
+              padding: WidgetStateProperty.all(EdgeInsets.zero),
             ),
           ),
           const SizedBox(width: 8),
@@ -271,7 +271,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
             },
             style: ButtonStyle(
               visualDensity: VisualDensity.compact,
-              padding: MaterialStateProperty.all(EdgeInsets.zero),
+              padding: WidgetStateProperty.all(EdgeInsets.zero),
             ),
           ),
         ],
@@ -643,8 +643,9 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
     // 2. Process Options
     for (var position in optionStore.items) {
       final optionInstrument = position.optionInstrument;
-      if (optionInstrument == null || optionInstrument.optionMarketData == null)
+      if (optionInstrument == null || optionInstrument.optionMarketData == null) {
         continue;
+      }
 
       // Find underlying instrument for sector
       final chainSymbol = position.symbol;

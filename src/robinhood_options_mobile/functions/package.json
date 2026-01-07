@@ -20,8 +20,7 @@
     "firebase-admin": "^13.2.0",
     "firebase-functions": "^7.0.2",
     "node-fetch": "^2.7.0",
-    "plaid": "^31.1.0",
-    "yahoo-finance2": "^3.10.2"
+    "plaid": "^31.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

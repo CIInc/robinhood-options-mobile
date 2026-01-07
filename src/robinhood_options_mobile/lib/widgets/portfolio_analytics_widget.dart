@@ -263,6 +263,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
     List<double> alignedPortfolioPrices = [];
     List<double> alignedBenchmarkPrices = [];
+    List<DateTime> alignedDates = [];
 
     for (var h in portfolioHistoricals.equityHistoricals) {
       if (h.beginsAt != null) {
@@ -271,8 +272,15 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           alignedPortfolioPrices
               .add(h.adjustedCloseEquity ?? h.closeEquity ?? 0.0);
           alignedBenchmarkPrices.add(benchmarkMap[dateKey]!);
+          alignedDates.add(h.beginsAt!);
         }
       }
+    }
+
+    // If we failed to align enough points, skip analytics
+    if (alignedPortfolioPrices.length < 2 ||
+        alignedBenchmarkPrices.length < 2) {
+      return {};
     }
 
     List<double> portfolioReturns =
@@ -305,15 +313,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     double informationRatio = AnalyticsUtils.calculateInformationRatio(
         portfolioReturns, benchmarkReturns);
 
+    // Derive period length from aligned dates to match selected timeline
     double periodYears = 1.0;
-    if (portfolioHistoricals.span == '5year') {
-      periodYears = 5.0;
-    } else if (portfolioHistoricals.span == '3month') {
-      periodYears = 0.25;
-    } else if (portfolioHistoricals.span == 'week') {
-      periodYears = 1 / 52;
-    } else if (portfolioHistoricals.span == 'day') {
-      periodYears = 1 / 365;
+    if (alignedDates.isNotEmpty) {
+      final start = alignedDates.first;
+      final end = alignedDates.last;
+      final days = end.difference(start).inDays.abs();
+      // Minimum of one day to avoid zero division
+      periodYears = (days > 0 ? days : 1) / 365.0;
     }
 
     double calmar = AnalyticsUtils.calculateCalmarRatio(

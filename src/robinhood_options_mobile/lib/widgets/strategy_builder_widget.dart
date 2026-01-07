@@ -554,8 +554,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    if (selectedStrategy == null || !_canReview())
+    if (selectedStrategy == null || !_canReview()) {
       return const SizedBox.shrink();
+    }
 
     final price = _calculateEstimatedPrice();
     String text = '-';
@@ -1852,9 +1853,13 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
 
   List<charts.Series<PnLPoint, num>> _generatePnLData() {
     if (selectedStrategy?.type != StrategyType.custom &&
-        !selectedLegs.every((leg) => leg != null)) return [];
+        !selectedLegs.every((leg) => leg != null)) {
+      return [];
+    }
     if (selectedStrategy?.type == StrategyType.custom &&
-        !selectedLegs.any((leg) => leg != null)) return [];
+        !selectedLegs.any((leg) => leg != null)) {
+      return [];
+    }
 
     double currentPrice = widget.instrument.quoteObj?.lastTradePrice ?? 0;
 

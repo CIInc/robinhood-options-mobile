@@ -4,7 +4,7 @@ enum Sentiment { bullish, bearish, neutral }
 
 class OptionFlowItem {
   final String symbol;
-  final DateTime time;
+  final DateTime? lastTradeDate;
   final double strike;
   final DateTime expirationDate;
   final String type; // Call/Put
@@ -25,6 +25,7 @@ class OptionFlowItem {
   final double? bid;
   final double? ask;
   final double? changePercent;
+  final double? lastPrice;
 
   int get daysToExpiration {
     final now = DateTime.now();
@@ -33,7 +34,7 @@ class OptionFlowItem {
 
   OptionFlowItem({
     required this.symbol,
-    required this.time,
+    required this.lastTradeDate,
     required this.strike,
     required this.expirationDate,
     required this.type,
@@ -54,5 +55,6 @@ class OptionFlowItem {
     this.bid,
     this.ask,
     this.changePercent,
+    this.lastPrice,
   });
 }

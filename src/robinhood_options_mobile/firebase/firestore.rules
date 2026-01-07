@@ -81,6 +81,21 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
 
+    match /yahoo_options_results/{symbol} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+
+      match /expirations/{expirationId} {
+        allow read: if true;
+        allow create, update: if request.auth.uid != null;
+      }
+    }
+
+    match /yahoo_quote_summaries/{symbol} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+    }
+
     match /investor_groups/{groupId} {
       // Anyone can read public groups, members can read private groups, invited users can read
       allow read: if resource.data.isPrivate == false || 

@@ -474,7 +474,7 @@ Provide a concise analysis (under 150 words) covering:
                   child: Column(
                     children: [
                       _buildDetailRow('Time',
-                          '${_dateFormat.format(item.time)}, ${_timeFormat.format(item.time)}'),
+                          '${_dateFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}, ${_timeFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}'),
                       const Divider(height: 16),
                       _buildDetailRow(
                         'Premium',
@@ -575,6 +575,13 @@ Provide a concise analysis (under 150 words) covering:
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
+                      if (item.lastPrice != null) ...[
+                        _buildDetailRow(
+                          'Last Price',
+                          _currencyFormat.format(item.lastPrice),
+                        ),
+                        const Divider(height: 16),
+                      ],
                       if (item.changePercent != null) ...[
                         _buildDetailRow(
                           'Change %',
@@ -1171,7 +1178,9 @@ Provide a concise analysis (under 150 words) covering:
       if (rule.matches(flag)) {
         // Special case for DARK POOL case insensitivity in original code
         if (rule.pattern == 'DARK POOL' &&
-            !flag.toUpperCase().contains('DARK POOL')) continue;
+            !flag.toUpperCase().contains('DARK POOL')) {
+          continue;
+        }
 
         Color color = rule.colorProvider(isDark);
         if (rule.pattern == 'OTM' && rule.exactMatch) {
@@ -1485,10 +1494,14 @@ Provide a concise analysis (under 150 words) covering:
         .where((item) =>
             item.symbol == currentItem.symbol &&
             item != currentItem && // Exclude current item
-            item.time.isAfter(currentItem.time
-                .subtract(const Duration(days: 7)))) // Last 7 days
+            (item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))
+                .isAfter(currentItem.lastTradeDate ??
+                    DateTime.fromMillisecondsSinceEpoch(0)
+                        .subtract(const Duration(days: 7)))) // Last 7 days
         .toList()
-      ..sort((a, b) => b.time.compareTo(a.time)); // Newest first
+      ..sort((a, b) =>
+          (b.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+              a.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0)));
 
     if (recentItems.isEmpty) return const SizedBox.shrink();
 
@@ -1532,7 +1545,7 @@ Provide a concise analysis (under 150 words) covering:
                   ],
                 ),
                 subtitle: Text(
-                  '${_currencyFormat.format(item.premium)} • ${_timeFormat.format(item.time)}',
+                  '${_currencyFormat.format(item.premium)} • ${_timeFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 trailing: _buildFlagBadge(

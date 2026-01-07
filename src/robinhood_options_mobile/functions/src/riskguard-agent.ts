@@ -180,7 +180,7 @@ export async function assessTrade(proposal: any,
   });
 
   const maxPositionSize = config?.maxPositionSize ?? 100;
-  const maxPortfolioConcentration = config?.maxPortfolioConcentration ?? 0.5;
+  const maxPortfolioConcentration = config?.maxPortfolioConcentration ?? 50;
 
   const symbol = proposal?.symbol;
   const qty = proposal?.quantity || 0;
@@ -291,7 +291,7 @@ export async function assessTrade(proposal: any,
     return {
       approved: false,
       reason: `Proposed concentration ${proposedConcentration.toFixed(2)} ` +
-        `exceeds max ${maxPortfolioConcentration}`,
+        `exceeds max ${maxPortfolioConcentration.toFixed(2)}`,
       metrics,
     };
   }
@@ -470,7 +470,9 @@ export const calculatePositionSize = onCall(async (request) => {
     cappedBy = "maxPositionSize";
   }
 
-  const maxPortfolioConcentration = config.maxPortfolioConcentration || 0.5;
+  const maxPortfolioConcentrationPercent =
+    config.maxPortfolioConcentration || 50.0;
+  const maxPortfolioConcentration = maxPortfolioConcentrationPercent / 100.0;
   const lastPrice = closes[closes.length - 1];
   if (lastPrice > 0) {
     const maxValue = accountValue * maxPortfolioConcentration;

@@ -28,7 +28,9 @@ class CopyTradingProvider with ChangeNotifier {
   void initialize(String firebaseUserId, BrokerageUser brokerageUser,
       IBrokerageService service) {
     if (_firebaseUserId == firebaseUserId &&
-        _brokerageUser?.userName == brokerageUser.userName) return;
+        _brokerageUser?.userName == brokerageUser.userName) {
+      return;
+    }
 
     _firebaseUserId = firebaseUserId;
     _brokerageUser = brokerageUser;

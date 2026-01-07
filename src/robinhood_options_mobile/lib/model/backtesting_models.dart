@@ -1,6 +1,7 @@
 /// Backtesting Models
 ///
 /// Models for the backtesting interface and historical strategy simulation.
+library;
 
 /// Configuration for a backtesting run
 class BacktestConfig {

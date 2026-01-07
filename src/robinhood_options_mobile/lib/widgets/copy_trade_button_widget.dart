@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:intl/intl.dart';
@@ -164,7 +165,7 @@ Future<void> showCopyTradeDialog({
     String riskSymbol = symbol;
     double riskMultiplier = 1.0;
     String riskAction = 'BUY';
-    var optionInstrument;
+    late OptionInstrument optionInstrument;
 
     if (isInstrument) {
       if (instrumentOrder.instrumentObj == null) {
@@ -185,7 +186,7 @@ Future<void> showCopyTradeDialog({
         throw Exception('Could not find option instrument');
       }
       optionInstrument = optionInstruments.first;
-      riskSymbol = optionInstrument.symbol;
+      riskSymbol = optionInstrument.chainSymbol;
       riskMultiplier = 100.0;
       riskAction = leg.side?.toUpperCase() ?? 'BUY';
     }

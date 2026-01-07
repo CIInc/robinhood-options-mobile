@@ -11,6 +11,8 @@ class ScreenerId {
 
 class YahooService {
   final http.Client httpClient = http.Client();
+  String? _crumb;
+  String? _cookie;
 
   // List of supported Yahoo Finance screener IDs (scrIds) with display names
   // Organized by category for better user experience
@@ -674,6 +676,85 @@ class YahooService {
     return responseJson;
   }
 
+  Future<dynamic> getAssetProfile(String symbol) async {
+    var url =
+        "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
+    var responseJson = await getJson(url);
+    return responseJson;
+  }
+
+  Future<dynamic> getOptionChain(String symbol, {int? date}) async {
+    var url =
+        "https://query1.finance.yahoo.com/v7/finance/options/${Uri.encodeFull(symbol)}?formatted=true&lang=en-US&region=US&corsDomain=finance.yahoo.com";
+    if (date != null) {
+      url += "&date=$date";
+    }
+    var responseJson = await getJson(url);
+
+    if (responseJson['optionChain'] == null ||
+        responseJson['optionChain']['result'] == null ||
+        (responseJson['optionChain']['result'] as List).isEmpty) {
+      return {};
+    }
+
+    var result = responseJson['optionChain']['result'][0];
+
+    // return responseJson;
+    return {
+      'expirationDates': (result['expirationDates'] as List?)
+              ?.map((ts) =>
+                  DateTime.fromMillisecondsSinceEpoch((ts as int) * 1000))
+              .toList() ??
+          [],
+      'hasMiniOptions': result['hasMiniOptions'],
+      'quote': result['quote'],
+      'options': (result['options'] as List?)?.map((opt) {
+            var optMap = Map<String, dynamic>.from(opt);
+
+            Map<String, dynamic> cleanContract(Map<String, dynamic> contract) {
+              var cleaned = <String, dynamic>{};
+              contract.forEach((key, value) {
+                if (value is Map && value.containsKey('raw')) {
+                  cleaned[key] = value['raw'];
+                } else {
+                  cleaned[key] = value;
+                }
+              });
+
+              if (cleaned['expiration'] is int) {
+                cleaned['expiration'] = DateTime.fromMillisecondsSinceEpoch(
+                    cleaned['expiration'] * 1000);
+              }
+              if (cleaned['lastTradeDate'] is int) {
+                cleaned['lastTradeDate'] = DateTime.fromMillisecondsSinceEpoch(
+                    cleaned['lastTradeDate'] * 1000);
+              }
+              return cleaned;
+            }
+
+            if (optMap['calls'] != null) {
+              optMap['calls'] = (optMap['calls'] as List)
+                  .map((c) => cleanContract(Map<String, dynamic>.from(c)))
+                  .toList();
+            }
+            if (optMap['puts'] != null) {
+              optMap['puts'] = (optMap['puts'] as List)
+                  .map((p) => cleanContract(Map<String, dynamic>.from(p)))
+                  .toList();
+            }
+            if (optMap['expirationDate'] != null) {
+              optMap['expirationDate'] = DateTime.fromMillisecondsSinceEpoch(
+                  optMap['expirationDate'] * 1000);
+            }
+            return optMap;
+          }).toList() ??
+          [],
+      'strikes': result['strikes'] ?? [],
+      'underlyingSymbol': result['underlyingSymbol'],
+      'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+    };
+  }
+
   /// Fetch stock screener results from Yahoo Finance predefined screeners
   ///
   /// Uses Yahoo Finance's public API to retrieve stocks matching preset screening criteria.
@@ -729,15 +810,52 @@ class YahooService {
   }
 
   Future<dynamic> getJson(String url) async {
+    if (_crumb == null) {
+      await _fetchCrumb();
+    }
+
+    if (_crumb != null) {
+      if (url.contains('?')) {
+        if (!url.contains('crumb=')) {
+          url += '&crumb=$_crumb';
+        }
+      } else {
+        url += '?crumb=$_crumb';
+      }
+    }
+
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
     // String responseStr = await httpClient.read(Uri.parse(url));
     var uri = Uri.parse(url);
-    var response = await httpClient.get(uri, headers: {
+    var headers = {
       'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    });
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+    };
+    if (_cookie != null) {
+      headers['Cookie'] = _cookie!;
+    }
+
+    var response = await httpClient.get(uri, headers: headers);
+
+    // Retry once if unauthorized
+    if (response.statusCode == 401) {
+      debugPrint("Yahoo API 401, retrying with new crumb...");
+      await _fetchCrumb();
+      if (_crumb != null) {
+        // Rebuild URL with new crumb
+        var uriObj = Uri.parse(url);
+        var queryParams = Map<String, String>.from(uriObj.queryParameters);
+        queryParams['crumb'] = _crumb!;
+        uri = uriObj.replace(queryParameters: queryParams);
+        if (_cookie != null) {
+          headers['Cookie'] = _cookie!;
+        }
+        response = await httpClient.get(uri, headers: headers);
+      }
+    }
 
     debugPrint(
         "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
@@ -748,6 +866,59 @@ class YahooService {
     } else {
       debugPrint("Yahoo API Error: ${response.statusCode} ${response.body}");
       throw Exception("Failed to load data: ${response.statusCode}");
+    }
+  }
+
+  Future<void> _fetchCrumb() async {
+    try {
+      // 1. Get Cookie from fc.yahoo.com
+      final response1 = await httpClient.get(
+        Uri.parse('https://fc.yahoo.com'),
+        headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        },
+      );
+
+      _updateCookie(response1);
+
+      // Fallback to finance.yahoo.com if no cookie
+      if (_cookie == null) {
+        final responseHome = await httpClient.get(
+          Uri.parse('https://finance.yahoo.com'),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+          },
+        );
+        _updateCookie(responseHome);
+      }
+
+      if (_cookie != null) {
+        // 2. Get Crumb
+        final response2 = await httpClient.get(
+          Uri.parse('https://query1.finance.yahoo.com/v1/test/getcrumb'),
+          headers: {
+            'Cookie': _cookie!,
+            'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+          },
+        );
+
+        if (response2.statusCode == 200) {
+          _crumb = response2.body;
+          debugPrint('Yahoo Crumb fetched: $_crumb');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching Yahoo crumb: $e');
+    }
+  }
+
+  void _updateCookie(http.Response response) {
+    String? rawCookie = response.headers['set-cookie'];
+    if (rawCookie != null) {
+      _cookie = rawCookie;
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
@@ -1161,6 +1162,16 @@ class AgenticTradingProvider with ChangeNotifier {
                   _config['requireApproval'] as bool? ?? false;
 
               if (requireApproval) {
+                final strength = signal['signalStrength'];
+                final interval = signal['interval'];
+                var reason = 'Auto-trade signal';
+                if (strength != null) {
+                  reason += ' (${strength.toString()}%)';
+                }
+                if (interval != null) {
+                  reason += ' • $interval';
+                }
+
                 final pendingOrder = {
                   'id': DateTime.now().millisecondsSinceEpoch.toString(),
                   'timestamp': DateTime.now().toIso8601String(),
@@ -1170,7 +1181,8 @@ class AgenticTradingProvider with ChangeNotifier {
                   'price': currentPrice,
                   'instrument': instrument,
                   'status': 'pending',
-                  'reason': 'Auto-trade signal',
+                  'reason': reason,
+                  'signal': signal,
                 };
                 _pendingOrders.add(pendingOrder);
                 if (userDocRef != null) {
@@ -1495,7 +1507,7 @@ class AgenticTradingProvider with ChangeNotifier {
   /// - 'message': status message
   /// - 'exits': list of executed exit details
   Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
-    required List<dynamic> positions,
+    required List<InstrumentPosition> positions,
     required dynamic brokerageUser,
     required dynamic account,
     required dynamic brokerageService,
@@ -1543,7 +1555,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final tradesToRemove = <Map<String, dynamic>>[];
 
       // Create a map for faster position lookup
-      final positionMap = {for (var p in positions) p.symbol: p};
+      final positionMap = {for (var p in positions) p.instrumentObj?.symbol: p};
 
       // Check each automated buy trade
       for (final buyTrade in _automatedBuyTrades) {
@@ -1575,8 +1587,9 @@ class AgenticTradingProvider with ChangeNotifier {
             continue;
           }
 
-          final currentPrice = position.quote?.lastTradePrice as double? ??
-              position.quote?.lastExtendedHoursTradePrice as double?;
+          final currentPrice =
+              position.instrumentObj?.quoteObj?.lastTradePrice ??
+                  position.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice;
 
           if (currentPrice == null) {
             debugPrint(

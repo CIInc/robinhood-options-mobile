@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Bug Fixes (Auth Form, Cron Job, Toast Styling)**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -177,6 +177,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Fullscreen Charts**: Immersive chart viewing experience
 - ✅ **Generative AI UI**: Enhanced layout and action cards
 - ✅ **Portfolio Analytics UI**: Refined headers and layout for consistency
+
+### v0.27.5 ✅ (Released Jan 7, 2026)
+**Bug Fixes**
+- ✅ **Bug Fixes** (Options Flow, Yahoo API, ESG logic, Automated Trading, Auth form autofocus, daily cron timezone handling, toast styling)
 
 ### v0.27.4 ✅ (Released Jan 2, 2026)
 **ESG Scoring & Advanced Analytics**
@@ -661,7 +665,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [x] **Risk Exposure Heatmaps**: Visualize portfolio risk distribution - **Medium** (2-3 weeks)
 - [x] **Dividend Tracking**: Track and project dividend income - **Small** (1-2 weeks)
 - [x] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
-- [ ] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
+- [x] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
 - [x] **ESG Scoring**: Portfolio Environmental, Social, and Governance analysis - **Small** (1-2 weeks)
 - [ ] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
 - [ ] **Import/Export**: Import from other brokerages, export to Excel/CSV - **Small** (1-2 weeks)

@@ -1874,11 +1874,11 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       List<DateTime> expirationDates = [];
       if (resultJson['callExpDateMap'] != null) {
         Map<String, dynamic> callMap = resultJson['callExpDateMap'];
-        callMap.keys.forEach((key) {
+        for (var key in callMap.keys) {
           // key format: "2024-10-18:1"
           var datePart = key.split(':')[0];
           expirationDates.add(DateTime.parse(datePart));
-        });
+        }
       }
       // Sort dates
       expirationDates.sort((a, b) => a.compareTo(b));

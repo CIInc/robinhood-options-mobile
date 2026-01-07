@@ -61,9 +61,9 @@ class ESGService {
           // Let's try to map it to a rating.
 
           String rating = "N/A";
-          if (totalRisk < 10)
+          if (totalRisk < 10) {
             rating = "AAA"; // Negligible Risk
-          else if (totalRisk < 20)
+          } else if (totalRisk < 20)
             rating = "AA"; // Low Risk
           else if (totalRisk < 30)
             rating = "A"; // Medium Risk
@@ -151,9 +151,9 @@ class ESGService {
     final total = (env + soc + gov) / 3;
 
     String rating;
-    if (total >= 85)
+    if (total >= 85) {
       rating = "AAA";
-    else if (total >= 75)
+    } else if (total >= 75)
       rating = "AA";
     else if (total >= 65)
       rating = "A";

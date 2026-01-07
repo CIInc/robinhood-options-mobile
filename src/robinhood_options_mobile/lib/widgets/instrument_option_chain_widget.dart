@@ -2064,7 +2064,7 @@ class _FilterOptionsSheetState extends State<FilterOptionsSheet> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: selectedPreset,
+                          initialValue: selectedPreset,
                           decoration: const InputDecoration(
                             labelText: 'Load Preset',
                             border: OutlineInputBorder(),
