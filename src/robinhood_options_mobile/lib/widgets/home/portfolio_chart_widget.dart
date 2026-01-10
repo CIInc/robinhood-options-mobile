@@ -321,7 +321,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                               format: formatCurrency,
                                               style: TextStyle(
                                                   fontSize:
-                                                      summaryValueFontSize,
+                                                      portfolioValueFontSize,
                                                   fontWeight: FontWeight.w600,
                                                   color: Theme.of(context)
                                                       .colorScheme
@@ -345,7 +345,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                       PnlBadge(
                                           text: returnText,
                                           value: changeInPeriod,
-                                          fontSize: summaryValueFontSize),
+                                          fontSize: portfolioValueFontSize),
                                       const Text("Change",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
@@ -359,7 +359,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                                       PnlBadge(
                                           text: returnPercentText,
                                           value: changePercentInPeriod,
-                                          fontSize: summaryValueFontSize),
+                                          fontSize: portfolioValueFontSize),
                                       const Text("Change %",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),

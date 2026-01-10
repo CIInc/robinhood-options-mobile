@@ -138,36 +138,61 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       //     4);
 
       final colorScheme = Theme.of(context).colorScheme;
+      var brightness = MediaQuery.of(context).platformBrightness;
+
+      // Helper function to get darker color in dark theme
+      Color getDarkerColorForTheme(Color color) {
+        if (brightness == Brightness.dark) {
+          return Color.lerp(color, Colors.black, 0.4) ?? color;
+        }
+        return color;
+      }
+
       var assetPalette = [
-        charts.ColorUtil.fromDartColor(colorScheme.primary),
-        charts.ColorUtil.fromDartColor(colorScheme.secondary),
-        charts.ColorUtil.fromDartColor(colorScheme.tertiary),
-        charts.ColorUtil.fromDartColor(colorScheme.primaryContainer),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.primary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.secondary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.tertiary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.primaryContainer)),
       ];
 
       var positionPalette = [
-        charts.ColorUtil.fromDartColor(colorScheme.primary),
-        charts.ColorUtil.fromDartColor(colorScheme.secondary),
-        charts.ColorUtil.fromDartColor(colorScheme.tertiary),
-        charts.ColorUtil.fromDartColor(colorScheme.primaryContainer),
-        charts.ColorUtil.fromDartColor(colorScheme.secondaryContainer),
-        charts.ColorUtil.fromDartColor(colorScheme.tertiaryContainer),
-        charts.ColorUtil.fromDartColor(colorScheme.inversePrimary),
-        charts.ColorUtil.fromDartColor(colorScheme.errorContainer),
-        charts.ColorUtil.fromDartColor(colorScheme.surfaceTint),
-        charts.ColorUtil.fromDartColor(colorScheme.outline),
-        charts.ColorUtil.fromDartColor(colorScheme.outlineVariant),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.primary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.secondary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.tertiary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.primaryContainer)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.secondaryContainer)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.tertiaryContainer)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.inversePrimary)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.errorContainer)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.surfaceTint)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.outline)),
+        charts.ColorUtil.fromDartColor(
+            getDarkerColorForTheme(colorScheme.outlineVariant)),
       ];
 
       var sectorPalette = PieChart.makeShades(
-          charts.ColorUtil.fromDartColor(colorScheme.secondary),
+          charts.ColorUtil.fromDartColor(
+              getDarkerColorForTheme(colorScheme.secondary)),
           sectorData.isNotEmpty ? sectorData.length : 1);
 
       var industryPalette = PieChart.makeShades(
-          charts.ColorUtil.fromDartColor(colorScheme.tertiary),
+          charts.ColorUtil.fromDartColor(
+              getDarkerColorForTheme(colorScheme.tertiary)),
           industryData.isNotEmpty ? industryData.length : 1);
-
-      var brightness = MediaQuery.of(context).platformBrightness;
       var axisLabelColor = charts.MaterialPalette.gray.shade500;
       if (brightness == Brightness.light) {
         axisLabelColor = charts.MaterialPalette.gray.shade700;
@@ -308,25 +333,30 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     if (totalAssets <= 0) return data;
 
     if (optionPositionStore.equity > 0) {
-      final percent = optionPositionStore.equity / totalAssets;
+      // final percent = optionPositionStore.equity / totalAssets;
       data.add(PieChartData(
-          'Options ${formatPercentageInteger.format(percent)}',
-          optionPositionStore.equity));
+          'Options',
+          optionPositionStore
+              .equity)); //  ${formatPercentageInteger.format(percent)}
     }
     if (stockPositionStore.equity > 0) {
-      final percent = stockPositionStore.equity / totalAssets;
-      data.add(PieChartData('Stocks ${formatPercentageInteger.format(percent)}',
-          stockPositionStore.equity));
+      // final percent = stockPositionStore.equity / totalAssets;
+      data.add(PieChartData(
+          'Stocks',
+          stockPositionStore
+              .equity)); //  ${formatPercentageInteger.format(percent)}
     }
     if (forexHoldingStore.equity > 0) {
-      final percent = forexHoldingStore.equity / totalAssets;
-      data.add(PieChartData('Crypto ${formatPercentageInteger.format(percent)}',
-          forexHoldingStore.equity));
+      // final percent = forexHoldingStore.equity / totalAssets;
+      data.add(PieChartData(
+          'Crypto',
+          forexHoldingStore
+              .equity)); //  ${formatPercentageInteger.format(percent)}
     }
     if (portfolioCash > 0) {
-      final percent = portfolioCash / totalAssets;
-      data.add(PieChartData(
-          'Cash ${formatPercentageInteger.format(percent)}', portfolioCash));
+      // final percent = portfolioCash / totalAssets;
+      data.add(PieChartData('Cash',
+          portfolioCash)); //  ${formatPercentageInteger.format(percent)}
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;
@@ -349,9 +379,9 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     groupedEntries.sort((a, b) => b.value.compareTo(a.value));
 
     for (var entry in groupedEntries.take(maxItems)) {
-      final percent = totalAssets > 0 ? entry.value / totalAssets : 0.0;
+      // final percent = totalAssets > 0 ? entry.value / totalAssets : 0.0;
       data.add(PieChartData(
-          '${entry.key} ${formatPercentageInteger.format(percent)}',
+          '${entry.key}', //  ${formatPercentageInteger.format(percent)}
           entry.value));
     }
 
@@ -360,9 +390,9 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           .skip(maxItems)
           .map((e) => e.value)
           .fold(0.0, (a, b) => a + b);
-      final percent = totalAssets > 0 ? othersValue / totalAssets : 0.0;
-      data.add(PieChartData(
-          'Others ${formatPercentageInteger.format(percent)}', othersValue));
+      // final percent = totalAssets > 0 ? othersValue / totalAssets : 0.0;
+      data.add(PieChartData('Others',
+          othersValue)); //  ${formatPercentageInteger.format(percent)}
     }
     return data;
   }
@@ -420,7 +450,8 @@ class _PieChartItemState extends State<_PieChartItem> {
     ];
 
     var renderer = charts.ArcRendererConfig<String>(
-      arcWidth: widget.title == "Asset" || widget.title == "Position" ? 60 : 50,
+      arcWidth:
+          55, // widget.title == "Asset" || widget.title == "Position" ? 60 : 50,
       arcRendererDecorators: [
         charts.ArcLabelDecorator(
           labelPosition: charts.ArcLabelPosition.auto,
@@ -476,10 +507,13 @@ class _PieChartItemState extends State<_PieChartItem> {
                                     .replaceAll(RegExp(r'\s\d+%$'), '') ??
                                 'Total';
                             final value = selectedData?.value ?? totalValue;
+                            final percentage = totalValue > 0
+                                ? (value / totalValue) * 100
+                                : 0.0;
 
                             return Center(
                               child: SizedBox(
-                                width: 150,
+                                width: 115,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -498,6 +532,20 @@ class _PieChartItemState extends State<_PieChartItem> {
                                           .titleMedium
                                           ?.copyWith(
                                               fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${percentage.toStringAsFixed(1)}%',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.7),
+                                          ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ],

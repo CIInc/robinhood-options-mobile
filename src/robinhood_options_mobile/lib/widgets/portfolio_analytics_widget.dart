@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -346,6 +348,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         AnalyticsUtils.calculateDailyReturns(alignedPortfolioPrices);
     List<double> benchmarkReturns =
         AnalyticsUtils.calculateDailyReturns(alignedBenchmarkPrices);
+    List<double> activeReturns = [];
+    for (int i = 0; i < portfolioReturns.length; i++) {
+      activeReturns.add(portfolioReturns[i] - benchmarkReturns[i]);
+    }
 
     double sharpe = AnalyticsUtils.calculateSharpeRatio(portfolioReturns);
     double beta =
@@ -365,6 +371,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     double benchmarkCumulative =
         AnalyticsUtils.calculateCumulativeReturn(alignedBenchmarkPrices);
     double excessReturn = portfolioCumulative - benchmarkCumulative;
+    double trackingError = activeReturns.isNotEmpty
+        ? AnalyticsUtils.calculateStdDev(activeReturns) * sqrt(252)
+        : 0.0;
+    double avgDailyReturn = AnalyticsUtils.calculateMean(portfolioReturns);
+    double bestDay =
+        portfolioReturns.isNotEmpty ? portfolioReturns.reduce(max) : 0.0;
+    double worstDay =
+        portfolioReturns.isNotEmpty ? portfolioReturns.reduce(min) : 0.0;
 
     double sortino = AnalyticsUtils.calculateSortinoRatio(portfolioReturns);
     double treynor =
@@ -373,13 +387,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         portfolioReturns, benchmarkReturns);
 
     // Derive period length from aligned dates to match selected timeline
+    int periodDays = 0;
     double periodYears = 1.0;
     if (alignedDates.isNotEmpty) {
       final start = alignedDates.first;
       final end = alignedDates.last;
       final days = end.difference(start).inDays.abs();
-      // Minimum of one day to avoid zero division
-      periodYears = (days > 0 ? days : 1) / 365.0;
+      periodDays = days > 0 ? days : 1;
+      periodYears = periodDays / 365.0;
     }
 
     double calmar = AnalyticsUtils.calculateCalmarRatio(
@@ -464,6 +479,13 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       'volatility': volatility,
       'benchmarkVolatility': benchmarkVolatility,
       'excessReturn': excessReturn,
+      'trackingError': trackingError,
+      'portfolioCumulative': portfolioCumulative,
+      'benchmarkCumulative': benchmarkCumulative,
+      'avgDailyReturn': avgDailyReturn,
+      'bestDay': bestDay,
+      'worstDay': worstDay,
+      'periodDays': periodDays,
       'sortino': sortino,
       'treynor': treynor,
       'informationRatio': informationRatio,
@@ -517,6 +539,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           children: [
             _buildHeader(context),
             const SizedBox(height: 16),
+            _buildPerformanceOverviewCard(context, data),
+            const SizedBox(height: 16),
             _buildInsightsCard(context, data),
             const SizedBox(height: 16),
             _buildRiskAdjustedReturnCard(context, data),
@@ -551,6 +575,198 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPerformanceOverviewCard(
+      BuildContext context, Map<String, dynamic> data) {
+    if (!data.containsKey('portfolioCumulative')) {
+      return const SizedBox.shrink();
+    }
+
+    final percentFormat = NumberFormat.decimalPercentPattern(decimalDigits: 1);
+    String formatPercent(double value) {
+      final formatted = percentFormat.format(value);
+      if (value > 0 && !formatted.startsWith('+')) {
+        return '+$formatted';
+      }
+      return formatted;
+    }
+
+    double portfolioReturn = data['portfolioCumulative'] ?? 0.0;
+    double benchmarkReturn = data['benchmarkCumulative'] ?? 0.0;
+    double excessReturn =
+        data['excessReturn'] ?? portfolioReturn - benchmarkReturn;
+    double avgDailyReturn = data['avgDailyReturn'] ?? 0.0;
+    double bestDay = data['bestDay'] ?? 0.0;
+    double worstDay = data['worstDay'] ?? 0.0;
+    double trackingError = data['trackingError'] ?? 0.0;
+    int periodDays = data['periodDays'] ?? 0;
+    final trackingColor = trackingError > 0.12
+        ? Colors.red
+        : (trackingError > 0.08 ? Colors.orange : Colors.green);
+
+    Color colorFor(double value) => value >= 0 ? Colors.green : Colors.red;
+
+    final stats = [
+      _buildSnapshotTile(
+        context,
+        icon: Icons.trending_up,
+        label: 'Portfolio',
+        value: formatPercent(portfolioReturn),
+        valueColor: colorFor(portfolioReturn),
+        footer: 'Cumulative return',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.show_chart,
+        label: 'Benchmark',
+        value: formatPercent(benchmarkReturn),
+        valueColor: colorFor(benchmarkReturn),
+        footer: '$_selectedBenchmark performance',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.stacked_line_chart,
+        label: 'Excess Return',
+        value: formatPercent(excessReturn),
+        valueColor: colorFor(excessReturn),
+        footer: 'vs $_selectedBenchmark',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.calendar_today_outlined,
+        label: 'Avg Daily',
+        value: formatPercent(avgDailyReturn),
+        valueColor: colorFor(avgDailyReturn),
+        footer: 'Mean daily move',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.arrow_upward,
+        label: 'Best Day',
+        value: formatPercent(bestDay),
+        valueColor: colorFor(bestDay),
+        footer: 'Single-day peak',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.arrow_downward,
+        label: 'Worst Day',
+        value: formatPercent(worstDay),
+        valueColor: colorFor(worstDay),
+        footer: 'Single-day trough',
+      ),
+      _buildSnapshotTile(
+        context,
+        icon: Icons.science_outlined,
+        label: 'Tracking Error',
+        value: formatPercent(trackingError),
+        valueColor: trackingColor,
+        footer: 'Active risk (ann.)',
+      ),
+    ];
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.5),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights,
+                    color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Performance Snapshot',
+                      style: Theme.of(context).textTheme.titleLarge),
+                ),
+                if (periodDays > 0)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${periodDays}d window',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.flag, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        _selectedBenchmark,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                double itemWidth;
+                if (constraints.maxWidth < 360) {
+                  itemWidth = (constraints.maxWidth - 8) / 2;
+                } else if (constraints.maxWidth > 680) {
+                  itemWidth = (constraints.maxWidth - 24) / 3;
+                } else {
+                  itemWidth = (constraints.maxWidth - 16) / 2;
+                }
+
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: stats
+                      .map((widget) => SizedBox(
+                            width: itemWidth,
+                            child: widget,
+                          ))
+                      .toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -634,17 +850,35 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    score >= 80
-                        ? 'Excellent'
-                        : (score >= 60
-                            ? 'Good'
-                            : (score >= 40 ? 'Moderate' : 'Needs Attention')),
-                    style: TextStyle(
-                      color: scoreColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _getHealthScoreGrade(score),
+                        style: TextStyle(
+                          color: scoreColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '•',
+                        style: TextStyle(
+                          color: scoreColor.withValues(alpha: 0.5),
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _getHealthScoreLabel(score),
+                        style: TextStyle(
+                          color: scoreColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -655,55 +889,64 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     }
 
     if (data.containsKey('sharpe')) {
-      if (data['sharpe']! > 2.0) {
+      double sharpe = data['sharpe']!;
+      if (sharpe > 2.5) {
+        addInsight(Icons.star, Colors.green,
+            'Outstanding risk-adjusted returns (Sharpe ${sharpe.toStringAsFixed(2)}). Maintain this disciplined approach.');
+      } else if (sharpe > 1.5) {
         addInsight(Icons.check_circle, Colors.green,
-            'Excellent risk-adjusted returns (Sharpe > 2.0).');
-      } else if (data['sharpe']! < 1.0 && data['sharpe']! > 0) {
+            'Excellent risk-adjusted returns (Sharpe ${sharpe.toStringAsFixed(2)}). You\'re efficiently using capital.');
+      } else if (sharpe > 0.75) {
+        addInsight(Icons.info_outline, Colors.blue,
+            'Good risk-adjusted returns (Sharpe ${sharpe.toStringAsFixed(2)}). Consider tightening stops to reduce volatility.');
+      } else if (sharpe > 0) {
         addInsight(Icons.info_outline, Colors.orange,
-            'Consider diversifying to improve risk-adjusted returns (Sharpe < 1.0).');
-      } else if (data['sharpe']! < 0) {
+            'Moderate risk-adjusted returns (Sharpe ${sharpe.toStringAsFixed(2)}). Focus on reducing volatility or increasing returns.');
+      } else {
         addInsight(Icons.warning, Colors.red,
-            'Negative risk-adjusted returns. Consider reducing risk.');
-      }
-    }
-
-    if (data.containsKey('sortino')) {
-      if (data['sortino']! > 2.0) {
-        addInsight(Icons.shield, Colors.green,
-            'Excellent downside protection (Sortino > 2.0).');
-      } else if (data['sortino']! < 1.0 && data['sortino']! > 0) {
-        addInsight(Icons.info_outline, Colors.orange,
-            'Watch downside volatility (Sortino < 1.0).');
-      }
-    }
-
-    if (data.containsKey('calmar')) {
-      if (data['calmar']! > 3.0) {
-        addInsight(Icons.trending_up, Colors.green,
-            'Exceptional return relative to drawdown (Calmar > 3.0).');
-      } else if (data['calmar']! < 0.5 && data['calmar']! > 0) {
-        addInsight(Icons.warning_amber, Colors.orange,
-            'High drawdown relative to return (Calmar < 0.5).');
+            'Negative risk-adjusted returns (Sharpe ${sharpe.toStringAsFixed(2)}). Review strategy fundamentals.');
       }
     }
 
     if (data.containsKey('profitFactor')) {
-      if (data['profitFactor']! > 2.0) {
+      double pf = data['profitFactor']!;
+      if (pf > 2.5) {
+        addInsight(Icons.trending_up, Colors.green,
+            'Exceptional profit efficiency (PF ${pf.toStringAsFixed(2)}). Winning trades far exceed losses.');
+      } else if (pf > 1.5) {
         addInsight(Icons.attach_money, Colors.green,
-            'Highly profitable strategy (Profit Factor > 2.0).');
-      } else if (data['profitFactor']! < 1.0) {
+            'Strong profitability (PF ${pf.toStringAsFixed(2)}). Strategy is working well.');
+      } else if (pf < 1.0) {
         addInsight(Icons.money_off, Colors.red,
-            'Strategy is currently losing money (Profit Factor < 1.0).');
+            'Strategy is losing money (PF ${pf.toStringAsFixed(2)}). Losses exceed wins - urgent review needed.');
+      } else if (pf < 1.3) {
+        addInsight(Icons.warning_amber, Colors.orange,
+            'Marginal profitability (PF ${pf.toStringAsFixed(2)}). Improve win rate or cut losses faster.');
       }
     }
 
     if (data.containsKey('winRate')) {
-      if (data['winRate']! > 0.65) {
+      double wr = data['winRate']!;
+      if (wr > 0.65) {
         addInsight(Icons.check, Colors.green,
-            'High win rate (${(data['winRate']! * 100).toStringAsFixed(0)}%).');
-      } else if (data['winRate']! < 0.40) {
+            'Very consistent performance (${(wr * 100).toStringAsFixed(0)}% win rate).');
+      } else if (wr < 0.40) {
         addInsight(Icons.priority_high, Colors.orange,
-            'Low win rate. Ensure average wins are large.');
+            'Low win rate (${(wr * 100).toStringAsFixed(0)}%). Ensure your average winners are significantly larger than losers.');
+      }
+    }
+
+    if (data.containsKey('maxDrawdown')) {
+      double mdd = data['maxDrawdown']!;
+      if (mdd > 0.30) {
+        addInsight(Icons.emergency, Colors.red,
+            'Severe drawdown alert (${(mdd * 100).toStringAsFixed(1)}%)! Implement strict position sizing and risk management immediately.');
+      } else if (mdd > 0.20) {
+        addInsight(Icons.warning_amber, Colors.red,
+            'High drawdown (${(mdd * 100).toStringAsFixed(1)}%). Review stop-loss strategies and reduce position sizes.');
+      } else if (mdd < 0.10) {
+        addInsight(Icons.security, Colors.green,
+            'Excellent risk control - max drawdown only ${(mdd * 100).toStringAsFixed(1)}%.');
       }
     }
 
@@ -711,68 +954,92 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       double alpha = data['alpha']!;
       String alphaFixed = (alpha * 100).abs().toStringAsFixed(1);
 
-      if (alphaFixed == '0.0') {
-        addInsight(Icons.compare_arrows, Colors.grey,
-            'Performing in line with benchmark.');
-      } else if (alpha > 0) {
+      if (alpha > 0.05) {
         addInsight(Icons.trending_up, Colors.green,
-            'Outperforming benchmark by $alphaFixed%.');
-      } else {
+            'Strong outperformance: +$alphaFixed% alpha vs benchmark. You\'re adding real value.');
+      } else if (alpha > 0) {
+        addInsight(Icons.compare_arrows, Colors.blue,
+            'Modest outperformance: +$alphaFixed% alpha. Stay disciplined.');
+      } else if (alpha < -0.05) {
         addInsight(Icons.trending_down, Colors.red,
-            'Underperforming benchmark by $alphaFixed%.');
+            'Significant underperformance: -$alphaFixed% alpha. Consider index ETFs or strategy revision.');
+      } else if (alpha < 0) {
+        addInsight(Icons.compare_arrows, Colors.orange,
+            'Slight underperformance: -$alphaFixed% alpha. Monitor closely.');
+      } else {
+        addInsight(Icons.compare_arrows, Colors.grey,
+            'Matching benchmark performance (0% alpha).');
       }
     }
 
     if (data.containsKey('beta')) {
       double beta = data['beta']!;
-      if (beta > 1.2) {
+      if (beta > 1.5) {
+        addInsight(Icons.bolt, Colors.orange,
+            'Very aggressive portfolio (Beta ${beta.toStringAsFixed(2)}). Amplifies market moves by ${((beta - 1) * 100).toStringAsFixed(0)}%. Add bonds or defensive stocks.');
+      } else if (beta > 1.2) {
         addInsight(Icons.speed, Colors.orange,
-            'Aggressive portfolio (Beta > 1.2). Consider adding defensive assets to reduce volatility.');
-      } else if (beta < 0.8 && beta > 0) {
+            'Aggressive positioning (Beta ${beta.toStringAsFixed(2)}). Consider hedging during volatile periods.');
+      } else if (beta < 0.5 && beta > 0) {
         addInsight(Icons.shield, Colors.blue,
-            'Defensive portfolio (Beta < 0.8). Consider adding growth assets for higher potential returns.');
+            'Very defensive (Beta ${beta.toStringAsFixed(2)}). Consider adding growth exposure for higher returns.');
       } else if (beta < 0) {
-        addInsight(Icons.shield, Colors.blue,
-            'Portfolio is inversely correlated with the market.');
+        addInsight(Icons.shield_moon, Colors.blue,
+            'Inverse market correlation (Beta ${beta.toStringAsFixed(2)}). Useful hedge but limits upside.');
       }
     }
 
     if (data.containsKey('correlation')) {
       double correlation = data['correlation']!;
-      if (correlation > 0.9) {
+      if (correlation > 0.95) {
         addInsight(Icons.link, Colors.orange,
-            'High correlation with market (> 0.9). Portfolio may lack diversification.');
-      } else if (correlation < 0.5 && correlation > -0.5) {
+            'Essentially tracking the index (${(correlation * 100).toStringAsFixed(0)}% correlation). Consider active strategies or just buy SPY.');
+      } else if (correlation > 0 && correlation < 0.6) {
         addInsight(Icons.link_off, Colors.green,
-            'Low correlation provides good diversification benefits.');
-      }
-    }
-
-    if (data.containsKey('maxDrawdown')) {
-      if (data['maxDrawdown']! > 0.20) {
-        addInsight(Icons.warning_amber, Colors.red,
-            'High drawdown detected (${(data['maxDrawdown']! * 100).toStringAsFixed(1)}%). Review position sizing and stop-loss strategies.');
+            'Excellent diversification (${(correlation * 100).toStringAsFixed(0)}% correlation). Portfolio has unique return drivers.');
+      } else if (correlation < 0) {
+        addInsight(Icons.compare_arrows, Colors.blue,
+            'Negative correlation (${(correlation * 100).toStringAsFixed(0)}%). Acts as market hedge.');
       }
     }
 
     if (data.containsKey('volatility') &&
         data.containsKey('benchmarkVolatility')) {
-      double volDiff = data['volatility']! - data['benchmarkVolatility']!;
-      if (volDiff > 0.10) {
+      double volRatio = data['volatility']! / data['benchmarkVolatility']!;
+      if (volRatio > 1.5) {
         addInsight(Icons.waves, Colors.red,
-            'Significantly higher volatility than benchmark. Ensure this aligns with your risk tolerance.');
-      } else if (volDiff > 0.05) {
-        addInsight(Icons.waves, Colors.orange,
-            'Higher volatility than benchmark (${(data['volatility']! * 100).toStringAsFixed(1)}% vs ${(data['benchmarkVolatility']! * 100).toStringAsFixed(1)}%).');
-      } else if (volDiff < -0.05) {
-        addInsight(Icons.waves, Colors.green,
-            'Lower volatility than benchmark (${(data['volatility']! * 100).toStringAsFixed(1)}% vs ${(data['benchmarkVolatility']! * 100).toStringAsFixed(1)}%).');
+            '50%+ more volatile than market. High risk - ensure you can handle the swings or reduce leverage.');
+      } else if (volRatio < 0.8) {
+        addInsight(Icons.water, Colors.green,
+            'Lower volatility than market. Smoother ride with 20% less price swings.');
+      }
+    }
+
+    if (data.containsKey('kellyCriterion')) {
+      double kelly = data['kellyCriterion']!;
+      if (kelly > 0.10) {
+        addInsight(Icons.psychology_rounded, Colors.green,
+            'Strong mathematical edge (${(kelly * 100).toStringAsFixed(1)}% Kelly). You can size positions confidently.');
+      } else if (kelly < 0) {
+        addInsight(Icons.dangerous, Colors.red,
+            'Negative Kelly suggests no statistical edge. Trading costs may be eating profits.');
+      }
+    }
+
+    if (data.containsKey('tailRatio')) {
+      double tr = data['tailRatio']!;
+      if (tr > 1.2) {
+        addInsight(Icons.show_chart, Colors.green,
+            'Positive skew (Tail Ratio ${tr.toStringAsFixed(2)}). Big wins outnumber big losses - ideal asymmetry.');
+      } else if (tr < 0.8) {
+        addInsight(Icons.show_chart, Colors.red,
+            'Negative skew (Tail Ratio ${tr.toStringAsFixed(2)}). Losing tails hurt more than winning tails help. Use tight stops.');
       }
     }
 
     if (data.containsKey('var95')) {
       double var95 = data['var95']!;
-      if (var95 < -0.03) {
+      if (var95 < -0.04) {
         addInsight(Icons.warning, Colors.red,
             'High Value at Risk (VaR 95%: ${(var95 * 100).toStringAsFixed(1)}%). Potential for significant daily losses.');
       }
@@ -1195,6 +1462,72 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSnapshotTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    String? footer,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          if (footer != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              footer,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1734,7 +2067,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
               ],
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -2715,250 +3048,440 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
   void _showHealthScoreDetails(
       BuildContext context, Map<String, dynamic> data) {
-    // Calculate breakdown
+    // Calculate breakdown - now matches refined AnalyticsUtils scoring
     double riskAdjustedScore = 0;
     double marketPerformanceScore = 0;
     double riskManagementScore = 0;
     double efficiencyScore = 0;
+    double advancedEdgeScore = 0;
 
     List<String> riskAdjustedDetails = [];
     List<String> marketPerformanceDetails = [];
     List<String> riskManagementDetails = [];
     List<String> efficiencyDetails = [];
+    List<String> advancedEdgeDetails = [];
 
-    // Risk-Adjusted Returns
+    // Risk-Adjusted Returns (matches AnalyticsUtils)
     if (data.containsKey('sharpe')) {
       double sharpe = data['sharpe']!;
-      if (sharpe > 2.0) {
+      if (sharpe > 2.5) {
+        riskAdjustedScore += 18;
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (> 2.5 Exceptional) [+18]');
+      } else if (sharpe > 2.0) {
         riskAdjustedScore += 15;
-        riskAdjustedDetails
-            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (> 2.0) [+15]');
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (> 2.0 Excellent) [+15]');
       } else if (sharpe > 1.5) {
         riskAdjustedScore += 12;
-        riskAdjustedDetails
-            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (> 1.5) [+12]');
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (> 1.5 Very Good) [+12]');
       } else if (sharpe > 1.0) {
-        riskAdjustedScore += 8;
+        riskAdjustedScore += 9;
         riskAdjustedDetails
-            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (> 1.0) [+8]');
+            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (> 1.0 Good) [+9]');
       } else if (sharpe > 0.5) {
-        riskAdjustedScore += 4;
-        riskAdjustedDetails
-            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (> 0.5) [+4]');
-      } else if (sharpe < 0) {
+        riskAdjustedScore += 5;
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (> 0.5 Acceptable) [+5]');
+      } else if (sharpe > 0) {
+        riskAdjustedScore += 2;
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (> 0 Marginally Positive) [+2]');
+      } else if (sharpe < -0.5) {
         riskAdjustedScore -= 10;
+        riskAdjustedDetails.add(
+            'Sharpe: ${sharpe.toStringAsFixed(2)} (< -0.5 Very Poor) [-10]');
+      } else if (sharpe < 0) {
+        riskAdjustedScore -= 5;
         riskAdjustedDetails
-            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (< 0.0) [-10]');
+            .add('Sharpe: ${sharpe.toStringAsFixed(2)} (< 0 Negative) [-5]');
       }
     }
     if (data.containsKey('sortino')) {
       double sortino = data['sortino']!;
-      if (sortino > 2.0) {
+      if (sortino > 2.5) {
         riskAdjustedScore += 10;
-        riskAdjustedDetails
-            .add('Sortino: ${sortino.toStringAsFixed(2)} (> 2.0) [+10]');
-      } else if (sortino > 1.0) {
-        riskAdjustedScore += 5;
-        riskAdjustedDetails
-            .add('Sortino: ${sortino.toStringAsFixed(2)} (> 1.0) [+5]');
+        riskAdjustedDetails.add(
+            'Sortino: ${sortino.toStringAsFixed(2)} (> 2.5 Exceptional) [+10]');
+      } else if (sortino > 1.5) {
+        riskAdjustedScore += 7;
+        riskAdjustedDetails.add(
+            'Sortino: ${sortino.toStringAsFixed(2)} (> 1.5 Very Good) [+7]');
+      } else if (sortino > 0.75) {
+        riskAdjustedScore += 4;
+        riskAdjustedDetails.add(
+            'Sortino: ${sortino.toStringAsFixed(2)} (> 0.75 Acceptable) [+4]');
       }
     }
     if (data.containsKey('treynor')) {
       double treynor = data['treynor']!;
-      if (treynor > 0.15) {
-        riskAdjustedScore += 5;
+      if (treynor > 0.20) {
+        riskAdjustedScore += 4;
+        riskAdjustedDetails.add(
+            'Treynor: ${treynor.toStringAsFixed(2)} (> 0.20 Excellent) [+4]');
+      } else if (treynor > 0.10) {
+        riskAdjustedScore += 2;
         riskAdjustedDetails
-            .add('Treynor: ${treynor.toStringAsFixed(2)} (> 0.15) [+5]');
+            .add('Treynor: ${treynor.toStringAsFixed(2)} (> 0.10 Good) [+2]');
       }
     }
     if (data.containsKey('omega')) {
       double omega = data['omega']!;
-      if (omega > 2.0) {
+      if (omega > 2.5) {
         riskAdjustedScore += 5;
         riskAdjustedDetails
-            .add('Omega: ${omega.toStringAsFixed(2)} (> 2.0) [+5]');
+            .add('Omega: ${omega.toStringAsFixed(2)} (> 2.5 Exceptional) [+5]');
+      } else if (omega > 1.5) {
+        riskAdjustedScore += 3;
+        riskAdjustedDetails
+            .add('Omega: ${omega.toStringAsFixed(2)} (> 1.5 Very Good) [+3]');
+      } else if (omega < 1.0) {
+        riskAdjustedScore -= 5;
+        riskAdjustedDetails
+            .add('Omega: ${omega.toStringAsFixed(2)} (< 1.0 More Losses) [-5]');
       }
     }
 
-    // Market Performance
+    // Market Performance (matches AnalyticsUtils)
     if (data.containsKey('alpha')) {
       double alpha = data['alpha']!;
-      if (alpha > 0.05) {
+      if (alpha > 0.10) {
         marketPerformanceScore += 15;
-        marketPerformanceDetails
-            .add('Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 5%) [+15]');
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 10% Beating Market) [+15]');
+      } else if (alpha > 0.05) {
+        marketPerformanceScore += 12;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 5% Strong) [+12]');
+      } else if (alpha > 0.02) {
+        marketPerformanceScore += 8;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 2% Good) [+8]');
       } else if (alpha > 0) {
-        marketPerformanceScore += 5;
-        marketPerformanceDetails
-            .add('Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 0%) [+5]');
+        marketPerformanceScore += 4;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (> 0% Positive) [+4]');
+      } else if (alpha < -0.10) {
+        marketPerformanceScore -= 10;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (< -10% Significantly Under) [-10]');
       } else if (alpha < -0.05) {
-        marketPerformanceScore -= 5;
-        marketPerformanceDetails
-            .add('Alpha: ${(alpha * 100).toStringAsFixed(1)}% (< -5%) [-5]');
+        marketPerformanceScore -= 6;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (< -5% Underperforming) [-6]');
+      } else if (alpha < 0) {
+        marketPerformanceScore -= 3;
+        marketPerformanceDetails.add(
+            'Alpha: ${(alpha * 100).toStringAsFixed(1)}% (< 0% Slightly Negative) [-3]');
       }
     }
     if (data.containsKey('informationRatio')) {
       double ir = data['informationRatio']!;
-      if (ir > 0.5) {
+      if (ir > 0.75) {
         marketPerformanceScore += 5;
-        marketPerformanceDetails
-            .add('Info Ratio: ${ir.toStringAsFixed(2)} (> 0.5) [+5]');
-      }
-      if (ir < -0.5) {
+        marketPerformanceDetails.add(
+            'Info Ratio: ${ir.toStringAsFixed(2)} (> 0.75 Very Consistent) [+5]');
+      } else if (ir > 0.25) {
+        marketPerformanceScore += 3;
+        marketPerformanceDetails.add(
+            'Info Ratio: ${ir.toStringAsFixed(2)} (> 0.25 Consistent) [+3]');
+      } else if (ir < -0.5) {
         marketPerformanceScore -= 5;
-        marketPerformanceDetails
-            .add('Info Ratio: ${ir.toStringAsFixed(2)} (< -0.5) [-5]');
+        marketPerformanceDetails.add(
+            'Info Ratio: ${ir.toStringAsFixed(2)} (< -0.5 Consistently Under) [-5]');
+      } else if (ir < 0) {
+        marketPerformanceScore -= 2;
+        marketPerformanceDetails.add(
+            'Info Ratio: ${ir.toStringAsFixed(2)} (< 0 Inconsistent) [-2]');
       }
     }
 
-    // Risk Management
+    // Risk Management (matches AnalyticsUtils refined scoring)
     if (data.containsKey('maxDrawdown')) {
       double mdd = data['maxDrawdown']!;
-      if (mdd < 0.10) {
-        riskManagementScore += 10;
+      if (mdd < 0.05) {
+        riskManagementScore += 12;
         riskManagementDetails.add(
-            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (< 10%) [+10]');
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (< 5% Exceptional) [+12]');
+      } else if (mdd < 0.10) {
+        riskManagementScore += 8;
+        riskManagementDetails.add(
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (< 10% Excellent) [+8]');
+      } else if (mdd < 0.15) {
+        riskManagementScore += 4;
+        riskManagementDetails.add(
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (< 15% Good) [+4]');
+      } else if (mdd > 0.40) {
+        riskManagementScore -= 25;
+        riskManagementDetails.add(
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (> 40% Catastrophic) [-25]');
       } else if (mdd > 0.30) {
-        riskManagementScore -= 20;
+        riskManagementScore -= 15;
         riskManagementDetails.add(
-            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (> 30%) [-20]');
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (> 30% Severe) [-15]');
       } else if (mdd > 0.20) {
-        riskManagementScore -= 10;
+        riskManagementScore -= 8;
         riskManagementDetails.add(
-            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (> 20%) [-10]');
+            'Max Drawdown: ${(mdd * 100).toStringAsFixed(1)}% (> 20% High) [-8]');
       }
     }
     if (data.containsKey('volatility') &&
         data.containsKey('benchmarkVolatility')) {
       double vol = data['volatility']!;
       double benchVol = data['benchmarkVolatility']!;
-      if (vol < benchVol) {
-        riskManagementScore += 5;
+      double volRatio = vol / benchVol;
+      if (volRatio < 0.8) {
+        riskManagementScore += 6;
         riskManagementDetails.add(
-            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (< Benchmark) [+5]');
-      } else if (vol > benchVol + 0.10) {
-        riskManagementScore -= 5;
+            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (< 80% of Benchmark) [+6]');
+      } else if (volRatio < 1.0) {
+        riskManagementScore += 3;
         riskManagementDetails.add(
-            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (> Benchmark + 10%) [-5]');
+            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (< Benchmark) [+3]');
+      } else if (volRatio > 1.5) {
+        riskManagementScore -= 8;
+        riskManagementDetails.add(
+            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (50% More Volatile) [-8]');
+      } else if (volRatio > 1.25) {
+        riskManagementScore -= 4;
+        riskManagementDetails.add(
+            'Volatility: ${(vol * 100).toStringAsFixed(1)}% (25% More Volatile) [-4]');
       }
     }
     if (data.containsKey('beta')) {
       double beta = data['beta']!;
-      if (beta > 1.5 || beta < 0.5) {
-        riskManagementScore -= 5;
+      if (beta > 1.8) {
+        riskManagementScore -= 6;
+        riskManagementDetails.add(
+            'Beta: ${beta.toStringAsFixed(2)} (> 1.8 Very Aggressive) [-6]');
+      } else if (beta > 1.5) {
+        riskManagementScore -= 3;
         riskManagementDetails
-            .add('Beta: ${beta.toStringAsFixed(2)} (Extreme) [-5]');
+            .add('Beta: ${beta.toStringAsFixed(2)} (> 1.5 Aggressive) [-3]');
+      } else if (beta < 0.3) {
+        riskManagementScore -= 4;
+        riskManagementDetails
+            .add('Beta: ${beta.toStringAsFixed(2)} (< 0.3 Too Defensive) [-4]');
       }
     }
     if (data.containsKey('var95')) {
       double var95 = data['var95']!;
-      if (var95 < -0.05) {
-        riskManagementScore -= 5;
+      // Mirror AnalyticsUtils: apply both penalties if both thresholds breached
+      if (var95 < -0.04) {
+        riskManagementScore -= 6;
         riskManagementDetails.add(
-            'VaR (95%): ${(var95 * 100).toStringAsFixed(1)}% (< -5%) [-5]');
-      } else if (var95 < -0.03) {
-        riskManagementScore -= 5;
+            'VaR (95%): ${(var95 * 100).toStringAsFixed(1)}% (< -4% High Daily Risk) [-6]');
+      }
+      if (var95 < -0.06) {
+        riskManagementScore -= 6;
         riskManagementDetails.add(
-            'VaR (95%): ${(var95 * 100).toStringAsFixed(1)}% (< -3%) [-5]');
+            'VaR (95%): ${(var95 * 100).toStringAsFixed(1)}% (< -6% Extreme Daily Risk) [-6]');
       }
     }
     if (data.containsKey('cvar95')) {
       double cvar95 = data['cvar95']!;
-      if (cvar95 < -0.07) {
-        riskManagementScore -= 5;
+      if (cvar95 < -0.10) {
+        riskManagementScore -= 8;
         riskManagementDetails.add(
-            'CVaR (95%): ${(cvar95 * 100).toStringAsFixed(1)}% (< -7%) [-5]');
+            'CVaR (95%): ${(cvar95 * 100).toStringAsFixed(1)}% (< -10% Extreme Tail Risk) [-8]');
+      } else if (cvar95 < -0.07) {
+        riskManagementScore -= 4;
+        riskManagementDetails.add(
+            'CVaR (95%): ${(cvar95 * 100).toStringAsFixed(1)}% (< -7% High Tail Risk) [-4]');
       }
     }
     if (data.containsKey('correlation')) {
       double correlation = data['correlation']!;
-      if (correlation < 0.7 && correlation > 0) {
-        riskManagementScore += 5;
-        riskManagementDetails
-            .add('Correlation: ${correlation.toStringAsFixed(2)} (< 0.7) [+5]');
-      } else if (correlation > 0.95) {
-        riskManagementScore -= 5;
+      if (correlation > 0 && correlation < 0.6) {
+        riskManagementScore += 6;
         riskManagementDetails.add(
-            'Correlation: ${correlation.toStringAsFixed(2)} (> 0.95) [-5]');
+            'Correlation: ${correlation.toStringAsFixed(2)} (< 0.6 Excellent Diversification) [+6]');
+      } else if (correlation < 0.8) {
+        riskManagementScore += 3;
+        riskManagementDetails.add(
+            'Correlation: ${correlation.toStringAsFixed(2)} (< 0.8 Good Diversification) [+3]');
+      } else if (correlation > 0.98) {
+        riskManagementScore -= 4;
+        riskManagementDetails.add(
+            'Correlation: ${correlation.toStringAsFixed(2)} (> 0.98 Tracking Index) [-4]');
       }
     }
 
-    // Efficiency & Consistency
+    // Efficiency & Consistency (matches AnalyticsUtils refined scoring)
     if (data.containsKey('profitFactor')) {
       double pf = data['profitFactor']!;
-      if (pf > 2.0) {
-        efficiencyScore += 10;
-        efficiencyDetails
-            .add('Profit Factor: ${pf.toStringAsFixed(2)} (> 2.0) [+10]');
+      if (pf > 3.0) {
+        efficiencyScore += 12;
+        efficiencyDetails.add(
+            'Profit Factor: ${pf.toStringAsFixed(2)} (> 3.0 Exceptional 3:1) [+12]');
+      } else if (pf > 2.0) {
+        efficiencyScore += 9;
+        efficiencyDetails.add(
+            'Profit Factor: ${pf.toStringAsFixed(2)} (> 2.0 Excellent 2:1) [+9]');
       } else if (pf > 1.5) {
-        efficiencyScore += 7;
-        efficiencyDetails
-            .add('Profit Factor: ${pf.toStringAsFixed(2)} (> 1.5) [+7]');
+        efficiencyScore += 6;
+        efficiencyDetails.add(
+            'Profit Factor: ${pf.toStringAsFixed(2)} (> 1.5 Very Good 1.5:1) [+6]');
       } else if (pf > 1.2) {
-        efficiencyScore += 4;
+        efficiencyScore += 3;
         efficiencyDetails
-            .add('Profit Factor: ${pf.toStringAsFixed(2)} (> 1.2) [+4]');
+            .add('Profit Factor: ${pf.toStringAsFixed(2)} (> 1.2 Good) [+3]');
+      } else if (pf < 0.9) {
+        efficiencyScore -= 12;
+        efficiencyDetails.add(
+            'Profit Factor: ${pf.toStringAsFixed(2)} (< 0.9 Losing Money) [-12]');
       } else if (pf < 1.0) {
-        efficiencyScore -= 10;
-        efficiencyDetails
-            .add('Profit Factor: ${pf.toStringAsFixed(2)} (< 1.0) [-10]');
+        efficiencyScore -= 6;
+        efficiencyDetails.add(
+            'Profit Factor: ${pf.toStringAsFixed(2)} (< 1.0 Break-even/Loss) [-6]');
       }
     }
     if (data.containsKey('winRate')) {
       double wr = data['winRate']!;
-      if (wr > 0.60) {
-        efficiencyScore += 10;
-        efficiencyDetails
-            .add('Win Rate: ${(wr * 100).toStringAsFixed(0)}% (> 60%) [+10]');
-      } else if (wr > 0.50) {
+      if (wr > 0.65) {
+        efficiencyScore += 8;
+        efficiencyDetails.add(
+            'Win Rate: ${(wr * 100).toStringAsFixed(0)}% (> 65% Very Consistent) [+8]');
+      } else if (wr > 0.55) {
         efficiencyScore += 5;
-        efficiencyDetails
-            .add('Win Rate: ${(wr * 100).toStringAsFixed(0)}% (> 50%) [+5]');
-      } else if (wr < 0.40) {
-        efficiencyScore -= 5;
-        efficiencyDetails
-            .add('Win Rate: ${(wr * 100).toStringAsFixed(0)}% (< 40%) [-5]');
+        efficiencyDetails.add(
+            'Win Rate: ${(wr * 100).toStringAsFixed(0)}% (> 55% Consistent) [+5]');
+      } else if (wr > 0.50) {
+        efficiencyScore += 2;
+        efficiencyDetails.add(
+            'Win Rate: ${(wr * 100).toStringAsFixed(0)}% (> 50% Above Average) [+2]');
+      } else if (wr < 0.35) {
+        efficiencyScore -= 6;
+        efficiencyDetails.add(
+            'Win Rate: ${(wr * 100).toStringAsFixed(0)}% (< 35% Very Inconsistent) [-6]');
+      } else if (wr < 0.45) {
+        efficiencyScore -= 3;
+        efficiencyDetails.add(
+            'Win Rate: ${(wr * 100).toStringAsFixed(0)}% (< 45% Below Average) [-3]');
       }
     }
     if (data.containsKey('calmar')) {
       double calmar = data['calmar']!;
-      if (calmar > 1.0) {
-        efficiencyScore += 5;
+      if (calmar > 2.0) {
+        efficiencyScore += 6;
+        efficiencyDetails.add(
+            'Calmar: ${calmar.toStringAsFixed(2)} (> 2.0 Exceptional) [+6]');
+      } else if (calmar > 1.0) {
+        efficiencyScore += 3;
         efficiencyDetails
-            .add('Calmar: ${calmar.toStringAsFixed(2)} (> 1.0) [+5]');
+            .add('Calmar: ${calmar.toStringAsFixed(2)} (> 1.0 Good) [+3]');
+      } else if (calmar < 0) {
+        efficiencyScore -= 3;
+        efficiencyDetails.add(
+            'Calmar: ${calmar.toStringAsFixed(2)} (< 0 Negative Returns) [-3]');
       }
     }
     if (data.containsKey('payoffRatio')) {
       double payoff = data['payoffRatio']!;
-      if (payoff > 2.0) {
+      if (payoff > 2.5) {
         efficiencyScore += 5;
-        efficiencyDetails
-            .add('Payoff Ratio: ${payoff.toStringAsFixed(2)} (> 2.0) [+5]');
-      } else if (payoff < 0.8) {
-        efficiencyScore -= 5;
-        efficiencyDetails
-            .add('Payoff Ratio: ${payoff.toStringAsFixed(2)} (< 0.8) [-5]');
+        efficiencyDetails.add(
+            'Payoff Ratio: ${payoff.toStringAsFixed(2)} (> 2.5 Excellent Asymmetry) [+5]');
+      } else if (payoff > 1.5) {
+        efficiencyScore += 3;
+        efficiencyDetails.add(
+            'Payoff Ratio: ${payoff.toStringAsFixed(2)} (> 1.5 Good) [+3]');
+      } else if (payoff < 0.7) {
+        efficiencyScore -= 4;
+        efficiencyDetails.add(
+            'Payoff Ratio: ${payoff.toStringAsFixed(2)} (< 0.7 Losses > Wins) [-4]');
       }
     }
     if (data.containsKey('expectancy')) {
       double exp = data['expectancy']!;
       if (exp > 0) {
-        efficiencyScore += 5;
+        efficiencyScore += 4;
+        efficiencyDetails.add(
+            'Expectancy: \$${exp.toStringAsFixed(2)} (> 0 Positive Edge) [+4]');
+      } else {
+        efficiencyScore -= 4;
         efficiencyDetails
-            .add('Expectancy: \$${exp.toStringAsFixed(2)} (> 0) [+5]');
+            .add('Expectancy: \$${exp.toStringAsFixed(2)} (≤ 0 No Edge) [-4]');
       }
     }
     if (data.containsKey('maxLossStreak')) {
       int streak = data['maxLossStreak']!;
-      if (streak > 5) {
+      if (streak > 7) {
         efficiencyScore -= 5;
-        efficiencyDetails.add('Max Loss Streak: $streak (> 5) [-5]');
+        efficiencyDetails.add('Max Loss Streak: $streak (> 7 Concerning) [-5]');
+      } else if (streak > 5) {
+        efficiencyScore -= 2;
+        efficiencyDetails.add('Max Loss Streak: $streak (> 5) [-2]');
+      }
+    }
+
+    // Advanced Risk & Edge (matches AnalyticsUtils refined scoring)
+    if (data.containsKey('kellyCriterion')) {
+      double kelly = data['kellyCriterion']!;
+      if (kelly > 0.15) {
+        advancedEdgeScore += 6;
+        advancedEdgeDetails.add(
+            'Kelly Criterion: ${(kelly * 100).toStringAsFixed(1)}% (> 15% Very Strong Edge) [+6]');
+      } else if (kelly > 0.08) {
+        advancedEdgeScore += 4;
+        advancedEdgeDetails.add(
+            'Kelly Criterion: ${(kelly * 100).toStringAsFixed(1)}% (> 8% Strong Edge) [+4]');
+      } else if (kelly > 0) {
+        advancedEdgeScore += 2;
+        advancedEdgeDetails.add(
+            'Kelly Criterion: ${(kelly * 100).toStringAsFixed(1)}% (> 0% Positive Edge) [+2]');
+      } else if (kelly < -0.05) {
+        advancedEdgeScore -= 6;
+        advancedEdgeDetails.add(
+            'Kelly Criterion: ${(kelly * 100).toStringAsFixed(1)}% (< -5% Negative Edge) [-6]');
+      }
+    }
+    if (data.containsKey('ulcerIndex')) {
+      double ui = data['ulcerIndex']!;
+      if (ui < 0.03) {
+        advancedEdgeScore += 4;
+        advancedEdgeDetails.add(
+            'Ulcer Index: ${(ui * 100).toStringAsFixed(1)}% (< 3% Very Low Stress) [+4]');
+      } else if (ui < 0.08) {
+        advancedEdgeScore += 2;
+        advancedEdgeDetails.add(
+            'Ulcer Index: ${(ui * 100).toStringAsFixed(1)}% (< 8% Low Stress) [+2]');
+      } else if (ui > 0.20) {
+        advancedEdgeScore -= 6;
+        advancedEdgeDetails.add(
+            'Ulcer Index: ${(ui * 100).toStringAsFixed(1)}% (> 20% High Stress) [-6]');
+      } else if (ui > 0.15) {
+        advancedEdgeScore -= 3;
+        advancedEdgeDetails.add(
+            'Ulcer Index: ${(ui * 100).toStringAsFixed(1)}% (> 15% Moderate Stress) [-3]');
+      }
+    }
+    if (data.containsKey('tailRatio')) {
+      double tr = data['tailRatio']!;
+      if (tr > 1.3) {
+        advancedEdgeScore += 5;
+        advancedEdgeDetails.add(
+            'Tail Ratio: ${tr.toStringAsFixed(2)} (> 1.3 Strong Positive Skew) [+5]');
+      } else if (tr > 1.0) {
+        advancedEdgeScore += 2;
+        advancedEdgeDetails.add(
+            'Tail Ratio: ${tr.toStringAsFixed(2)} (> 1.0 Positive Skew) [+2]');
+      } else if (tr < 0.7) {
+        advancedEdgeScore -= 6;
+        advancedEdgeDetails.add(
+            'Tail Ratio: ${tr.toStringAsFixed(2)} (< 0.7 Negative Skew) [-6]');
+      } else if (tr < 0.9) {
+        advancedEdgeScore -= 3;
+        advancedEdgeDetails.add(
+            'Tail Ratio: ${tr.toStringAsFixed(2)} (< 0.9 Slightly Negative) [-3]');
       }
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -2989,7 +3512,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'The Portfolio Health Score starts at a base of 60 and is adjusted based on your portfolio metrics across four key dimensions:',
+                  'The Portfolio Health Score starts at a base of 50 and is adjusted based on your portfolio metrics across five key dimensions:',
                   style: TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 24),
@@ -2998,7 +3521,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   Icons.trending_up,
                   Colors.blue,
                   'Risk-Adjusted Returns',
-                  'Rewards high Sharpe and Sortino ratios. Measures how much return you are getting for each unit of risk taken.',
+                  'Rewards high Sharpe, Sortino, and Omega ratios. Measures return efficiency per unit of risk taken. (Max +35/-15)',
                   riskAdjustedScore,
                   riskAdjustedDetails,
                 ),
@@ -3007,7 +3530,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   Icons.compare_arrows,
                   Colors.purple,
                   'Market Performance',
-                  'Rewards positive Alpha and Information Ratio. Indicates if you are beating the benchmark (SPY, QQQ, etc.).',
+                  'Rewards positive Alpha and Information Ratio. Shows consistent outperformance vs benchmark. (Max +20/-15)',
                   marketPerformanceScore,
                   marketPerformanceDetails,
                 ),
@@ -3016,7 +3539,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   Icons.shield,
                   Colors.orange,
                   'Risk Management',
-                  'Penalizes high Drawdowns, extreme Beta, and excessive Volatility relative to the market.',
+                  'Evaluates drawdowns, volatility, Beta, VaR/CVaR tail risk, and diversification benefit. (Max +20/-40)',
                   riskManagementScore,
                   riskManagementDetails,
                 ),
@@ -3025,9 +3548,18 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   Icons.check_circle_outline,
                   Colors.green,
                   'Efficiency & Consistency',
-                  'Rewards high Profit Factor, Win Rate, and Calmar Ratio. Measures the sustainability of your trading strategy.',
+                  'Rewards Profit Factor, Win Rate, Calmar, and positive expectancy. Measures strategy sustainability. (Max +30/-15)',
                   efficiencyScore,
                   efficiencyDetails,
+                ),
+                _buildHealthScoreDetailItem(
+                  context,
+                  Icons.psychology_rounded,
+                  Colors.teal,
+                  'Advanced Risk & Edge',
+                  'Evaluates optimal position sizing (Kelly), stress (Ulcer Index), and return asymmetry (Tail Ratio). (Max +15/-15)',
+                  advancedEdgeScore,
+                  advancedEdgeDetails,
                 ),
                 const SizedBox(height: 24),
                 Container(
@@ -3044,57 +3576,68 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     children: [
                       const Text(
                         'Calculation Summary:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Base Score'),
-                          const Text('60'),
+                          const Text('Base Score',
+                              style: TextStyle(fontSize: 15)),
+                          const Text('50', style: TextStyle(fontSize: 15)),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Adjustments'),
+                          const Text('Adjustments',
+                              style: TextStyle(fontSize: 15)),
                           Text(
                             (riskAdjustedScore +
                                     marketPerformanceScore +
                                     riskManagementScore +
-                                    efficiencyScore)
+                                    efficiencyScore +
+                                    advancedEdgeScore)
                                 .toStringAsFixed(0),
                             style: TextStyle(
                               color: (riskAdjustedScore +
                                           marketPerformanceScore +
                                           riskManagementScore +
-                                          efficiencyScore) >=
+                                          efficiencyScore +
+                                          advancedEdgeScore) >=
                                       0
                                   ? Colors.green
                                   : Colors.red,
                               fontWeight: FontWeight.bold,
+                              fontSize: 15,
                             ),
                           ),
                         ],
                       ),
-                      const Divider(),
+                      const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Total Score',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           Text(
-                            (60 +
-                                    riskAdjustedScore +
-                                    marketPerformanceScore +
-                                    riskManagementScore +
-                                    efficiencyScore)
-                                .clamp(0, 100)
-                                .toStringAsFixed(0),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            data.containsKey('healthScore')
+                                ? data['healthScore'].toStringAsFixed(0)
+                                : (50 +
+                                        riskAdjustedScore +
+                                        marketPerformanceScore +
+                                        riskManagementScore +
+                                        efficiencyScore +
+                                        advancedEdgeScore)
+                                    .clamp(0, 100)
+                                    .toStringAsFixed(0),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                         ],
                       ),
@@ -3195,5 +3738,32 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         ],
       ),
     );
+  }
+
+  String _getHealthScoreGrade(double score) {
+    if (score >= 90) return 'A+';
+    if (score >= 85) return 'A';
+    if (score >= 80) return 'A-';
+    if (score >= 75) return 'B+';
+    if (score >= 70) return 'B';
+    if (score >= 65) return 'B-';
+    if (score >= 60) return 'C+';
+    if (score >= 55) return 'C';
+    if (score >= 50) return 'C-';
+    if (score >= 45) return 'D+';
+    if (score >= 40) return 'D';
+    if (score >= 35) return 'D-';
+    return 'F';
+  }
+
+  String _getHealthScoreLabel(double score) {
+    if (score >= 90) return 'Outstanding';
+    if (score >= 80) return 'Excellent';
+    if (score >= 70) return 'Very Good';
+    if (score >= 60) return 'Good';
+    if (score >= 50) return 'Fair';
+    if (score >= 40) return 'Below Average';
+    if (score >= 30) return 'Poor';
+    return 'Critical';
   }
 }

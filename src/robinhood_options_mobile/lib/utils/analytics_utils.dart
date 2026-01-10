@@ -275,158 +275,266 @@ class AnalyticsUtils {
     double? ulcerIndex,
     double? tailRatio,
   }) {
-    double healthScore = 60.0; // Start with a neutral base
+    double healthScore = 50.0; // Start with neutral base (adjusted from 60)
 
-    // Risk-Adjusted Returns (Max +30, Min -15)
-    if (sharpe > 2.0) {
-      healthScore += 15;
+    // Risk-Adjusted Returns (Max +35, Min -15) - Increased max potential
+    // Sharpe Ratio - Most important risk-adjusted metric
+    if (sharpe > 2.5) {
+      healthScore += 18; // Exceptional
+    } else if (sharpe > 2.0) {
+      healthScore += 15; // Excellent
     } else if (sharpe > 1.5) {
-      healthScore += 12;
+      healthScore += 12; // Very good
     } else if (sharpe > 1.0) {
-      healthScore += 8;
+      healthScore += 9; // Good
     } else if (sharpe > 0.5) {
-      healthScore += 4;
+      healthScore += 5; // Acceptable
+    } else if (sharpe > 0) {
+      healthScore += 2; // Marginally positive
+    } else if (sharpe < -0.5) {
+      healthScore -= 10; // Very poor
     } else if (sharpe < 0) {
-      healthScore -= 10;
+      healthScore -= 5; // Negative
     }
 
-    if (sortino > 2.0) {
-      healthScore += 10;
-    } else if (sortino > 1.0) {
-      healthScore += 5;
+    // Sortino Ratio - Downside-focused risk measure
+    if (sortino > 2.5) {
+      healthScore += 10; // Exceptional downside control
+    } else if (sortino > 1.5) {
+      healthScore += 7; // Very good
+    } else if (sortino > 0.75) {
+      healthScore += 4; // Acceptable
     }
 
-    if (treynor != null && treynor > 0.15) {
-      healthScore += 5; // Reward high excess return per unit of risk
+    // Treynor Ratio - Systematic risk efficiency
+    if (treynor != null) {
+      if (treynor > 0.20) {
+        healthScore += 4; // Excellent
+      } else if (treynor > 0.10) {
+        healthScore += 2; // Good
+      }
     }
 
-    if (omega != null && omega > 2.0) {
-      healthScore += 5; // Excellent probability-weighted returns
+    // Omega Ratio - Probability weighted gains vs losses
+    if (omega != null) {
+      if (omega > 2.5) {
+        healthScore += 5; // Exceptional
+      } else if (omega > 1.5) {
+        healthScore += 3; // Very good
+      } else if (omega < 1.0) {
+        healthScore -= 5; // More losses than gains
+      }
     }
 
-    // Market Performance (Max +20, Min -10)
-    if (alpha > 0.05) {
-      healthScore += 15;
+    // Market Performance (Max +20, Min -15) - Alpha & Outperformance
+    if (alpha > 0.10) {
+      healthScore += 15; // Beating market by >10%
+    } else if (alpha > 0.05) {
+      healthScore += 12; // Beating market by >5%
+    } else if (alpha > 0.02) {
+      healthScore += 8; // Beating market by >2%
     } else if (alpha > 0) {
-      healthScore += 5;
+      healthScore += 4; // Positive alpha
+    } else if (alpha < -0.10) {
+      healthScore -= 10; // Significantly underperforming
     } else if (alpha < -0.05) {
-      healthScore -= 5;
+      healthScore -= 6; // Underperforming
+    } else if (alpha < 0) {
+      healthScore -= 3; // Slightly negative
     }
 
+    // Information Ratio - Consistency of outperformance
     if (informationRatio != null) {
-      if (informationRatio > 0.5) healthScore += 5;
-      if (informationRatio < -0.5) healthScore -= 5;
+      if (informationRatio > 0.75) {
+        healthScore += 5; // Very consistent outperformance
+      } else if (informationRatio > 0.25) {
+        healthScore += 3; // Consistent outperformance
+      } else if (informationRatio < -0.5) {
+        healthScore -= 5; // Consistently underperforming
+      } else if (informationRatio < 0) {
+        healthScore -= 2; // Inconsistent
+      }
     }
 
-    // Risk Management (Max +20, Min -45)
-    if (maxDrawdown < 0.10) {
-      healthScore += 10;
+    // Risk Management (Max +20, Min -40) - Drawdown, volatility, tail risk
+    // Max Drawdown - Most critical risk metric
+    if (maxDrawdown < 0.05) {
+      healthScore += 12; // Exceptional risk control (<5%)
+    } else if (maxDrawdown < 0.10) {
+      healthScore += 8; // Excellent (<10%)
+    } else if (maxDrawdown < 0.15) {
+      healthScore += 4; // Good (<15%)
+    } else if (maxDrawdown > 0.40) {
+      healthScore -= 25; // Catastrophic (>40%)
     } else if (maxDrawdown > 0.30) {
-      healthScore -= 20;
+      healthScore -= 15; // Severe (>30%)
     } else if (maxDrawdown > 0.20) {
-      healthScore -= 10;
+      healthScore -= 8; // High (>20%)
     }
 
+    // Volatility vs Benchmark
     if (volatility != null && benchmarkVolatility != null) {
-      if (volatility < benchmarkVolatility) {
-        healthScore += 5;
-      } else if (volatility > benchmarkVolatility + 0.10) {
-        healthScore -= 5;
+      double volRatio = volatility / benchmarkVolatility;
+      if (volRatio < 0.8) {
+        healthScore += 6; // Much lower volatility than market
+      } else if (volRatio < 1.0) {
+        healthScore += 3; // Lower volatility
+      } else if (volRatio > 1.5) {
+        healthScore -= 8; // 50% more volatile
+      } else if (volRatio > 1.25) {
+        healthScore -= 4; // 25% more volatile
       }
     }
 
-    if (beta > 1.5 || beta < 0.5) {
-      healthScore -= 5; // Penalize extreme beta
+    // Beta - Market sensitivity
+    if (beta > 1.8) {
+      healthScore -= 6; // Very aggressive
+    } else if (beta > 1.5) {
+      healthScore -= 3; // Aggressive
+    } else if (beta < 0.3) {
+      healthScore -= 4; // Too defensive/disconnected
     }
 
+    // Value at Risk (VaR 95%)
     if (var95 != null) {
-      if (var95 < -0.03) {
-        healthScore -= 5; // High daily risk (>3%)
+      if (var95 < -0.04) {
+        healthScore -= 6; // High daily risk (>4%)
       }
-      if (var95 < -0.05) {
-        healthScore -= 5; // Very high daily risk (>5%)
+      if (var95 < -0.06) {
+        healthScore -= 6; // Extreme daily risk (>6%)
       }
     }
 
-    if (cvar95 != null && cvar95 < -0.07) {
-      healthScore -= 5; // Extreme tail risk (>7% expected loss in worst 5%)
+    // Conditional VaR (tail risk)
+    if (cvar95 != null) {
+      if (cvar95 < -0.10) {
+        healthScore -= 8; // Extreme tail risk (>10%)
+      } else if (cvar95 < -0.07) {
+        healthScore -= 4; // High tail risk (>7%)
+      }
     }
 
+    // Correlation - Diversification benefit
     if (correlation != null) {
-      if (correlation < 0.7 && correlation > 0) {
-        healthScore += 5; // Good diversification benefit
-      } else if (correlation > 0.95) {
-        healthScore -= 5; // Too correlated with benchmark
+      if (correlation > 0 && correlation < 0.6) {
+        healthScore += 6; // Excellent diversification
+      } else if (correlation < 0.8) {
+        healthScore += 3; // Good diversification
+      } else if (correlation > 0.98) {
+        healthScore -= 4; // Essentially tracking the index
       }
     }
 
-    // Efficiency & Consistency (Max +25, Min -10)
+    // Efficiency & Consistency (Max +30, Min -15)
+    // Profit Factor - Win/Loss ratio
     if (profitFactor != null) {
-      if (profitFactor > 2.0) {
-        healthScore += 10;
+      if (profitFactor > 3.0) {
+        healthScore += 12; // Exceptional (3:1 win/loss)
+      } else if (profitFactor > 2.0) {
+        healthScore += 9; // Excellent (2:1)
       } else if (profitFactor > 1.5) {
-        healthScore += 7;
+        healthScore += 6; // Very good (1.5:1)
       } else if (profitFactor > 1.2) {
-        healthScore += 4;
+        healthScore += 3; // Good
+      } else if (profitFactor < 0.9) {
+        healthScore -= 12; // Losing money
       } else if (profitFactor < 1.0) {
-        healthScore -= 10;
+        healthScore -= 6; // Break-even or slight loss
       }
     }
 
+    // Win Rate - Consistency
     if (winRate != null) {
-      if (winRate > 0.60) {
-        healthScore += 10;
+      if (winRate > 0.65) {
+        healthScore += 8; // Very consistent
+      } else if (winRate > 0.55) {
+        healthScore += 5; // Consistent
       } else if (winRate > 0.50) {
-        healthScore += 5;
-      } else if (winRate < 0.40) {
-        healthScore -= 5;
+        healthScore += 2; // Slightly above average
+      } else if (winRate < 0.35) {
+        healthScore -= 6; // Very inconsistent
+      } else if (winRate < 0.45) {
+        healthScore -= 3; // Below average
       }
     }
 
+    // Calmar Ratio - Return/Drawdown efficiency
     if (calmar != null) {
-      if (calmar > 1.0) healthScore += 5;
-    }
-
-    if (payoffRatio != null) {
-      if (payoffRatio > 2.0) {
-        healthScore += 5;
-      } else if (payoffRatio < 0.8) {
-        healthScore -= 5;
+      if (calmar > 2.0) {
+        healthScore += 6; // Exceptional
+      } else if (calmar > 1.0) {
+        healthScore += 3; // Good
+      } else if (calmar < 0) {
+        healthScore -= 3; // Negative returns
       }
     }
 
-    if (expectancy != null && expectancy > 0) {
-      healthScore += 5;
+    // Payoff Ratio - Avg Win/Avg Loss
+    if (payoffRatio != null) {
+      if (payoffRatio > 2.5) {
+        healthScore += 5; // Excellent asymmetry
+      } else if (payoffRatio > 1.5) {
+        healthScore += 3; // Good
+      } else if (payoffRatio < 0.7) {
+        healthScore -= 4; // Losses bigger than wins
+      }
     }
 
-    if (maxLossStreak != null && maxLossStreak > 5) {
-      healthScore -= 5;
+    // Expectancy - Mathematical edge
+    if (expectancy != null) {
+      if (expectancy > 0) {
+        healthScore += 4; // Positive edge
+      } else {
+        healthScore -= 4; // No edge
+      }
+    }
+
+    // Loss Streaks
+    if (maxLossStreak != null) {
+      if (maxLossStreak > 7) {
+        healthScore -= 5; // Concerning pattern
+      } else if (maxLossStreak > 5) {
+        healthScore -= 2;
+      }
     }
 
     // Advanced Risk & Edge (Max +15, Min -15)
+    // Kelly Criterion - Optimal position sizing
     if (kellyCriterion != null) {
-      if (kellyCriterion > 0.10) {
-        healthScore += 5; // Strong edge
+      if (kellyCriterion > 0.15) {
+        healthScore += 6; // Very strong edge
+      } else if (kellyCriterion > 0.08) {
+        healthScore += 4; // Strong edge
       } else if (kellyCriterion > 0) {
         healthScore += 2; // Positive edge
-      } else {
-        healthScore -= 5; // Negative edge
+      } else if (kellyCriterion < -0.05) {
+        healthScore -= 6; // Negative edge
       }
     }
 
+    // Ulcer Index - Stress/drawdown depth
     if (ulcerIndex != null) {
-      if (ulcerIndex < 0.05) {
-        healthScore += 5; // Low stress
+      if (ulcerIndex < 0.03) {
+        healthScore += 4; // Very low stress
+      } else if (ulcerIndex < 0.08) {
+        healthScore += 2; // Low stress
+      } else if (ulcerIndex > 0.20) {
+        healthScore -= 6; // High stress
       } else if (ulcerIndex > 0.15) {
-        healthScore -= 5; // High stress
+        healthScore -= 3; // Moderate stress
       }
     }
 
+    // Tail Ratio - Upside vs downside extremes
     if (tailRatio != null) {
-      if (tailRatio > 1.1) {
-        healthScore += 5; // Good upside skew
+      if (tailRatio > 1.3) {
+        healthScore += 5; // Strong positive skew
+      } else if (tailRatio > 1.0) {
+        healthScore += 2; // Positive skew
+      } else if (tailRatio < 0.7) {
+        healthScore -= 6; // Negative skew (bad tails)
       } else if (tailRatio < 0.9) {
-        healthScore -= 5; // Bad downside skew
+        healthScore -= 3; // Slightly negative skew
       }
     }
 

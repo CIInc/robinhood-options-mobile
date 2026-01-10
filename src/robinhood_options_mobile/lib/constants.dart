@@ -73,6 +73,8 @@ const totalValueFontSize = 24.0;
 const assetValueFontSize = 22.0;
 const positionValueFontSize = 21.0;
 
+const portfolioValueFontSize = 20.0;
+
 const summaryValueFontSize = 18.0;
 const summaryLabelFontSize = 9.0;
 const summaryEgdeInset = 10.0;
