@@ -71,6 +71,34 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           forexHoldingStore,
           portfolioCash);
 
+      // Only show charts when all stores have finished loading
+      if (stockPositionStore.isLoading ||
+          optionPositionStore.isLoading ||
+          forexHoldingStore.isLoading) {
+        // Show loading indicator while waiting for data to load
+        return SizedBox(
+          height: 300,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading allocation data...',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       if (totalAssets == 0) {
         return const SizedBox.shrink();
       }

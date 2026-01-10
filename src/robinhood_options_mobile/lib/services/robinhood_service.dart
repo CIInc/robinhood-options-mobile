@@ -1334,58 +1334,64 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     bool nonzero = true,
     DocumentReference? userDoc,
   }) async {
-    var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
-    //debugPrint(results);
-    await for (final results in pageStream) {
-      for (var i = 0; i < results.length; i++) {
-        var result = results[i];
-        var op = InstrumentPosition.fromJson(result);
+    store.setLoading(true);
+    try {
+      var pageStream =
+          streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
+      //debugPrint(results);
+      await for (final results in pageStream) {
+        for (var i = 0; i < results.length; i++) {
+          var result = results[i];
+          var op = InstrumentPosition.fromJson(result);
 
-        //if ((withQuantity && op.quantity! > 0) ||
-        //    (!withQuantity && op.quantity == 0)) {
-        store.addOrUpdate(op);
-        if (userDoc != null) {
-          _firestoreService.upsertInstrumentPosition(op, userDoc);
-        }
-      }
-      var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-      var instrumentObjs =
-          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-      for (var instrumentObj in instrumentObjs) {
-        var position = store.items
-            .firstWhere((element) => element.instrumentId == instrumentObj.id);
-        position.instrumentObj = instrumentObj;
-        store.update(position);
-      }
-      var symbols = store.items
-          .where((e) =>
-              e.instrumentObj !=
-              null) // Figure out why in certain conditions, instrumentObj is null
-          .map((e) => e.instrumentObj!.symbol)
-          .toList();
-      // Remove old quotes (that would be returned from cache) to get current ones
-      quoteStore.removeAll();
-      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-      for (var quoteObj in quoteObjs) {
-        // Update Position
-        var position = store.items.firstWhere(
-            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-        if (position.instrumentObj!.quoteObj == null ||
-            position.instrumentObj!.quoteObj!.updatedAt!
-                .isBefore(quoteObj.updatedAt!)) {
-          position.instrumentObj!.quoteObj = quoteObj;
-          store.update(position);
-          // Update Instrument
-          instrumentStore.update(position.instrumentObj!);
+          //if ((withQuantity && op.quantity! > 0) ||
+          //    (!withQuantity && op.quantity == 0)) {
+          store.addOrUpdate(op);
           if (userDoc != null) {
-            _firestoreService.upsertInstrument(position.instrumentObj!);
-            debugPrint(
-                'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+            _firestoreService.upsertInstrumentPosition(op, userDoc);
+          }
+        }
+        var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+        var instrumentObjs =
+            await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+        for (var instrumentObj in instrumentObjs) {
+          var position = store.items.firstWhere(
+              (element) => element.instrumentId == instrumentObj.id);
+          position.instrumentObj = instrumentObj;
+          store.update(position);
+        }
+        var symbols = store.items
+            .where((e) =>
+                e.instrumentObj !=
+                null) // Figure out why in certain conditions, instrumentObj is null
+            .map((e) => e.instrumentObj!.symbol)
+            .toList();
+        // Remove old quotes (that would be returned from cache) to get current ones
+        quoteStore.removeAll();
+        var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+        for (var quoteObj in quoteObjs) {
+          // Update Position
+          var position = store.items.firstWhere(
+              (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+          if (position.instrumentObj!.quoteObj == null ||
+              position.instrumentObj!.quoteObj!.updatedAt!
+                  .isBefore(quoteObj.updatedAt!)) {
+            position.instrumentObj!.quoteObj = quoteObj;
+            store.update(position);
+            // Update Instrument
+            instrumentStore.update(position.instrumentObj!);
+            if (userDoc != null) {
+              _firestoreService.upsertInstrument(position.instrumentObj!);
+              debugPrint(
+                  'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+            }
           }
         }
       }
+      return store;
+    } finally {
+      store.setLoading(false);
     }
-    return store;
   }
 
   // Stream<InstrumentPositionStore> streamStockPositionStore(
@@ -2621,85 +2627,90 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     bool nonzero = true,
     DocumentReference? userDoc,
   }) async {
-    List<OptionAggregatePosition> ops =
-        await getAggregateOptionPositions(user, nonzero: nonzero);
-    for (var op in ops) {
-      store.addOrUpdate(op);
-    }
-    store.sort();
-
-    var len = ops.length;
-    var size = 25; //20; //15; //17;
-    List<List<OptionAggregatePosition>> chunks = [];
-    for (var i = 0; i < len; i += size) {
-      var end = (i + size < len) ? i + size : len;
-      chunks.add(ops.sublist(i, end));
-    }
-    for (var chunk in chunks) {
-      var optionIds = chunk.map((e) {
-        var splits = e.legs.first.option.split("/");
-        return splits[splits.length - 2];
-      })
-          //.toSet()
-          .toList();
-
-      var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
-
-      for (var optionInstrument in optionInstruments) {
-        var optionPosition = ops.singleWhere((element) {
-          var splits = element.legs.first.option.split("/");
-          return splits[splits.length - 2] == optionInstrument.id;
-        });
-
-        optionPosition.optionInstrument = optionInstrument;
+    store.setLoading(true);
+    try {
+      List<OptionAggregatePosition> ops =
+          await getAggregateOptionPositions(user, nonzero: nonzero);
+      for (var op in ops) {
+        store.addOrUpdate(op);
       }
+      store.sort();
 
-      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+      var len = ops.length;
+      var size = 25; //20; //15; //17;
+      List<List<OptionAggregatePosition>> chunks = [];
+      for (var i = 0; i < len; i += size) {
+        var end = (i + size < len) ? i + size : len;
+        chunks.add(ops.sublist(i, end));
+      }
+      for (var chunk in chunks) {
+        var optionIds = chunk.map((e) {
+          var splits = e.legs.first.option.split("/");
+          return splits[splits.length - 2];
+        })
+            //.toSet()
+            .toList();
 
-      for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = ops.singleWhere((element) {
-          var splits = element.legs.first.option.split("/");
-          return splits[splits.length - 2] == optionMarketDatum.instrumentId;
-        });
+        var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
 
-        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        //optionPosition.marketData = optionMarketDatum;
+        for (var optionInstrument in optionInstruments) {
+          var optionPosition = ops.singleWhere((element) {
+            var splits = element.legs.first.option.split("/");
+            return splits[splits.length - 2] == optionInstrument.id;
+          });
 
-        // Link OptionPosition to Instrument and vice-versa.
-        var instrument = await getInstrumentBySymbol(
-            user, instrumentStore, optionPosition.symbol);
-        optionPosition.instrumentObj = instrument;
-        /*
-        if (instrument!.optionPositions == null) {
-          instrument.optionPositions = [];
+          optionPosition.optionInstrument = optionInstrument;
         }
-        instrument.optionPositions!.add(optionPosition);
-        */
 
-        /*
-        ops.sort((a, b) {
-          int comp = a.legs.first.expirationDate!
-              .compareTo(b.legs.first.expirationDate!);
-          if (comp != 0) return comp;
-          return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-        });
-        */
+        var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
-        // Update store
-        store.update(optionPosition);
+        for (var optionMarketDatum in optionMarketData) {
+          var optionPosition = ops.singleWhere((element) {
+            var splits = element.legs.first.option.split("/");
+            return splits[splits.length - 2] == optionMarketDatum.instrumentId;
+          });
+
+          optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+          //optionPosition.marketData = optionMarketDatum;
+
+          // Link OptionPosition to Instrument and vice-versa.
+          var instrument = await getInstrumentBySymbol(
+              user, instrumentStore, optionPosition.symbol);
+          optionPosition.instrumentObj = instrument;
+          /*
+          if (instrument!.optionPositions == null) {
+            instrument.optionPositions = [];
+          }
+          instrument.optionPositions!.add(optionPosition);
+          */
+
+          /*
+          ops.sort((a, b) {
+            int comp = a.legs.first.expirationDate!
+                .compareTo(b.legs.first.expirationDate!);
+            if (comp != 0) return comp;
+            return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+          });
+          */
+
+          // Update store
+          store.update(optionPosition);
+        }
       }
+
+      // Load logos from cache.
+      for (var op in ops) {
+        if (logoUrls.containsKey(op.symbol)) {
+          op.logoUrl = logoUrls[op.symbol];
+        }
+        if (userDoc != null) {
+          _firestoreService.upsertOptionPosition(op, userDoc);
+        }
+      }
+      return store;
+    } finally {
+      store.setLoading(false);
     }
-
-    // Load logos from cache.
-    for (var op in ops) {
-      if (logoUrls.containsKey(op.symbol)) {
-        op.logoUrl = logoUrls[op.symbol];
-      }
-      if (userDoc != null) {
-        _firestoreService.upsertOptionPosition(op, userDoc);
-      }
-    }
-    return store;
   }
 
   @override
@@ -3134,32 +3145,37 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     bool nonzero = true,
     DocumentReference? userDoc,
   }) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero");
-    var quotes = await getForexPairs(user);
-    List<ForexHolding> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = ForexHolding.fromJson(result);
-      for (var j = 0; j < quotes.length; j++) {
-        var quote = quotes[j];
-        var assetCurrencyId = quote['asset_currency']['id'];
-        if (assetCurrencyId == op.currencyId) {
-          //op.quote = quotes['results'][j];
+    store.setLoading(true);
+    try {
+      var results = await RobinhoodService.pagedGet(
+          user, "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero");
+      var quotes = await getForexPairs(user);
+      List<ForexHolding> list = [];
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var op = ForexHolding.fromJson(result);
+        for (var j = 0; j < quotes.length; j++) {
+          var quote = quotes[j];
+          var assetCurrencyId = quote['asset_currency']['id'];
+          if (assetCurrencyId == op.currencyId) {
+            //op.quote = quotes['results'][j];
 
-          var quoteObj = await getForexQuote(user, quote['id']);
-          op.quoteObj = quoteObj;
-          break;
+            var quoteObj = await getForexQuote(user, quote['id']);
+            op.quoteObj = quoteObj;
+            break;
+          }
+        }
+        list.add(op);
+        store.addOrUpdate(op);
+        if (userDoc != null) {
+          _firestoreService.upsertForexPosition(op, userDoc);
         }
       }
-      list.add(op);
-      store.addOrUpdate(op);
-      if (userDoc != null) {
-        _firestoreService.upsertForexPosition(op, userDoc);
-      }
-    }
 
-    return list;
+      return list;
+    } finally {
+      store.setLoading(false);
+    }
   }
 
   @override

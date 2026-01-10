@@ -6,10 +6,21 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 class OptionPositionStore extends ChangeNotifier {
   /// Internal, private state of the store.
   final List<OptionAggregatePosition> _items = [];
+  bool _isLoading = false;
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<OptionAggregatePosition> get items =>
       UnmodifiableListView(_items);
+
+  bool get isLoading => _isLoading;
+
+  void setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      // Defer notification to avoid errors during build phase
+      Future.microtask(() => notifyListeners());
+    }
+  }
 
   double get equity => _items.isNotEmpty
       ? _items

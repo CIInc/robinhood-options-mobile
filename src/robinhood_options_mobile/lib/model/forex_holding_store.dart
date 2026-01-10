@@ -6,9 +6,20 @@ import 'package:robinhood_options_mobile/model/forex_holding.dart';
 class ForexHoldingStore extends ChangeNotifier {
   /// Internal, private state of the store.
   final List<ForexHolding> _items = [];
+  bool _isLoading = false;
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<ForexHolding> get items => UnmodifiableListView(_items);
+
+  bool get isLoading => _isLoading;
+
+  void setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      // Defer notification to avoid errors during build phase
+      Future.microtask(() => notifyListeners());
+    }
+  }
 
   double get equity => _items.isNotEmpty
       ? _items.map((e) => e.marketValue).reduce((a, b) => a + b)

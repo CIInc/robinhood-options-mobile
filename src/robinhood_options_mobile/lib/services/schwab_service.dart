@@ -930,36 +930,41 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       QuoteStore quoteStore,
       {bool nonzero = true,
       DocumentReference? userDoc}) async {
-    // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-    // var instrumentObjs =
-    //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-    // for (var instrumentObj in instrumentObjs) {
-    //   var position = store.items
-    //       .firstWhere((element) => element.instrumentId == instrumentObj.id);
-    //   position.instrumentObj = instrumentObj;
-    //   store.update(position);
-    // }
-    var symbols = store.items
-        .where((e) =>
-            e.instrumentObj !=
-            null) // Figure out why in certain conditions, instrumentObj is null
-        .map((e) => e.instrumentObj!.symbol)
-        .toList();
-    // Remove old quotes (that would be returned from cache) to get current ones
-    // Added Future to ensure that the state doesn't get refreshed during the build producing the error below:
-    // FlutterError (setState() or markNeedsBuild() called during build. This _InheritedProviderScope<QuoteStore?> widget cannot be marked as needing to build because the framework is already in the process of building widgets.
-    await Future.delayed(Duration.zero, () async {
-      quoteStore.removeAll();
-    });
-    var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-    for (var quoteObj in quoteObjs) {
-      var position = store.items.firstWhere((element) =>
-          element.instrumentObj != null &&
-          element.instrumentObj!.symbol == quoteObj.symbol);
-      position.instrumentObj!.quoteObj = quoteObj;
-      store.update(position);
+    store.setLoading(true);
+    try {
+      // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+      // var instrumentObjs =
+      //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+      // for (var instrumentObj in instrumentObjs) {
+      //   var position = store.items
+      //       .firstWhere((element) => element.instrumentId == instrumentObj.id);
+      //   position.instrumentObj = instrumentObj;
+      //   store.update(position);
+      // }
+      var symbols = store.items
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
+          .map((e) => e.instrumentObj!.symbol)
+          .toList();
+      // Remove old quotes (that would be returned from cache) to get current ones
+      // Added Future to ensure that the state doesn't get refreshed during the build producing the error below:
+      // FlutterError (setState() or markNeedsBuild() called during build. This _InheritedProviderScope<QuoteStore?> widget cannot be marked as needing to build because the framework is already in the process of building widgets.
+      await Future.delayed(Duration.zero, () async {
+        quoteStore.removeAll();
+      });
+      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+      for (var quoteObj in quoteObjs) {
+        var position = store.items.firstWhere((element) =>
+            element.instrumentObj != null &&
+            element.instrumentObj!.symbol == quoteObj.symbol);
+        position.instrumentObj!.quoteObj = quoteObj;
+        store.update(position);
+      }
+      return store;
+    } finally {
+      store.setLoading(false);
     }
-    return store;
   }
 
   @override

@@ -2,6 +2,67 @@
 
 The Portfolio Analytics dashboard provides a comprehensive suite of advanced financial metrics to help you understand the risk and return characteristics of your portfolio. It goes beyond simple gain/loss numbers to give you professional-grade insights.
 
+## Interactive Documentation & Help System
+
+### In-App Help Menu
+Access comprehensive documentation directly within the app through the **Help** menu (top-right corner):
+
+- **Quick Guide**: Step-by-step introduction to using portfolio analytics
+  - Getting started with benchmark selection
+  - Reading and interpreting metrics
+  - Understanding key thresholds
+  - Taking action based on insights
+
+- **All Definitions**: Complete reference of every metric, organized by category:
+  - **Interactive Cards**: Tap metrics with "Tips" badge for detailed examples
+  - Risk-Adjusted Returns (Sharpe, Sortino, Treynor, etc.)
+  - Market Comparison (Alpha, Beta, Correlation)
+  - Risk Metrics (Max Drawdown, Volatility, VaR)
+  - Advanced Edge Metrics (Kelly Criterion, Tail Ratio)
+  - Daily Return Stats (Win Rate, Profit Factor)
+
+- **Benchmark Guide**: Visual guide explaining when to use each benchmark:
+  - SPY (S&P 500) - Large-cap growth
+  - QQQ (Nasdaq 100) - Tech/growth focused
+  - DIA (Dow Jones) - Blue-chip, dividend portfolios
+  - IWM (Russell 2000) - Small-cap investing
+  - **Active Indicator**: Shows which benchmark is currently selected
+
+- **Health Score Info**: Detailed breakdown of how your portfolio health score is calculated
+
+### Deep Metric Insights
+Selected metrics feature enhanced detail views accessible by tapping on cards with the "Tips" badge:
+
+- **Real-World Examples**: Concrete scenarios illustrating what metric values mean
+  - "A Sharpe of 2.5 means you earn 2.5% excess return for every 1% of risk taken"
+  - "Alpha of 5% means you outperformed the benchmark by 5% annually"
+
+- **Performance Thresholds**: Visual color-coded indicators showing:
+  - 🟢 Excellent performance levels
+  - 🟠 Acceptable performance levels
+  - 🔴 Areas needing improvement
+
+- **Pro Tips**: Actionable advice for improving each metric:
+  - "Diversification and position sizing can improve your Sharpe ratio"
+  - "Use stop-losses and position sizing to limit maximum drawdown"
+  - "High win rate with low payoff ratio can still be profitable"
+
+### Interactive Tooltips
+Every metric features enhanced tooltips with:
+- **Bold metric name** for quick identification
+- **Detailed definition** explaining what it measures
+- **Visual formatting** with proper spacing and readability
+- **Extended display time** (8 seconds) for comfortable reading
+- **Rich text styling** with multiple font weights and sizes
+
+### Contextual Help
+Throughout the interface:
+- **Browse by Category**: Organized sections for easy navigation
+- Tap any metric to see its definition
+- Long-press for extended tooltip display
+- Visual indicators (green/red) show good vs. concerning values
+- Smart insights provide actionable recommendations
+
 ## Key Features
 
 ### 1. Benchmark Comparison
@@ -60,7 +121,7 @@ Quantify the potential downside.
 Sophisticated metrics to evaluate the statistical edge of your trading strategy.
 
 - **Kelly Criterion**: The optimal position size percentage based on your win rate and payoff ratio to maximize long-term wealth growth. A positive value indicates a mathematical edge.
-- **Ulcer Index**: Measures the depth and duration of drawdowns. Unlike standard deviation, it only penalizes downside volatility. Lower is better (e.g., < 0.05 is low stress).
+- **Ulcer Index**: Measures the depth and duration of drawdowns . Unlike standard deviation, it only penalizes downside volatility. Lower is better (e.g., < 0.05 or 5% is low stress).
 - **Tail Ratio**: The ratio of the 95th percentile return to the 5th percentile loss. A value > 1 indicates that your big wins are larger than your big losses (positive skew).
 
 ### 7. Daily Return Stats
@@ -87,5 +148,50 @@ The dashboard includes the **[Risk Heatmap](risk-heatmap.md)**, allowing you to 
 ### 10. Tax Optimization
 - **[Tax Loss Harvesting](tax-loss-harvesting.md)**: An integrated tool that identifies opportunities to realize losses to offset gains. It features seasonality awareness (highlighting urgency near year-end) and smart visibility to keep your dashboard focused.
 
+## Using the Help System
+
+### Quick Start
+1. **Open Portfolio Analytics** from the main navigation
+2. **Tap the Help icon** (question mark) in the top-right corner
+3. **Choose "Quick Guide"** for a comprehensive introduction
+4. **Review key thresholds** to understand what makes a good vs. bad metric
+
+### Learning Path
+- **Beginners**: Start with Quick Guide → Benchmark Guide → Health Score Info
+- **Intermediate**: Focus on All Definitions and explore each category
+- **Advanced**: Use tooltips for quick reference while analyzing specific metrics
+
+### Tips for Best Results
+- **Select the right benchmark**: Match your portfolio's investment style
+  - Growth/Tech → QQQ
+  - Balanced/Large-cap → SPY
+  - Conservative/Dividend → DIA
+  - Small-cap → IWM
+- **Monitor Health Score**: Aim for 60+ (Good) or 80+ (Excellent)
+- **Review Smart Insights**: Color-coded by priority (red = urgent, orange = moderate, green = positive)
+- **Use tooltips liberally**: Each metric has detailed explanations accessible with a tap
+- **Check definitions by category**: Organized into logical groups for easier learning
+
+## Metric Categories Explained
+
+### Risk-Adjusted Returns
+Evaluate if your returns justify the risks taken. Higher is generally better.
+
+### Market Comparison  
+Understand how your portfolio performs relative to the broader market.
+
+### Risk Metrics
+Quantify potential downside and volatility exposure.
+
+### Advanced Edge Metrics
+Sophisticated indicators of your strategy's statistical advantage.
+
+### Daily Return Stats
+Granular performance metrics based on day-to-day portfolio changes.
+
 ## Definitions Guide
-Unsure what a metric means? Tap the **Info (i)** icon in the header to view a built-in glossary with simple definitions for all supported metrics.
+Access the complete, categorized glossary by tapping the Help icon and selecting "All Definitions". Each definition includes:
+- What the metric measures
+- How to interpret it
+- Good vs. bad threshold values
+- Practical implications for your portfolio

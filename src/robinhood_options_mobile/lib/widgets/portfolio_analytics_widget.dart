@@ -63,46 +63,105 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
   static const Map<String, String> definitions = {
     'Sharpe':
-        'A measure of risk-adjusted return. Higher is better. >1 is good, >2 is very good.',
+        'Risk-adjusted return metric. Shows how much excess return you earn per unit of risk.\n\n✓ >2.0: Excellent  ✓ >1.0: Good  ✗ <0: Negative returns',
     'Sortino':
-        'Similar to Sharpe, but only penalizes downside volatility. Useful for asymmetric return distributions.',
+        'Like Sharpe, but only penalizes downside volatility. Better for asymmetric strategies.\n\n✓ >2.0: Excellent  ✓ >1.0: Good  Focuses on downside risk only',
     'Treynor':
-        'Excess return per unit of systematic risk (Beta). Useful for well-diversified portfolios.',
+        'Excess return per unit of systematic risk (Beta). Best for diversified portfolios.\n\n✓ >0.15: Excellent  ✓ >0.05: Good  Higher = Better risk-adjusted returns',
     'Info Ratio':
-        'Measures portfolio returns beyond the returns of a benchmark, compared to the volatility of those returns (Tracking Error).',
+        'Measures consistent outperformance vs. benchmark. Active management skill indicator.\n\n✓ >0.5: Good  ✓ >0: Positive  Negative = Underperforming inconsistently',
     'Calmar':
-        'Annualized return divided by Maximum Drawdown. Measures return relative to downside risk.',
+        'Annual return ÷ Max Drawdown. Shows return efficiency relative to worst-case loss.\n\n✓ >3.0: Exceptional  ✓ >0.5: Acceptable  Higher = Better recovery',
     'Omega':
-        'Probability weighted ratio of gains vs losses for a threshold return target. >1 indicates more gains than losses.',
+        'Probability-weighted gains vs. losses ratio. Captures full return distribution.\n\n✓ >2.0: Excellent  ✓ >1.0: Profitable  Must be >1.0 to be positive',
     'Beta':
-        'Volatility relative to the market (Benchmark). 1.0 means same volatility as market. >1 is more volatile.',
+        'Market volatility multiplier. Shows portfolio sensitivity to market moves.\n\n⚡ >1.2: Aggressive  ⚖ 0.8-1.2: Balanced  🛡 <0.8: Defensive',
     'Alpha':
-        'Excess return relative to the market benchmark. Positive alpha indicates outperformance.',
+        'True outperformance beyond what Beta predicts. The holy grail of investing.\n\n✓ >5%: Excellent  ✓ >0%: Positive  ✗ <0%: Underperforming',
     'Excess Return':
-        'The difference between the portfolio return and the benchmark return.',
+        'Portfolio return minus benchmark return. Simple outperformance measure.\n\n✓ >0%: Outperforming  = 0%: Matching  ✗ <0%: Underperforming',
     'Max Drawdown':
-        'The maximum observed loss from a peak to a trough of a portfolio.',
+        'Largest peak-to-trough loss. Your worst-case scenario experience.\n\n✓ <10%: Low risk  ⚠ <20%: Moderate  ✗ >30%: High risk - Review stops',
     'Volatility':
-        'Annualized standard deviation of returns. A measure of risk.',
+        'Annualized return swings (std dev). How bumpy the ride is.\n\n🎢 Higher = Wilder swings  🚂 Lower = Smoother ride  Compare to benchmark',
     'Correlation':
-        'Measures how closely the portfolio moves with the benchmark. 1.0 means perfect positive correlation, -1.0 means perfect negative correlation.',
+        'How closely you track the market. Diversification indicator.\n\n⚠ >0.9: High - Consider diversifying  ✓ 0.5-0.8: Moderate  ⬇ <0: Inverse',
     'VaR (95%)':
-        'The maximum loss expected over a day with 95% confidence. E.g., -2% means there is a 5% chance of losing more than 2% in a day.',
+        'Value at Risk: Max expected 1-day loss (95% confidence). Tail risk metric.\n\nExample: -2% = 5% chance of losing >2% in a day  ⚠ Watch for spikes',
     'CVaR (95%)':
-        'Conditional Value at Risk (Expected Shortfall). The average loss expected given that the loss is greater than the VaR threshold.',
+        'Expected Shortfall: Average loss when VaR is breached. True tail risk.\n\n⚠ Shows "black swan" severity  Always worse than VaR  Critical for risk mgmt',
     'Profit Factor':
-        'Gross Profit divided by Gross Loss. > 1.0 means profitable. > 1.5 is good.',
-    'Win Rate': 'Percentage of days with a positive return.',
+        'Gross Profits ÷ Gross Losses. The profitability multiplier.\n\n✓ >2.0: Highly profitable  ✓ >1.5: Good  ✓ >1.0: Profitable  ✗ <1.0: Losing',
+    'Win Rate':
+        'Percentage of winning days. Consistency indicator.\n\n✓ >65%: High consistency  ✓ >50%: Above average  ⚠ <40%: Low - Need high payoff',
     'Expectancy':
-        'Average amount you can expect to win (or lose) per day/trade.',
+        'Average \$ per day/trade. Your mathematical edge.\n\n✓ >0: Positive edge  ✗ <0: Negative edge  Must be positive long-term',
     'Payoff Ratio':
-        'Average Win divided by Average Loss. Measures the size of your wins relative to your losses.',
+        'Avg Win ÷ Avg Loss. Win/loss size comparison.\n\n✓ >2.0: Large winners  ✓ >1.0: Wins bigger than losses  ⚠ <1.0: Losses cut gains',
     'Kelly Criterion':
-        'Optimal position size percentage based on win rate and payoff ratio. >0 indicates a positive edge.',
+        'Optimal position size for max long-term growth. Risk management tool.\n\n✓ >0: Mathematical edge  Use 1/4 to 1/2 Kelly in practice  ⚠ Full Kelly = risky',
     'Ulcer Index':
-        'Measures the depth and duration of drawdowns. Lower is better. <0.05 is low stress.',
+        'Drawdown depth × duration. Emotional stress measure.\n\n✓ <5%: Low stress  ⚠ <10%: Moderate  ✗ >15%: High anxiety - Review strategy',
     'Tail Ratio':
-        'Ratio of the 95th percentile return to the 5th percentile loss. >1 indicates larger upside tails than downside tails.',
+        'Big gains vs. big losses ratio. Asymmetry indicator.\n\n✓ >1.0: Positive skew (good!)  = 1.0: Symmetric  ✗ <1.0: Negative skew (bad)',
+    'Max Win Streak':
+        'Longest consecutive winning days. Momentum & consistency indicator.\n\n🔥 Higher = Better  Signals favorable market conditions  Track for confidence',
+    'Max Loss Streak':
+        'Longest consecutive losing days. Resilience & risk control test.\n\n⚠ >5 days: Review strategy  Lower = Better risk mgmt  🛑 Consider stops',
+  };
+
+  static const Map<String, Map<String, dynamic>> metricGuidance = {
+    'Sharpe': {
+      'goodThreshold': 2.0,
+      'acceptableThreshold': 1.0,
+      'example':
+          'A Sharpe of 2.5 means you earn 2.5% excess return for every 1% of risk taken.',
+      'tip':
+          'Diversification and position sizing can improve your Sharpe ratio.',
+    },
+    'Sortino': {
+      'goodThreshold': 2.0,
+      'acceptableThreshold': 1.0,
+      'example':
+          'Sortino of 3.0 means excellent returns with minimal downside volatility.',
+      'tip':
+          'Focus on reducing losses rather than limiting upside to improve Sortino.',
+    },
+    'Alpha': {
+      'goodThreshold': 0.05,
+      'acceptableThreshold': 0.0,
+      'example':
+          'Alpha of 5% means you outperformed the benchmark by 5% annually.',
+      'tip': 'Positive alpha suggests skill or strategy beyond market returns.',
+    },
+    'Beta': {
+      'goodThreshold': 0.8,
+      'acceptableThreshold': 1.2,
+      'example':
+          'Beta of 1.5 means your portfolio moves 50% more than the market.',
+      'tip': 'Lower beta = more defensive, higher beta = more aggressive.',
+    },
+    'Max Drawdown': {
+      'goodThreshold': 0.10,
+      'acceptableThreshold': 0.20,
+      'example':
+          'A 25% drawdown means your portfolio fell 25% from peak to trough.',
+      'tip': 'Use stop-losses and position sizing to limit maximum drawdown.',
+      'reverse': true,
+    },
+    'Win Rate': {
+      'goodThreshold': 0.60,
+      'acceptableThreshold': 0.50,
+      'example':
+          'Win rate of 65% means 65% of your trading days were profitable.',
+      'tip': 'High win rate with low payoff ratio can still be profitable.',
+    },
+    'Profit Factor': {
+      'goodThreshold': 1.5,
+      'acceptableThreshold': 1.0,
+      'example': 'Profit factor of 2.0 means you made \$2 for every \$1 lost.',
+      'tip': 'Above 1.0 is profitable, above 1.5 is considered strong.',
+    },
   };
 
   @override
@@ -1074,10 +1133,65 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.info_outline),
-                onPressed: () => _showInfoDialog(context),
-                tooltip: 'Definitions',
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.help_outline),
+                tooltip: 'Help & Documentation',
+                onSelected: (value) {
+                  switch (value) {
+                    case 'definitions':
+                      _showEnhancedInfoDialog(context);
+                      break;
+                    case 'quick_guide':
+                      _showQuickGuide(context);
+                      break;
+                    case 'benchmarks':
+                      _showBenchmarkGuide(context);
+                      break;
+                    case 'health_score':
+                      if (_analyticsFuture != null) {
+                        _analyticsFuture!.then((data) {
+                          if (data.containsKey('healthScore')) {
+                            _showHealthScoreDetails(context, data);
+                          }
+                        });
+                      }
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'quick_guide',
+                    child: ListTile(
+                      leading: Icon(Icons.book_outlined),
+                      title: Text('Quick Guide'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'definitions',
+                    child: ListTile(
+                      leading: Icon(Icons.description_outlined),
+                      title: Text('All Definitions'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'benchmarks',
+                    child: ListTile(
+                      leading: Icon(Icons.compare_arrows),
+                      title: Text('Benchmark Guide'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'health_score',
+                    child: ListTile(
+                      leading: Icon(Icons.health_and_safety_outlined),
+                      title: Text('Health Score Info'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1390,34 +1504,827 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     );
   }
 
-  void _showInfoDialog(BuildContext context) {
+  void _showEnhancedInfoDialog(BuildContext context) {
+    // Group definitions by category
+    final riskAdjusted = [
+      'Sharpe',
+      'Sortino',
+      'Treynor',
+      'Info Ratio',
+      'Calmar',
+      'Omega'
+    ];
+    final market = ['Beta', 'Alpha', 'Excess Return', 'Correlation'];
+    final risk = ['Max Drawdown', 'Volatility', 'VaR (95%)', 'CVaR (95%)'];
+    final advanced = ['Kelly Criterion', 'Ulcer Index', 'Tail Ratio'];
+    final daily = ['Profit Factor', 'Win Rate', 'Expectancy', 'Payoff Ratio'];
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Analytics Definitions'),
-        content: SingleChildScrollView(
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
-            children: definitions.entries.map((entry) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(entry.key,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(entry.value),
-                  const SizedBox(height: 8),
-                ],
-              );
-            }).toList(),
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.library_books,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Analytics Definitions',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDefinitionCategory(context, 'Risk-Adjusted Returns',
+                          Icons.trending_up, riskAdjusted),
+                      const SizedBox(height: 16),
+                      _buildDefinitionCategory(context, 'Market Comparison',
+                          Icons.compare_arrows, market),
+                      const SizedBox(height: 16),
+                      _buildDefinitionCategory(
+                          context, 'Risk Metrics', Icons.warning_amber, risk),
+                      const SizedBox(height: 16),
+                      _buildDefinitionCategory(
+                          context, 'Advanced Edge', Icons.psychology, advanced),
+                      const SizedBox(height: 16),
+                      _buildDefinitionCategory(context, 'Daily Return Stats',
+                          Icons.calendar_today, daily),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      ),
+    );
+  }
+
+  Widget _buildDefinitionCategory(
+      BuildContext context, String title, IconData icon, List<String> metrics) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...metrics.map((metric) {
+          final definition = definitions[metric];
+          if (definition == null) return const SizedBox.shrink();
+          final guidance = metricGuidance[metric];
+          final hasGuidance = guidance != null;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: hasGuidance
+                      ? () => _showMetricDetails(
+                          context, metric, definition, guidance)
+                      : null,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                metric,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            if (hasGuidance)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.lightbulb_outline,
+                                        size: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'Tips',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          definition,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                        if (hasGuidance) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.touch_app,
+                                  size: 14,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.6)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Tap for examples & thresholds',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.8),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  void _showMetricDetails(BuildContext context, String metric,
+      String definition, Map<String, dynamic> guidance) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primaryContainer,
+                      Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.7),
+                    ],
+                  ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.analytics,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        metric,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Definition
+                    _buildDetailSection(
+                      context,
+                      'Definition',
+                      Icons.description,
+                      definition,
+                    ),
+                    const SizedBox(height: 16),
+                    // Example
+                    if (guidance['example'] != null)
+                      _buildDetailSection(
+                        context,
+                        'Example',
+                        Icons.lightbulb_outline,
+                        guidance['example'] as String,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .tertiaryContainer
+                            .withValues(alpha: 0.3),
+                      ),
+                    if (guidance['example'] != null) const SizedBox(height: 16),
+                    // Thresholds
+                    _buildThresholdsSection(context, guidance),
+                    const SizedBox(height: 16),
+                    // Tip
+                    if (guidance['tip'] != null)
+                      _buildDetailSection(
+                        context,
+                        'Pro Tip',
+                        Icons.tips_and_updates,
+                        guidance['tip'] as String,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .secondaryContainer
+                            .withValues(alpha: 0.3),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(
+    BuildContext context,
+    String title,
+    IconData icon,
+    String content, {
+    Color? backgroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: backgroundColor ??
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.5,
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildThresholdsSection(
+      BuildContext context, Map<String, dynamic> guidance) {
+    final isReverse = guidance['reverse'] == true;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.flag,
+                  size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Performance Thresholds',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (guidance['goodThreshold'] != null)
+            _buildThresholdRow(
+              context,
+              isReverse
+                  ? '< ${guidance['goodThreshold']}'
+                  : '> ${guidance['goodThreshold']}',
+              'Excellent',
+              Colors.green,
+            ),
+          if (guidance['acceptableThreshold'] != null)
+            _buildThresholdRow(
+              context,
+              isReverse
+                  ? '< ${guidance['acceptableThreshold']}'
+                  : '> ${guidance['acceptableThreshold']}',
+              'Acceptable',
+              Colors.orange,
+            ),
+          _buildThresholdRow(
+            context,
+            isReverse
+                ? '> ${guidance['acceptableThreshold'] ?? guidance['goodThreshold']}'
+                : '< ${guidance['acceptableThreshold'] ?? guidance['goodThreshold']}',
+            'Needs Improvement',
+            Colors.red,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThresholdRow(
+      BuildContext context, String value, String label, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuickGuide(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.book,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Quick Reference Guide',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildGuideSection(
+                        context,
+                        'Getting Started',
+                        Icons.play_circle_outline,
+                        [
+                          'Select a benchmark (SPY, QQQ, DIA, IWM) to compare your portfolio performance',
+                          'Review your Health Score for an overall assessment',
+                          'Check Smart Insights for actionable recommendations',
+                          'Tap any metric for a detailed definition',
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGuideSection(
+                        context,
+                        'Reading the Metrics',
+                        Icons.analytics_outlined,
+                        [
+                          '🟢 Green values: Good performance',
+                          '🔴 Red values: Areas needing attention',
+                          '⚪ Gray values: Neutral or informational',
+                          'Higher Sharpe/Sortino/Calmar = Better',
+                          'Lower Max Drawdown/Volatility = Better',
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGuideSection(
+                        context,
+                        'Key Thresholds',
+                        Icons.speed,
+                        [
+                          'Sharpe > 1.0 = Good, > 2.0 = Excellent',
+                          'Alpha > 0 = Outperforming benchmark',
+                          'Beta > 1.0 = More volatile than market',
+                          'Max Drawdown < 20% = Acceptable risk',
+                          'Win Rate > 50% = More winning days',
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGuideSection(
+                        context,
+                        'Taking Action',
+                        Icons.lightbulb_outline,
+                        [
+                          'Low Sharpe? Diversify to improve risk-adjusted returns',
+                          'Negative Alpha? Review underperforming positions',
+                          'High Drawdown? Consider position sizing and stop-losses',
+                          'High Beta? Add defensive assets to reduce volatility',
+                          'Use Tax Optimization to harvest losses strategically',
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideSection(
+      BuildContext context, String title, IconData icon, List<String> points) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(icon,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...points.map((point) => Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Expanded(
+                    child: Text(
+                      point,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+
+  void _showBenchmarkGuide(BuildContext context) {
+    const benchmarkInfo = {
+      'SPY': {
+        'name': 'S&P 500',
+        'description':
+            'Tracks the 500 largest US companies. Best for comparing against large-cap growth.',
+        'icon': Icons.business,
+        'color': Colors.blue,
+      },
+      'QQQ': {
+        'name': 'Nasdaq 100',
+        'description':
+            'Tech-heavy index. Use when your portfolio is growth/tech focused.',
+        'icon': Icons.computer,
+        'color': Colors.purple,
+      },
+      'DIA': {
+        'name': 'Dow Jones',
+        'description':
+            'Blue-chip stocks. Ideal for conservative, dividend-focused portfolios.',
+        'icon': Icons.account_balance,
+        'color': Colors.green,
+      },
+      'IWM': {
+        'name': 'Russell 2000',
+        'description':
+            'Small-cap index. Compare here if you invest in smaller companies.',
+        'icon': Icons.storefront,
+        'color': Colors.orange,
+      },
+    };
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.compare_arrows,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Benchmark Guide',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: benchmarkInfo.entries.map((entry) {
+                    final info = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color:
+                              (info['color'] as Color).withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor:
+                                (info['color'] as Color).withValues(alpha: 0.1),
+                            child: Icon(
+                              info['icon'] as IconData,
+                              color: info['color'] as Color,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      entry.key,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if (_selectedBenchmark == entry.key)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Active',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  info['name'] as String,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  info['description'] as String,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1491,13 +2398,54 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     }
 
     return Tooltip(
-      message: definitions[label] ?? '',
-      padding: const EdgeInsets.all(12),
+      richMessage: TextSpan(
+        children: [
+          TextSpan(
+            text: '$label\n\n',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+          TextSpan(
+            text: definitions[label] ?? '',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.white,
+              height: 1.6,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      showDuration: const Duration(seconds: 5),
+      showDuration: const Duration(seconds: 30),
+      waitDuration: const Duration(milliseconds: 500),
       decoration: BoxDecoration(
-        color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.grey[850]!,
+            Colors.grey[900]!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       textStyle: const TextStyle(color: Colors.white),
       child: Container(

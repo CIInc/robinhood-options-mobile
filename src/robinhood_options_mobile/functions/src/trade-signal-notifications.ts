@@ -264,7 +264,11 @@ async function sendTradeSignalNotification(
     }
     if (macd !== undefined) {
       if (indicatorsText) indicatorsText += " • ";
-      indicatorsText += `MACD: ${macd.toFixed(2)}`;
+      // Display MACD with 4 decimal precision to show small movements
+      // and add context about what the value represents
+      const macdDisplay = Math.abs(macd) < 0.01 ?
+        `MACD: ${macd.toFixed(4)}` : `MACD: ${macd.toFixed(2)}`;
+      indicatorsText += macdDisplay;
     }
     if (smaFast !== undefined && smaSlow !== undefined) {
       if (indicatorsText) indicatorsText += " • ";

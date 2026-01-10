@@ -6,9 +6,20 @@ import 'package:robinhood_options_mobile/model/portfolio.dart';
 class PortfolioStore extends ChangeNotifier {
   /// Internal, private state of the store.
   final List<Portfolio> _items = [];
+  bool _isLoading = false;
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<Portfolio> get items => UnmodifiableListView(_items);
+
+  bool get isLoading => _isLoading;
+
+  void setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      // Defer notification to avoid errors during build phase
+      Future.microtask(() => notifyListeners());
+    }
+  }
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;

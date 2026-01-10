@@ -138,46 +138,89 @@ class EquityHistorical {
     beginsAt =
         DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
-      beginsAt = DateTime(
+      // Parse as Eastern time, convert to UTC, then to local
+      final eastern = DateTime.utc(
         DateTime.now().year,
         beginsAt!.month,
         beginsAt!.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      );
+      ).add(Duration(
+          hours: _getEasternOffset(
+              beginsAt!.month, beginsAt!.day))); // Account for DST
+
+      // If beginsAt is in the future, subtract one year
+      // e.g. on Jan 9 2026, received "value" -> "11:00 PM, Dec 9" for Dec 9 2025
+      if (eastern
+          .isAfter(DateTime.now().toUtc().add(const Duration(days: 1)))) {
+        beginsAt = DateTime.utc(
+          eastern.year - 1,
+          eastern.month,
+          eastern.day,
+          eastern.hour,
+          eastern.minute,
+          eastern.second,
+        ).toLocal();
+      } else {
+        beginsAt = eastern.toLocal();
+      }
       return;
     }
     // For chart span: hour
     beginsAt = DateFormat('h:mm:ss a').tryParse(json['label']['value']);
     if (beginsAt != null) {
-      beginsAt = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
+      // Parse as Eastern time, convert to UTC, then to local
+      final now = DateTime.now();
+      beginsAt = DateTime.utc(
+        now.year,
+        now.month,
+        now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      );
+      )
+          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
+          .toLocal(); // Account for DST
       return;
     }
     // For chart span: day
     beginsAt = DateFormat('h:mm a').tryParse(json['label']['value']);
     // beginsAt = DateFormat.jm().tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
-      beginsAt = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
+      // Parse as Eastern time, convert to UTC, then to local
+      final now = DateTime.now();
+      beginsAt = DateTime.utc(
+        now.year,
+        now.month,
+        now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      );
+      )
+          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
+          .toLocal(); // Account for DST
       return;
     }
     if (beginsAt == null) {
       throw Exception('beginsAt is null ${json['label']['value']}');
     }
+  }
+
+  /// Get the UTC offset for Eastern Time on a given date accounting for DST.
+  /// Returns 4 during DST (EDT), 5 during standard time (EST).
+  static int _getEasternOffset(int month, int day) {
+    // DST in Eastern Time: second Sunday in March through first Sunday in November
+    // Simplified: March 8-31 through November 1-7
+    // More accurate would require calculating the actual Sunday, but this is close enough
+    if (month > 3 && month < 11) {
+      return 4; // EDT (UTC-4)
+    } else if (month == 3 && day >= 8) {
+      return 4; // EDT starts second week of March
+    } else if (month == 11 && day <= 7) {
+      return 4; // EDT ends first week of November
+    }
+    return 5; // EST (UTC-5)
   }
 
   static List<EquityHistorical> fromJsonArray(dynamic json) {
