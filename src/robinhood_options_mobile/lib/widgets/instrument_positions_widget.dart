@@ -110,7 +110,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     }
     var shades = PieChart.makeShades(
         charts.ColorUtil.fromDartColor(
-            Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
+            Theme.of(context).brightness == Brightness.light
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context)
+                    .colorScheme
+                    .primaryContainer), // .withOpacity(0.75)
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
@@ -126,7 +130,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             color: charts.ColorUtil.fromDartColor(
               Theme.of(context).brightness == Brightness.light
                   ? Theme.of(context).colorScheme.surface
-                  : Theme.of(context).colorScheme.surface, //.inverseSurface,
+                  : Theme.of(context).colorScheme.inverseSurface,
             )),
         outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
             fontSize: 14,
@@ -138,6 +142,10 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
       colorFn: (_, __) => shades[1],
+      // charts.ColorUtil.fromDartColor(
+      //     Theme.of(context).brightness == Brightness.light
+      //         ? Theme.of(context).colorScheme.primaryContainer
+      //         : Theme.of(context).colorScheme.primary),
       // Not working as replacement to colorFn, setting the 2nd measure as gray
       // seriesColor: shades[1],
       //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),

@@ -125,6 +125,7 @@ class EquityHistorical {
     // beginsAt ??= DateFormat('HH:mm MMM d, yyyy').tryParseLoose(json['label']['value']);
     // For chart span: ytd, 3m
     // jan 2, 2025
+
     beginsAt = DateFormat('MMM d, yyyy').tryParse(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
@@ -134,72 +135,65 @@ class EquityHistorical {
       );
       return;
     }
+
+    final now = DateTime.now();
+
     // For chart span: week
     beginsAt =
         DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
-      // Parse as Eastern time, convert to UTC, then to local
-      final eastern = DateTime.utc(
-        DateTime.now().year,
+      beginsAt = DateTime(
+        now.year,
         beginsAt!.month,
         beginsAt!.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      ).add(Duration(
-          hours: _getEasternOffset(
-              beginsAt!.month, beginsAt!.day))); // Account for DST
+      );
 
       // If beginsAt is in the future, subtract one year
       // e.g. on Jan 9 2026, received "value" -> "11:00 PM, Dec 9" for Dec 9 2025
-      if (eastern
-          .isAfter(DateTime.now().toUtc().add(const Duration(days: 1)))) {
-        beginsAt = DateTime.utc(
-          eastern.year - 1,
-          eastern.month,
-          eastern.day,
-          eastern.hour,
-          eastern.minute,
-          eastern.second,
-        ).toLocal();
-      } else {
-        beginsAt = eastern.toLocal();
+      if (beginsAt!.isAfter(now
+          .toUtc()
+          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
+          .add(const Duration(days: 1)))) {
+        // .add(const Duration(days: 1))
+        beginsAt = DateTime(
+          beginsAt!.year - 1,
+          beginsAt!.month,
+          beginsAt!.day,
+          beginsAt!.hour,
+          beginsAt!.minute,
+          beginsAt!.second,
+        );
       }
       return;
     }
     // For chart span: hour
     beginsAt = DateFormat('h:mm:ss a').tryParse(json['label']['value']);
     if (beginsAt != null) {
-      // Parse as Eastern time, convert to UTC, then to local
-      final now = DateTime.now();
-      beginsAt = DateTime.utc(
+      beginsAt = DateTime(
         now.year,
         now.month,
         now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      )
-          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
-          .toLocal(); // Account for DST
+      );
       return;
     }
     // For chart span: day
     beginsAt = DateFormat('h:mm a').tryParse(json['label']['value']);
     // beginsAt = DateFormat.jm().tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
-      // Parse as Eastern time, convert to UTC, then to local
-      final now = DateTime.now();
-      beginsAt = DateTime.utc(
+      beginsAt = DateTime(
         now.year,
         now.month,
         now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
-      )
-          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
-          .toLocal(); // Account for DST
+      );
       return;
     }
     if (beginsAt == null) {
@@ -214,13 +208,13 @@ class EquityHistorical {
     // Simplified: March 8-31 through November 1-7
     // More accurate would require calculating the actual Sunday, but this is close enough
     if (month > 3 && month < 11) {
-      return 4; // EDT (UTC-4)
+      return -4; // EDT (UTC-4)
     } else if (month == 3 && day >= 8) {
-      return 4; // EDT starts second week of March
+      return -4; // EDT starts second week of March
     } else if (month == 11 && day <= 7) {
-      return 4; // EDT ends first week of November
+      return -4; // EDT ends first week of November
     }
-    return 5; // EST (UTC-5)
+    return -5; // EST (UTC-5)
   }
 
   static List<EquityHistorical> fromJsonArray(dynamic json) {

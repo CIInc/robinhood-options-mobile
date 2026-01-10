@@ -59,7 +59,7 @@ Examples of specific file references an agent can use in patches:
 - Portfolio Rebalancing UI: `src/robinhood_options_mobile/lib/widgets/rebalancing_widget.dart` (interactive allocation tool with dual views, precision editing, drift analysis, and actionable recommendations).
 - Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (main search & signal filtering), `screener_widget.dart` (stock screener), `presets_widget.dart` (Yahoo presets), `instrument_widget.dart` (single signal view).
 - Generative AI UI: `src/robinhood_options_mobile/lib/widgets/generative_actions_widget.dart` (AI-driven actions and insights).
-- Portfolio Analytics UI: `src/robinhood_options_mobile/lib/widgets/portfolio_analytics_widget.dart` (comprehensive dashboard with risk/return metrics, health score, and ESG scoring).
+- Portfolio Analytics UI: `src/robinhood_options_mobile/lib/widgets/portfolio_analytics_widget.dart` (comprehensive dashboard with risk/return metrics, health score, ESG scoring, **Performance Overview Card for benchmark-relative tracking**, **enhanced tooltips and help dialogs**).
 - Tax Optimization UI: `src/robinhood_options_mobile/lib/widgets/tax_optimization_widget.dart` (Tax Loss Harvesting tool).
 - ESG Services: `src/robinhood_options_mobile/lib/services/esg_service.dart` (ESG data fetching).
 - Analytics Utils: `src/robinhood_options_mobile/lib/utils/analytics_utils.dart` (Advanced portfolio metrics calculation).

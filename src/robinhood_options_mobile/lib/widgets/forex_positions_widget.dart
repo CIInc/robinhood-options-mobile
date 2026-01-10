@@ -104,7 +104,11 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     }
     var shades = PieChart.makeShades(
         charts.ColorUtil.fromDartColor(
-            Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
+            Theme.of(context).brightness == Brightness.light
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context)
+                    .colorScheme
+                    .primaryContainer), // .withOpacity(0.75)
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
@@ -117,10 +121,10 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
             fontSize: 14,
             color: charts.ColorUtil.fromDartColor(
-                Theme.of(context).brightness == Brightness.light
-                    ? Theme.of(context).colorScheme.surface
-                    : Theme.of(context).colorScheme.surface // inverseSurface,
-                )),
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.surface
+                  : Theme.of(context).colorScheme.inverseSurface,
+            )),
         outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
             fontSize: 14,
             color: charts.ColorUtil.fromDartColor(
@@ -131,7 +135,6 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
       colorFn: (_, __) => shades[1],
-      //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
       domainFn: (var d, _) => d['domain'],
       measureFn: (var d, _) => d['secondaryMeasure'],
       labelAccessorFn: (d, _) => d['secondaryLabel'],

@@ -161,7 +161,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           id: BrokerageUser.displayValueText(
               widget.brokerageUser.displayValue!),
           colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary),
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.primaryContainer),
           data: data,
           domainFn: (var d, _) => d['domain'],
           measureFn: (var d, _) => d['measure'],
@@ -171,7 +173,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               color: charts.ColorUtil.fromDartColor(
                   brightness == Brightness.light
                       ? Theme.of(context).colorScheme.surface
-                      : Theme.of(context).colorScheme.surface // inverseSurface,
+                      : Theme.of(context)
+                          .textTheme
+                          .labelSmall!
+                          .color! // inverseSurface,
                   )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
@@ -230,7 +235,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       }
       var shades = PieChart.makeShades(
           charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context)
+                      .colorScheme
+                      .primaryContainer), // .withOpacity(0.75)
           2);
       barChartSeriesList.add(charts.Series<dynamic, String>(
           id: BrokerageUser.displayValueText(
@@ -248,7 +257,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               color: charts.ColorUtil.fromDartColor(
                 brightness == Brightness.light
                     ? Theme.of(context).colorScheme.surface
-                    : Theme.of(context).colorScheme.surface, // inverseSurface,
+                    : Theme.of(context)
+                        .textTheme
+                        .labelSmall!
+                        .color!, // inverseSurface,
               )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,

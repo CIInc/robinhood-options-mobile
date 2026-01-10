@@ -299,73 +299,89 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             return SizedBox(
                 child: Column(
               children: [
-                SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
-                        child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      PnlBadge(
-                                          neutral: true,
-                                          child: AnimatedPriceText(
-                                              price: selection != null
-                                                  ? selection
-                                                      .adjustedCloseEquity!
-                                                  : close,
-                                              format: formatCurrency,
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      portfolioValueFontSize,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant))),
-                                      Text(
-                                          formatMediumDateTime.format(
-                                              selection != null
-                                                  ? selection.beginsAt!
-                                                      .toLocal()
-                                                  : lastHistorical!.beginsAt!
-                                                      .toLocal()),
-                                          style: const TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      PnlBadge(
-                                          text: returnText,
-                                          value: changeInPeriod,
-                                          fontSize: portfolioValueFontSize),
-                                      const Text("Change",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      PnlBadge(
-                                          text: returnPercentText,
-                                          value: changePercentInPeriod,
-                                          fontSize: portfolioValueFontSize),
-                                      const Text("Change %",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ])))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    final primary = Theme.of(context).colorScheme.primary;
+                    final positive = Colors.green;
+                    final negative = Colors.red;
+                    final neutralColor =
+                        Theme.of(context).colorScheme.onSurfaceVariant;
+
+                    final changeColor = changeInPeriod > 0
+                        ? positive
+                        : (changeInPeriod < 0 ? negative : neutralColor);
+                    final changePercentColor = changePercentInPeriod > 0
+                        ? positive
+                        : (changePercentInPeriod < 0 ? negative : neutralColor);
+
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _buildMetricBadge(
+                          context: context,
+                          label: 'Portfolio value',
+                          icon: Icons.account_balance_wallet_rounded,
+                          accent: primary,
+                          minWidth: math.min(constraints.maxWidth, 360),
+                          value: AnimatedPriceText(
+                            price: selection != null
+                                ? selection.adjustedCloseEquity!
+                                : close,
+                            format: formatCurrency,
+                            style: TextStyle(
+                              fontSize: portfolioValueFontSize,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          footnote: formatMediumDateTime.format(
+                            selection != null
+                                ? selection.beginsAt!.toLocal()
+                                : lastHistorical!.beginsAt!.toLocal(),
+                          ),
+                        ),
+                        _buildMetricBadge(
+                          context: context,
+                          label: 'Change',
+                          icon: changeInPeriod >= 0
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          accent: changeColor,
+                          minWidth: 180,
+                          value: Text(
+                            returnText ?? '--',
+                            style: TextStyle(
+                              fontSize: portfolioValueFontSize,
+                              fontWeight: FontWeight.w700,
+                              color: changeColor,
+                            ),
+                          ),
+                          footnote: 'Since period start',
+                        ),
+                        _buildMetricBadge(
+                          context: context,
+                          label: 'Change %',
+                          icon: changePercentInPeriod >= 0
+                              ? Icons.percent_rounded
+                              : Icons.percent_outlined,
+                          accent: changePercentColor,
+                          minWidth: 170,
+                          value: Text(
+                            returnPercentText ?? '--',
+                            style: TextStyle(
+                              fontSize: portfolioValueFontSize,
+                              fontWeight: FontWeight.w700,
+                              color: changePercentColor,
+                            ),
+                          ),
+                          footnote: 'Performance',
+                        ),
+                      ],
+                    );
+                  }),
+                )
               ],
             ));
           }),
@@ -454,6 +470,91 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
           if (widget.isFullScreen) const SizedBox(height: 25),
         ]);
       },
+    );
+  }
+
+  Widget _buildMetricBadge({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color accent,
+    required Widget value,
+    double? minWidth,
+    String? footnote,
+  }) {
+    final background = [
+      accent.withValues(alpha: 0.22),
+      Theme.of(context).colorScheme.surfaceVariant,
+    ];
+
+    return Container(
+      constraints: BoxConstraints(
+        minWidth: minWidth ?? 160,
+        maxWidth: math.max(minWidth ?? 160, 260),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: background,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: accent.withValues(alpha: 0.4)),
+            ),
+            child: Icon(icon, color: accent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              value,
+              if (footnote != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  footnote,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withOpacity(0.85),
+                  ),
+                ),
+              ]
+            ],
+          )
+        ],
+      ),
     );
   }
 

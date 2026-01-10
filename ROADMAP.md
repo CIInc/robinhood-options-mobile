@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
 
@@ -181,6 +181,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.27.5 ✅ (Released Jan 7, 2026)
 **Bug Fixes**
 - ✅ **Bug Fixes** (Options Flow, Yahoo API, ESG logic, Automated Trading, Auth form autofocus, daily cron timezone handling, toast styling)
+
+### v0.27.6 ✅ (Released Jan 10, 2026)
+**Portfolio Analytics Enhancements & UI Polish**
+- ✅ **Performance Overview Card** (Benchmark-relative tracking metrics)
+- ✅ **Health Score Improvements** (Refined calculation logic)
+- ✅ **Loading State Management** (Robinhood & Schwab service improvements)
+- ✅ **Allocation Widget** (Enhanced loading indicator & visual feedback)
+- ✅ **Tooltips & Help Dialogs** (Improved clarity and visual hierarchy)
 
 ### v0.27.4 ✅ (Released Jan 2, 2026)
 **ESG Scoring & Advanced Analytics**

@@ -51,7 +51,7 @@ class _OptionPositionsPageWidgetState extends State<OptionPositionsPageWidget> {
         child: CustomScrollView(slivers: [
       SliverAppBar(
         centerTitle: false,
-        title: Text("Options"),
+        // title: Text("Options"),
         // floating: true,
         // snap: true,
         // pinned: false,

@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.6] - 2026-01-10
+
+### Added
+- **Portfolio Analytics Enhancements:**
+  - **Performance Overview Card:** New comprehensive card displaying key performance metrics (Total Return, Benchmark Return, Alpha, Tracking Error) in a side-by-side comparison layout.
+  - **Tracking Metrics:** Enhanced analytics to include benchmark-relative performance tracking with visual indicators.
+  - **Health Score Improvements:** Refined calculation logic for more accurate portfolio health assessment.
+- **UI/UX Improvements:**
+  - **Loading State Management:** Refactored Robinhood and Schwab service loading states for better user feedback during data fetching.
+  - **Allocation Widget:** Enhanced loading indicator with improved visual feedback and animation consistency.
+  - **Tooltips & Help Dialogs:** Improved portfolio analytics tooltips and help dialogs with clearer descriptions and visual hierarchy.
+
+### Fixed
+- **Data Loading:** Addressed performance issues with allocation widget rendering during initial data load.
+
 ## [0.27.5] - 2026-01-07
 
 ### Fixed

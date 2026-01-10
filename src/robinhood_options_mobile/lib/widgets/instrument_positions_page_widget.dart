@@ -52,13 +52,13 @@ class _InstrumentPositionsPageWidgetState
         child: CustomScrollView(slivers: [
       SliverAppBar(
         centerTitle: false,
-        title: Text(
-          "Stocks & ETFs",
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        // title: Text(
+        //   "Stocks & ETFs",
+        //   style: Theme.of(context)
+        //       .textTheme
+        //       .titleLarge
+        //       ?.copyWith(fontWeight: FontWeight.bold),
+        // ),
         // floating: true,
         // snap: true,
         // pinned: false,
