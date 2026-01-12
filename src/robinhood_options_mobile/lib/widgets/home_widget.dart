@@ -750,6 +750,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     futureMarketIndexHistoricalsNasdaq,
                 futureMarketIndexHistoricalsDow:
                     futureMarketIndexHistoricalsDow,
+                futureMarketIndexHistoricalsRussell2000:
+                    futureMarketIndexHistoricalsRussell2000,
                 futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
                 benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
                 onFilterChanged: (span) {

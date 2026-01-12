@@ -616,6 +616,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(portfolioReturn),
         valueColor: colorFor(portfolioReturn),
         footer: 'Cumulative return',
+        tooltip: 'Cumulative return of your portfolio over the aligned window.',
       ),
       _buildSnapshotTile(
         context,
@@ -624,6 +625,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(benchmarkReturn),
         valueColor: colorFor(benchmarkReturn),
         footer: '$_selectedBenchmark performance',
+        tooltip:
+            'Cumulative return of the selected benchmark over the same window.',
       ),
       _buildSnapshotTile(
         context,
@@ -632,6 +635,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(excessReturn),
         valueColor: colorFor(excessReturn),
         footer: 'vs $_selectedBenchmark',
+        tooltip:
+            'Portfolio cumulative return minus benchmark cumulative return.',
       ),
       _buildSnapshotTile(
         context,
@@ -640,6 +645,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(avgDailyReturn),
         valueColor: colorFor(avgDailyReturn),
         footer: 'Mean daily move',
+        tooltip: 'Mean of daily returns for your portfolio during the window.',
       ),
       _buildSnapshotTile(
         context,
@@ -648,6 +654,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(bestDay),
         valueColor: colorFor(bestDay),
         footer: 'Single-day peak',
+        tooltip: 'Highest single-day return observed in the period.',
       ),
       _buildSnapshotTile(
         context,
@@ -656,6 +663,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(worstDay),
         valueColor: colorFor(worstDay),
         footer: 'Single-day trough',
+        tooltip: 'Lowest single-day return observed in the period.',
       ),
       _buildSnapshotTile(
         context,
@@ -664,6 +672,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         value: formatPercent(trackingError),
         valueColor: trackingColor,
         footer: 'Active risk (ann.)',
+        tooltip:
+            'Annualized std dev of active returns (portfolio − benchmark).',
       ),
     ];
 
@@ -711,33 +721,33 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                       ),
                     ),
                   ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.flag, size: 14),
-                      const SizedBox(width: 6),
-                      Text(
-                        _selectedBenchmark,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // const SizedBox(width: 8),
+                // Container(
+                //   padding:
+                //       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                //   decoration: BoxDecoration(
+                //     color: Theme.of(context)
+                //         .colorScheme
+                //         .primaryContainer
+                //         .withValues(alpha: 0.3),
+                //     borderRadius: BorderRadius.circular(20),
+                //   ),
+                //   child: Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       const Icon(Icons.flag, size: 14),
+                //       const SizedBox(width: 6),
+                //       Text(
+                //         _selectedBenchmark,
+                //         style: TextStyle(
+                //           fontWeight: FontWeight.bold,
+                //           color:
+                //               Theme.of(context).colorScheme.onPrimaryContainer,
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
             const SizedBox(height: 20),
@@ -767,6 +777,129 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPerformanceSnapshotInfoSection(BuildContext context) {
+    final neutral = Theme.of(context)
+        .colorScheme
+        .surfaceContainerHighest
+        .withValues(alpha: 0.3);
+    final borderColor =
+        Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3);
+
+    Widget buildItem(IconData icon, String title, String description) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: neutral,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.flag,
+                size: 20, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              'What the Snapshot Shows',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        buildItem(
+          Icons.trending_up,
+          'Portfolio (Cumulative Return)',
+          'Total return over the selected window, based on aligned portfolio equity. Positive values indicate growth; negative values indicate decline.',
+        ),
+        buildItem(
+          Icons.show_chart,
+          'Benchmark (Cumulative Return)',
+          'Total return of the selected benchmark (SPY/QQQ/DIA/IWM) over the same aligned window.',
+        ),
+        buildItem(
+          Icons.stacked_line_chart,
+          'Excess Return',
+          'Difference between portfolio and benchmark cumulative returns. Positive means outperformance; negative means underperformance.',
+        ),
+        buildItem(
+          Icons.calendar_today_outlined,
+          'Average Daily Return',
+          'Mean of daily returns for your portfolio during the window. Gives a sense of typical day-to-day movement.',
+        ),
+        buildItem(
+          Icons.arrow_upward,
+          'Best Day',
+          'Highest single-day return observed in the period.',
+        ),
+        buildItem(
+          Icons.arrow_downward,
+          'Worst Day',
+          'Lowest single-day return observed in the period.',
+        ),
+        buildItem(
+          Icons.science_outlined,
+          'Tracking Error (Annualized)',
+          'Standard deviation of active returns (portfolio minus benchmark), annualized using √252. Measures consistency vs. benchmark (lower is closer tracking).',
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(Icons.info_outline,
+                size: 16, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'All metrics are computed on date-aligned series. The window label shows the number of calendar days between first and last aligned points.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1414,15 +1547,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     case 'benchmarks':
                       _showBenchmarkGuide(context);
                       break;
-                    case 'health_score':
-                      if (_analyticsFuture != null) {
-                        _analyticsFuture!.then((data) {
-                          if (data.containsKey('healthScore')) {
-                            _showHealthScoreDetails(context, data);
-                          }
-                        });
-                      }
-                      break;
                   }
                 },
                 itemBuilder: (context) => [
@@ -1450,14 +1574,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'health_score',
-                    child: ListTile(
-                      leading: Icon(Icons.health_and_safety_outlined),
-                      title: Text('Health Score Info'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
                 ],
               ),
             ],
@@ -1474,8 +1590,9 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     required String value,
     Color? valueColor,
     String? footer,
+    String? tooltip,
   }) {
-    return Container(
+    final tile = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context)
@@ -1531,6 +1648,63 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         ],
       ),
     );
+
+    if (tooltip != null && tooltip.isNotEmpty) {
+      return Tooltip(
+        richMessage: TextSpan(
+          children: [
+            TextSpan(
+              text: '$label\n\n',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+            TextSpan(
+              text: tooltip,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.white,
+                height: 1.6,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        showDuration: const Duration(seconds: 30),
+        waitDuration: const Duration(milliseconds: 500),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.grey[850]!,
+              Colors.grey[900]!,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 12,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        textStyle: const TextStyle(color: Colors.white),
+        child: tile,
+      );
+    }
+    return tile;
   }
 
   Widget _buildRiskAdjustedReturnCard(
@@ -1901,6 +2075,9 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Performance Snapshot section
+                      _buildPerformanceSnapshotInfoSection(context),
+                      const SizedBox(height: 20),
                       _buildDefinitionCategory(context, 'Risk-Adjusted Returns',
                           Icons.trending_up, riskAdjusted),
                       const SizedBox(height: 16),
@@ -2376,9 +2553,11 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                         Icons.play_circle_outline,
                         [
                           'Select a benchmark (SPY, QQQ, DIA, IWM) to compare your portfolio performance',
+                          'Check the Performance Snapshot to see your cumulative return vs. benchmark',
                           'Review your Health Score for an overall assessment',
                           'Check Smart Insights for actionable recommendations',
                           'Tap any metric for a detailed definition',
+                          'Review the Risk Heatmap to identify sector and correlation risks at a glance',
                         ],
                       ),
                       const SizedBox(height: 20),

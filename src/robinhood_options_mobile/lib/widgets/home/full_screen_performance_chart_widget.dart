@@ -7,6 +7,7 @@ class FullScreenPerformanceChartWidget extends StatefulWidget {
   final Future<dynamic>? futureMarketIndexHistoricalsSp500;
   final Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   final Future<dynamic>? futureMarketIndexHistoricalsDow;
+  final Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
   final Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
   final ChartDateSpan benchmarkChartDateSpanFilter;
   final Function(ChartDateSpan) onFilterChanged;
@@ -16,6 +17,7 @@ class FullScreenPerformanceChartWidget extends StatefulWidget {
     required this.futureMarketIndexHistoricalsSp500,
     required this.futureMarketIndexHistoricalsNasdaq,
     required this.futureMarketIndexHistoricalsDow,
+    this.futureMarketIndexHistoricalsRussell2000,
     required this.futurePortfolioHistoricalsYear,
     required this.benchmarkChartDateSpanFilter,
     required this.onFilterChanged,
@@ -48,6 +50,8 @@ class _FullScreenPerformanceChartWidgetState
         futureMarketIndexHistoricalsNasdaq:
             widget.futureMarketIndexHistoricalsNasdaq,
         futureMarketIndexHistoricalsDow: widget.futureMarketIndexHistoricalsDow,
+        futureMarketIndexHistoricalsRussell2000:
+            widget.futureMarketIndexHistoricalsRussell2000,
         futurePortfolioHistoricalsYear: widget.futurePortfolioHistoricalsYear,
         benchmarkChartDateSpanFilter: _benchmarkChartDateSpanFilter,
         onFilterChanged: (span) {

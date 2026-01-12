@@ -15,6 +15,7 @@ class PerformanceChartWidget extends StatefulWidget {
   final Future<dynamic>? futureMarketIndexHistoricalsSp500;
   final Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   final Future<dynamic>? futureMarketIndexHistoricalsDow;
+  final Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
   final Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
   final ChartDateSpan benchmarkChartDateSpanFilter;
   final Function(ChartDateSpan) onFilterChanged;
@@ -25,6 +26,7 @@ class PerformanceChartWidget extends StatefulWidget {
     required this.futureMarketIndexHistoricalsSp500,
     required this.futureMarketIndexHistoricalsNasdaq,
     required this.futureMarketIndexHistoricalsDow,
+    this.futureMarketIndexHistoricalsRussell2000,
     required this.futurePortfolioHistoricalsYear,
     required this.benchmarkChartDateSpanFilter,
     required this.onFilterChanged,
@@ -45,6 +47,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
         widget.futureMarketIndexHistoricalsSp500 as Future,
         widget.futureMarketIndexHistoricalsNasdaq as Future,
         widget.futureMarketIndexHistoricalsDow as Future,
+        widget.futureMarketIndexHistoricalsRussell2000 != null
+            ? widget.futureMarketIndexHistoricalsRussell2000 as Future
+            : Future.value(null),
         widget.futurePortfolioHistoricalsYear != null
             ? widget.futurePortfolioHistoricalsYear as Future
             : Future.value(null)
@@ -55,7 +60,8 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
           var sp500 = snapshot.data![0];
           var nasdaq = snapshot.data![1];
           var dow = snapshot.data![2];
-          var portfolioHistoricals = snapshot.data![3] as PortfolioHistoricals?;
+          var russell2000 = snapshot.data![3];
+          var portfolioHistoricals = snapshot.data![4] as PortfolioHistoricals?;
           if (portfolioHistoricals != null) {
             final DateTime now = DateTime.now();
             final DateTime newYearsDay = DateTime(now.year, 1, 1);
@@ -80,6 +86,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 nasdaq['chart']['result'][0]['meta']['chartPreviousClose'];
             var dowPreviousClose =
                 dow['chart']['result'][0]['meta']['chartPreviousClose'];
+            var russell2000PreviousClose = russell2000 != null
+                ? russell2000['chart']['result'][0]['meta']
+                    ['chartPreviousClose']
+                : null;
             var enddiffsp500 = regularsp500['end'] - regularsp500['start'];
 
             DateTime? cutoff;
@@ -156,6 +166,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             var seriesDatanasdaq =
                 processMarketData(nasdaq, nasdaqPreviousClose);
             var seriesDatadow = processMarketData(dow, dowPreviousClose);
+            var seriesDatarussell2000 =
+                russell2000 != null && russell2000PreviousClose != null
+                    ? processMarketData(russell2000, russell2000PreviousClose)
+                    : <Map<String, dynamic>>[];
 
             var seriesOpenportfolio =
                 portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity;
@@ -172,6 +186,8 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               ...seriesDatanasdaq
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
               ...seriesDatadow
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDatarussell2000
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
               ...seriesDataportfolio
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
@@ -226,6 +242,15 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   measureFn: (dynamic data, index) => data['value'],
                   data: seriesDatadow,
                 ),
+                if (seriesDatarussell2000.isNotEmpty)
+                  charts.Series<dynamic, DateTime>(
+                    id: 'Russell 2000',
+                    colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                        Colors.accents[8 % Colors.accents.length]),
+                    domainFn: (dynamic data, _) => data['date'],
+                    measureFn: (dynamic data, index) => data['value'],
+                    data: seriesDatarussell2000,
+                  ),
               ],
               animate: animateChart,
               zeroBound: false,
@@ -256,7 +281,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 charts.SeriesDatumConfig<DateTime>(
                     'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
                 charts.SeriesDatumConfig<DateTime>(
-                    'Dow 30', seriesDatadow.last['date'] as DateTime)
+                    'Dow 30', seriesDatadow.last['date'] as DateTime),
+                if (seriesDatarussell2000.isNotEmpty)
+                  charts.SeriesDatumConfig<DateTime>('Russell 2000',
+                      seriesDatarussell2000.last['date'] as DateTime)
               ], shouldPreserveSelectionOnDraw: true),
               symbolRenderer: TextSymbolRenderer(() {
                 return chartSelectionStore.selection != null
@@ -326,6 +354,9 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                                           .futureMarketIndexHistoricalsNasdaq,
                                       futureMarketIndexHistoricalsDow: widget
                                           .futureMarketIndexHistoricalsDow,
+                                      futureMarketIndexHistoricalsRussell2000:
+                                          widget
+                                              .futureMarketIndexHistoricalsRussell2000,
                                       futurePortfolioHistoricalsYear:
                                           widget.futurePortfolioHistoricalsYear,
                                       benchmarkChartDateSpanFilter:
