@@ -42,7 +42,6 @@ class FakeDocumentSnapshot extends Fake
         dateCreated: DateTime.now(),
         refreshQuotes: false,
         brokerageUsers: [],
-        accounts: [],
       );
 }
 

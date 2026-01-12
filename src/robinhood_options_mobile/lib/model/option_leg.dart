@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/option_leg_execution.dart';
 
 class OptionLeg {
@@ -39,10 +41,10 @@ class OptionLeg {
         side = json['side'],
         expirationDate = json['expiration_date'] is Timestamp
             ? (json['expiration_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['expiration_date']),
-        strikePrice = json['strike_price'] is double
-            ? json['strike_price']
-            : double.tryParse(json['strike_price']),
+            : (json['expiration_date'] is String
+                ? DateTime.tryParse(json['expiration_date'])
+                : null),
+        strikePrice = parseDouble(json['strike_price']),
         optionType = json['option_type'],
         executions = json['executions'] != null
             ? OptionLegExecution.fromJsonArray(json['executions'])

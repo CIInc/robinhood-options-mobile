@@ -22,8 +22,10 @@ class User {
   DateTime? dateUpdated;
   DateTime? lastVisited;
   List<BrokerageUser> brokerageUsers = [];
-  List<Account> accounts = [];
   bool refreshQuotes;
+
+  List<Account> get allAccounts =>
+      brokerageUsers.expand((bu) => bu.accounts).toList();
 
   // Investment Profile (nested object)
   InvestmentProfile? investmentProfile;
@@ -56,7 +58,6 @@ class User {
       this.dateUpdated,
       this.lastVisited,
       required this.brokerageUsers,
-      required this.accounts,
       this.refreshQuotes = false,
       this.investmentProfile,
       this.tradeSignalNotificationSettings,
@@ -89,9 +90,6 @@ class User {
                 : null,
             brokerageUsers: json['brokerageUsers'] != null
                 ? BrokerageUser.fromJsonArray(json['brokerageUsers'])
-                : [],
-            accounts: json['accounts'] != null
-                ? Account.fromJsonArray(json['accounts'])
                 : [],
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
@@ -133,7 +131,6 @@ class User {
       'dateUpdated': dateUpdated,
       'lastVisited': lastVisited,
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
-      'accounts': accounts.map((e) => e.toJson()).toList(),
       'refreshQuotes': refreshQuotes,
       'investmentProfile': investmentProfile?.toJson(),
       'tradeSignalNotificationSettings':

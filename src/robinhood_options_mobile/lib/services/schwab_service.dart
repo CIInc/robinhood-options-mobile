@@ -45,8 +45,10 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
@@ -64,6 +66,8 @@ class SchwabService implements IBrokerageService {
   String clientId = 'CHbgBINpRA3H72Sb6LV9pH9ZHsTxjwId';
   @override
   String redirectUrl = 'https://realizealpha.web.app';
+
+  final FirestoreService _firestoreService = FirestoreService();
 
   // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
 
@@ -380,26 +384,42 @@ class SchwabService implements IBrokerageService {
       if (portfolioStore != null) {
         var portfolio = Portfolio.fromSchwabJson(result);
         portfolioStore.addOrUpdate(portfolio);
-        for (var positionJson in result['securitiesAccount']['positions']) {
-          if (positionJson['instrument']['assetType'] ==
-              "COLLECTIVE_INVESTMENT") {
-            var stockPosition = InstrumentPosition.fromSchwabJson(positionJson);
-            instrumentPositionStore!.addOrUpdate(stockPosition);
-          } else if (positionJson['instrument']['assetType'] == "OPTION") {
-            // e.g. {shortQuantity: 0.0, averagePrice: 4.0066, currentDayProfitLoss: 7.0, currentDayProfitLossPercentage: 3.91, longQuantity: 1.0, settledLongQuantity: 1.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0UBER.BK60090000, symbol: UBER  260220C00090000, description: UBER TECHNOLOGIES INC 02/20/2026 $90 Call, netChange: 0.08, type: VANILLA, putCall: CALL, underlyingSymbol: UBER}, marketValue: 186.0, maintenanceRequirement: 0.0, averageLongPrice: 4.0, taxLotAverageLongPrice: 4.0066, longOpenProfitLoss: -214.66, previousSessionLongQuantity: 1.0, currentDayCost: 0.0}
-            var optionPosition =
-                OptionAggregatePosition.fromSchwabJson(positionJson, account);
+        var positions = result['securitiesAccount']['positions'];
+        if (positions != null) {
+          for (var positionJson in positions) {
+            if (positionJson['instrument']['assetType'] ==
+                    "COLLECTIVE_INVESTMENT" &&
+                instrumentPositionStore != null) {
+              var stockPosition =
+                  InstrumentPosition.fromSchwabJson(positionJson);
+              instrumentPositionStore.addOrUpdate(stockPosition);
+            } else if (positionJson['instrument']['assetType'] == "OPTION" &&
+                optionPositionStore != null) {
+              // e.g. {shortQuantity: 0.0, averagePrice: 4.0066, currentDayProfitLoss: 7.0, currentDayProfitLossPercentage: 3.91, longQuantity: 1.0, settledLongQuantity: 1.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0UBER.BK60090000, symbol: UBER  260220C00090000, description: UBER TECHNOLOGIES INC 02/20/2026 $90 Call, netChange: 0.08, type: VANILLA, putCall: CALL, underlyingSymbol: UBER}, marketValue: 186.0, maintenanceRequirement: 0.0, averageLongPrice: 4.0, taxLotAverageLongPrice: 4.0066, longOpenProfitLoss: -214.66, previousSessionLongQuantity: 1.0, currentDayCost: 0.0}
+              var optionPosition =
+                  OptionAggregatePosition.fromSchwabJson(positionJson, account);
 
-            // TODO
-            // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
-            // optionPosition.instrumentObj = optionInstrument;
-            var optionMarketData = await getOptionMarketData(
-                user, optionPosition.optionInstrument!);
-            optionPosition.optionInstrument!.optionMarketData =
-                optionMarketData;
-            optionPositionStore!.addOrUpdate(optionPosition);
+              // TODO
+              // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
+              // optionPosition.instrumentObj = optionInstrument;
+              var optionMarketData = await getOptionMarketData(
+                  user, optionPosition.optionInstrument!);
+              optionPosition.optionInstrument!.optionMarketData =
+                  optionMarketData;
+              optionPositionStore.addOrUpdate(optionPosition);
+            }
           }
         }
+      }
+      if (userDoc != null) {
+        var userSnapshot = await userDoc.get();
+        var userModel = userSnapshot.data() as User;
+        // Find the brokerage user and update its accounts
+        var bu = userModel.brokerageUsers.firstWhere(
+            (bu) => bu.userName == user.userName && bu.source == user.source);
+        bu.accounts = accounts;
+        await _firestoreService.updateUser(
+            userDoc as DocumentReference<User>, userModel);
       }
       // TODO: Add PositionStore and OrdersStore
     }

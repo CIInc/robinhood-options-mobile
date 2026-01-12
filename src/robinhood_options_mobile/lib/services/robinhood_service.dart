@@ -400,10 +400,14 @@ Response: {
     }
     if (userDoc != null) {
       var userSnapshot = await userDoc.get();
-      var user = userSnapshot.data() as User;
-      user.accounts = accounts;
+      var userModel = userSnapshot.data() as User;
+      // Find the brokerage user and update its accounts
+      var bu = userModel.brokerageUsers.firstWhere((bu) =>
+          bu.userName == brokerageUser.userName &&
+          bu.source == brokerageUser.source);
+      bu.accounts = accounts;
       await _firestoreService.updateUser(
-          userDoc as DocumentReference<User>, user);
+          userDoc as DocumentReference<User>, userModel);
     }
     return accounts;
   }

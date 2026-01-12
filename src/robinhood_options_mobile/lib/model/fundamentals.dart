@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 @immutable
 class Fundamentals {
   final double? open;
@@ -58,84 +60,26 @@ class Fundamentals {
       this.yearFounded});
 
   Fundamentals.fromJson(dynamic json)
-      : open = json['open'] != null
-            ? (json['open'] is double
-                ? json['open']
-                : double.tryParse(json['open']))
-            : null,
-        high = json['high'] != null
-            ? (json['high'] is double
-                ? json['high']
-                : double.tryParse(json['high']))
-            : null,
-        low = json['low'] != null
-            ? (json['low'] is double
-                ? json['low']
-                : double.tryParse(json['low']))
-            : null,
-        volume = json['volume'] != null
-            ? (json['volume'] is double
-                ? json['volume']
-                : double.tryParse(json['volume']))
-            : null,
+      : open = parseDouble(json['open']),
+        high = parseDouble(json['high']),
+        low = parseDouble(json['low']),
+        volume = parseDouble(json['volume']),
         marketDate = json['market_date'] is Timestamp
             ? (json['market_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['market_date']),
-        averageVolume2Weeks = json['average_volume_2_weeks'] != null
-            ? (json['average_volume_2_weeks'] is double
-                ? json['average_volume_2_weeks']
-                : double.tryParse(json['average_volume_2_weeks']))
-            : null,
-        averageVolume30Days = json['average_volume_30_days'] != null
-            ? (json['average_volume_30_days'] is double
-                ? json['average_volume_30_days']
-                : double.tryParse(json['average_volume_30_days']))
-            : null,
-        averageVolume = json['average_volume'] != null
-            ? (json['average_volume'] is double
-                ? json['average_volume']
-                : double.tryParse(json['average_volume']))
-            : null,
-        high52Weeks = json['high_52_weeks'] != null
-            ? json['high_52_weeks'] is double
-                ? json['high_52_weeks']
-                : double.tryParse(json['high_52_weeks'])
-            : null,
-        dividendYield = json['dividend_yield'] != null
-            ? (json['dividend_yield'] is double
-                ? json['dividend_yield']
-                : double.tryParse(json['dividend_yield']))
-            : null,
-        float = json['float'] != null
-            ? (json['float'] is double
-                ? json['float']
-                : double.tryParse(json['float']))
-            : null,
-        low52Weeks = json['low_52_weeks'] != null
-            ? json['low_52_weeks'] is double
-                ? json['low_52_weeks']
-                : double.tryParse(json['low_52_weeks'])
-            : null,
-        marketCap = json['market_cap'] != null
-            ? (json['market_cap'] is double
-                ? json['market_cap']
-                : double.tryParse(json['market_cap']))
-            : null,
-        pbRatio = json['pb_ratio'] != null
-            ? (json['pb_ratio'] is double
-                ? json['pb_ratio']
-                : double.tryParse(json['pb_ratio']))
-            : null,
-        peRatio = json['pe_ratio'] != null
-            ? (json['pe_ratio'] is double
-                ? json['pe_ratio']
-                : double.tryParse(json['pe_ratio']))
-            : null,
-        sharesOutstanding = json['shares_outstanding'] != null
-            ? (json['shares_outstanding'] is double
-                ? json['shares_outstanding']
-                : double.tryParse(json['shares_outstanding']))
-            : null,
+            : (json['market_date'] is String
+                ? DateTime.tryParse(json['market_date'])
+                : null),
+        averageVolume2Weeks = parseDouble(json['average_volume_2_weeks']),
+        averageVolume30Days = parseDouble(json['average_volume_30_days']),
+        averageVolume = parseDouble(json['average_volume']),
+        high52Weeks = parseDouble(json['high_52_weeks']),
+        dividendYield = parseDouble(json['dividend_yield']),
+        float = parseDouble(json['float']),
+        low52Weeks = parseDouble(json['low_52_weeks']),
+        marketCap = parseDouble(json['market_cap']),
+        pbRatio = parseDouble(json['pb_ratio']),
+        peRatio = parseDouble(json['pe_ratio']),
+        sharesOutstanding = parseDouble(json['shares_outstanding']),
         description = json['description'],
         instrument = json['instrument'],
         ceo = json['ceo'],

@@ -165,8 +165,7 @@ class AuthUtil {
           devices: [],
           dateCreated: DateTime.now(), //.toUtc(),
           // dateUpdated: DateTime.now(), //.toUtc(),
-          brokerageUsers: [],
-          accounts: []);
+          brokerageUsers: []);
     }
     user.name = firebaseUser.displayName;
     user.nameLower = firebaseUser.displayName?.toLowerCase();

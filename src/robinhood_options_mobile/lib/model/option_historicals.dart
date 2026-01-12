@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 @immutable
 class Leg {
   final String id;
@@ -57,17 +59,10 @@ class OptionHistoricals {
         legs = Leg.fromJsonArray(json['legs']),
         //symbol = json['symbol'],
         //id = json['id'],
-        previousClosePrice = json['previous_close_price'] != null
-            ? double.tryParse(json['previous_close_price'])
-            : null,
-        previousCloseTime = json['previous_close_time'] != null
-            ? DateTime.tryParse(json['previous_close_time'])
-            : null,
-        openPrice = json['open_price'] != null
-            ? double.tryParse(json['open_price'])
-            : null,
-        openTime = json['open_time'] != null
-            ? DateTime.tryParse(json['open_time'])
-            : null,
+        previousClosePrice = parseDouble(json['previous_close_price']),
+        previousCloseTime =
+            DateTime.tryParse(json['previous_close_time'] ?? ''),
+        openPrice = parseDouble(json['open_price']),
+        openTime = DateTime.tryParse(json['open_time'] ?? ''),
         historicals = InstrumentHistorical.fromJsonArray(json['data_points']);
 }

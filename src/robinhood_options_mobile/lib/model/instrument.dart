@@ -3,6 +3,7 @@
 //@immutable
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -236,40 +237,28 @@ class Instrument {
         tradability: json['tradability'],
         symbol: json['symbol'],
         bloombergUnique: json['bloomberg_unique'],
-        marginInitialRatio: json['margin_initial_ratio'] is double
-            ? json['margin_initial_ratio']
-            : double.tryParse(json['margin_initial_ratio']),
-        maintenanceRatio: json['maintenance_ratio'] is double
-            ? json['maintenance_ratio']
-            : double.tryParse(json['maintenance_ratio']),
+        marginInitialRatio: parseDouble(json['margin_initial_ratio']),
+        maintenanceRatio: parseDouble(json['maintenance_ratio']),
         country: json['country'],
-        dayTradeRatio: json['day_trade_ratio'] is double
-            ? json['day_trade_ratio']
-            : double.tryParse(json['day_trade_ratio']),
+        dayTradeRatio: parseDouble(json['day_trade_ratio']),
         listDate: json['list_date'] == null
             ? null
             : json['list_date'] is Timestamp
                 ? (json['list_date'] as Timestamp).toDate()
                 : DateTime.tryParse(json['list_date']),
-        minTickSize: json['min_tick_size'] == null
-            ? null
-            : double.tryParse(json['min_tick_size']),
+        minTickSize: parseDouble(json['min_tick_size']),
         type: json['type'],
         tradeableChainId: json['tradable_chain_id'],
         rhsTradability: json['rhs_tradability'],
         fractionalTradability: json['fractional_tradability'],
-        defaultCollarFraction: json['default_collar_fraction'] is double
-            ? json['default_collar_fraction']
-            : double.tryParse(json['default_collar_fraction']),
+        defaultCollarFraction: parseDouble(json['default_collar_fraction']),
         ipoAccessStatus: json['ipo_access_status'],
         ipoAccessCobDeadline: json['ipo_access_cob_deadline'] == null
             ? null
             : json['ipo_access_cob_deadline'] is Timestamp
                 ? (json['ipo_access_cob_deadline'] as Timestamp).toDate()
                 : DateTime.tryParse(json['ipo_access_cob_deadline']),
-        ipoAllocatedPrice: json['ipo_allocated_price'] == null
-            ? null
-            : double.tryParse(json['ipo_allocated_price']),
+        ipoAllocatedPrice: parseDouble(json['ipo_allocated_price']),
         ipoCustomersReceived: json['ipo_customers_received'],
         ipoCustomersRequested: json['ipo_customers_requested'],
         ipoDate: json['ipo_date'] == null

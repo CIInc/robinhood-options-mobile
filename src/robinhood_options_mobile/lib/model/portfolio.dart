@@ -26,6 +26,8 @@
     }
     ]
 */
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class Portfolio {
   final String url;
   final String account;
@@ -79,40 +81,34 @@ class Portfolio {
   Portfolio.fromJson(dynamic json)
       : url = json['url'],
         account = json['account'],
-        startDate = DateTime.tryParse(json['start_date']),
-        marketValue = double.tryParse(json['market_value']),
-        equity = double.tryParse(json['equity']),
-        extendedHoursMarketValue = json['extended_hours_market_value'] != null
-            ? double.tryParse(json['extended_hours_market_value'])
-            : null,
-        extendedHoursEquity = json['extended_hours_equity'] != null
-            ? double.tryParse(json['extended_hours_equity'])
-            : null,
+        startDate = DateTime.tryParse(json['start_date'] ?? ''),
+        marketValue = parseDouble(json['market_value']),
+        equity = parseDouble(json['equity']),
+        extendedHoursMarketValue =
+            parseDouble(json['extended_hours_market_value']),
+        extendedHoursEquity = parseDouble(json['extended_hours_equity']),
         extendedHoursPortfolioEquity =
-            json['extended_hours_portfolio_equity'] != null
-                ? double.tryParse(json['extended_hours_portfolio_equity'])
-                : null,
-        lastCoreMarketValue = double.tryParse(json['last_core_market_value']),
-        lastCoreEquity = double.tryParse(json['last_core_equity']),
+            parseDouble(json['extended_hours_portfolio_equity']),
+        lastCoreMarketValue = parseDouble(json['last_core_market_value']),
+        lastCoreEquity = parseDouble(json['last_core_equity']),
         lastCorePortfolioEquity =
-            double.tryParse(json['last_core_portfolio_equity']),
-        excessMargin = double.tryParse(json['excess_margin']),
-        excessMaintenance = double.tryParse(json['excess_maintenance']),
+            parseDouble(json['last_core_portfolio_equity']),
+        excessMargin = parseDouble(json['excess_margin']),
+        excessMaintenance = parseDouble(json['excess_maintenance']),
         excessMarginWithUnclearedDeposits =
-            double.tryParse(json['excess_margin_with_uncleared_deposits']),
+            parseDouble(json['excess_margin_with_uncleared_deposits']),
         excessMaintenanceWithUnclearedDeposits =
-            double.tryParse(json['excess_maintenance_with_uncleared_deposits']),
-        equityPreviousClose = double.tryParse(json['equity_previous_close']),
+            parseDouble(json['excess_maintenance_with_uncleared_deposits']),
+        equityPreviousClose = parseDouble(json['equity_previous_close']),
         portfolioEquityPreviousClose =
-            double.tryParse(json['portfolio_equity_previous_close']),
+            parseDouble(json['portfolio_equity_previous_close']),
         adjustedEquityPreviousClose =
-            double.tryParse(json['adjusted_equity_previous_close']),
+            parseDouble(json['adjusted_equity_previous_close']),
         adjustedPortfolioEquityPreviousClose =
-            double.tryParse(json['adjusted_portfolio_equity_previous_close']),
-        withdrawableAmount = double.tryParse(json['withdrawable_amount']),
-        unwithdrawableDeposits =
-            double.tryParse(json['unwithdrawable_deposits']),
-        unwithdrawableGrants = double.tryParse(json['unwithdrawable_grants']),
+            parseDouble(json['adjusted_portfolio_equity_previous_close']),
+        withdrawableAmount = parseDouble(json['withdrawable_amount']),
+        unwithdrawableDeposits = parseDouble(json['unwithdrawable_deposits']),
+        unwithdrawableGrants = parseDouble(json['unwithdrawable_grants']),
         updatedAt = DateTime.now();
   // 2021-02-09T18:01:28.135813Z
 
@@ -120,15 +116,14 @@ class Portfolio {
       : url = '',
         account = json['securitiesAccount']['accountNumber'],
         startDate = null, //DateTime.tryParse(json['start_date']),
-        marketValue = double.tryParse(json['securitiesAccount']
-                    ['currentBalances']['longOptionMarketValue']
-                .toString())! +
-            double.tryParse(json['securitiesAccount']['currentBalances']
-                    ['longMarketValue']
-                .toString())!,
-        equity = double.tryParse(json['securitiesAccount']['currentBalances']
-                ['liquidationValue']
-            .toString()), //double.tryParse(json['equity']),
+        marketValue = (parseDouble(json['securitiesAccount']['currentBalances']
+                    ['longOptionMarketValue']) ??
+                0) +
+            (parseDouble(json['securitiesAccount']['currentBalances']
+                    ['longMarketValue']) ??
+                0),
+        equity = parseDouble(json['securitiesAccount']['currentBalances']
+            ['liquidationValue']), //double.tryParse(json['equity']),
         extendedHoursMarketValue =
             null, // json['extended_hours_market_value'] != null ? double.tryParse(json['extended_hours_market_value']) : null,
         extendedHoursEquity =

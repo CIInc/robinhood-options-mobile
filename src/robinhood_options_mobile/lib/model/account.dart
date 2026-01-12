@@ -1,4 +1,4 @@
-// import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 
 class Account {
   // final String userId;
@@ -27,43 +27,31 @@ class Account {
   Account.fromJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
         url = json['url'],
-        portfolioCash = json['portfolio_cash'] is double
-            ? json['portfolio_cash']
-            : double.tryParse(json['portfolio_cash']),
+        portfolioCash = parseDouble(json['portfolio_cash']),
         accountNumber = json['account_number'],
         type = json['type'],
-        buyingPower = json['buying_power'] is double
-            ? json['buying_power']
-            : double.tryParse(json['buying_power']),
+        buyingPower = parseDouble(json['buying_power']),
         optionLevel = json['option_level'],
         cashHeldForOptionsCollateral =
-            json['cash_held_for_options_collateral'] is double
-                ? json['cash_held_for_options_collateral']
-                : double.tryParse(json['cash_held_for_options_collateral']),
-        unsettledDebit = json['unsettled_debit'] != null
-            ? json['unsettled_debit'] is double
-                ? json['unsettled_debit']
-                : double.tryParse(json['unsettled_debit'])
-            : null,
+            parseDouble(json['cash_held_for_options_collateral']),
+        unsettledDebit = parseDouble(json['unsettled_debit']),
         settledAmountBorrowed = json['margin_balances'] != null
-            ? double.tryParse(
-                json['margin_balances']['settled_amount_borrowed'])
-            : json['settled_amount_borrowed'] != null &&
-                    json['settled_amount_borrowed'] is double
-                ? json['settled_amount_borrowed']
-                : null;
+            ? parseDouble(json['margin_balances']['settled_amount_borrowed'])
+            : parseDouble(json['settled_amount_borrowed']);
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
         url = '',
-        portfolioCash = double.tryParse(json['securitiesAccount']
-                ['currentBalances']['cashBalance']
-            .toString()),
+        portfolioCash = json['securitiesAccount']['currentBalances'] != null
+            ? parseDouble(
+                json['securitiesAccount']['currentBalances']['cashBalance'])
+            : null,
         accountNumber = json['securitiesAccount']['accountNumber'],
-        type = json['securitiesAccount']['type'],
-        buyingPower = double.tryParse(json['securitiesAccount']
-                ['currentBalances']['buyingPower']
-            .toString()),
+        type = json['securitiesAccount']['type'] ?? '',
+        buyingPower = json['securitiesAccount']['currentBalances'] != null
+            ? parseDouble(
+                json['securitiesAccount']['currentBalances']['buyingPower'])
+            : null,
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,
@@ -73,10 +61,10 @@ class Account {
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
         url = '',
-        portfolioCash = json['accounts'][0]['balances']['current'] as double,
+        portfolioCash = parseDouble(json['accounts'][0]['balances']['current']),
         accountNumber = json['accounts'][0]['mask'],
         type = json['accounts'][0]['type'],
-        buyingPower = json['accounts'][0]['balances']['current'] as double,
+        buyingPower = parseDouble(json['accounts'][0]['balances']['current']),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,

@@ -26,7 +26,6 @@ void main() {
         devices: [],
         dateCreated: DateTime.now(),
         brokerageUsers: [],
-        accounts: [],
         agenticTradingConfig: AgenticTradingConfig(
           smaPeriodFast: 10,
           smaPeriodSlow: 30,

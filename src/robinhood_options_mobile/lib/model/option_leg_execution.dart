@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class OptionLegExecution {
   final String id;
   final double? price;
@@ -12,18 +14,18 @@ class OptionLegExecution {
 
   OptionLegExecution.fromJson(dynamic json)
       : id = json['id'],
-        price = json['price'] is double
-            ? json['price']
-            : double.tryParse(json['price']),
-        quantity = json['quantity'] is double
-            ? json['quantity']
-            : double.tryParse(json['quantity']),
+        price = parseDouble(json['price']),
+        quantity = parseDouble(json['quantity']),
         settlementDate = json['settlement_date'] is Timestamp
             ? (json['settlement_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['settlement_date']),
+            : (json['settlement_date'] is String
+                ? DateTime.tryParse(json['settlement_date'])
+                : null),
         timestamp = json['timestamp'] is Timestamp
             ? (json['timestamp'] as Timestamp).toDate()
-            : DateTime.tryParse(json['timestamp']);
+            : (json['timestamp'] is String
+                ? DateTime.tryParse(json['timestamp'])
+                : null);
 
   Map<String, dynamic> toJson() => {
         'id': id,

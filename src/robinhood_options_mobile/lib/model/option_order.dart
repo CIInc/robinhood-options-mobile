@@ -5,6 +5,7 @@ import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 
 //@immutable
 class OptionOrder {
@@ -66,33 +67,15 @@ class OptionOrder {
         chainId = json['chain_id'],
         chainSymbol = json['chain_symbol'],
         cancelUrl = json['cancel_url'],
-        canceledQuantity = json['canceled_quantity'] is double
-            ? json['canceled_quantity']
-            : double.tryParse(json['canceled_quantity']),
+        canceledQuantity = parseDouble(json['canceled_quantity']),
         direction = json['direction'],
         legs = OptionLeg.fromJsonArray(json['legs']),
-        pendingQuantity = json['pending_quantity'] is double
-            ? json['pending_quantity']
-            : double.tryParse(json['pending_quantity']),
-        premium = json['premium'] != null
-            ? (json['premium'] is double
-                ? json['premium']
-                : double.tryParse(json['premium']))
-            : null,
-        processedPremium = json['processed_premium'] is double
-            ? json['processed_premium']
-            : double.tryParse(json['processed_premium']),
-        price = json['price'] != null
-            ? (json['price'] is double
-                ? json['price']
-                : double.tryParse(json['price']))
-            : null,
-        processedQuantity = json['processed_quantity'] is double
-            ? json['processed_quantity']
-            : double.tryParse(json['processed_quantity']),
-        quantity = json['quantity'] is double
-            ? json['quantity']
-            : double.tryParse(json['quantity']),
+        pendingQuantity = parseDouble(json['pending_quantity']),
+        premium = parseDouble(json['premium']),
+        processedPremium = parseDouble(json['processed_premium']),
+        price = parseDouble(json['price']),
+        processedQuantity = parseDouble(json['processed_quantity']),
+        quantity = parseDouble(json['quantity']),
         refId = json['ref_id'],
         state = json['state'],
         timeInForce = json['time_in_force'],
@@ -101,17 +84,17 @@ class OptionOrder {
         responseCategory = json['response_category'],
         openingStrategy = json['opening_strategy'],
         closingStrategy = json['closing_strategy'],
-        stopPrice = json['stop_price'] != null
-            ? (json['stop_price'] is double
-                ? json['stop_price']
-                : double.tryParse(json['stop_price']))
-            : null,
+        stopPrice = parseDouble(json['stop_price']),
         createdAt = json['created_at'] is Timestamp
             ? (json['created_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['created_at']),
+            : (json['created_at'] is String
+                ? DateTime.tryParse(json['created_at'])
+                : null),
         updatedAt = json['updated_at'] is Timestamp
             ? (json['updated_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['updated_at']);
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null);
 
   OptionOrder.fromSchwabJson(dynamic json)
       : id = json['orderId'].toString(),

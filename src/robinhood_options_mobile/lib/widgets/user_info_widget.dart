@@ -99,6 +99,31 @@ class UserInfoWidget extends StatelessWidget {
           trailing: Text(user.locality!, style: const TextStyle(fontSize: 16)),
         ),
       ],
+      const Divider(),
+      if (brokerageUser.accounts.isEmpty) ...[
+        const ListTile(
+          title: Text("Accounts", style: TextStyle(fontSize: 14)),
+          trailing: Text("No accounts found",
+              style: TextStyle(fontSize: 16, color: Colors.grey)),
+        ),
+      ] else ...[
+        ...brokerageUser.accounts.map((account) {
+          return ListTile(
+            minTileHeight: 10,
+            title: Text("Account ${account.accountNumber}",
+                style: const TextStyle(fontSize: 14)),
+            subtitle: Text(
+                "${account.type}${account.portfolioCash != null ? " • Cash: ${formatCurrency.format(account.portfolioCash)}" : ""}",
+                style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            trailing: Text(
+              formatCurrency
+                  .format(account.buyingPower ?? account.portfolioCash ?? 0),
+              style: const TextStyle(fontSize: 16),
+            ),
+          );
+        }),
+      ],
+      const Divider(),
       if (brokerageUser.oauth2Client != null &&
           brokerageUser.oauth2Client!.credentials.expiration != null) ...[
         ListTile(
@@ -134,7 +159,7 @@ class UserInfoWidget extends StatelessWidget {
             onPressed: () async {
               var userStore =
                   Provider.of<BrokerageUserStore>(context, listen: false);
-              userStore.remove(userStore.currentUser!);
+              userStore.remove(brokerageUser);
               await userStore.save();
               userStore.setCurrentUserIndex(0);
 

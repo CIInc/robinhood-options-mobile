@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 
 //@immutable
 class InstrumentOrder {
@@ -67,50 +68,29 @@ class InstrumentOrder {
         cancel = json['cancel'],
         instrument = json['instrument'],
         instrumentId = json['instrument_id'],
-        cumulativeQuantity = json['cumulative_quantity'] is double
-            ? json['cumulative_quantity']
-            : double.tryParse(json['cumulative_quantity']),
-        averagePrice = json['average_price'] != null
-            ? (json['average_price'] is double
-                ? json['average_price']
-                : double.tryParse(json['average_price']))
-            : null,
-        fees = json['fees'] != null
-            ? (json['fees'] is double
-                ? json['fees']
-                : double.tryParse(json['fees']))
-            : null,
+        cumulativeQuantity = parseDouble(json['cumulative_quantity']),
+        averagePrice = parseDouble(json['average_price']),
+        fees = parseDouble(json['fees']),
         state = json['state'],
         pendingCancelOpenAgent = json['pending_cancel_open_agent'],
         type = json['type'],
         side = json['side'],
         timeInForce = json['time_in_force'],
         trigger = json['trigger'],
-        price = json['price'] != null
-            ? (json['price'] is double
-                ? json['price']
-                : double.tryParse(json['price']))
-            : null,
-        stopPrice = json['stop_price'] != null
-            ? (json['stop_price'] is double
-                ? json['stop_price']
-                : double.tryParse(json['stop_price']))
-            : null,
-        quantity = json['quantity'] is double
-            ? json['quantity']
-            : double.tryParse(json['quantity']),
+        price = parseDouble(json['price']),
+        stopPrice = parseDouble(json['stop_price']),
+        quantity = parseDouble(json['quantity']),
         rejectReason = json['reject_reason'],
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            json['updated_at'] is Timestamp
-                ? (json['updated_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['updated_at']),
-        // 2021-02-09T18:01:28.135813Z
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            json['created_at'] is Timestamp
-                ? (json['created_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['created_at']);
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String
+                ? DateTime.tryParse(json['created_at'])
+                : null);
 
   InstrumentOrder.fromSchwabJson(dynamic json)
       : id = json['orderId'].toString(),

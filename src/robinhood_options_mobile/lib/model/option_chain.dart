@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 /*
@@ -66,28 +68,16 @@ class OptionChain {
       : id = json['id'],
         symbol = json['symbol'],
         canOpenPosition = json['can_open_position'],
-        cashComponent = json['cash_component'] != null
-            ? double.tryParse(json['cash_component'])
-            : null,
+        cashComponent = parseDouble(json['cash_component']),
         expirationDates = json['expiration_dates']
             .map<DateTime>(
                 (e) => e is Timestamp ? (e).toDate() : DateTime.parse(e))
             .toList(),
-        tradeValueMultiplier = json['trade_value_multiplier'] != null
-            ? json['trade_value_multiplier'] is double
-                ? json['trade_value_multiplier']
-                : double.tryParse(json['trade_value_multiplier'])
-            : null,
+        tradeValueMultiplier = parseDouble(json['trade_value_multiplier']),
         minTicks = MinTicks(
-            json['min_ticks']['above_tick'] is double
-                ? json['min_ticks']['above_tick']
-                : double.tryParse(json['min_ticks']['above_tick']),
-            json['min_ticks']['below_tick'] is double
-                ? json['min_ticks']['below_tick']
-                : double.tryParse(json['min_ticks']['below_tick']),
-            json['min_ticks']['cutoff_price'] is double
-                ? json['min_ticks']['cutoff_price']
-                : double.tryParse(json['min_ticks']['cutoff_price']));
+            parseDouble(json['min_ticks']['above_tick']),
+            parseDouble(json['min_ticks']['below_tick']),
+            parseDouble(json['min_ticks']['cutoff_price']));
   Map<String, dynamic> toJson() => {
         'id': id,
         'symbol': symbol,

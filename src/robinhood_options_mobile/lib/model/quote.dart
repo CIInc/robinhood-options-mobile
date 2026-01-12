@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 /*
  {
    "ask_price":"140.000000",
@@ -59,32 +61,20 @@ class Quote {
       required this.instrumentId});
 
   Quote.fromJson(dynamic json)
-      : askPrice = json['ask_price'] is double
-            ? json['ask_price']
-            : double.tryParse(json['ask_price']),
+      : askPrice = parseDouble(json['ask_price']),
         askSize = json['ask_size'],
-        bidPrice = json['bid_price'] is double
-            ? json['bid_price']
-            : double.tryParse(json['bid_price']),
+        bidPrice = parseDouble(json['bid_price']),
         bidSize = json['bid_size'],
-        lastTradePrice = json['last_trade_price'] is double
-            ? json['last_trade_price']
-            : double.tryParse(json['last_trade_price']),
+        lastTradePrice = parseDouble(json['last_trade_price']),
         lastExtendedHoursTradePrice =
-            json['last_extended_hours_trade_price'] != null
-                ? (json['last_extended_hours_trade_price'] is double
-                    ? json['last_extended_hours_trade_price']
-                    : double.tryParse(json['last_extended_hours_trade_price']))
-                : null,
-        previousClose = json['previous_close'] is double
-            ? json['previous_close']
-            : double.tryParse(json['previous_close']),
-        adjustedPreviousClose = json['adjusted_previous_close'] is double
-            ? json['adjusted_previous_close']
-            : double.tryParse(json['adjusted_previous_close']),
+            parseDouble(json['last_extended_hours_trade_price']),
+        previousClose = parseDouble(json['previous_close']),
+        adjustedPreviousClose = parseDouble(json['adjusted_previous_close']),
         previousCloseDate = json['previous_close_date'] is Timestamp
             ? (json['previous_close_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['previous_close_date']),
+            : (json['previous_close_date'] is String
+                ? DateTime.tryParse(json['previous_close_date'])
+                : null),
         symbol = json['symbol'],
         tradingHalted =
             json['trading_halted'].toString().toLowerCase() == 'true',
@@ -92,22 +82,24 @@ class Quote {
         lastTradePriceSource = json['last_trade_price_source'],
         updatedAt = json['updated_at'] is Timestamp
             ? (json['updated_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['updated_at']),
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null),
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
 
   Quote.fromSchwabJson(dynamic json)
-      : askPrice = json['quote']['askPrice'] as double,
+      : askPrice = parseDouble(json['quote']['askPrice']),
         askSize = json['quote']['askSize'] as int,
-        bidPrice = json['quote']['bidPrice'] as double,
+        bidPrice = parseDouble(json['quote']['bidPrice']),
         bidSize = json['quote']['bidSize'] as int,
-        lastTradePrice = json['quote']['lastPrice'] as double,
+        lastTradePrice = parseDouble(json['quote']['lastPrice']),
         // TODO
         lastExtendedHoursTradePrice = null,
         // TODO: open price is not the same as previous close.
-        previousClose = json['quote']['openPrice'] as double,
+        previousClose = parseDouble(json['quote']['openPrice']),
         // TODO: open price is not the same as adjusted previous close.
-        adjustedPreviousClose = json['quote']['openPrice'] as double,
+        adjustedPreviousClose = parseDouble(json['quote']['openPrice']),
         // TODO
         previousCloseDate = null,
         symbol = json['symbol'],

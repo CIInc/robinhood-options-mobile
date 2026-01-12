@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class CopyTradeLeg {
   final DateTime? expirationDate;
   final double? strikePrice;
@@ -21,17 +23,15 @@ class CopyTradeLeg {
       : expirationDate = json['expirationDate'] != null
             ? (json['expirationDate'] is Timestamp
                 ? (json['expirationDate'] as Timestamp).toDate()
-                : DateTime.tryParse(json['expirationDate']))
+                : (json['expirationDate'] is String
+                    ? DateTime.tryParse(json['expirationDate'])
+                    : null))
             : null,
-        strikePrice = json['strikePrice'] is double
-            ? json['strikePrice']
-            : double.tryParse(json['strikePrice'].toString()),
+        strikePrice = parseDouble(json['strikePrice']),
         optionType = json['optionType'],
         side = json['side'],
         positionEffect = json['positionEffect'],
-        ratioQuantity = json['ratioQuantity'] is double
-            ? json['ratioQuantity']
-            : double.tryParse(json['ratioQuantity'].toString());
+        ratioQuantity = parseDouble(json['ratioQuantity']);
 }
 
 class CopyTradeRecord {

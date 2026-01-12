@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class InstrumentHistorical {
   final DateTime? beginsAt;
   final double? openPrice;
@@ -23,19 +25,13 @@ class InstrumentHistorical {
   InstrumentHistorical.fromJson(dynamic json)
       : beginsAt = json['begins_at'] is Timestamp
             ? (json['begins_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['begins_at']),
-        openPrice = json['open_price'] is double
-            ? json['open_price']
-            : double.tryParse(json['open_price']),
-        closePrice = json['close_price'] is double
-            ? json['close_price']
-            : double.tryParse(json['close_price']),
-        highPrice = json['high_price'] is double
-            ? json['high_price']
-            : double.tryParse(json['high_price']),
-        lowPrice = json['low_price'] is double
-            ? json['low_price']
-            : double.tryParse(json['low_price']),
+            : (json['begins_at'] is String
+                ? DateTime.tryParse(json['begins_at'])
+                : null),
+        openPrice = parseDouble(json['open_price']),
+        closePrice = parseDouble(json['close_price']),
+        highPrice = parseDouble(json['high_price']),
+        lowPrice = parseDouble(json['low_price']),
         volume = json['volume'] ?? 0,
         session = json['session'],
         interpolated = json['interpolated'];

@@ -19,7 +19,6 @@ void main() {
         devices: [],
         dateCreated: now,
         brokerageUsers: [],
-        accounts: [],
         investmentProfile: InvestmentProfile(
           investmentGoals: 'Retirement planning and wealth building',
           timeHorizon: 'Long-term (5-10 years)',
@@ -71,7 +70,6 @@ void main() {
         devices: [],
         dateCreated: now,
         brokerageUsers: [],
-        accounts: [],
       );
 
       // Convert to JSON
@@ -103,7 +101,6 @@ void main() {
         'devices': [],
         'dateCreated': Timestamp.fromDate(now),
         'brokerageUsers': [],
-        'accounts': [],
         'refreshQuotes': true,
       };
 

@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class EquityHistorical {
   final double? adjustedOpenEquity;
   final double? adjustedCloseEquity;
@@ -23,14 +25,14 @@ class EquityHistorical {
       this.session);
 
   EquityHistorical.fromJson(dynamic json)
-      : adjustedOpenEquity = double.tryParse(json['adjusted_open_equity']),
-        adjustedCloseEquity = double.tryParse(json['adjusted_close_equity']),
-        openEquity = double.tryParse(json['open_equity']),
-        closeEquity = double.tryParse(json['close_equity']),
-        openMarketValue = double.tryParse(json['open_market_value']),
-        closeMarketValue = double.tryParse(json['close_market_value']),
-        beginsAt = DateTime.tryParse(json['begins_at']),
-        netReturn = double.tryParse(json['net_return']),
+      : adjustedOpenEquity = parseDouble(json['adjusted_open_equity']),
+        adjustedCloseEquity = parseDouble(json['adjusted_close_equity']),
+        openEquity = parseDouble(json['open_equity']),
+        closeEquity = parseDouble(json['close_equity']),
+        openMarketValue = parseDouble(json['open_market_value']),
+        closeMarketValue = parseDouble(json['close_market_value']),
+        beginsAt = DateTime.tryParse(json['begins_at'] ?? ''),
+        netReturn = parseDouble(json['net_return']),
         session = json['session'];
 
   /*
@@ -96,30 +98,18 @@ class EquityHistorical {
 }
   */
   EquityHistorical.fromPerformanceJson(dynamic json)
-      : adjustedOpenEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        adjustedCloseEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
+      : adjustedOpenEquity = parseDouble(json['primary_value']['value']
+            ?.replaceAll('\$', '')
+            ?.replaceAll(',', '')),
+        adjustedCloseEquity = parseDouble(json['primary_value']['value']
+            ?.replaceAll('\$', '')
+            ?.replaceAll(',', '')),
         openEquity = 0,
-        //  double.tryParse(json['primary_value']['value']
-        //     .replaceAll('\$', '')
-        //     .replaceAll(',', '')),
         closeEquity = 0,
-        //  double.tryParse(json['primary_value']['value']
-        //     .replaceAll('\$', '')
-        //     .replaceAll(',', '')),
         openMarketValue = 0,
-        //  double.tryParse(json['primary_value']['value']
-        //     .replaceAll('\$', '')
-        //     .replaceAll(',', '')),
         closeMarketValue = 0,
-        //  double.tryParse(json['primary_value']['value']
-        //     .replaceAll('\$', '')
-        //     .replaceAll(',', '')),
-        beginsAt = null, // DateTime.tryParse(json['label']['value']),
-        netReturn = double.tryParse(json['secondary_value']['main']['value']),
+        beginsAt = null,
+        netReturn = parseDouble(json['secondary_value']['main']['value']),
         session = json['label']['value'] {
     // For chart span: ytd
     // beginsAt ??= DateFormat('HH:mm MMM d, yyyy').tryParseLoose(json['label']['value']);

@@ -10,9 +10,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:smart_auth/smart_auth.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
 typedef OAuthSignIn = void Function();
@@ -82,6 +84,21 @@ class _AuthGateState extends State<AuthGate> {
   bool isLoading = false;
   bool _obscurePassword = true;
 
+  Future<void> _requestPhoneNumberHint() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final res = await SmartAuth.instance.requestPhoneNumberHint();
+        if (res.hasData && res.data != null) {
+          setState(() {
+            phoneController.text = res.data!;
+          });
+        }
+      } catch (e) {
+        debugPrint('Phone hint failed: $e');
+      }
+    }
+  }
+
   void setIsLoading() {
     setState(() {
       isLoading = !isLoading;
@@ -97,6 +114,10 @@ class _AuthGateState extends State<AuthGate> {
     if (withSilentVerificationSMSMFA && !kIsWeb) {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
       messaging.requestPermission();
+    }
+
+    if (mode == AuthMode.phone) {
+      _requestPhoneNumberHint();
     }
 
     if (!kIsWeb && Platform.isMacOS) {
@@ -144,330 +165,368 @@ class _AuthGateState extends State<AuthGate> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SafeArea(
-                  child: Form(
-                    key: formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 40),
-                          Image.asset(
-                            'assets/images/icon.png',
-                            height: 80,
-                            width: 80,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'RealizeAlpha',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 32),
-                          Visibility(
-                            visible: error.isNotEmpty,
-                            child: MaterialBanner(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.errorContainer,
-                              content: SelectableText(error),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      error = '';
-                                    });
-                                  },
-                                  child: Text(
-                                    'Dismiss',
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onErrorContainer),
-                                  ),
-                                ),
-                              ],
-                              contentTextStyle: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer),
-                              padding: const EdgeInsets.all(10),
+                  child: AutofillGroup(
+                    child: Form(
+                      key: formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Image.asset(
+                              'assets/images/icon.png',
+                              height: 80,
+                              width: 80,
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          SegmentedButton(
-                            expandedInsets: const EdgeInsets.all(8),
-                            style: SegmentedButton.styleFrom(
-                                textStyle: TextStyle(fontSize: 18)),
-                            segments: [
-                              ButtonSegment(
-                                  value: 'phone',
-                                  icon: Icon(Icons.phone),
-                                  label: Text(
-                                    'Phone',
-                                  )),
-                              ButtonSegment(
-                                  value: 'email',
-                                  icon: Icon(Icons.email),
-                                  label: Text('Email')),
-                            ],
-                            selected: {
-                              mode == AuthMode.phone ? 'phone' : 'email'
-                            },
-                            onSelectionChanged: (p0) {
-                              setState(() {
-                                mode = p0.contains('phone')
-                                    ? AuthMode.phone
-                                    : AuthMode.login;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          AnimatedCrossFade(
-                              // excludeBottomFocus: false,
-                              firstChild: Column(
-                                children: [
-                                  TextFormField(
-                                    controller: emailController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Email',
-                                      border: OutlineInputBorder(),
-                                      prefixIcon: Icon(Icons.email_outlined),
-                                      filled: true,
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                    autofillHints: const [AutofillHints.email],
-                                    validator: (value) {
-                                      if (mode == AuthMode.phone) return null;
-                                      if (value == null || value.isEmpty) {
-                                        return 'Email is required';
-                                      }
-                                      // Basic email validation
-                                      final emailRegex = RegExp(
-                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                      );
-                                      if (!emailRegex.hasMatch(value)) {
-                                        return 'Please enter a valid email address';
-                                      }
-                                      return null;
-                                    },
+                            const SizedBox(height: 16),
+                            Text(
+                              'RealizeAlpha',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const SizedBox(height: 20),
-                                  TextFormField(
-                                    controller: passwordController,
-                                    obscureText: _obscurePassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Password',
-                                      border: const OutlineInputBorder(),
-                                      filled: true,
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _obscurePassword =
-                                                !_obscurePassword;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (mode == AuthMode.phone) return null;
-                                      if (value == null || value.isEmpty) {
-                                        return 'Password is required';
-                                      }
-                                      if (mode == AuthMode.register &&
-                                          value.length < 6) {
-                                        return 'Password must be at least 6 characters';
-                                      }
-                                      return null;
+                            ),
+                            const SizedBox(height: 32),
+                            Visibility(
+                              visible: error.isNotEmpty,
+                              child: MaterialBanner(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                content: SelectableText(error),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        error = '';
+                                      });
                                     },
+                                    child: Text(
+                                      'Dismiss',
+                                      style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onErrorContainer),
+                                    ),
                                   ),
                                 ],
+                                contentTextStyle: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer),
+                                padding: const EdgeInsets.all(10),
                               ),
-                              secondChild: TextFormField(
-                                controller: phoneController,
-                                decoration: const InputDecoration(
-                                  hintText: '+1 234 567 8910',
-                                  labelText: 'Phone number with country code',
-                                  helperText:
-                                      'Format: +[country code] [number]',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.phone_outlined),
-                                  filled: true,
-                                ),
-                                keyboardType: TextInputType.phone,
-                                validator: (value) {
-                                  if (mode != AuthMode.phone) return null;
-                                  if (value == null || value.isEmpty) {
-                                    return 'Phone number is required';
-                                  }
-                                  if (!value.startsWith('+')) {
-                                    return 'Please include country code (e.g., +1)';
-                                  }
-                                  if (value.length < 10) {
-                                    return 'Please enter a valid phone number';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              crossFadeState: mode != AuthMode.phone
-                                  ? CrossFadeState.showFirst
-                                  : CrossFadeState.showSecond,
-                              duration: Duration(milliseconds: 200)),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: FilledButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () => _handleMultiFactorException(
-                                        _emailAndPassword,
+                            ),
+                            const SizedBox(height: 20),
+                            SegmentedButton(
+                              expandedInsets: const EdgeInsets.all(8),
+                              style: SegmentedButton.styleFrom(
+                                  textStyle: TextStyle(fontSize: 18)),
+                              segments: [
+                                ButtonSegment(
+                                    value: 'phone',
+                                    icon: Icon(Icons.phone),
+                                    label: Text(
+                                      'Phone',
+                                    )),
+                                ButtonSegment(
+                                    value: 'email',
+                                    icon: Icon(Icons.email),
+                                    label: Text('Email')),
+                              ],
+                              selected: {
+                                mode == AuthMode.phone ? 'phone' : 'email'
+                              },
+                              onSelectionChanged: (p0) {
+                                setState(() {
+                                  mode = p0.contains('phone')
+                                      ? AuthMode.phone
+                                      : AuthMode.login;
+                                });
+                                if (mode == AuthMode.phone) {
+                                  _requestPhoneNumberHint();
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            AnimatedCrossFade(
+                                // excludeBottomFocus: false,
+                                firstChild: Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Column(
+                                    children: [
+                                      TextFormField(
+                                        controller: emailController,
+                                        decoration: const InputDecoration(
+                                          hintText: 'Email',
+                                          labelText: 'Email',
+                                          border: OutlineInputBorder(),
+                                          prefixIcon:
+                                              Icon(Icons.email_outlined),
+                                          filled: true,
+                                        ),
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        autofillHints: const [
+                                          AutofillHints.email
+                                        ],
+                                        validator: (value) {
+                                          if (mode == AuthMode.phone)
+                                            return null;
+                                          if (value == null || value.isEmpty) {
+                                            return 'Email is required';
+                                          }
+                                          // Basic email validation
+                                          final emailRegex = RegExp(
+                                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                          );
+                                          if (!emailRegex.hasMatch(value)) {
+                                            return 'Please enter a valid email address';
+                                          }
+                                          return null;
+                                        },
                                       ),
-                              child: isLoading
-                                  ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
+                                      const SizedBox(height: 20),
+                                      TextFormField(
+                                        controller: passwordController,
+                                        obscureText: _obscurePassword,
+                                        decoration: InputDecoration(
+                                          hintText: 'Password',
+                                          labelText: 'Password',
+                                          border: const OutlineInputBorder(),
+                                          filled: true,
+                                          suffixIcon: IconButton(
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_off
+                                                  : Icons.visibility,
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _obscurePassword =
+                                                    !_obscurePassword;
+                                              });
+                                            },
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        Text('Signing in...'),
-                                      ],
-                                    )
-                                  : Text(mode.label),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: mode != AuthMode.phone
-                                  ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        TextButton(
-                                          onPressed: _resetPassword,
-                                          child: const Text('Forgot password?'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              mode = mode == AuthMode.login
-                                                  ? AuthMode.register
-                                                  : AuthMode.login;
-                                            });
-                                          },
-                                          child: Text(mode == AuthMode.login
-                                              ? 'Register'
-                                              : 'Login'),
-                                        ),
-                                      ],
-                                    )
-                                  : null),
-                          SizedBox(
-                            height: 20,
-                          ),
-                          Row(
-                            children: [
-                              const Expanded(child: Divider()),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'Or sign in with',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                        validator: (value) {
+                                          if (mode == AuthMode.phone)
+                                            return null;
+                                          if (value == null || value.isEmpty) {
+                                            return 'Password is required';
+                                          }
+                                          if (mode == AuthMode.register &&
+                                              value.length < 6) {
+                                            return 'Password must be at least 6 characters';
+                                          }
+                                          return null;
+                                        },
                                       ),
+                                    ],
+                                  ),
+                                ),
+                                secondChild: Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Column(
+                                    children: [
+                                      TextFormField(
+                                        controller: phoneController,
+                                        decoration: InputDecoration(
+                                          hintText: '+1 234 567 8910',
+                                          labelText:
+                                              'Phone number with country code',
+                                          helperText:
+                                              'Format: +[country code] [number]',
+                                          border: const OutlineInputBorder(),
+                                          prefixIcon:
+                                              const Icon(Icons.phone_outlined),
+                                          filled: true,
+                                          suffixIcon: IconButton(
+                                            icon:
+                                                const Icon(Icons.contact_phone),
+                                            onPressed: _requestPhoneNumberHint,
+                                          ),
+                                        ),
+                                        keyboardType: TextInputType.phone,
+                                        autofillHints: const [
+                                          AutofillHints.telephoneNumber,
+                                          AutofillHints.telephoneNumberDevice
+                                        ],
+                                        validator: (value) {
+                                          if (mode != AuthMode.phone)
+                                            return null;
+                                          if (value == null || value.isEmpty) {
+                                            return 'Phone number is required';
+                                          }
+                                          if (!value.startsWith('+')) {
+                                            return 'Please include country code (e.g., +1)';
+                                          }
+                                          if (value.length < 10) {
+                                            return 'Please enter a valid phone number';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                crossFadeState: mode != AuthMode.phone
+                                    ? CrossFadeState.showFirst
+                                    : CrossFadeState.showSecond,
+                                duration: Duration(milliseconds: 200)),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: FilledButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () => _handleMultiFactorException(
+                                          _emailAndPassword,
+                                        ),
+                                child: isLoading
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text('Signing in...'),
+                                        ],
+                                      )
+                                    : Text(mode.label),
+                              ),
+                            ),
+                            AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: mode != AuthMode.phone
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          TextButton(
+                                            onPressed: _resetPassword,
+                                            child:
+                                                const Text('Forgot password?'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                mode = mode == AuthMode.login
+                                                    ? AuthMode.register
+                                                    : AuthMode.login;
+                                              });
+                                            },
+                                            child: Text(mode == AuthMode.login
+                                                ? 'Register'
+                                                : 'Login'),
+                                          ),
+                                        ],
+                                      )
+                                    : null),
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Row(
+                              children: [
+                                const Expanded(child: Divider()),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Text(
+                                    'Or sign in with',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
+                                const Expanded(child: Divider()),
+                              ],
+                            ),
+                            ...authButtons.keys.map(
+                              (button) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 5),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: isLoading
+                                      ? Container(
+                                          color: Colors.grey[200],
+                                          height: 50,
+                                          width: double.infinity,
+                                        )
+                                      : SizedBox(
+                                          width: double.infinity,
+                                          height: 50,
+                                          child: SignInButton(
+                                            button,
+                                            // onPressed: authButtons[button]!,
+                                            onPressed: () {
+                                              ScaffoldSnackbar.of(context).show(
+                                                  '${button.name} login not yet available.');
+                                            },
+                                          ),
+                                        ),
                                 ),
                               ),
-                              const Expanded(child: Divider()),
-                            ],
-                          ),
-                          ...authButtons.keys.map(
-                            (button) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 5),
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: isLoading
-                                    ? Container(
-                                        color: Colors.grey[200],
-                                        height: 50,
-                                        width: double.infinity,
-                                      )
-                                    : SizedBox(
-                                        width: double.infinity,
-                                        height: 50,
-                                        child: SignInButton(
-                                          button,
-                                          // onPressed: authButtons[button]!,
-                                          onPressed: () {
-                                            ScaffoldSnackbar.of(context).show(
-                                                '${button.name} login not yet available.');
-                                          },
-                                        ),
-                                      ),
+                            ),
+                            const SizedBox(height: 20),
+                            // if (mode != AuthMode.phone)
+                            //   RichText(
+                            //     text: TextSpan(
+                            //       style: Theme.of(context).textTheme.bodyLarge,
+                            //       children: [
+                            //         TextSpan(
+                            //           text: mode == AuthMode.login
+                            //               ? "Don't have an account? "
+                            //               : 'You have an account? ',
+                            //         ),
+                            //         TextSpan(
+                            //           text: mode == AuthMode.login
+                            //               ? 'Register now'
+                            //               : 'Click to login',
+                            //           style: const TextStyle(color: Colors.blue),
+                            //           recognizer: TapGestureRecognizer()
+                            //             ..onTap = () {
+                            //               setState(() {
+                            //                 mode = mode == AuthMode.login
+                            //                     ? AuthMode.register
+                            //                     : AuthMode.login;
+                            //               });
+                            //             },
+                            //         ),
+                            //       ],
+                            //     ),
+                            //   ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: FilledButton.tonal(
+                                onPressed: _anonymousAuth,
+                                child: const Text('Continue as guest'),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          // if (mode != AuthMode.phone)
-                          //   RichText(
-                          //     text: TextSpan(
-                          //       style: Theme.of(context).textTheme.bodyLarge,
-                          //       children: [
-                          //         TextSpan(
-                          //           text: mode == AuthMode.login
-                          //               ? "Don't have an account? "
-                          //               : 'You have an account? ',
-                          //         ),
-                          //         TextSpan(
-                          //           text: mode == AuthMode.login
-                          //               ? 'Register now'
-                          //               : 'Click to login',
-                          //           style: const TextStyle(color: Colors.blue),
-                          //           recognizer: TapGestureRecognizer()
-                          //             ..onTap = () {
-                          //               setState(() {
-                          //                 mode = mode == AuthMode.login
-                          //                     ? AuthMode.register
-                          //                     : AuthMode.login;
-                          //               });
-                          //             },
-                          //         ),
-                          //       ],
-                          //     ),
-                          //   ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: FilledButton.tonal(
-                              onPressed: _anonymousAuth,
-                              child: const Text('Continue as guest'),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -706,6 +765,7 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _emailAndPassword() async {
     if (formKey.currentState?.validate() ?? false) {
+      TextInput.finishAutofillContext();
       if (mode == AuthMode.login) {
         await auth.signInWithEmailAndPassword(
           email: emailController.text,

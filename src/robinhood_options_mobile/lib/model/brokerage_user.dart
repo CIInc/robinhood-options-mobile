@@ -3,6 +3,7 @@ import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
@@ -27,9 +28,10 @@ class BrokerageUser {
   SortDirection? sortDirection = SortDirection.desc;
   bool showPositionDetails = true;
   UserInfo? userInfo;
+  List<Account> accounts = [];
 
-  BrokerageUser(
-      this.source, this.userName, this.credentials, this.oauth2Client);
+  BrokerageUser(this.source, this.userName, this.credentials, this.oauth2Client,
+      {this.accounts = const []});
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
       : source = json['source'] == BrokerageSource.robinhood.toString()
@@ -56,7 +58,10 @@ class BrokerageUser {
         showPositionDetails = json['showPositionDetails'] ?? true,
         userInfo = json['userInfo'] != null
             ? UserInfo.fromJson(json['userInfo'])
-            : null;
+            : null,
+        accounts = json['accounts'] != null
+            ? Account.fromJsonArray(json['accounts'])
+            : [];
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
@@ -68,7 +73,8 @@ class BrokerageUser {
         'sortDirection': sortDirection.toString(),
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
-        'userInfo': userInfo?.toJson()
+        'userInfo': userInfo?.toJson(),
+        'accounts': accounts.map((e) => e.toJson()).toList(),
       };
 
   static List<BrokerageUser> fromJsonArray(dynamic json) {

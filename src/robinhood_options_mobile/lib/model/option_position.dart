@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 //@immutable
@@ -55,34 +58,29 @@ class OptionPosition {
 
   OptionPosition.fromJson(dynamic json)
       : account = json['account'],
-        averagePrice = double.tryParse(json['average_price']),
+        averagePrice = parseDouble(json['average_price']),
         chainId = json['chain_id'],
         chainSymbol = json['chain_symbol'],
         id = json['id'],
         option = json['option'],
         type = json['type'],
-        pendingBuyQuantity = double.tryParse(json['pending_buy_quantity']),
-        pendingExpiredQuantity =
-            double.tryParse(json['pending_expired_quantity']),
-        pendingExpirationQuantity =
-            double.tryParse(json['pending_expiration_quantity']),
-        pendingExerciseQuantity =
-            double.tryParse(json['pending_exercise_quantity']),
-        pendingAssignmentQuantity =
-            double.tryParse(json['pending_assignment_quantity']),
-        pendingSellQuantity = double.tryParse(json['pending_sell_quantity']),
-        quantity = double.tryParse(json['quantity']),
-        intradayQuantity = double.tryParse(json['intraday_quantity']),
-        intradayAverageOpenPrice =
-            double.tryParse(json['intraday_average_open_price']),
+        pendingBuyQuantity = parseDouble(json['pending_buy_quantity']),
+        pendingExpiredQuantity = parseDouble(json['pending_expired_quantity']),
+        pendingExpirationQuantity = parseDouble(json['pending_expiration_quantity']),
+        pendingExerciseQuantity = parseDouble(json['pending_exercise_quantity']),
+        pendingAssignmentQuantity = parseDouble(json['pending_assignment_quantity']),
+        pendingSellQuantity = parseDouble(json['pending_sell_quantity']),
+        quantity = parseDouble(json['quantity']),
+        intradayQuantity = parseDouble(json['intraday_quantity']),
+        intradayAverageOpenPrice = parseDouble(json['intraday_average_open_price']),
         // 2021-02-09T18:01:28.135813Z
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']),
-        tradeValueMultiplier = double.tryParse(json['trade_value_multiplier']),
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String ? DateTime.tryParse(json['created_at']) : null),
+        tradeValueMultiplier = parseDouble(json['trade_value_multiplier']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String ? DateTime.tryParse(json['updated_at']) : null),
         url = json['url'],
         optionId = json['option_id'];
 

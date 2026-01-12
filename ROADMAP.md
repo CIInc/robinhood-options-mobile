@@ -30,18 +30,23 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ## Summary
 
-**RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
+**RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
 - **Completed Features**: 12 major categories (80+ items)
-- **Planned Enhancements**: 16 categories (140+ items)
+- **Planned Enhancements**: 25+ categories (200+ items)
 - **Open GitHub Issues**: 12 tracked features
-- **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, frontier tech
+- **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
 - ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
-- 🎯 **Upcoming**: Sentiment Analysis, AI Coaching, Strategy Marketplace, Plaid/Schwab/Fidelity/Interactive Brokers Integrations
+- 🎯 **2026 Priorities**: 
+  - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
+  - **Q2**: Quantitative Research Workbench, Risk Management Suite 2.0, AI Trading Coach
+  - **Q3**: News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
+  - **Q4**: Mobile Experience Polish, Security Enhancements, Options Analytics Pro
+- 🚀 **2027+ Vision**: Algorithmic Strategy Marketplace, Retirement Planning, Real Estate & Alternative Assets, DeFi Integration, AR/VR Trading, Quantum Computing
 
 ## Release Versions & Timeline
 
@@ -211,8 +216,17 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support)
+- Smart Order Routing (Intelligent execution across venues)
 
-### v0.28.0 (Q1 2026 - Late February)
+### v0.28.5 (Q1 2026 - Mid February)
+**AI Portfolio Architect**
+- Natural Language Portfolio Construction ("Build me a growth portfolio with 10% tech exposure")
+- AI-Driven Asset Allocation with risk profiling
+- Automated portfolio rebalancing scheduler
+- Voice-activated portfolio queries
+- Holistic portfolio health monitoring with predictive alerts
+
+### v0.29.0 (Q1 2026 - Late February)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -221,7 +235,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.29.0 (Q2 2026 - Late April)
+### v0.29.5 (Q1 2026 - Mid March)
+**Smart Alerts & Market Intelligence**
+- Multi-condition alert builder (price + volume + technical indicators)
+- Earnings surprise prediction alerts
+- Institutional flow tracking alerts
+- Congress trading tracker (automatic disclosure monitoring)
+- Dark pool activity analyzer
+- Insider trading pattern recognition
+
+### v0.30.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Fidelity Multi-leg options execution
@@ -230,24 +253,47 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.30.0 (Q2-Q3 2026 - Late May)
+### v0.30.5 (Q2 2026 - Mid May)
+**Quantitative Research Workbench**
+- Alpha factor discovery engine (test custom signals against historical data)
+- Correlation matrix visualizer (multi-asset, multi-timeframe)
+- Event study analyzer (measure impact of events on portfolio)
+- Rolling statistics dashboard (Sharpe, Beta, Correlation over time)
+- Custom screener builder with 50+ fundamental & technical filters
+- Statistical arbitrage opportunity scanner
+
+### v0.31.0 (Q2-Q3 2026 - Late May)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs)
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Crypto/Forex analytics
 - Advanced Crypto Charting
+- Cross-asset correlation trading strategies
+- Carry trade optimizer
 
-### v0.31.0 (Q3 2026 - Mid June)
-**AI Assistant & Advanced Analytics**
-- Generative AI Assistant (natural language queries)
-- AI-powered portfolio insights
-- AI summaries & recommendations
-- Advanced portfolio analytics (Sharpe, alpha, beta)
-- Risk exposure heatmaps
+### v0.31.5 (Q2 2026 - Early June)
+**Risk Management Suite 2.0**
+- Portfolio stress testing (simulate market crashes, rate changes)
+- Scenario analysis with custom economic conditions
+- Greeks aggregation across entire portfolio
+- Tail risk hedging recommendations
+- Liquidity risk assessment (impact cost estimator)
+- Concentration risk alerts with dynamic thresholds
+- Value-at-Risk (VaR) by time horizon (1-day, 1-week, 1-month)
+
+### v0.32.0 (Q3 2026 - Mid June)
+**AI Trading Coach & Behavioral Finance**
+- Personalized trading pattern analysis (identify biases from trade history)
+- Behavioral coaching (detect overtrading, revenge trading, confirmation bias)
+- Emotion tracking & journaling (log trades with sentiment)
+- Performance attribution by decision type (fundamental vs technical vs sentiment)
+- AI trade reviews with suggestions (post-trade analysis)
+- Trading psychology score with weekly reports
+- Gamified improvement challenges
 
 
-### v0.32.0 (Q3 2026 - Late July)
+### v0.32.5 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)
@@ -255,6 +301,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Shared watchlists
 - Group settings & administration
 - Real-time member notifications
+- Video rooms for group strategy discussions
+- Collaborative portfolio analysis boards
+- Group challenges & competitions
 
 ### v0.33.0 (Q3 2026 - Late August)
 **Real-Time Alerts & Monitoring**
@@ -265,6 +314,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Options expiration alerts
 - Unusual activity detection
 
+### v0.33.5 (Q3 2026 - Early September)
+**News & Sentiment Intelligence**
+- Real-time news aggregation with AI summarization
+- Sentiment scoring from social media (Twitter, Reddit, StockTwits)
+- Fed speech analyzer (parse FOMC minutes, press conferences)
+- Earnings call transcript analysis with key phrase extraction
+- Financial news impact predictor (pre-market sentiment)
+- Fake news detector with credibility scores
+- News-driven trade signal generator
+
 ### v0.34.0 (Q3 2026 - Late September)
 **Social Platform Foundation**
 - Follow portfolios
@@ -274,6 +333,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 - User reputation system
 - Achievement badges
 - Social feed
+- Portfolio showcase marketplace (share & discover strategies)
+- Trade idea voting & crowdsourced ratings
+- Expert verification badges
+- Live streaming for top traders
 
 ### v0.35.0 (Q4 2026 - Late October)
 **Security & Compliance**
@@ -285,14 +348,28 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Security audit implementation
 - Regulatory documentation
 
+### v0.35.5 (Q4 2026 - Early November)
+**Tax Optimization & Reporting Suite**
+- Comprehensive tax center with multi-year tracking
+- Capital gains optimizer (FIFO, LIFO, specific ID)
+- Wash sale detector with replacement suggestions
+- Dividend income tracker with qualified/non-qualified split
+- Options tax treatment analyzer (Section 1256 contracts)
+- Year-end tax preview with estimated liability
+- IRS Form 8949 generator
+- Tax document vault with secure storage
+
 ### v0.36.0 (Q4 2026 - Late November)
 **Mobile Experience & Polish**
-- Home screen widgets
-- Offline mode
+- Home screen widgets (portfolio summary, top gainers/losers, watchlist)
+- Offline mode with intelligent caching
 - Landscape mode support
-- Tablet optimization
-- Dark mode enhancements
+- Tablet optimization with split-screen views
+- Dark mode enhancements with OLED-friendly pure black
 - Performance optimizations
+- Apple Watch app with complications & Siri shortcuts
+- Lock screen widgets (iOS 16+)
+- Interactive notifications with quick actions
 
 ### v0.37.0 (Q4 2026 - Late December)
 **Advanced Social & Community**
@@ -302,8 +379,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Social sentiment analysis
 - Influencer following features
 - Community marketplace
+- NFT-based portfolio achievements (tradable badges)
+- Crypto-based reputation tokens
+- Decentralized portfolio verification (on-chain proofs)
 
-### v0.38.0 (2027 Q1)
+### v0.38.0 (2027 Q1 - Late January)
 **Compliance & Regulatory**
 - Full SEC/FINRA compliance
 - Regulatory reporting (Form 3, etc.)
@@ -311,15 +391,72 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Audit reports
 - Legal documentation
 - Multi-jurisdiction support
+- Pattern Day Trading tracker with alerts
+- Margin requirement calculator
+- Position limit monitoring
 
-### v0.40.0+ (2027+)
+### v0.38.5 (2027 Q1 - Mid February)
+**Options Analytics Pro**
+- Implied volatility surface 3D visualizer
+- Options flow anomaly detector (unusual IV skew)
+- Earnings volatility analyzer (historical vs implied)
+- Options chain heatmap with Greeks visualization
+- Volatility smile/skew analyzer
+- Put/Call ratio divergence scanner
+- Delta-neutral portfolio builder
+- Gamma scalping optimizer
+
+### v0.39.0 (2027 Q1 - Late March)
+**Algorithmic Strategy Marketplace**
+- Community strategy sharing with performance proofs
+- Strategy rental/subscription model (pay successful creators)
+- Algorithmic strategy backtesting as a service
+- Strategy version control & update notifications
+- Cryptographically verified track records (immutable)
+- Strategy analytics dashboard for creators
+- Automated royalty distribution
+
+### v0.40.0 (2027 Q2 - Late April)
+**Retirement Planning & Long-Term Investing**
+- Goal-based portfolio construction (retirement, college, house)
+- Monte Carlo retirement simulator
+- Social Security optimization calculator
+- Required Minimum Distribution (RMD) tracker
+- Glide path optimizer (automatic asset allocation by age)
+- Life event modeling (marriage, children, career changes)
+- Longevity risk analysis
+
+### v0.41.0 (2027 Q2 - Late May)
+**Credit & Lending Integration**
+- Portfolio-backed lending integration (Plaid/M1 Finance)
+- Margin optimization calculator
+- Securities-based line of credit (SBLOC) marketplace
+- Collateral requirement analyzer
+- Leveraged portfolio strategies with risk warnings
+- Interest rate shopping & comparison
+
+### v0.42.0 (2027 Q3)
+**Real Estate & Alternative Assets**
+- REIT analysis & tracking
+- Private equity investment tracking (for accredited investors)
+- Crowdfunded real estate integration (Fundrise, RealtyMogul)
+- Commodities trading (gold, silver, oil)
+- Art & collectibles portfolio tracking
+- Alternative asset correlation analyzer
+
+### v0.43.0+ (2027 Q4+)
 **Future Vision & Frontier Tech**
-- Multi-Agent Collaboration Systems
-- Zero-Knowledge Proof Portfolio Verification
-- Decentralized Identity (DID) Integration
-- AR/VR Spatial Trading Interface, Manual Trade Protection (✅)
-- Voice-Activated Trading
-- DeFi Protocol Integration
+- **Multi-Agent Collaboration Systems**: Specialized AI agents (Macro, Technical, Sentiment) that debate and vote
+- **Zero-Knowledge Proof Portfolio Verification**: Prove returns without revealing trades
+- **Decentralized Identity (DID) Integration**: Portable trader reputation across platforms
+- **AR/VR Spatial Trading Interface**: Vision Pro/Quest 3D visualization
+- **Voice-Activated Trading**: Hands-free portfolio management
+- **DeFi Protocol Integration**: Direct interaction with Uniswap, Aave, Compound
+- **Blockchain-Based Trade Settlement**: Instant settlement via smart contracts
+- **Quantum-Resistant Encryption**: Future-proof security architecture
+- **Brain-Computer Interface (BCI) Support**: Neuralink integration for thought-based trading
+- **AI-Generated Market Scenarios**: GPT-powered "what-if" simulations
+- **Holographic Portfolio Display**: 3D holographic charts & data (via AR glasses)
 
 ### Trading Automation & Execution
 - **Core Trading**: Stock Orders (✅), Multi-Leg Options (✅), Futures Trading, Crypto Trading (✅), Forex Trading
@@ -650,6 +787,7 @@ Q1-Q2 2026 focuses on deepening the trading capability and expanding market reac
     - [ ] Implement `getForexQuote` and `getForexHistoricals`
     - [ ] Implement `getForexPositions`
     - [ ] Add Forex trading UI and order placement
+- [ ] **Smart Order Routing (SOR)**: Intelligent execution across multiple venues to optimize fill quality - **Large** (6-8 weeks)
 
 ### Priority 2: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
 
@@ -695,6 +833,9 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Specialized AI Agents**:
     - [ ] **Sentiment Agent**: Dedicated agent for analyzing news/social sentiment and adjusting trade confidence - **Medium** (3-4 weeks)
     - [ ] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
+- [ ] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts - **Medium** (3-4 weeks)
+- [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
+- [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [ ] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
@@ -706,6 +847,10 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **News Alerts**: News notifications for holdings
 - [ ] **Unusual Activity Alerts**: Unusual volume/price movement detection
 - [ ] **Group Activity Notifications**: Investor group trade updates
+- [ ] **Multi-Condition Alert Builder**: Combine multiple conditions (price + volume + RSI) - **Medium** (3-4 weeks)
+- [ ] **Earnings Surprise Predictor**: Machine learning model to predict earnings beats/misses - **Large** (5-6 weeks)
+- [ ] **Dark Pool Activity Alerts**: Monitor off-exchange trading anomalies - **Medium** (3-4 weeks)
+- [ ] **Insider Trading Pattern Recognition**: Detect significant insider buying/selling - **Medium** (3-4 weeks)
 
 ### Priority 3: Investor Groups & Social (Q3 2026 - Jul-Sep 2026)
 
@@ -732,6 +877,9 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **Strategy Marketplace**: Platform for users to share, rate, and clone successful Agentic Trading configurations - **Large** (6-8 weeks)
 - [ ] **Public Leaderboards**: Ranked lists of top-performing public investor groups and strategies - **Medium** (2-3 weeks)
 - [ ] **Verified Track Records**: Cryptographic proof of historical performance for public profiles - **Medium** (3-4 weeks)
+- [ ] **Video Rooms**: Live video chat for group strategy discussions - **Large** (4-5 weeks)
+- [ ] **Collaborative Analysis Boards**: Shared whiteboards for charting and idea discussion - **Medium** (3-4 weeks)
+- [ ] **Group Challenges & Competitions**: Gamified trading competitions with prizes - **Medium** (3-4 weeks)
 
 #### Copy Trading Evolution
 - [ ] **Trader Comparison**: Side-by-side performance comparison of potential leaders - **Medium** (2-3 weeks)
@@ -919,6 +1067,14 @@ Futures trading requires distinct risk management tools compared to equities. Pr
 - [ ] **Monte Carlo Simulation**: Stress test strategies with randomized trade ordering and market conditions - **Medium** (3-4 weeks)
 - [ ] **Robustness Matrix**: Heatmap of strategy performance across varying parameter sets - **Medium** (2-3 weeks)
 
+#### Quantitative Research Tools (NEW)
+- [ ] **Alpha Factor Discovery**: Test custom signals against historical data with statistical significance testing - **Large** (5-7 weeks)
+- [ ] **Correlation Matrix Visualizer**: Multi-asset, multi-timeframe correlation analysis - **Medium** (3-4 weeks)
+- [ ] **Event Study Analyzer**: Measure impact of corporate events on portfolio returns - **Medium** (3-4 weeks)
+- [ ] **Rolling Statistics Dashboard**: Track Sharpe, Beta, Correlation over time with regime detection - **Large** (4-5 weeks)
+- [ ] **Custom Screener Builder**: 50+ fundamental & technical filters with saved presets - **Large** (4-6 weeks)
+- [ ] **Statistical Arbitrage Scanner**: Detect mean-reversion opportunities across pairs/baskets - **Large** (6-8 weeks)
+
 ### Priority 4: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
 
 **Target:** Polish UI/UX, enhance security, and prepare for app store releases
@@ -978,6 +1134,10 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Gamified Learning Path**:
     - [ ] XP and Leveling system based on educational modules completed - **Medium** (2-3 weeks)
     - [ ] "Paper Trading Challenges" with rewards - **Medium** (2-3 weeks)
+- [ ] **Interactive Simulations**: Real-time market scenario simulators for learning - **Large** (4-5 weeks)
+- [ ] **AI Tutor**: Personalized learning paths based on knowledge gaps - **Large** (5-6 weeks)
+- [ ] **Community Q&A**: Stack Overflow-style Q&A for investing questions - **Medium** (3-4 weeks)
+- [ ] **Certification Program**: Earn trading certifications with verified badges - **Large** (6-8 weeks)
 
 ### Priority 5: Future Vision & Frontier Tech (2027+)
 

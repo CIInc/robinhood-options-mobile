@@ -84,8 +84,8 @@ class _InvestmentProfileSettingsWidgetState
 
       // Try to get the account from user's accounts list
       Account? account;
-      if (widget.user.accounts.isNotEmpty) {
-        account = widget.user.accounts[0]; // Use first account
+      if (widget.user.allAccounts.isNotEmpty) {
+        account = widget.user.allAccounts[0]; // Use first account
       }
 
       // Calculate portfolio value using the same logic as home_widget.dart

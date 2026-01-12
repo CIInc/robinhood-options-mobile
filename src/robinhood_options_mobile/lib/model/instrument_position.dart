@@ -2,6 +2,8 @@
 
 // import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 //@immutable
 /*
 {
@@ -84,52 +86,26 @@ class InstrumentPosition {
         instrument = json['instrument'],
         account = json['account'],
         accountNumber = json['account_number'],
-        averageBuyPrice = json['average_buy_price'] is double
-            ? json['average_buy_price']
-            : double.tryParse(json['average_buy_price']),
-        pendingAverageBuyPrice = json['pending_average_buy_price'] is double
-            ? json['pending_average_buy_price']
-            : double.tryParse(json['pending_average_buy_price']),
-        quantity = json['quantity'] is double
-            ? json['quantity']
-            : double.tryParse(json['quantity']),
-        intradayAverageBuyPrice = json['intraday_average_buy_price'] is double
-            ? json['intraday_average_buy_price']
-            : double.tryParse(json['intraday_average_buy_price']),
-        intradayQuantity = json['intraday_quantity'] is double
-            ? json['intraday_quantity']
-            : double.tryParse(json['intraday_quantity']),
+        averageBuyPrice = parseDouble(json['average_buy_price']),
+        pendingAverageBuyPrice = parseDouble(json['pending_average_buy_price']),
+        quantity = parseDouble(json['quantity']),
+        intradayAverageBuyPrice =
+            parseDouble(json['intraday_average_buy_price']),
+        intradayQuantity = parseDouble(json['intraday_quantity']),
         sharesAvailableForExercise =
-            json['shares_available_for_exercise'] is double
-                ? json['shares_available_for_exercise']
-                : double.tryParse(json['shares_available_for_exercise']),
-        sharesHeldForBuys = json['shares_held_for_buys'] is double
-            ? json['shares_held_for_buys']
-            : double.tryParse(json['shares_held_for_buys']),
-        sharesHeldForSells = json['shares_held_for_sells'] is double
-            ? json['shares_held_for_sells']
-            : double.tryParse(json['shares_held_for_sells']),
+            parseDouble(json['shares_available_for_exercise']),
+        sharesHeldForBuys = parseDouble(json['shares_held_for_buys']),
+        sharesHeldForSells = parseDouble(json['shares_held_for_sells']),
         sharesHeldForStockGrants =
-            json['shares_held_for_stock_grants'] is double
-                ? json['shares_held_for_stock_grants']
-                : double.tryParse(json['shares_held_for_stock_grants']),
+            parseDouble(json['shares_held_for_stock_grants']),
         sharesHeldForOptionsCollateral =
-            json['shares_held_for_options_collateral'] is double
-                ? json['shares_held_for_options_collateral']
-                : double.tryParse(json['shares_held_for_options_collateral']),
+            parseDouble(json['shares_held_for_options_collateral']),
         sharesHeldForOptionsEvents =
-            json['shares_held_for_options_events'] is double
-                ? json['shares_held_for_options_events']
-                : double.tryParse(json['shares_held_for_options_events']),
+            parseDouble(json['shares_held_for_options_events']),
         sharesPendingFromOptionsEvents =
-            json['shares_pending_from_options_events'] is double
-                ? json['shares_pending_from_options_events']
-                : double.tryParse(json['shares_pending_from_options_events']),
+            parseDouble(json['shares_pending_from_options_events']),
         sharesAvailableForClosingShortPosition =
-            json['shares_available_for_closing_short_position'] is double
-                ? json['shares_available_for_closing_short_position']
-                : double.tryParse(
-                    json['shares_available_for_closing_short_position']),
+            parseDouble(json['shares_available_for_closing_short_position']),
         averageCostAffected = json['avg_cost_affected'],
         updatedAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),

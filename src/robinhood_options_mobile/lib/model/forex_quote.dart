@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 /*
  {
    "ask_price":"140.000000",
@@ -47,18 +49,20 @@ class ForexQuote {
       this.updatedAt);
 
   ForexQuote.fromJson(dynamic json)
-      : askPrice = double.tryParse(json['ask_price']),
-        bidPrice = double.tryParse(json['bid_price']),
-        markPrice = double.tryParse(json['mark_price']),
-        highPrice = double.tryParse(json['high_price']),
-        lowPrice = double.tryParse(json['low_price']),
-        openPrice = double.tryParse(json['open_price']),
+      : askPrice = parseDouble(json['ask_price']),
+        bidPrice = parseDouble(json['bid_price']),
+        markPrice = parseDouble(json['mark_price']),
+        highPrice = parseDouble(json['high_price']),
+        lowPrice = parseDouble(json['low_price']),
+        openPrice = parseDouble(json['open_price']),
         symbol = json['symbol'],
         id = json['id'],
-        volume = double.tryParse(json['volume']),
+        volume = parseDouble(json['volume']),
         updatedAt = json['updated_at'] is Timestamp
             ? (json['updated_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['updated_at']);
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null);
 
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,

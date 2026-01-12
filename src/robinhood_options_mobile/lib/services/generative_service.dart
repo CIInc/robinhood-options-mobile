@@ -248,9 +248,9 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       // Include cash per account and aggregated cash if accounts are present
       double totalCash = 0.0;
       try {
-        if (user.accounts.isNotEmpty) {
+        if (user.allAccounts.isNotEmpty) {
           positionPrompt += "**Accounts Cash:**\n";
-          for (var acct in user.accounts) {
+          for (var acct in user.allAccounts) {
             double? acctCash = acct.portfolioCash;
             if (acctCash != null) {
               totalCash += acctCash;
@@ -262,7 +262,7 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
               "**Total Cash Across Accounts:** ${formatCurrency.format(totalCash)}\n";
         }
       } catch (e) {
-        // If user.accounts is not present or another error occurs, ignore
+        // If accounts are not present or another error occurs, ignore
       }
       positionPrompt += "\n";
     }

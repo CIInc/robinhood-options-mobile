@@ -43,7 +43,6 @@ void main() {
       devices: [],
       dateCreated: DateTime.now(),
       brokerageUsers: [],
-      accounts: [],
     );
 
     await tester.pumpWidget(

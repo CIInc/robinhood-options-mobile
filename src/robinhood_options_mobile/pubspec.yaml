@@ -97,6 +97,8 @@ dependencies:
   flutter_markdown: ^0.7.6+2
   # Used by option chain lists
   scrollable_positioned_list: ^0.3.8
+  # SMS and Phone number hints
+  smart_auth: ^3.2.0
   # Used to set app icon badge count (resetting it on app open).
   app_badge_plus: ^1.2.6
   candlesticks: ^2.1.0
