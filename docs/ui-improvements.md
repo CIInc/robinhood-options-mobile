@@ -21,6 +21,14 @@
   - Real-time updates of user watchlists.
   - Direct display of watchlist items in the search interface.
 
+### Option Instrument Position UI (v0.27.7)
+- **Component**: Redesigned position card in `OptionInstrumentWidget`.
+- **Features**:
+  - **ITM/OTM Badges**: Clear visual indication of In-The-Money or Out-Of-The-Money status.
+  - **P&L Visibility**: Large, color-coded P&L display (Open & Day) for instant assessment.
+  - **Comprehensive Statistics**: Grid layout showing Break-Even Price, Days to Expiration, Collateral, and Greeks (Delta, Theta, Gamma, Vega, Rho, Implied Volatility).
+  - **Enhanced Layout**: Improved data density and readability using badges and organized metrics.
+
 ### Navigation Bar Upgrade (v0.21.1)
 - **Component**: Replaced `BottomNavigationBar` (Material 2) with `NavigationBar` (Material 3).
 - **Benefits**:
@@ -48,6 +56,14 @@
   - **Market Comparison**: Alpha, Beta, Excess Return vs SPY/QQQ/DIA.
   - **Risk Metrics**: Max Drawdown, Volatility, VaR (95%).
   - **Integration**: Embeds the Risk Heatmap for visual context.
+
+### Option Instrument Position UI
+- **Component**: Redesigned Position Card in `OptionInstrumentWidget`.
+- **Features**:
+  - **Header**: Clear "Position" label with quantity, position type (e.g., "10x long"), and color-coded ITM/OTM badge.
+  - **P&L Display**: Prominent, large-format display for both Total Return and Today's Return with visual separation.
+  - **Stats Grid**: Organized 3-column layout showing Market Value, Avg Price, Total Cost, Break Even, Expiration (with red warning < 5 days), and Collateral (for short positions).
+  - **Position Greeks**: (Note: Capability added but optionally disabled) Aggregate Greeks calculation for the entire position.
 
 ## Future UI Improvement Ideas
 

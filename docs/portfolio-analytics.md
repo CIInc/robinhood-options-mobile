@@ -73,7 +73,15 @@ Throughout the interface:
   - **IWM**: Russell 2000 (Small Cap Stocks)
 - **Dynamic Calculation**: All metrics are recalculated in real-time based on the selected benchmark and your portfolio's historical performance.
 
-### 2. Smart Insights & Health Score
+### 2. Performance Overview Card
+Located at the top of the dashboard, this card provides an immediate snapshot of your portfolio's performance relative to the market:
+- **Total Return**: Your portfolio's absolute return for the selected period.
+- **Benchmark Return**: The return of the selected benchmark (e.g., SPY, IWM).
+- **Alpha**: The difference between your return and the benchmark's return. A positive value indicates outperformance.
+- **Tracking Error**: A measure of how closely your portfolio follows the benchmark.
+- **Visual Comparison**: Side-by-side metrics allow for instant assessment of your standing against the market.
+
+### 3. Smart Insights & Health Score
 The dashboard automatically analyzes your metrics to provide plain-English insights and a **Portfolio Health Score** (0-100) with academic-style letter grades:
 
 #### Health Score Grading System
@@ -107,7 +115,7 @@ The dashboard provides **contextual, actionable recommendations**:
 - **Strategy Feedback**: Specific recommendations based on metrics (e.g., "Cut losses faster" for low profit factor, "Add defensive stocks" for high Beta)
 - **Edge Quantification**: Shows mathematical edge (Kelly Criterion), stress levels (Ulcer Index), and return skew (Tail Ratio)
 
-### 3. Risk-Adjusted Return Metrics
+### 4. Risk-Adjusted Return Metrics
 These metrics help you evaluate if the returns you are generating are worth the risk you are taking.
 
 - **Sharpe Ratio**: The gold standard for risk-adjusted return. Measures excess return per unit of total risk (volatility).
@@ -119,7 +127,7 @@ These metrics help you evaluate if the returns you are generating are worth the 
 - **Calmar Ratio**: Annualized return divided by Maximum Drawdown. A great measure of return relative to your worst-case scenario.
 - **Omega Ratio**: The probability-weighted ratio of gains vs. losses for a threshold return target. A value > 1 indicates more expected gains than losses.
 
-### 4. Market Comparison Metrics
+### 5. Market Comparison Metrics
 Understand how your portfolio moves in relation to the broader market.
 
 - **Beta**: Measures volatility relative to the market.
@@ -134,7 +142,7 @@ Understand how your portfolio moves in relation to the broader market.
   - *0.0*: No correlation.
   - *-1.0*: Perfect negative correlation (moves opposite).
 
-### 5. Risk Metrics
+### 6. Risk Metrics
 Quantify the potential downside.
 
 - **Max Drawdown**: The largest percentage drop from a peak to a trough. This tells you the "pain" you would have felt during the worst period.
@@ -144,7 +152,7 @@ Quantify the potential downside.
   - *Example*: A VaR of -2% means there is only a 5% chance you will lose more than 2% in a day.
 - **CVaR (95%)**: Conditional Value at Risk (Expected Shortfall). The average loss expected *given* that the loss is greater than the VaR threshold. This captures the "tail risk" better than VaR.
 
-### 6. Advanced Edge Metrics
+### 7. Advanced Edge Metrics
 Sophisticated metrics to evaluate the statistical edge of your trading strategy.
 
 - **Kelly Criterion**: The optimal position size percentage based on your win rate and payoff ratio to maximize long-term wealth growth. A positive value indicates a mathematical edge.
@@ -154,7 +162,7 @@ Sophisticated metrics to evaluate the statistical edge of your trading strategy.
   - *Goal*: > 0.9 (Positive), > 1.0 (Good), > 1.3 (Strong positive skew).
   - *Avoid*: < 0.9 indicates negative skew where losses hurt more than wins help.
 
-### 7. Daily Return Stats
+### 8. Daily Return Stats
 Granular statistics based on your daily P&L.
 
 - **Profit Factor**: Gross Profit divided by Gross Loss. A value > 1.0 means you are profitable.
@@ -165,7 +173,7 @@ Granular statistics based on your daily P&L.
 - **Expectancy**: The average amount you can expect to win (or lose) per day/trade.
 - **Streaks**: Tracks your longest consecutive winning and losing streaks.
 
-### 8. ESG Scoring
+### 9. ESG Scoring
 Evaluate the sustainability of your portfolio.
 
 - **Total ESG Score**: A weighted average of the Environmental, Social, and Governance scores of your holdings.
@@ -174,10 +182,10 @@ Evaluate the sustainability of your portfolio.
   - **Social**: Workforce, human rights, community.
   - **Governance**: Management, shareholders, CSR strategy.
 
-### 9. Integrated Risk Heatmap
+### 10. Integrated Risk Heatmap
 The dashboard includes the **[Risk Heatmap](risk-heatmap.md)**, allowing you to visually correlate these high-level metrics with your specific position exposures.
 
-### 10. Tax Optimization
+### 11. Tax Optimization
 - **[Tax Loss Harvesting](tax-loss-harvesting.md)**: An integrated tool that identifies opportunities to realize losses to offset gains. It features seasonality awareness (highlighting urgency near year-end) and smart visibility to keep your dashboard focused.
 
 ## Using the Help System

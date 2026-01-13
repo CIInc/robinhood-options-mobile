@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.27.7] - 2026-01-12
+
+### Added
+- **Russell 2000 (IWM) Support:** Added Russell 2000 market index support to performance charts and benchmark comparisons.
+
+### Changed
+- **Option Instrument Position UI:**
+  - Redesigned position card for clarity and data density.
+  - Added ITM/OTM visualization badges.
+  - Improved P&L visibility with larger typography and better layout.
+  - Enhanced statistics grid showing break-even, expiration count-downs, and collateral requirements.
+- **Account Handling:** Refactored account handling logic for improved stability.
+
 ## [0.27.6] - 2026-01-10
 
 ### Added

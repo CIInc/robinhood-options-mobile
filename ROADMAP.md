@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -152,18 +152,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ Portfolio Allocation Widget Enhancements
 - ✅ Options Flow Analysis Refinements
 
-### v0.27.1 ✅ (Released Dec 30, 2025)
-**Agentic Trading Reliability & UI Polish**
-- ✅ Processed Signals UI Overhaul (Card layout, detailed inspection)
-- ✅ Signal Deduplication (Local persistence)
-- ✅ Server-Side Safety (Prevent timestamp updates during auto-trade checks)
-- ✅ Market Data Fetching Improvements
-
 ### v0.27.0 ✅ (Released Dec 30, 2025)
 **Portfolio Analytics, AI Enhancements & UI Improvements**
 - ✅ **Risk Heatmap**: Interactive treemap visualization of portfolio exposure and performance
 - ✅ **Portfolio Analytics Dashboard**: Professional-grade metrics (Sharpe, Sortino, Alpha, Beta)
-- ✅ **Benchmark Comparison**: Compare performance against SPY, QQQ, and DIA
+- ✅ **Benchmark Comparison**: Compare performance against SPY, QQQ, DIA, and IWM
 - ✅ **Risk Metrics**: Max Drawdown, Volatility, and Value at Risk (VaR)
 - ✅ **AI Model Upgrade**: Switched to Gemini 2.5 Flash Lite for improved performance and cost efficiency
 - ✅ **Navigation Bar Upgrade**: Modern Material 3 NavigationBar for better UI consistency
@@ -172,9 +165,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Order Management**: Added "Cancel Order" functionality in OptionOrderWidget
 
 ### v0.27.1 ✅ (Released Dec 30, 2025)
-**Bug Fixes**
-- ✅ **Agentic Trading**: Enhanced market data fetching logic to ensure sufficient historical data for MACD and other indicators
-- ✅ **Trade Signals**: Improved trade signal sorting functionality and reliability
+**Agentic Trading Reliability & Bug Fixes**
+- ✅ **Processed Signals**: UI Overhaul (Card layout, detailed inspection)
+- ✅ **Signal Deduplication**: Local persistence and reliability improvements
+- ✅ **Market Data**: Enhanced fetching logic for indicators
+- ✅ **Trade Signals**: Improved sorting and filtering functionality
+- ✅ **Server-Side Safety**: Mechanism to prevent timestamp updates during auto-trade checks
 
 ### v0.27.2 ✅ (Released Dec 31, 2025)
 **Income Projection, Fullscreen Charts & UI Polish**
@@ -182,6 +178,21 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Fullscreen Charts**: Immersive chart viewing experience
 - ✅ **Generative AI UI**: Enhanced layout and action cards
 - ✅ **Portfolio Analytics UI**: Refined headers and layout for consistency
+
+### v0.27.3 ✅ (Released Jan 1, 2026)
+**Portfolio Rebalancing & Tax Loss Harvesting**
+- ✅ **Tax Loss Harvesting** (Identify and realize losses for tax optimization)
+- ✅ **Portfolio Rebalancing Overhaul** (Complete UI Redesign, Dual Views, Drift Analysis)
+- ✅ Enhanced Edit Mode (Precision controls, Sliders, Presets)
+- ✅ Actionable Recommendations (Buy/Sell list sorted by impact)
+- ✅ Theme-aware Charting & Performance Optimizations
+
+### v0.27.4 ✅ (Released Jan 2, 2026)
+**ESG Scoring & Advanced Analytics**
+- ✅ **ESG Scoring** (Portfolio & Instrument Level Scores, Yahoo Finance Integration)
+- ✅ **Advanced Portfolio Analytics** (Correlation, CVaR, Kelly Criterion, Ulcer Index)
+- ✅ **Fullscreen Charts**: Improved layout with bottom margin for system gestures
+- ✅ **Documentation**: Comprehensive updates for Portfolio Analytics metrics
 
 ### v0.27.5 ✅ (Released Jan 7, 2026)
 **Bug Fixes**
@@ -195,20 +206,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Allocation Widget** (Enhanced loading indicator & visual feedback)
 - ✅ **Tooltips & Help Dialogs** (Improved clarity and visual hierarchy)
 
-### v0.27.4 ✅ (Released Jan 2, 2026)
-**ESG Scoring & Advanced Analytics**
-- ✅ **ESG Scoring** (Portfolio & Instrument Level Scores, Yahoo Finance Integration)
-- ✅ **Advanced Portfolio Analytics** (Correlation, CVaR, Kelly Criterion, Ulcer Index)
-- ✅ **Fullscreen Charts**: Improved layout with bottom margin for system gestures
-- ✅ **Documentation**: Comprehensive updates for Portfolio Analytics metrics
-
-### v0.27.3 ✅ (Released Jan 1, 2026)
-**Portfolio Rebalancing & Tax Loss Harvesting**
-- ✅ **Tax Loss Harvesting** (Identify and realize losses for tax optimization)
-- ✅ **Portfolio Rebalancing Overhaul** (Complete UI Redesign, Dual Views, Drift Analysis)
-- ✅ Enhanced Edit Mode (Precision controls, Sliders, Presets)
-- ✅ Actionable Recommendations (Buy/Sell list sorted by impact)
-- ✅ Theme-aware Charting & Performance Optimizations
+### v0.27.7 ✅ (Released Jan 12, 2026)
+**Option Instrument Position UI & Market Indices**
+- ✅ **Option UI**: Redesigned position card with high data density (ITM/OTM badges, Enhanced P&L)
+- ✅ **Statistics Grid**: Comprehensive position stats (Break-even, Expiration, Collateral)
+- ✅ **Russell 2000 (IWM)**: Added support for Russell 2000 index in performance charts and analytics
+- ✅ **Account Handling**: Refactored account handling logic for improved stability
 
 ### v0.28.0 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

@@ -10,7 +10,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 
 *   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data.
 *   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.
-*   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments. **New:** Benchmark Chart with Date Range Selection (1W, 1M, 3M, YTD, 1Y, ALL) for performance comparison.
+*   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments. **New:** Benchmark Chart with Date Range Selection (1W, 1M, 3M, YTD, 1Y, ALL) for performance comparison. Supports major indices including S&P 500, Nasdaq 100, Dow Jones, and Russell 2000 (IWM).
 *   **[Portfolio Analytics](docs/portfolio-analytics.md):** Comprehensive dashboard for advanced portfolio metrics including Sharpe, Sortino, Alpha, Beta, Correlation, and more. Features **Smart Insights** with a Portfolio Health Score, **Risk Metrics** (VaR, CVaR, Max Drawdown), **Advanced Edge Metrics** (Kelly Criterion, Ulcer Index), **ESG Scoring**, **Performance Overview Card** for benchmark-relative tracking, and enhanced tooltips/help dialogs. Includes an integrated **Risk Heatmap** for visual exposure analysis.
 *   **Portfolio Allocation Visualization:** Interactive carousel of pie charts showing portfolio allocation breakdown by asset type, individual positions (top 5 holdings), sector, and industry. Features bidirectional highlighting between chart slices and legend entries with visual page indicators.
 *   **Stock Screener:** Advanced stock filtering by sector, market cap, P/E ratio, dividend yield, price, and volume with quick presets and Yahoo Finance integration. Now features a dedicated interface for easier discovery.
@@ -32,6 +32,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **[Trade Signal Notifications](docs/trade-signal-notifications.md):** Configurable push notifications for trade signals with granular filtering by signal type (BUY/SELL/HOLD), symbol, interval, and confidence threshold. Includes rich notification content and deep linking for immediate analysis.
 *   **[Tax Loss Harvesting](docs/tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization. Features smart suggestions, seasonality awareness, and visibility rules to filter wash sales.
 *   **[Portfolio Rebalancing](docs/portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
+*   **[Option Instrument Position UI](docs/ui-improvements.md#option-instrument-position-ui):** Redesigned position card in `OptionInstrumentWidget` with clear ITM/OTM badges, large P&L display, and comprehensive statistics grid (IV, Greeks, Break-even, etc.) for better position management.
 *   **UI Enhancements:** Modernized navigation with Material 3 NavigationBar, integrated ad banners for sustainability, and streamlined order management workflows.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 
