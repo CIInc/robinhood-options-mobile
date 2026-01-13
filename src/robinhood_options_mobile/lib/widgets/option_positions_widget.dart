@@ -71,8 +71,6 @@ class OptionPositionsWidget extends StatefulWidget {
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
-  // final FirestoreService _firestoreService = FirestoreService();
-
   @override
   Widget build(BuildContext context) {
     var groupedOptionAggregatePositions = {};
@@ -98,25 +96,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         .getDisplayValueOptionAggregatePosition(widget.filteredOptionPositions,
             displayValue: DisplayValue.marketValue);
 
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
-    if (widget.brokerageUser.showPositionDetails &&
-        groupedOptionAggregatePositions.length == 1) {
-      var results = _calculateGreekAggregates(widget.filteredOptionPositions);
-      deltaAvg = results[0];
-      gammaAvg = results[1];
-      thetaAvg = results[2];
-      vegaAvg = results[3];
-      rhoAvg = results[4];
-      ivAvg = results[5];
-      chanceAvg = results[6];
-      openInterestAvg = results[7];
+    GreekAggregates? greeks;
+    if (widget.brokerageUser.showPositionDetails) {
+      greeks = _calculateGreekAggregates(widget.filteredOptionPositions);
     }
 
     var brightness = MediaQuery.of(context).platformBrightness;
@@ -483,21 +465,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         navigateToFullPage(context);
                       },
               ),
-              _buildDetailScrollRow(
-                  widget.filteredOptionPositions,
-                  deltaAvg,
-                  gammaAvg,
-                  thetaAvg,
-                  vegaAvg,
-                  rhoAvg,
-                  ivAvg,
-                  chanceAvg,
-                  (openInterestAvg != null && !openInterestAvg.isNaN
-                          ? openInterestAvg
-                          : 0)
-                      .toInt(),
-                  summaryValueFontSize,
-                  summaryLabelFontSize,
+              _buildDetailScrollRow(widget.filteredOptionPositions, greeks,
+                  summaryValueFontSize, summaryLabelFontSize,
                   iconSize: 27.0),
             ]
                 //)
@@ -519,21 +488,20 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ],
         SliverToBoxAdapter(
             child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0), //.all(8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 8.0,
             children: [
-              TextButton.icon(
-                  // FilledButton.tonalIcon(
-                  // OutlinedButton.icon(
+              ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.line_axis, size: 16),
+                  label: Text(BrokerageUser.displayValueText(
+                      widget.brokerageUser.displayValue!)),
                   onPressed: () {
                     showModalBottomSheet<void>(
                         context: context,
                         showDragHandle: true,
-                        // isScrollControlled: true,
-                        //useRootNavigator: true,
-                        //constraints: const BoxConstraints(maxHeight: 200),
                         builder: (_) => MoreMenuBottomSheet(
                                 widget.brokerageUser,
                                 analytics: widget.analytics,
@@ -542,20 +510,20 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                                 onSettingsChanged: (value) {
                               setState(() {});
                             }));
-                  },
+                  }),
+              ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: Icon(
+                      widget.brokerageUser.sortDirection == SortDirection.desc
+                          ? Icons.south
+                          : Icons.north,
+                      size: 16),
                   label: Text(BrokerageUser.displayValueText(
-                      widget.brokerageUser.displayValue!)),
-                  icon: Icon(Icons.line_axis)),
-              TextButton.icon(
-                  // FilledButton.tonalIcon(
-                  // OutlinedButton.icon(
+                      widget.brokerageUser.sortOptions!)),
                   onPressed: () {
                     showModalBottomSheet<void>(
                         context: context,
                         showDragHandle: true,
-                        // isScrollControlled: true,
-                        //useRootNavigator: true,
-                        //constraints: const BoxConstraints(maxHeight: 200),
                         builder: (_) => MoreMenuBottomSheet(
                                 widget.brokerageUser,
                                 analytics: widget.analytics,
@@ -563,22 +531,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                                 showOnlySort: true, onSettingsChanged: (value) {
                               setState(() {});
                             }));
-                  },
-                  label: Text(BrokerageUser.displayValueText(
-                      widget.brokerageUser.sortOptions!)),
-                  icon: Icon(
-                      widget.brokerageUser.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north)
-                  // Icon(Icons.sort)
-                  ),
-              // ListTile(
-              //   trailing: FilledButton.tonalIcon(
-              //       // OutlinedButton.icon(
-              //       onPressed: () {},
-              //       label: Text('Market Value'),
-              //       icon: Icon(Icons.sort)),
-              // ),
+                  }),
             ],
           ),
         )),
@@ -654,116 +607,65 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 )));
   }
 
-  List<double> _calculateGreekAggregates(
+  GreekAggregates _calculateGreekAggregates(
       List<OptionAggregatePosition> filteredOptionPositions) {
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
-    var denominator = filteredOptionPositions
-        .map((OptionAggregatePosition e) => e.marketValue)
-        .reduce((a, b) => a + b);
+    double deltaSum = 0;
+    double gammaSum = 0;
+    double thetaSum = 0;
+    double vegaSum = 0;
+    double rhoSum = 0;
+    double ivSum = 0;
+    double chanceSum = 0;
+    double openInterestSum = 0;
+    double volumeSum = 0;
+    double marketValueSum = 0;
 
-    deltaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.delta != null
-                ? e.optionInstrument!.optionMarketData!.delta! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    gammaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.gamma != null
-                ? e.optionInstrument!.optionMarketData!.gamma! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    thetaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.theta != null
-                ? e.optionInstrument!.optionMarketData!.theta! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    vegaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.vega != null
-                ? e.optionInstrument!.optionMarketData!.vega! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    rhoAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.rho != null
-                ? e.optionInstrument!.optionMarketData!.rho! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    ivAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.impliedVolatility !=
-                        null
-                ? e.optionInstrument!.optionMarketData!.impliedVolatility! *
-                    e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    chanceAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => (e.direction == 'debit'
-                ? (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null &&
-                        e.optionInstrument!.optionMarketData!
-                                .chanceOfProfitLong !=
-                            null
-                    ? e.optionInstrument!.optionMarketData!
-                            .chanceOfProfitLong! *
-                        e.marketValue
-                    : 0)
-                : (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null &&
-                        e.optionInstrument!.optionMarketData!
-                                .chanceOfProfitShort !=
-                            null
-                    ? e.optionInstrument!.optionMarketData!
-                            .chanceOfProfitShort! *
-                        e.marketValue
-                    : 0)))
-            .reduce((a, b) => a + b) /
-        denominator;
-    openInterestAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
-                ? e.optionInstrument!.optionMarketData!.openInterest *
-                    e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    return [
-      deltaAvg,
-      gammaAvg,
-      thetaAvg,
-      vegaAvg,
-      rhoAvg,
-      ivAvg,
-      chanceAvg,
-      openInterestAvg
-    ];
+    for (var position in filteredOptionPositions) {
+      double marketValue = position.marketValue;
+      marketValueSum += marketValue;
+
+      if (position.optionInstrument?.optionMarketData != null) {
+        var data = position.optionInstrument!.optionMarketData!;
+        deltaSum += (data.delta ?? 0) * marketValue;
+        gammaSum += (data.gamma ?? 0) * marketValue;
+        thetaSum += (data.theta ?? 0) * marketValue;
+        vegaSum += (data.vega ?? 0) * marketValue;
+        rhoSum += (data.rho ?? 0) * marketValue;
+        ivSum += (data.impliedVolatility ?? 0) * marketValue;
+        openInterestSum += data.openInterest * marketValue;
+        volumeSum += data.volume * marketValue;
+
+        if (position.direction == 'debit') {
+          chanceSum += (data.chanceOfProfitLong ?? 0) * marketValue;
+        } else {
+          chanceSum += (data.chanceOfProfitShort ?? 0) * marketValue;
+        }
+      }
+    }
+
+    if (marketValueSum == 0) {
+      return GreekAggregates();
+    }
+
+    return GreekAggregates(
+      delta: deltaSum / marketValueSum,
+      gamma: gammaSum / marketValueSum,
+      theta: thetaSum / marketValueSum,
+      vega: vegaSum / marketValueSum,
+      rho: rhoSum / marketValueSum,
+      iv: ivSum / marketValueSum,
+      chance: chanceSum / marketValueSum,
+      openInterest: openInterestSum / marketValueSum,
+      volume: volumeSum / marketValueSum,
+    );
   }
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = widget.brokerageUser.getDisplayValue(op);
-    String opTrailingText = widget.brokerageUser.getDisplayText(value);
+    double value = widget.brokerageUser
+        .getDisplayValue(op, displayValue: DisplayValue.marketValue);
+    String opTrailingText = widget.brokerageUser
+        .getDisplayText(value, displayValue: DisplayValue.marketValue);
     Icon? icon = (widget.brokerageUser.showPositionDetails ||
             widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
             widget.brokerageUser.displayValue == DisplayValue.marketValue)
@@ -771,112 +673,147 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
     return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          leading: Hero(
-              tag: 'logo_${op.symbol}${op.id}',
-              child: op.logoUrl != null
-                  ? CircleAvatar(
-                      radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      child: Image.network(
-                        op.logoUrl!,
-                        width: 40,
-                        height: 40,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return Text(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Hero(
+                  tag: 'logo_${op.symbol}${op.id}',
+                  child: op.logoUrl != null
+                      ? CircleAvatar(
+                          radius: 25,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Image.network(
+                            op.logoUrl!,
+                            width: 32,
+                            height: 32,
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
+                              return Text(
+                                op.symbol,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                                style: const TextStyle(fontSize: 11),
+                              );
+                            },
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 25,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Text(
                             op.symbol,
                             overflow: TextOverflow.fade,
                             softWrap: false,
-                          );
-                        },
-                      ),
+                            style: const TextStyle(fontSize: 11),
+                          ))),
+              title: RichText(
+                text: TextSpan(
+                  style:
+                      DefaultTextStyle.of(context).style.copyWith(fontSize: 16),
+                  children: [
+                    TextSpan(
+                        text: '${op.symbol} ',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (op.legs.isNotEmpty) ...[
+                      TextSpan(
+                          text:
+                              '\$${formatCompactNumber.format(op.legs.first.strikePrice)} '),
+                      TextSpan(
+                          text: '${op.legs.first.optionType} ',
+                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      TextSpan(
+                          text: 'x ${formatCompactNumber.format(op.quantity!)}',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline)),
+                    ],
+                  ],
+                ),
+              ),
+              subtitle: Text(
+                '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              trailing: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      icon,
+                    ],
+                    Text(
+                      opTrailingText,
+                      style: const TextStyle(
+                          fontSize: summaryValueFontSize,
+                          fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.right,
                     )
-                  : CircleAvatar(
-                      radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        op.symbol,
-                        overflow: TextOverflow.fade,
-                        softWrap: false,
-                      ))),
-          title: Text(
-              '${op.symbol} \$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.isNotEmpty ? op.legs.first.positionType : ''} ${op.legs.isNotEmpty ? op.legs.first.optionType : ''} x ${formatCompactNumber.format(op.quantity!)}'),
-          subtitle: Text(
-              '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}'),
-          trailing: Wrap(spacing: 8, children: [
-            if (icon != null) ...[
-              icon,
-            ],
-            Text(
-              opTrailingText,
-              style: const TextStyle(fontSize: summaryValueFontSize),
-              textAlign: TextAlign.right,
-            )
-          ]),
-
-          //isThreeLine: true,
-          onTap: () {
-            /* For navigation within this tab, uncomment
-            widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                builder: (context) => OptionInstrumentWidget(
-                    ru, accounts!.first, op.optionInstrument!,
-                    optionPosition: op)));
-                    */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => OptionInstrumentWidget(
-                          widget.brokerageUser,
-                          widget.service,
-                          op.optionInstrument!,
-                          optionPosition: op,
-                          heroTag: 'logo_${op.symbol}${op.id}',
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                          user: widget.user,
-                          userDocRef: widget.userDocRef,
-                        )));
-          },
-        ),
-        if (widget.brokerageUser.showPositionDetails) ...[
-          _buildDetailScrollRow(
-              [op],
-              op.optionInstrument!.optionMarketData!.delta!,
-              op.optionInstrument!.optionMarketData!.gamma!,
-              op.optionInstrument!.optionMarketData!.theta!,
-              op.optionInstrument!.optionMarketData!.vega!,
-              op.optionInstrument!.optionMarketData!.rho!,
-              op.optionInstrument!.optionMarketData!.impliedVolatility!,
-              op.direction == 'debit'
-                  ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong!
-                  : op.optionInstrument!.optionMarketData!.chanceOfProfitShort!,
-              op.optionInstrument!.optionMarketData!.openInterest,
-              greekValueFontSize,
-              greekLabelFontSize)
-        ]
-      ],
-    ));
+                  ]),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => OptionInstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              op.optionInstrument!,
+                              optionPosition: op,
+                              heroTag: 'logo_${op.symbol}${op.id}',
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              },
+            ),
+            if (widget.brokerageUser.showPositionDetails) ...[
+              _buildDetailScrollRow(
+                  [op],
+                  op.optionInstrument?.optionMarketData != null
+                      ? GreekAggregates(
+                          delta: op.optionInstrument!.optionMarketData!.delta,
+                          gamma: op.optionInstrument!.optionMarketData!.gamma,
+                          theta: op.optionInstrument!.optionMarketData!.theta,
+                          vega: op.optionInstrument!.optionMarketData!.vega,
+                          rho: op.optionInstrument!.optionMarketData!.rho,
+                          iv: op.optionInstrument!.optionMarketData!
+                              .impliedVolatility,
+                          chance: op.direction == 'debit'
+                              ? op.optionInstrument!.optionMarketData!
+                                  .chanceOfProfitLong
+                              : op.optionInstrument!.optionMarketData!
+                                  .chanceOfProfitShort,
+                          openInterest: op
+                              .optionInstrument!.optionMarketData!.openInterest
+                              .toDouble(),
+                          volume: op.optionInstrument!.optionMarketData!.volume
+                              .toDouble(),
+                        )
+                      : null,
+                  greekValueFontSize,
+                  greekLabelFontSize,
+                  clickable: false)
+            ]
+          ],
+        ));
   }
 
-  SingleChildScrollView _buildDetailScrollRow(
-      List<OptionAggregatePosition> ops,
-      double? delta,
-      double? gamma,
-      double? theta,
-      double? vega,
-      double? rho,
-      double? impliedVolatility,
-      double? chanceOfProfit,
-      int openInterest,
-      double valueFontSize,
-      double labelFontSize,
-      {double iconSize = 23.0}) {
-    List<Widget> tiles = [];
+  SingleChildScrollView _buildDetailScrollRow(List<OptionAggregatePosition> ops,
+      GreekAggregates? greeks, double valueFontSize, double labelFontSize,
+      {double iconSize = 23.0, bool clickable = true}) {
     /*
     double? marketValue = user.getAggregateDisplayValue(ops,
         displayValue: DisplayValue.marketValue);
@@ -910,181 +847,127 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    tiles = [
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.brokerageUser.displayValue = DisplayValue.todayReturn;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
+    Widget buildTile(String label, String valueText, double? value,
+        {bool neutral = false, bool clickable = true}) {
+      return InkWell(
+        onTap: clickable
+            ? () {
+                if (label == "Return Today") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturn;
+                  });
+                } else if (label == "Return Today %") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturnPercent;
+                  });
+                } else if (label == "Total Return") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturn;
+                  });
+                } else if (label == "Total Return %") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturnPercent;
+                  });
+                }
+              }
+            : null,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            PnlBadge(text: todayReturnText, value: todayReturn),
-            const SizedBox(height: 4),
-            Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
+            PnlBadge(
+                text: valueText,
+                value: neutral ? null : value,
+                neutral: neutral),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: labelFontSize,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ]),
         ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.brokerageUser.displayValue = DisplayValue.todayReturnPercent;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            PnlBadge(text: todayReturnPercentText, value: todayReturnPercent),
-            const SizedBox(height: 4),
-            Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.brokerageUser.displayValue = DisplayValue.totalReturn;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            PnlBadge(text: totalReturnText, value: totalReturn),
-            const SizedBox(height: 4),
-            Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.brokerageUser.displayValue = DisplayValue.totalReturnPercent;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            PnlBadge(text: totalReturnPercentText, value: totalReturnPercent),
-            const SizedBox(height: 4),
-            Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
+      );
+    }
+
+    List<Widget> tiles = [
+      buildTile("Return Today", todayReturnText, todayReturn,
+          clickable: clickable),
+      buildTile("Return Today %", todayReturnPercentText, todayReturnPercent,
+          clickable: clickable),
+      buildTile("Total Return", totalReturnText, totalReturn,
+          clickable: clickable),
+      buildTile("Total Return %", totalReturnPercentText, totalReturnPercent,
+          clickable: clickable),
     ];
+
+    if (greeks != null) {
+      if (greeks.delta != null) {
+        tiles.add(buildTile(
+            "Delta Δ", formatNumber.format(greeks.delta), greeks.delta,
+            neutral: true));
+      }
+      if (greeks.gamma != null) {
+        tiles.add(buildTile(
+            "Gamma Γ", formatNumber.format(greeks.gamma), greeks.gamma,
+            neutral: true));
+      }
+      if (greeks.theta != null) {
+        tiles.add(buildTile(
+            "Theta Θ", formatNumber.format(greeks.theta), greeks.theta,
+            neutral: true));
+      }
+      if (greeks.vega != null) {
+        tiles.add(buildTile(
+            "Vega v", formatNumber.format(greeks.vega), greeks.vega,
+            neutral: true));
+      }
+      if (greeks.rho != null) {
+        tiles.add(buildTile(
+            "Rho p", formatNumber.format(greeks.rho), greeks.rho,
+            neutral: true));
+      }
+      if (greeks.iv != null) {
+        tiles.add(buildTile(
+            "Impl. Vol.", formatPercentage.format(greeks.iv), greeks.iv,
+            neutral: true));
+      }
+      if (greeks.chance != null) {
+        tiles.add(buildTile(
+            "Chance", formatPercentage.format(greeks.chance), greeks.chance,
+            neutral: true));
+      }
+      if (greeks.openInterest != null) {
+        tiles.add(buildTile(
+            "Open Interest",
+            formatCompactNumber.format(greeks.openInterest),
+            greeks.openInterest,
+            neutral: true));
+      }
+      if (greeks.volume != null) {
+        tiles.add(buildTile(
+            "Volume", formatCompactNumber.format(greeks.volume), greeks.volume,
+            neutral: true));
+      }
+    }
+
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ...tiles,
-              if (delta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: formatNumber.format(delta), neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Delta Δ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (gamma != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: formatNumber.format(gamma), neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Gamma Γ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (theta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: formatNumber.format(theta), neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Theta Θ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (vega != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: formatNumber.format(vega), neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Vega v", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (rho != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: formatNumber.format(rho), neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Rho p", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (impliedVolatility != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(
-                        text: formatPercentage.format(impliedVolatility),
-                        neutral: true),
-                    const SizedBox(height: 4),
-                    Text("Impl. Vol.",
-                        style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (chanceOfProfit != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child: Column(
-                    children: [
-                      PnlBadge(
-                          text: formatPercentage.format(chanceOfProfit),
-                          neutral: true),
-                      const SizedBox(height: 4),
-                      Text("Chance", style: TextStyle(fontSize: labelFontSize)),
-                    ],
-                  ),
-                )
-              ],
-              if (delta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child: Column(
-                    children: [
-                      PnlBadge(
-                          text: formatCompactNumber.format(openInterest),
-                          neutral: true),
-                      const SizedBox(height: 4),
-                      Text("Open Interest",
-                          style: TextStyle(fontSize: labelFontSize)),
-                    ],
-                  ),
-                )
-              ]
-            ])));
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: tiles)));
   }
 
   Widget _buildOptionPositionSymbolRow(
@@ -1095,12 +978,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     List<Widget> cards = [];
 
-    double? value =
-        widget.brokerageUser.getDisplayValueOptionAggregatePosition(ops);
+    double? value = widget.brokerageUser.getDisplayValueOptionAggregatePosition(
+        ops,
+        displayValue: DisplayValue.marketValue);
     String? trailingText;
     Icon? icon;
     if (value != null) {
-      trailingText = widget.brokerageUser.getDisplayText(value);
+      trailingText = widget.brokerageUser
+          .getDisplayText(value, displayValue: DisplayValue.marketValue);
       icon = (widget.brokerageUser.showPositionDetails ||
               widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
               widget.brokerageUser.displayValue == DisplayValue.marketValue)
@@ -1108,24 +993,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           : widget.brokerageUser.getDisplayIcon(value, size: 31);
     }
 
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
+    GreekAggregates? greeks;
     if (widget.brokerageUser.showPositionDetails) {
-      var results = _calculateGreekAggregates(ops);
-      deltaAvg = results[0];
-      gammaAvg = results[1];
-      thetaAvg = results[2];
-      vegaAvg = results[3];
-      rhoAvg = results[4];
-      ivAvg = results[5];
-      chanceAvg = results[6];
-      openInterestAvg = results[7];
+      greeks = _calculateGreekAggregates(ops);
     }
 
     if (!excludeGroupRow) {
@@ -1210,20 +1080,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ),
         if (widget.brokerageUser.showPositionDetails && ops.length > 1) ...[
           _buildDetailScrollRow(
-              ops,
-              deltaAvg,
-              gammaAvg,
-              thetaAvg,
-              vegaAvg,
-              rhoAvg,
-              ivAvg,
-              chanceAvg,
-              openInterestAvg != null && !openInterestAvg.isNaN
-                  ? openInterestAvg.toInt()
-                  : 0,
-              summaryValueFontSize,
-              summaryLabelFontSize,
-              iconSize: 27.0)
+              ops, greeks, summaryValueFontSize, summaryLabelFontSize,
+              iconSize: 27.0, clickable: false)
         ]
       ]));
       /*
@@ -1236,8 +1094,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       */
     }
     for (OptionAggregatePosition op in ops) {
-      double value = widget.brokerageUser.getDisplayValue(op);
-      String trailingText = widget.brokerageUser.getDisplayText(value);
+      double value = widget.brokerageUser
+          .getDisplayValue(op, displayValue: DisplayValue.marketValue);
+      String trailingText = widget.brokerageUser
+          .getDisplayText(value, displayValue: DisplayValue.marketValue);
       Icon? icon = (widget.brokerageUser.showPositionDetails ||
               widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
               widget.brokerageUser.displayValue == DisplayValue.marketValue)
@@ -1325,19 +1185,27 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               op.optionInstrument!.optionMarketData != null) ...[
             _buildDetailScrollRow(
                 [op],
-                op.optionInstrument!.optionMarketData!.delta,
-                op.optionInstrument!.optionMarketData!.gamma,
-                op.optionInstrument!.optionMarketData!.theta,
-                op.optionInstrument!.optionMarketData!.vega,
-                op.optionInstrument!.optionMarketData!.rho,
-                op.optionInstrument!.optionMarketData!.impliedVolatility,
-                op.direction == 'debit'
-                    ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong
-                    : op.optionInstrument!.optionMarketData!
-                        .chanceOfProfitShort,
-                op.optionInstrument!.optionMarketData!.openInterest,
+                GreekAggregates(
+                  delta: op.optionInstrument!.optionMarketData!.delta,
+                  gamma: op.optionInstrument!.optionMarketData!.gamma,
+                  theta: op.optionInstrument!.optionMarketData!.theta,
+                  vega: op.optionInstrument!.optionMarketData!.vega,
+                  rho: op.optionInstrument!.optionMarketData!.rho,
+                  iv: op.optionInstrument!.optionMarketData!.impliedVolatility,
+                  chance: op.direction == 'debit'
+                      ? op.optionInstrument!.optionMarketData!
+                          .chanceOfProfitLong
+                      : op.optionInstrument!.optionMarketData!
+                          .chanceOfProfitShort,
+                  openInterest: op
+                      .optionInstrument!.optionMarketData!.openInterest
+                      .toDouble(),
+                  volume:
+                      op.optionInstrument!.optionMarketData!.volume.toDouble(),
+                ),
                 greekValueFontSize,
-                greekLabelFontSize),
+                greekLabelFontSize,
+                clickable: false),
             /*
             const Divider(
               height: 10,
@@ -1349,8 +1217,38 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       ));
     }
     return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
-      children: cards,
-    ));
+          children: cards,
+        ));
   }
+}
+
+class GreekAggregates {
+  final double? delta;
+  final double? gamma;
+  final double? theta;
+  final double? vega;
+  final double? rho;
+  final double? iv;
+  final double? chance;
+  final double? openInterest;
+  final double? volume;
+
+  GreekAggregates({
+    this.delta,
+    this.gamma,
+    this.theta,
+    this.vega,
+    this.rho,
+    this.iv,
+    this.chance,
+    this.openInterest,
+    this.volume,
+  });
 }

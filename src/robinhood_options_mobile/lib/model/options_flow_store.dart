@@ -8,6 +8,88 @@ import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 enum FlowSortOption { time, premium, strike, expiration, volOi, score }
 
 class OptionsFlowStore extends ChangeNotifier {
+  static const Map<String, String> flagDocumentation = {
+    'SWEEP':
+        'Orders executed across multiple exchanges to fill a large order quickly. Indicates urgency and stealth. Often a sign of institutional buying.',
+    'BLOCK':
+        'Large privately negotiated orders. Often institutional rebalancing or hedging. Less urgent than sweeps.',
+    'DARK POOL':
+        'Off-exchange trading. Used by institutions to hide intent and avoid market impact. Can indicate accumulation.',
+    'BULLISH':
+        'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.',
+    'BEARISH':
+        'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.',
+    'NEUTRAL':
+        'Neutral sentiment. Trade executed between bid and ask, or straddle/strangle strategy.',
+    'ITM':
+        'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.',
+    'OTM':
+        'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
+    'WHALE':
+        'Massive institutional order >\$1M premium. Represents highest conviction from major players.',
+    'Golden Sweep':
+        'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.',
+    'Steamroller':
+        'Massive size (>\$500k), short term (<30 days), aggressive OTM sweep.',
+    'Mega Vol':
+        'Volume is >10x Open Interest. Extreme unusual activity indicating major new positioning.',
+    'Vol Explosion':
+        'Volume is >5x Open Interest. Significant unusual activity.',
+    'High Vol/OI': 'Volume is >1.5x Open Interest. Indicates unusual interest.',
+    'New Position':
+        'Volume exceeds Open Interest, confirming new contracts are being opened.',
+    'Aggressive':
+        'Order executed at or above the ask price, showing urgency to enter the position.',
+    'Tight Spread':
+        'Bid-Ask spread < 5%. Indicates high liquidity and potential institutional algo execution.',
+    'Wide Spread':
+        'Bid-Ask spread > 20%. Warning: Low liquidity or poor execution prices.',
+    'Bullish Divergence':
+        'Call buying while stock is down. Smart money betting on a reversal.',
+    'Bearish Divergence':
+        'Put buying while stock is up. Smart money betting on a reversal.',
+    'Panic Hedge':
+        'Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k). Fear/hedging against crash.',
+    'Gamma Squeeze':
+        'Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k). Can force dealer buying.',
+    'Contrarian':
+        'Trade direction opposes current stock trend (>2% move). Betting on reversal.',
+    'Earnings Play':
+        'Options expiring shortly after earnings (2-14 days). Betting on volatility event.',
+    'Extreme IV':
+        'Implied Volatility > 250%. Extreme fear/greed or binary event.',
+    'High IV': 'Implied Volatility > 100%. Market pricing in a massive move.',
+    'Low IV': 'Implied Volatility < 20%. Options are cheap. Good for buying.',
+    'Cheap Vol':
+        'High volume (>2000) on low-priced options (<\$0.50). Speculative activity on cheap contracts.',
+    'High Premium':
+        'Significant volume (>100) on expensive options (>\$20.00). High capital commitment per contract.',
+    '0DTE': 'Expires today. Maximum gamma risk/reward. Pure speculation.',
+    'Weekly OTM':
+        'Expires < 1 week and Out-of-the-Money with volume > 500. Short-term speculative bet.',
+    'LEAPS': 'Expires > 1 year. Long-term investment substitute for stock.',
+    'Lotto':
+        'Cheap OTM (>15%) options (< \$1.00). High risk, potential 10x+ return.',
+    'ATM Flow':
+        'At-The-Money options (strike within 1% of spot). High Gamma potential, often used by market makers.',
+    'Deep ITM':
+        'Deep In-The-Money contracts (>10% ITM). Often used as a stock replacement strategy.',
+    'Deep OTM':
+        'Deep Out-Of-The-Money contracts (>15% OTM). Aggressive speculative bets.',
+    'UNUSUAL':
+        'Volume > Open Interest. Indicates new positioning and potential institutional interest.',
+    'Above Ask':
+        'Trade executed at a price higher than the ask price. Indicates extreme urgency to buy.',
+    'Below Bid':
+        'Trade executed at a price lower than the bid price. Indicates extreme urgency to sell.',
+    'Mid Market':
+        'Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.',
+    'Ask Side': 'Trade executed at the ask price. Indicates buying pressure.',
+    'Bid Side': 'Trade executed at the bid price. Indicates selling pressure.',
+    'Large Block / Dark Pool':
+        'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
+  };
+
   List<OptionFlowItem> _allItems = [];
   List<OptionFlowItem> _items = [];
   List<Map<String, dynamic>> _alerts = [];
@@ -577,14 +659,14 @@ class OptionsFlowStore extends ChangeNotifier {
     return value;
   }
 
-  dynamic _extractValue(dynamic val) {
+  static dynamic _extractValue(dynamic val) {
     if (val is Map) {
       return val['raw'];
     }
     return val;
   }
 
-  ({Sentiment sentiment, String details, FlowType flowType})
+  static ({Sentiment sentiment, String details, FlowType flowType})
       _analyzeTradeExecution(bool isCall, double lastPrice, double bid,
           double ask, int volume, int openInterest, double premium) {
     Sentiment sentiment = isCall ? Sentiment.bullish : Sentiment.bearish;
@@ -628,7 +710,8 @@ class OptionsFlowStore extends ChangeNotifier {
     return (sentiment: sentiment, details: details, flowType: flowType);
   }
 
-  ({List<String> flags, List<String> reasons, bool isUnusual}) _detectFlags({
+  static ({List<String> flags, List<String> reasons, bool isUnusual})
+      _detectFlags({
     required double premium,
     required FlowType flowType,
     required bool isOTM,
@@ -648,6 +731,8 @@ class OptionsFlowStore extends ChangeNotifier {
     required double ask,
     required double? marketCap,
     required double lastPrice,
+    double? delta,
+    double? gamma,
   }) {
     final flags = <String>[];
     final reasons = <String>[];
@@ -655,8 +740,14 @@ class OptionsFlowStore extends ChangeNotifier {
 
     // Super Whale
     if (premium > 5000000) {
-      flags.add('Super Whale');
-      reasons.add('Massive premium > \$5M');
+      if (delta != null && delta.abs() > 0.4) {
+        flags.add('Delta Whale');
+        reasons.add(
+            'Massive premium with high delta exposure (${delta.toStringAsFixed(2)})');
+      } else {
+        flags.add('Super Whale');
+        reasons.add('Massive premium > \$5M');
+      }
       isUnusual = true;
     }
 
@@ -705,14 +796,40 @@ class OptionsFlowStore extends ChangeNotifier {
       isUnusual = true;
     }
 
-    // Gamma Squeeze
-    if (daysToExpiration <= 2 &&
+    // Gamma Squeeze - enhanced with gamma if avail
+    bool isPotentialGammaSqueeze = daysToExpiration <= 2 &&
         isCall &&
         isOTM &&
         volume > openInterest &&
-        (changePercent ?? 0) > 1.0) {
-      flags.add('Gamma Squeeze');
-      reasons.add('Short-dated OTM calls with high volume and rising price');
+        (changePercent ?? 0) > 1.0;
+
+    if (isPotentialGammaSqueeze) {
+      if (gamma != null) {
+        if (gamma > 0.1) {
+          flags.add('High Gamma Squeeze');
+          reasons.add('Short-dated OTM calls with extreme Gamma sensitivity');
+          isUnusual = true;
+        } else if (gamma > 0.05) {
+          flags.add('Gamma Squeeze');
+          reasons.add(
+              'Short-dated OTM calls with high volume and Gamma sensitivity');
+          isUnusual = true;
+        } else {
+          // Standard gamma squeeze logic
+          flags.add('Gamma Squeeze');
+          reasons
+              .add('Short-dated OTM calls with high volume and rising price');
+          isUnusual = true;
+        }
+      } else {
+        flags.add('Gamma Squeeze');
+        reasons.add('Short-dated OTM calls with high volume and rising price');
+        isUnusual = true;
+      }
+    } else if (gamma != null && gamma > 0.1 && volume > 1000 && isOTM) {
+      // Gamma exposure detection even if not full squeeze conditions
+      flags.add('Gamma Exposure');
+      reasons.add('High Gamma sensitivity position');
       isUnusual = true;
     }
 
@@ -845,7 +962,7 @@ class OptionsFlowStore extends ChangeNotifier {
     return (flags: flags, reasons: reasons, isUnusual: isUnusual);
   }
 
-  int _calculateConvictionScore({
+  static int _calculateConvictionScore({
     required double premium,
     required FlowType flowType,
     required bool isOTM,
@@ -909,6 +1026,20 @@ class OptionsFlowStore extends ChangeNotifier {
   void _processOptionContract(dynamic contract, String type, String symbol,
       DateTime expirationDate, double spotPrice, List<OptionFlowItem> items,
       {double? marketCap, int? earningsTimestamp}) {
+    final item = processOptionContract(
+        contract, type, symbol, expirationDate, spotPrice,
+        marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+    if (item != null) items.add(item);
+  }
+
+  static OptionFlowItem? processOptionContract(dynamic contract, String type,
+      String symbol, DateTime expirationDate, double spotPrice,
+      {double? marketCap,
+      String? sector,
+      int? earningsTimestamp,
+      bool skipFilters = false,
+      double? delta,
+      double? gamma}) {
     final int volume = _extractValue(contract['volume'])?.toInt() ?? 0;
     final int openInterest =
         _extractValue(contract['openInterest'])?.toInt() ?? 0;
@@ -935,10 +1066,14 @@ class OptionsFlowStore extends ChangeNotifier {
     }
 
     // Filter for significant activity
-    if (volume < 50) return; // Basic filter
+    if (!skipFilters) {
+      if (volume < 50) return null; // Basic filter
+
+      double premium = volume * lastPrice * 100;
+      if (premium < 5000) return null; // Minimum premium filter
+    }
 
     double premium = volume * lastPrice * 100;
-    if (premium < 5000) return; // Minimum premium filter
 
     final isCall = type == 'Call';
     final now = DateTime.now();
@@ -949,26 +1084,27 @@ class OptionsFlowStore extends ChangeNotifier {
         isCall, lastPrice, bid, ask, volume, openInterest, premium);
 
     final flagResult = _detectFlags(
-      premium: premium,
-      flowType: analysis.flowType,
-      isOTM: isOTM,
-      details: analysis.details,
-      openInterest: openInterest,
-      volume: volume,
-      daysToExpiration: daysToExpiration,
-      isCall: isCall,
-      changePercent: changePercent,
-      earningsTimestamp: earningsTimestamp,
-      expirationDate: expirationDate,
-      now: now,
-      iv: impliedVolatility,
-      spotPrice: spotPrice,
-      strike: strike,
-      bid: bid,
-      ask: ask,
-      marketCap: marketCap,
-      lastPrice: lastPrice,
-    );
+        premium: premium,
+        flowType: analysis.flowType,
+        isOTM: isOTM,
+        details: analysis.details,
+        openInterest: openInterest,
+        volume: volume,
+        daysToExpiration: daysToExpiration,
+        isCall: isCall,
+        changePercent: changePercent,
+        earningsTimestamp: earningsTimestamp,
+        expirationDate: expirationDate,
+        now: now,
+        iv: impliedVolatility,
+        spotPrice: spotPrice,
+        strike: strike,
+        bid: bid,
+        ask: ask,
+        marketCap: marketCap,
+        lastPrice: lastPrice,
+        delta: delta,
+        gamma: gamma);
 
     final score = _calculateConvictionScore(
       premium: premium,
@@ -980,7 +1116,7 @@ class OptionsFlowStore extends ChangeNotifier {
       flags: flagResult.flags,
     );
 
-    items.add(OptionFlowItem(
+    return OptionFlowItem(
       symbol: symbol,
       lastTradeDate: time,
       strike: strike,
@@ -995,13 +1131,16 @@ class OptionsFlowStore extends ChangeNotifier {
       sentiment: analysis.sentiment,
       details: analysis.details,
       flags: flagResult.flags,
+      reasons: flagResult.reasons,
       isUnusual: flagResult.isUnusual,
       score: score,
       bid: bid,
       ask: ask,
       changePercent: changePercent,
       lastPrice: lastPrice,
-    ));
+      marketCap: marketCap,
+      sector: sector,
+    );
   }
 
   Future<void> refresh() async {

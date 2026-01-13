@@ -180,12 +180,82 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     });
   }
 
+  void _showSettings() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rebalancing Settings',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Drift Threshold for Recommendations',
+                      style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Slider(
+                          value: _driftThreshold,
+                          min: 0,
+                          max: 1000,
+                          divisions: 20,
+                          label: formatCurrency.format(_driftThreshold),
+                          onChanged: (value) {
+                            setModalState(() {
+                              _driftThreshold = value;
+                            });
+                            setState(() {
+                              _driftThreshold = value;
+                            });
+                          },
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(formatCurrency.format(_driftThreshold),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  Text(
+                      'Recommendations will be triggered if the drift exceeds this amount.',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Portfolio Rebalancing'),
+        title: const Text('Portfolio Rebalance'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _showSettings,
+          ),
           IconButton(
             icon: Icon(_isEditing ? Icons.save : Icons.edit),
             onPressed: _isEditing ? _saveTargets : _toggleEditing,
@@ -550,62 +620,6 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                           getColor(key));
                     }),
                     const SizedBox(height: 20),
-                    if (_isEditing) ...[
-                      const SizedBox(height: 16),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Drift Threshold for Recommendations',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Slider(
-                                      value: _driftThreshold,
-                                      min: 0,
-                                      max: 1000,
-                                      divisions: 20,
-                                      label: formatCurrency
-                                          .format(_driftThreshold),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _driftThreshold = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .secondaryContainer,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                        formatCurrency.format(_driftThreshold),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                  'Recommendations will be triggered if the drift exceeds this amount.',
-                                  style: Theme.of(context).textTheme.bodySmall),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                     if (!_isEditing)
                       _buildRecommendations(
                           currentAllocation, targets, totalEquity),

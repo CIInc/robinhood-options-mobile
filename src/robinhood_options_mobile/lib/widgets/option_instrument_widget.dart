@@ -4,10 +4,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -23,6 +25,11 @@ import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/options_flow_store.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
+//import 'package:firebase_ai/firebase_ai.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -33,12 +40,11 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
-import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 class OptionInstrumentWidget extends StatefulWidget {
@@ -85,9 +91,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   InstrumentHistorical? selection;
 
   Timer? refreshTriggerTime;
-  //QuoteStore? quoteStore;
-
-  _OptionInstrumentWidgetState();
 
   @override
   void initState() {
@@ -207,6 +210,111 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     );
   }
 
+  Widget _buildExpirationSection(
+      BuildContext context, int dte, int originalDte) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ListTile(
+            title: Text("Expiration", style: TextStyle(fontSize: 20)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0).copyWith(top: 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      LinearProgressIndicator(
+                        value: originalDte > 0
+                            ? (dte / originalDte).clamp(0.0, 1.0)
+                            : 1.0,
+                        minHeight: 10,
+                        borderRadius: BorderRadius.circular(5),
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          dte < 5
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Today",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      Theme.of(context).colorScheme.outline)),
+                          Text(
+                              formatDate.format(
+                                  widget.optionInstrument.expirationDate!),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      Theme.of(context).colorScheme.outline)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Column(
+                  children: [
+                    Text(
+                      "$dte",
+                      style: const TextStyle(
+                          fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                    Text("days left",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.outline)),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(
+      BuildContext context, String value, String symbol, String label) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(symbol,
+              style: TextStyle(
+                  fontSize: 15.0,
+                  color: Theme.of(context).colorScheme.primary)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10.0,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPage(OptionInstrument optionInstrument,
       {Instrument? instrument,
       OptionAggregatePosition? optionPosition,
@@ -234,57 +342,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       originalDte =
           optionInstrument.expirationDate!.difference(createdAt).inDays;
     }
-    List<charts.Series<dynamic, String>> seriesList = [
-      charts.Series<dynamic, String>(
-        id: 'Days to Expiration',
-        data: [
-          {'label': 'DTE', 'dte': dte}
-        ],
-        domainFn: (var d, _) => d['label'],
-        measureFn: (var d, _) => d['dte'],
-        labelAccessorFn: (d, _) => '${d['dte'].toString()} days',
-      ),
-      charts.Series<dynamic, String>(
-          id: 'Days to Expiration',
-          data: [
-            {'label': 'DTE', 'dte': originalDte}
-          ],
-          domainFn: (var d, _) => d['label'],
-          measureFn: (var d, _) => d['dte'])
-        ..setAttribute(charts.rendererIdKey, "customTargetLine")
-    ];
-    var brightness = MediaQuery.of(context).platformBrightness;
-    var axisLabelColor = charts.MaterialPalette.gray.shade500;
-    if (brightness == Brightness.light) {
-      axisLabelColor = charts.MaterialPalette.gray.shade700;
-    }
-    BarChart chart = BarChart(seriesList,
-        renderer: charts.BarRendererConfig(
-            barRendererDecorator: charts.BarLabelDecorator<String>(),
-            cornerStrategy: const charts.ConstCornerStrategy(10)),
-        domainAxis:
-            const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
-        primaryMeasureAxis: charts.NumericAxisSpec(
-          //showAxisLine: true,
-          //renderSpec: charts.GridlineRendererSpec(),
-          renderSpec: charts.GridlineRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          //renderSpec: charts.NoneRenderSpec(),
-          //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-          //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-          //tickProviderSpec:
-          //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-          //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-        ),
-        customSeriesRenderers: [
-          charts.BarTargetLineRendererConfig<String>(
-              //overDrawOuterPx: 10,
-              //overDrawPx: 10,
-              strokeWidthPx: 5,
-              customRendererId: 'customTargetLine',
-              groupingType: charts.BarGroupingType.grouped)
-        ],
-        onSelected: (_) {});
+
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
@@ -312,1215 +370,53 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             SliverToBoxAdapter(
                 child: Align(
                     alignment: Alignment.center,
-                    child: buildOverview(
+                    child: _buildOverview(
                         widget.brokerageUser, optionInstrument, instrument,
                         optionPosition: optionPosition))),
-            SliverToBoxAdapter(
+            const SliverToBoxAdapter(
                 child: SizedBox(
               height: 12,
-            ))
+            )),
           ],
-          Consumer<OptionHistoricalsStore>(
-              builder: (context, optionHistoricalsStore, child) {
-            var optionInstrumentHistoricalsObj = optionHistoricalsStore.items
-                .firstWhereOrNull((element) =>
-                        element.legs.first.id == optionInstrument.id &&
-                        element.span ==
-                            convertChartSpanFilter(chartDateSpanFilter) &&
-                        element.bounds ==
-                            convertChartBoundsFilter(chartBoundsFilter)
-                    //&& element.interval == element.interval
-                    );
-            debugPrint(
-                '${optionInstrumentHistoricalsObj != null ? 'Found' : 'Not found'} optionInstrumentHistoricals for span: ${convertChartSpanFilter(chartDateSpanFilter)}, bounds: ${convertChartBoundsFilter(chartBoundsFilter)}');
-            if (optionInstrumentHistoricalsObj != null) {
-              InstrumentHistorical? firstHistorical;
-              InstrumentHistorical? lastHistorical;
-              double open = 0;
-              double close = 0;
-              double changeInPeriod = 0;
-              double changePercentInPeriod = 0;
-
-              firstHistorical =
-                  optionInstrumentHistoricalsObj.historicals.first;
-              lastHistorical = optionInstrumentHistoricalsObj.historicals.last;
-              open = firstHistorical.openPrice!;
-              close = lastHistorical.closePrice!;
-              changeInPeriod = close - open;
-              changePercentInPeriod =
-                  close / open - 1; // changeInPeriod / close;
-
-              if (selection != null) {
-                changeInPeriod = selection!.closePrice! - open;
-                changePercentInPeriod = selection!.closePrice! / open -
-                    1; // changeInPeriod / selection!.closePrice!;
-              }
-
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var textColor = Theme.of(context).colorScheme.surface;
-              if (brightness == Brightness.dark) {
-                textColor = Colors.grey.shade200;
-              } else {
-                textColor = Colors.grey.shade800;
-              }
-              /*
-              if (historicalChart == null ||
-                  optionInstrumentHistoricalsObj.bounds !=
-                      chartBoundsFilter
-                          .toString()
-                          .replaceAll("Bounds.", "")
-                          .replaceAll("t24_7", "24_7") ||
-                  optionInstrumentHistoricalsObj.span !=
-                      chartDateSpanFilter
-                          .toString()
-                          .replaceAll("ChartDateSpan.", "")) {
-                            */
-              var seriesList = [
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Open',
-                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                      Theme.of(context).colorScheme.primary),
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.openPrice,
-                  data: optionInstrumentHistoricalsObj.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Close',
-                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.closePrice,
-                  data: optionInstrumentHistoricalsObj.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'Low',
-                  colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.lowPrice,
-                  data: optionInstrumentHistoricalsObj.historicals,
-                ),
-                charts.Series<InstrumentHistorical, DateTime>(
-                  id: 'High',
-                  colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-                  domainFn: (InstrumentHistorical history, _) =>
-                      history.beginsAt!,
-                  measureFn: (InstrumentHistorical history, _) =>
-                      history.highPrice,
-                  data: optionInstrumentHistoricalsObj.historicals,
-                ),
-              ];
-              var extents = charts.NumericExtents.fromValues(
-                  seriesList[0].data.map((e) => e.openPrice!));
-              extents = charts.NumericExtents(
-                  extents.min - (extents.width * 0.1),
-                  extents.max + (extents.width * 0.1));
-              var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
-                  context,
-                  listen: false);
-
-              TimeSeriesChart historicalChart = TimeSeriesChart(
-                seriesList,
-                open: optionInstrumentHistoricalsObj.historicals[0].openPrice!,
-                close: optionInstrumentHistoricalsObj
-                    .historicals[
-                        optionInstrumentHistoricalsObj.historicals.length - 1]
-                    .closePrice!,
-                seriesLegend: charts.SeriesLegend(
-                  horizontalFirst: true,
-                  position: charts.BehaviorPosition.top,
-                  defaultHiddenSeries: const ["Close", "Low", "High"],
-                  // To show value on legend upon selection
-                  showMeasures: true,
-                  measureFormatter: (measure) =>
-                      measure != null ? formatCurrency.format(measure) : '',
-                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                ),
-                zeroBound: false,
-                onSelected: (charts.SelectionModel<DateTime>? historical) {
-                  provider
-                      .selectionChanged(historical?.selectedDatum.first.datum);
-                },
-                symbolRenderer: TextSymbolRenderer(() {
-                  return provider.selection != null
-                      // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
-                      ? formatCompactDateTimeWithHour
-                          .format(provider.selection!.beginsAt!.toLocal())
-                      : '0';
-                }, marginBottom: 16),
-                // viewport: extents,
-              );
-              //}
-
-              return SliverToBoxAdapter(
-                  child: Column(
-                children: [
-                  SizedBox(
-                      height: 340, // 240,
-                      child: Padding(
-                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        padding: const EdgeInsets.all(10.0),
-                        child: historicalChart,
-                      )),
-                  Consumer<InstrumentHistoricalsSelectionStore>(
-                      builder: (context, value, child) {
-                    selection = value.selection;
-                    if (selection != null) {
-                      changeInPeriod = selection!.closePrice! - open;
-                      changePercentInPeriod = selection!.closePrice! / open -
-                          1; // changeInPeriod / selection!.closePrice!;
-                    } else {
-                      changeInPeriod = close - open;
-                      changePercentInPeriod =
-                          close / open - 1; // changeInPeriod / close;
-                    }
-
-                    return SizedBox(
-                        height: 43,
-                        child: Center(
-                            child: Column(
-                          children: [
-                            Wrap(
-                              children: [
-                                Text(
-                                    formatCurrency.format(selection != null
-                                        ? selection!.closePrice
-                                        : close),
-                                    style: TextStyle(
-                                        fontSize: 20, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  changeInPeriod > 0
-                                      ? Icons.trending_up
-                                      : (changeInPeriod < 0
-                                          ? Icons.trending_down
-                                          : Icons.trending_flat),
-                                  color: (changeInPeriod > 0
-                                      ? Colors.green
-                                      : (changeInPeriod < 0
-                                          ? Colors.red
-                                          : Colors.grey)),
-                                  //size: 16.0
-                                ),
-                                Container(
-                                  width: 2,
-                                ),
-                                Text(
-                                    formatPercentage
-                                        //.format(selection!.netReturn!.abs()),
-                                        .format(changePercentInPeriod.abs()),
-                                    style: TextStyle(
-                                        fontSize: 20.0, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Text(
-                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                    style: TextStyle(
-                                        fontSize: 20.0, color: textColor)),
-                              ],
-                            ),
-                            Text(
-                                '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                style:
-                                    TextStyle(fontSize: 10, color: textColor)),
-                          ],
-                        )));
-                  }),
-                  SizedBox(
-                      height: 56,
-                      child: ListView.builder(
-                        key: const PageStorageKey<String>(
-                            'instrumentChartFilters'),
-                        padding: const EdgeInsets.all(5.0),
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, index) {
-                          return Row(children: [
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Day'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.day,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.day, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Week'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.week,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.week, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Month'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.month,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.month, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('3 Months'),
-                                selected: chartDateSpanFilter ==
-                                    ChartDateSpan.month_3,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(ChartDateSpan.month_3,
-                                        chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Year'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.year,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        ChartDateSpan.year, chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('5 Years'),
-                                selected:
-                                    chartDateSpanFilter == ChartDateSpan.year_5,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(ChartDateSpan.year_5,
-                                        chartBoundsFilter);
-                                  }
-                                },
-                              ),
-                            ),
-                            /*
-                            Container(
-                              width: 10,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Regular Hours'),
-                                selected: chartBoundsFilter == Bounds.regular,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        chartDateSpanFilter, Bounds.regular);
-                                  }
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: ChoiceChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('24/7 Hours'),
-                                selected: chartBoundsFilter == Bounds.t24_7,
-                                onSelected: (bool value) {
-                                  if (value) {
-                                    resetChart(
-                                        chartDateSpanFilter, Bounds.t24_7);
-                                  }
-                                },
-                              ),
-                            ),
-                            */
-                          ]);
-                        },
-                        itemCount: 1,
-                      ))
-                ],
-              ));
-            }
-            return SliverToBoxAdapter(child: Container());
-          }),
+          _buildHistoricalChartSection(optionInstrument),
+          if (instrument != null)
+            _buildOptionFlowAnalysis(optionInstrument, instrument),
+          _buildGreeksSection(optionInstrument),
           SliverToBoxAdapter(
-            child: ListTile(
-              title: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    const Text("Greeks & Market Data",
-                        style: TextStyle(
-                            fontSize: 20.0, fontWeight: FontWeight.bold)),
-                    Container(
-                      width: 5,
-                    ),
-                    IconButton(
-                        icon: const Icon(Icons.info_outline),
-                        tooltip: "Greeks Help",
-                        onPressed: () => showDialog<String>(
-                              context: context,
-                              builder: (BuildContext context) => AlertDialog(
-                                title: const Text('Greeks'),
-                                content: const SingleChildScrollView(
-                                    child: Column(children: [
-                                  Text(
-                                      "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
-                                  //Another way of thinking about the metric is that it can give an idea of whether an option will end up in the money at the expiration date. As an option moves further into the money, the delta value will head away from 0. For a call option, it will head toward a value of 1, while a put option will head toward a value of -1. As the option moves further out of the money, the delta value will head towards 0.
-                                  Text(
-                                      "Gamma, Γ, measures the rate of change in the delta with respect to changes in the underlying price.\n"),
-                                  Text(
-                                      "Theta, Θ, measures the sensitivity of the value of the derivative to the passage of time.\n"),
-                                  Text(
-                                      "Vega, v, measures sensitivity to volatility.\n"),
-                                  Text(
-                                      "Rho, p, measures sensitivity to the interest rate."),
-                                ])),
-                                actions: <Widget>[
-                                  /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, 'OK'),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ),
-                            ))
-                  ]),
-            ),
-          ),
+              child: _buildExpirationSection(context, dte, originalDte)),
+          SliverToBoxAdapter(child: _buildMarketDataCard(optionInstrument)),
           SliverToBoxAdapter(
-              child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (optionInstrument.optionMarketData!.delta !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatNumber.format(optionInstrument
-                                              .optionMarketData!.delta),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("Δ",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Delta",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument.optionMarketData!.gamma !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatNumber.format(optionInstrument
-                                              .optionMarketData!.gamma!),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("Γ",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Gamma",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument.optionMarketData!.theta !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatNumber.format(optionInstrument
-                                              .optionMarketData!.theta!),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("Θ",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Theta",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument.optionMarketData!.vega !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatNumber.format(optionInstrument
-                                              .optionMarketData!.vega!),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("v",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Vega",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument.optionMarketData!.rho !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatNumber.format(optionInstrument
-                                              .optionMarketData!.rho!),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("p",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Rho",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument
-                                    .optionMarketData!.impliedVolatility !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatPercentage.format(
-                                              optionInstrument.optionMarketData!
-                                                  .impliedVolatility),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("IV",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Impl. Vol.",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument
-                                    .optionMarketData!.chanceOfProfitLong !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatPercentage.format(
-                                              optionInstrument.optionMarketData!
-                                                  .chanceOfProfitLong),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("%",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Chance Long",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            if (optionInstrument
-                                    .optionMarketData!.chanceOfProfitShort !=
-                                null) ...[
-                              Card(
-                                  child: Padding(
-                                padding: const EdgeInsets.all(
-                                    6), //.symmetric(horizontal: 6),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          formatPercentage.format(
-                                              optionInstrument.optionMarketData!
-                                                  .chanceOfProfitShort),
-                                          style:
-                                              const TextStyle(fontSize: 17.0)),
-                                      Container(
-                                        height: 5,
-                                      ),
-                                      const Text("%",
-                                          style: TextStyle(fontSize: 17.0)),
-                                      const Text("Chance Short",
-                                          style: TextStyle(fontSize: 10.0)),
-                                    ]),
-                              )),
-                            ],
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatCompactNumber.format(
-                                            optionInstrument
-                                                .optionMarketData!.volume),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("#",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Volume",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatCompactNumber.format(
-                                            optionInstrument.optionMarketData!
-                                                .openInterest),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("#",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Open Interest",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            ))
-                          ])))),
-          /*
-          SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 97.0),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    switch (index) {
-                      case 0:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatNumber.format(optionInstrument
-                                        .optionMarketData!.delta),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("Δ",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Delta",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 1:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatNumber.format(optionInstrument
-                                        .optionMarketData!.gamma!),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("Γ",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Gamma",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 2:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatNumber.format(optionInstrument
-                                        .optionMarketData!.theta!),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("Θ",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Theta",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 3:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatNumber.format(optionInstrument
-                                        .optionMarketData!.vega!),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("v",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Vega",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 4:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child:
-                              Column(mainAxisSize: MainAxisSize.min, children: <
-                                  Widget>[
-                            Text(
-                                formatNumber.format(
-                                    optionInstrument.optionMarketData!.rho!),
-                                style: const TextStyle(fontSize: 17.0)),
-                            Container(
-                              height: 5,
-                            ),
-                            const Text("p", style: TextStyle(fontSize: 17.0)),
-                            const Text("Rho", style: TextStyle(fontSize: 10.0)),
-                          ]),
-                        ));
-                      case 5:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatNumber.format(optionInstrument
-                                        .optionMarketData!.impliedVolatility),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("IV",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Implied Volatility",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 6:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatPercentage.format(optionInstrument
-                                        .optionMarketData!.chanceOfProfitLong),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("p",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Change long",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      case 7:
-                        return Card(
-                            child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                    formatPercentage.format(optionInstrument
-                                        .optionMarketData!.chanceOfProfitShort),
-                                    style: const TextStyle(fontSize: 17.0)),
-                                Container(
-                                  height: 5,
-                                ),
-                                const Text("",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Change short",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ));
-                      default:
-                    }
-                    /*
-          return Container(
-            alignment: Alignment.center,
-            color: Colors.teal[100 * (index % 9)],
-            child: Text('grid item $index'),
-          );
-          */
-                  },
-                  childCount: 8,
-                ),
-              )),
-              */
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 10.0,
-          )),
-          SliverToBoxAdapter(
-              child: ListTile(
-                  title: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                const Text("Days to Expiration",
-                    style:
-                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold)),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    height: 75,
-                    child: Padding(
-                      padding: EdgeInsets.zero, // EdgeInsets.all(10.0),
-                      child: chart,
-                    ))
-
-                //Chart(seriesList, onSelected: onSelected)
-              ]))),
-          SliverToBoxAdapter(
-              child: Card(
-                  child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const ListTile(
-                  title: Text("Market Data", style: TextStyle(fontSize: 20))),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Break Even Price"),
-                trailing: Text(
-                    optionInstrument.optionMarketData!.breakEvenPrice != null
-                        ? formatCurrency.format(
-                            optionInstrument.optionMarketData!.breakEvenPrice)
-                        : '-',
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Bid/Mark/Ask"),
-                trailing: Text(
-                    "${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)}  ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)}  ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Bid Size - Ask Size"),
-                trailing: Text(
-                    "${formatCompactNumber.format(optionInstrument.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionInstrument.optionMarketData!.askSize)}",
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Adjusted Mark Price"),
-                trailing: Text(
-                    formatCurrency.format(
-                        optionInstrument.optionMarketData!.adjustedMarkPrice),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Last Trade"),
-                trailing: Text(
-                    optionInstrument.optionMarketData!.lastTradePrice != null
-                        ? "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}"
-                        : '-',
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Low Price - High Price"),
-                trailing: Text(
-                    optionInstrument.optionMarketData!.lowPrice != null &&
-                            optionInstrument.optionMarketData!.highPrice != null
-                        ? "${formatCurrency.format(optionInstrument.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.highPrice)}"
-                        : "-",
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: Text(
-                    "Previous Close (${optionInstrument.optionMarketData!.previousCloseDate != null ? formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!) : '-'})"),
-                trailing: Text(
-                    formatCurrency.format(
-                        optionInstrument.optionMarketData!.previousClosePrice),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Volume"),
-                trailing: Text(
-                    formatCompactNumber
-                        .format(optionInstrument.optionMarketData!.volume),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              /*
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Open Interest"),
-                trailing: Text(
-                    formatCompactNumber.format(
-                        optionInstrument.optionMarketData!.openInterest),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Implied Volatility"),
-                trailing: Text(
-                    formatPercentage.format(
-                        optionInstrument.optionMarketData!.impliedVolatility),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Chance of Profit (Long)"),
-                trailing: Text(
-                    formatPercentage.format(
-                        optionInstrument.optionMarketData!.chanceOfProfitLong),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Chance of Profit (Short)"),
-                trailing: Text(
-                    formatPercentage.format(
-                        optionInstrument.optionMarketData!.chanceOfProfitShort),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              */
-              /*
-          ListTile(
-            title: const Text("Delta"),
-            trailing: Text(
-                "${optionInstrument.optionMarketData!.delta}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Gamma"),
-            trailing: Text(
-                "${optionInstrument.optionMarketData!.gamma}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Theta"),
-            trailing: Text(
-                "${optionInstrument.optionMarketData!.theta}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Vega"),
-            trailing: Text(
-                "${optionInstrument.optionMarketData!.vega}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Rho"),
-            trailing: Text(
-                "${optionInstrument.optionMarketData!.rho}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          */
-            ],
-          ))),
-          SliverToBoxAdapter(
-              child: Card(
-                  child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const ListTile(
-                title: Text("Option", style: TextStyle(fontSize: 20)),
-                /*
-              trailing: Wrap(children: [
-                IconButton(
-                    icon: const Icon(Icons.add),
-                    tooltip: 'Buy',
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeOptionWidget(user,
-                                optionPosition: optionPosition,
-                                positionType: "Buy")))),
-                IconButton(
-                    icon: const Icon(Icons.remove),
-                    tooltip: 'Sell',
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeOptionWidget(
-                                  user,
-                                  optionPosition: optionPosition,
-                                  positionType: "Sell",
-                                ))))
-              ])*/
-              ),
-              if (optionPosition != null) ...[
-                ListTile(
-                  minTileHeight: 10,
-                  title: const Text("Contracts"),
-                  trailing: Text(
-                      "${optionPosition.quantity!.round()} ${optionPosition.legs.first.positionType} ${optionPosition.legs.first.optionType}",
-                      style: const TextStyle(fontSize: 18)),
-                ),
-              ],
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Strike"),
-                trailing: Text(
-                    formatCurrency.format(optionInstrument.strikePrice),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Expiration"),
-                trailing: Text(
-                    formatDate.format(optionInstrument.expirationDate!),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              if (optionPosition != null) ...[
-                if (optionPosition.legs.first.positionType == "long") ...[
-                  ListTile(
-                      minTileHeight: 10,
-                      title: const Text("Average Open Price"),
-                      trailing: Text(
-                          formatCurrency
-                              .format(optionPosition.averageOpenPrice),
-                          style: const TextStyle(fontSize: 18))),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Total Cost"),
-                    trailing: Text(
-                        formatCurrency.format(optionPosition.totalCost),
-                        style: const TextStyle(fontSize: 18)),
-                  )
-                ] else ...[
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Credit"),
-                    trailing: Text(
-                        formatCurrency.format(optionPosition.averageOpenPrice),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Short Collateral"),
-                    trailing: Text(
-                        formatCurrency.format(optionPosition.shortCollateral),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Credit to Collateral"),
-                    trailing: Text(
-                        formatPercentage
-                            .format(optionPosition.collateralReturn),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                ],
-                ListTile(
-                  minTileHeight: 10,
-                  title: const Text("Market Value"), //Equity
-                  trailing: Text(
-                      formatCurrency.format(optionPosition.marketValue),
-                      style: const TextStyle(fontSize: 18)),
-                ),
-                ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Return"),
-                    trailing: Wrap(
-                      spacing: 8,
-                      children: [
-                        Icon(
-                          optionPosition.gainLossPerContract > 0
-                              ? Icons.trending_up
-                              : (optionPosition.gainLossPerContract < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (optionPosition.gainLossPerContract > 0
-                              ? Colors.green
-                              : (optionPosition.gainLossPerContract < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                        ), //size: 18.0
-                        Text(
-                          formatCurrency.format(optionPosition.gainLoss),
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        ),
-                      ],
-                    )
-                    /*
-            Text("${formatCurrency.format(optionPosition!.gainLoss)}",
-                style: const TextStyle(fontSize: 18)),
-                */
-                    ),
-                ListTile(
-                  minTileHeight: 10,
-                  title: const Text("Return %"),
-                  trailing: Text(
-                      formatPercentage.format(optionPosition.gainLossPercent),
-                      style: const TextStyle(fontSize: 18)),
-                ),
-                ListTile(
-                  minTileHeight: 10,
-                  title: const Text("Created"),
-                  trailing: Text(formatDate.format(optionPosition.createdAt!),
-                      style: const TextStyle(fontSize: 18)),
-                ),
-                ListTile(
-                  minTileHeight: 10,
-                  title: const Text("Updated"),
-                  trailing: Text(formatDate.format(optionPosition.updatedAt!),
-                      style: const TextStyle(fontSize: 18)),
-                ),
-              ],
-              ListTile(
-                minTileHeight: 10,
-                title: const Text("Days to Expiration"),
-                trailing: Text("${dte.isNegative ? 0 : dte} of $originalDte",
-                    style: const TextStyle(fontSize: 18)),
-              ),
-            ],
-          ))),
+              child: _buildPositionCard(
+                  optionInstrument, optionPosition, dte, originalDte)),
           if (optionPosition != null && optionPosition.legs.length > 1) ...[
             SliverToBoxAdapter(
                 child: Card(
                     child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: _buildLegs(optionPosition).toList(),
+              children: _buildLegs(optionPosition),
             ))),
           ],
           if (optionInstrumentOrders != null &&
               optionInstrumentOrders.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            )),
             OptionOrdersWidget(
               widget.brokerageUser,
               widget.service,
               optionInstrumentOrders,
-              const ["confirmed", "filled"],
+              const [],
               analytics: widget.analytics,
               observer: widget.observer,
               generativeService: widget.generativeService,
               authUser: widget.user,
               userDocRef: widget.userDocRef,
-            )
+            ),
+          ],
+          if (!kIsWeb) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            SliverToBoxAdapter(
+                child: AdBannerWidget(size: AdSize.mediumRectangle)),
           ],
           const SliverToBoxAdapter(
               child: SizedBox(
@@ -1530,8 +426,836 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           const SliverToBoxAdapter(
               child: SizedBox(
             height: 25.0,
-          )),
+          ))
         ]));
+  }
+
+  Widget _buildPositionCard(OptionInstrument optionInstrument,
+      OptionAggregatePosition? optionPosition, int dte, int originalDte) {
+    if (optionPosition == null) return Container();
+
+    var isLong = optionPosition.legs.first.positionType == "long";
+    var quantity = optionPosition.quantity!.abs();
+
+    // ITM/OTM Logic
+    bool? isItm;
+    if (optionInstrument.optionMarketData != null &&
+        optionInstrument.optionMarketData!.adjustedMarkPrice != null &&
+        optionInstrument.strikePrice != null) {
+      final mark = optionInstrument.optionMarketData!.adjustedMarkPrice!;
+      final strike = optionInstrument.strikePrice!;
+      if (optionInstrument.type == 'call') {
+        isItm = mark > strike;
+      } else {
+        isItm = mark < strike;
+      }
+    }
+
+    // Position Break Even Logic
+    double? positionBreakEven;
+    if (optionInstrument.strikePrice != null &&
+        optionPosition.averageOpenPrice != null) {
+      // averageOpenPrice is total cost per contract (x100), so divide by 100 for per-share math
+      double avgPerShare = optionPosition.averageOpenPrice! / 100;
+      if (optionInstrument.type == 'call') {
+        positionBreakEven = optionInstrument.strikePrice! + avgPerShare;
+      } else {
+        // Put: Strike - Premium
+        positionBreakEven = optionInstrument.strikePrice! - avgPerShare;
+      }
+    }
+
+    double? dayGainLoss;
+    double? dayGainLossPercent;
+    if (optionInstrument.optionMarketData != null) {
+      final change = optionInstrument.optionMarketData!.changeToday;
+      final changePct = optionInstrument.optionMarketData!.changePercentToday;
+      dayGainLoss = (isLong ? 1 : -1) * change * quantity * 100;
+      dayGainLossPercent = (isLong ? 1 : -1) * changePct;
+    }
+
+    return Card(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withOpacity(0.5),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text("Position",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      if (isItm != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isItm
+                                ? Colors.green.withOpacity(0.2)
+                                : Colors.grey.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: isItm
+                                    ? Colors.green
+                                    : Colors.grey.withOpacity(0.5),
+                                width: 1),
+                          ),
+                          child: Text(
+                            isItm ? "ITM" : "OTM",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isItm
+                                  ? Colors.green
+                                  : Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                      "${formatCompactNumber.format(quantity)}x ${optionPosition.legs.first.positionType} @ ${formatCurrency.format(optionInstrument.strikePrice)}",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary)),
+                ],
+              ),
+            ),
+            Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildReturnBlock(
+                          context,
+                          "Total Return",
+                          optionPosition.gainLoss,
+                          optionPosition.gainLossPercent,
+                          large: true),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                        width: 1,
+                        height: 40,
+                        color: Theme.of(context).dividerColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildReturnBlock(context, "Today's Return",
+                          dayGainLoss, dayGainLossPercent,
+                          large: true),
+                    ),
+                  ],
+                )),
+            const Divider(height: 1),
+            Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: LayoutBuilder(builder: (context, constraints) {
+                  final width = (constraints.maxWidth - 24) / 3;
+                  return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.start,
+                      children: [
+                        _buildStatCard(context, "Market Value",
+                            formatCurrency.format(optionPosition.marketValue),
+                            width: width),
+                        _buildStatCard(
+                            context,
+                            isLong ? "Avg Price" : "Avg Credit",
+                            formatCurrency
+                                .format(optionPosition.averageOpenPrice! / 100),
+                            width: width),
+                        _buildStatCard(
+                            context,
+                            "Total ${isLong ? 'Cost' : 'Credit'}",
+                            formatCurrency.format(optionPosition.totalCost),
+                            width: width),
+                        if (positionBreakEven != null)
+                          _buildStatCard(context, "Break Even",
+                              formatCurrency.format(positionBreakEven),
+                              width: width),
+                        _buildStatCard(context, "Expires",
+                            "${dte.isNegative ? 0 : dte} days",
+                            textColor:
+                                dte < 5 && !dte.isNegative ? Colors.red : null,
+                            width: width),
+                        if (!isLong)
+                          _buildStatCard(
+                              context,
+                              "Collateral",
+                              formatCurrency
+                                  .format(optionPosition.shortCollateral),
+                              width: width),
+                      ]);
+                })),
+            const Divider(height: 1),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+              child: Text(
+                  "Opened ${formatDate.format(optionPosition.createdAt!)}",
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.outline),
+                  textAlign: TextAlign.right),
+            )
+          ],
+        ));
+  }
+
+  Widget _buildDetailRow(String title, String value, {Widget? trailing}) {
+    return ListTile(
+      minTileHeight: 10,
+      title: Text(title),
+      trailing: trailing ?? Text(value, style: const TextStyle(fontSize: 18)),
+    );
+  }
+
+  Widget _buildMarketDataCard(OptionInstrument optionInstrument) {
+    if (optionInstrument.optionMarketData == null) return Container();
+    final data = optionInstrument.optionMarketData!;
+
+    final totalSize = data.bidSize + data.askSize;
+    final bidPct = totalSize > 0 ? data.bidSize / totalSize : 0.5;
+
+    final spread = (data.askPrice ?? 0) - (data.bidPrice ?? 0);
+    final spreadPct = data.markPrice != null && data.markPrice! > 0
+        ? spread / data.markPrice!
+        : 0.0;
+
+    // Liquidity score (heuristic)
+    // < 1% : Excellent (Green)
+    // < 5% : Good (Orange)
+    // > 5% : Low Liquidity (Red)
+    Color liquidityColor = Colors.green;
+    String liquidityLabel = "Tight Spread";
+    if (spreadPct > 0.05) {
+      liquidityColor = Colors.red;
+      liquidityLabel = "Wide Spread";
+    } else if (spreadPct > 0.01) {
+      liquidityColor = Colors.orange;
+      liquidityLabel = "Moderate Spread";
+    }
+
+    // Volume vs OI
+    final highActivity =
+        data.openInterest > 0 && data.volume > data.openInterest;
+
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const ListTile(
+          title: Text("Market Data", style: TextStyle(fontSize: 20)),
+        ),
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: LayoutBuilder(builder: (context, constraints) {
+              const int crossAxisCount = 3;
+              const double spacing = 8.0;
+              final double itemWidth =
+                  (constraints.maxWidth - ((crossAxisCount - 1) * spacing)) /
+                      crossAxisCount;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  if (data.volume > 0)
+                    _buildStatCard(context, "Volume",
+                        formatCompactNumber.format(data.volume),
+                        width: itemWidth),
+                  if (data.openInterest > 0)
+                    _buildStatCard(context, "Open Interest",
+                        formatCompactNumber.format(data.openInterest),
+                        width: itemWidth),
+                  if (data.impliedVolatility != null)
+                    _buildStatCard(context, "Implied Vol",
+                        formatPercentage.format(data.impliedVolatility),
+                        width: itemWidth),
+                  if (data.breakEvenPrice != null)
+                    _buildStatCard(context, "Break Even",
+                        formatCurrency.format(data.breakEvenPrice),
+                        width: itemWidth),
+                  if (data.chanceOfProfitLong != null)
+                    _buildStatCard(context, "Profit Chance",
+                        formatPercentage.format(data.chanceOfProfitLong),
+                        width: itemWidth),
+                  _buildStatCard(context, liquidityLabel,
+                      formatPercentage.format(spreadPct),
+                      color: liquidityColor.withOpacity(0.1),
+                      textColor: liquidityColor,
+                      width: itemWidth),
+                  if (highActivity)
+                    _buildStatCard(context, "Activity", "High",
+                        color: Colors.orange.withOpacity(0.1),
+                        textColor: Colors.orange,
+                        width: itemWidth),
+                ],
+              );
+            })),
+        const Divider(),
+        // Depth Visualization
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Bid Size (${data.bidSize})",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary)),
+                    Text("Ask Size (${data.askSize})",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                        flex: (bidPct * 100).toInt(),
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: const BorderRadius.horizontal(
+                                  left: Radius.circular(2))),
+                        )),
+                    const SizedBox(width: 2),
+                    Expanded(
+                        flex: ((1 - bidPct) * 100).toInt(),
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: const BorderRadius.horizontal(
+                                  right: Radius.circular(2))),
+                        )),
+                  ],
+                ),
+              ],
+            )),
+        Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(children: [
+                  Text("Bid",
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.outline)),
+                  Text(formatCurrency.format(data.bidPrice),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ]),
+                Container(
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(context).dividerColor),
+                Column(children: [
+                  Text("Mark",
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.outline)),
+                  Text(formatCurrency.format(data.adjustedMarkPrice),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ]),
+                Container(
+                    width: 1,
+                    height: 40,
+                    color: Theme.of(context).dividerColor),
+                Column(children: [
+                  Text("Ask",
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.outline)),
+                  Text(formatCurrency.format(data.askPrice),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ]),
+              ],
+            )),
+        const Divider(),
+        _buildDetailRow(
+            "Last Trade",
+            data.lastTradePrice != null
+                ? "${formatCurrency.format(data.lastTradePrice)} x ${formatCompactNumber.format(data.lastTradeSize)}"
+                : '-'),
+        if (data.lowPrice != null && data.highPrice != null) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Day Range",
+                        style: TextStyle(
+                            fontSize: 16,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium!.color)),
+                    Text(
+                        "${formatCurrency.format(data.lowPrice)} - ${formatCurrency.format(data.highPrice)}",
+                        style: const TextStyle(fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LayoutBuilder(builder: (context, constraints) {
+                  final range = data.highPrice! - data.lowPrice!;
+                  final position = data.adjustedMarkPrice! - data.lowPrice!;
+                  final percent = range > 0 ? (position / range) : 0.5;
+                  return Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      Container(
+                        height: 4,
+                        width: constraints.maxWidth,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      Container(
+                        margin: EdgeInsets.only(
+                            left: (constraints.maxWidth * percent)
+                                .clamp(0, constraints.maxWidth - 4)),
+                        width: 8, // marker width
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+        ] else
+          _buildDetailRow(
+              "Day Range",
+              data.lowPrice != null && data.highPrice != null
+                  ? "${formatCurrency.format(data.lowPrice)} - ${formatCurrency.format(data.highPrice)}"
+                  : "-"),
+        _buildDetailRow(
+            "Previous Close", formatCurrency.format(data.previousClosePrice)),
+      ],
+    ));
+  }
+
+  Widget _buildStatCard(BuildContext context, String label, String value,
+      {Color? color, Color? textColor, double? width}) {
+    return Container(
+      width: width,
+      constraints: width == null ? const BoxConstraints(minWidth: 100) : null,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color ?? Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: textColor ?? Theme.of(context).colorScheme.outline),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+              textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReturnBlock(
+      BuildContext context, String label, double? value, double? percent,
+      {bool large = false}) {
+    if (value == null || percent == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Text("-",
+              style: TextStyle(
+                  fontSize: large ? 24 : 20, fontWeight: FontWeight.bold)),
+        ],
+      );
+    }
+    final isPositive = value > 0;
+    final isNegative = value < 0;
+    final color = isPositive
+        ? (Theme.of(context).brightness == Brightness.light
+            ? Colors.green
+            : Colors.lightGreenAccent)
+        : (isNegative
+            ? (Theme.of(context).brightness == Brightness.light
+                ? Colors.red
+                : Colors.redAccent)
+            : Colors.grey);
+
+    if (large) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: Theme.of(context).colorScheme.outline)),
+          const SizedBox(height: 2),
+          Text(formatCurrency.format(value),
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+          Text(formatPercentage.format(percent),
+              style: TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w500, color: color)),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12, color: Theme.of(context).colorScheme.primary)),
+          const SizedBox(height: 4),
+          Text(formatCurrency.format(value),
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(formatPercentage.format(percent),
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoricalChartSection(OptionInstrument optionInstrument) {
+    return Consumer<OptionHistoricalsStore>(
+        builder: (context, optionHistoricalsStore, child) {
+      var optionInstrumentHistoricalsObj = optionHistoricalsStore.items
+          .firstWhereOrNull((element) =>
+              element.legs.first.id == optionInstrument.id &&
+              element.span == convertChartSpanFilter(chartDateSpanFilter) &&
+              element.bounds == convertChartBoundsFilter(chartBoundsFilter));
+      debugPrint(
+          '${optionInstrumentHistoricalsObj != null ? 'Found' : 'Not found'} optionInstrumentHistoricals for span: ${convertChartSpanFilter(chartDateSpanFilter)}, bounds: ${convertChartBoundsFilter(chartBoundsFilter)}');
+      if (optionInstrumentHistoricalsObj != null) {
+        InstrumentHistorical? firstHistorical;
+        InstrumentHistorical? lastHistorical;
+        double open = 0;
+        double close = 0;
+        double changeInPeriod = 0;
+        double changePercentInPeriod = 0;
+
+        firstHistorical = optionInstrumentHistoricalsObj.historicals.first;
+        lastHistorical = optionInstrumentHistoricalsObj.historicals.last;
+        open = firstHistorical.openPrice!;
+        close = lastHistorical.closePrice!;
+        changeInPeriod = close - open;
+        changePercentInPeriod = close / open - 1;
+
+        if (selection != null) {
+          changeInPeriod = selection!.closePrice! - open;
+          changePercentInPeriod = selection!.closePrice! / open - 1;
+        }
+
+        var brightness = MediaQuery.of(context).platformBrightness;
+        var textColor = Theme.of(context).colorScheme.surface;
+        if (brightness == Brightness.dark) {
+          textColor = Colors.grey.shade200;
+        } else {
+          textColor = Colors.grey.shade800;
+        }
+
+        var seriesList = [
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Open',
+            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.openPrice,
+            data: optionInstrumentHistoricalsObj.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Close',
+            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.closePrice,
+            data: optionInstrumentHistoricalsObj.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Low',
+            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.lowPrice,
+            data: optionInstrumentHistoricalsObj.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'High',
+            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.highPrice,
+            data: optionInstrumentHistoricalsObj.historicals,
+          ),
+        ];
+
+        var provider = Provider.of<InstrumentHistoricalsSelectionStore>(context,
+            listen: false);
+
+        TimeSeriesChart historicalChart = TimeSeriesChart(
+          seriesList,
+          open: optionInstrumentHistoricalsObj.historicals[0].openPrice!,
+          close: optionInstrumentHistoricalsObj
+              .historicals[
+                  optionInstrumentHistoricalsObj.historicals.length - 1]
+              .closePrice!,
+          seriesLegend: charts.SeriesLegend(
+            horizontalFirst: true,
+            position: charts.BehaviorPosition.top,
+            defaultHiddenSeries: const ["Close", "Low", "High"],
+            showMeasures: true,
+            measureFormatter: (measure) =>
+                measure != null ? formatCurrency.format(measure) : '',
+          ),
+          zeroBound: false,
+          onSelected: (charts.SelectionModel<DateTime>? historical) {
+            provider.selectionChanged(historical?.selectedDatum.first.datum);
+          },
+          symbolRenderer: TextSymbolRenderer(() {
+            return provider.selection != null
+                ? formatCompactDateTimeWithHour
+                    .format(provider.selection!.beginsAt!.toLocal())
+                : '0';
+          }, marginBottom: 16),
+        );
+
+        return SliverToBoxAdapter(
+            child: Card(
+                child: Column(
+          children: [
+            SizedBox(
+                height: 340,
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: historicalChart,
+                )),
+            Consumer<InstrumentHistoricalsSelectionStore>(
+                builder: (context, value, child) {
+              selection = value.selection;
+              if (selection != null) {
+                changeInPeriod = selection!.closePrice! - open;
+                changePercentInPeriod = selection!.closePrice! / open - 1;
+              } else {
+                changeInPeriod = close - open;
+                changePercentInPeriod = close / open - 1;
+              }
+
+              return SizedBox(
+                  height: 43,
+                  child: Center(
+                      child: Column(
+                    children: [
+                      Wrap(
+                        children: [
+                          Text(
+                              formatCurrency.format(selection != null
+                                  ? selection!.closePrice
+                                  : close),
+                              style: TextStyle(fontSize: 20, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Icon(
+                            changeInPeriod > 0
+                                ? Icons.trending_up
+                                : (changeInPeriod < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changeInPeriod > 0
+                                ? Colors.green
+                                : (changeInPeriod < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                          ),
+                          Container(
+                            width: 2,
+                          ),
+                          Text(
+                              formatPercentage
+                                  .format(changePercentInPeriod.abs()),
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Text(
+                              "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                        ],
+                      ),
+                      Text(
+                          '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                          style: TextStyle(fontSize: 10, color: textColor)),
+                    ],
+                  )));
+            }),
+            SizedBox(
+                height: 56,
+                child: ListView(
+                  key: const PageStorageKey<String>('instrumentChartFilters'),
+                  padding: const EdgeInsets.all(5.0),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    ...[
+                      (label: '1D', span: ChartDateSpan.day),
+                      (label: '1W', span: ChartDateSpan.week),
+                      (label: '1M', span: ChartDateSpan.month),
+                      (label: '3M', span: ChartDateSpan.month_3),
+                      (label: '1Y', span: ChartDateSpan.year),
+                      (label: '5Y', span: ChartDateSpan.year_5),
+                    ].map((e) => Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: ChoiceChip(
+                            label: Text(e.label),
+                            selected: chartDateSpanFilter == e.span,
+                            onSelected: (bool value) {
+                              if (value) {
+                                resetChart(e.span, chartBoundsFilter);
+                              }
+                            },
+                          ),
+                        )),
+                  ],
+                ))
+          ],
+        )));
+      }
+      return SliverToBoxAdapter(child: Container());
+    });
+  }
+
+  Widget _buildGreeksSection(OptionInstrument optionInstrument) {
+    return SliverToBoxAdapter(
+      child: Card(
+        child: Column(
+          children: [
+            ListTile(
+              title: const Text("Greeks", style: TextStyle(fontSize: 20.0)),
+              trailing: IconButton(
+                  icon: const Icon(Icons.info_outline, size: 20),
+                  tooltip: "Greeks Help",
+                  onPressed: () => showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('Greeks'),
+                          content: const SingleChildScrollView(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                Text(
+                                    "Delta (Δ): Rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
+                                Text(
+                                    "Gamma (Γ): Rate of change in the delta with respect to changes in the underlying price.\n"),
+                                Text(
+                                    "Theta (Θ): Sensitivity of the value of the derivative to the passage of time.\n"),
+                                Text("Vega (v): Sensitivity to volatility.\n"),
+                                Text(
+                                    "Rho (p): Sensitivity to the interest rate."),
+                              ])),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, 'OK'),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      )),
+            ),
+            if (optionInstrument.optionMarketData != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (optionInstrument.optionMarketData!.delta != null)
+                          _buildInfoCard(
+                              context,
+                              formatNumber.format(
+                                  optionInstrument.optionMarketData!.delta),
+                              "Δ",
+                              "Delta"),
+                        if (optionInstrument.optionMarketData!.gamma != null)
+                          _buildInfoCard(
+                              context,
+                              formatNumber.format(
+                                  optionInstrument.optionMarketData!.gamma!),
+                              "Γ",
+                              "Gamma"),
+                        if (optionInstrument.optionMarketData!.theta != null)
+                          _buildInfoCard(
+                              context,
+                              formatNumber.format(
+                                  optionInstrument.optionMarketData!.theta!),
+                              "Θ",
+                              "Theta"),
+                        if (optionInstrument.optionMarketData!.vega != null)
+                          _buildInfoCard(
+                              context,
+                              formatNumber.format(
+                                  optionInstrument.optionMarketData!.vega!),
+                              "v",
+                              "Vega"),
+                        if (optionInstrument.optionMarketData!.rho != null)
+                          _buildInfoCard(
+                              context,
+                              formatNumber.format(
+                                  optionInstrument.optionMarketData!.rho!),
+                              "p",
+                              "Rho"),
+                      ],
+                    )),
+              )
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSliverAppBar(OptionInstrumentStore optionInstrumentStore,
@@ -1652,617 +1376,96 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 ),*/
                   ),
               title: Opacity(
-                  //duration: Duration(milliseconds: 300),
-                  opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                  opacity: opacity,
                   child: SingleChildScrollView(
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Container(
-                              width: 10,
-                            ),
-                            Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
+                        Padding(
+                            padding:
+                                const EdgeInsets.only(left: 10.0, right: 10.0),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                      "Symbol",
+                                  Text(
+                                    '${optionInstrument.chainSymbol} \$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type.toUpperCase()} ${formatDate.format(optionInstrument.expirationDate!)}',
+                                    style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Theme.of(context)
+                                            .appBarTheme
+                                            .foregroundColor),
+                                    textAlign: TextAlign.left,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (optionInstrument.optionMarketData !=
+                                      null) ...[
+                                    const SizedBox(height: 4),
+                                    AnimatedPriceText(
+                                      price: optionInstrument
+                                          .optionMarketData!.adjustedMarkPrice!,
+                                      format: formatCurrency,
                                       style: TextStyle(
-                                          fontSize: 10.0,
+                                          fontSize: 24.0,
+                                          fontWeight: FontWeight.bold,
                                           color: Theme.of(context)
                                               .appBarTheme
                                               .foregroundColor),
                                     ),
-                                  )
-                                ]),
-                            Container(
-                              width: 5,
-                            ),
-                            SizedBox(
-                                width: 115,
-                                child: Text(optionInstrument.chainSymbol,
-                                    style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Theme.of(context)
-                                            .appBarTheme
-                                            .foregroundColor),
-                                    textAlign: TextAlign.right)),
-                            Container(
-                              width: 10,
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Container(
-                              width: 10,
-                            ),
-                            Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                      "Strike",
-                                      style: TextStyle(
-                                          fontSize: 10.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                    ),
-                                  )
-                                ]),
-                            Container(
-                              width: 5,
-                            ),
-                            SizedBox(
-                                width: 115,
-                                child: Text(
-                                    "\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type.toUpperCase()}",
-                                    style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Theme.of(context)
-                                            .appBarTheme
-                                            .foregroundColor),
-                                    textAlign: TextAlign.right)),
-                            Container(
-                              width: 10,
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Container(
-                              width: 10,
-                            ),
-                            Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 70,
-                                    child: Text(
-                                      "Expiration",
-                                      style: TextStyle(
-                                          fontSize: 10.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                    ),
-                                  )
-                                ]),
-                            Container(
-                              width: 5,
-                            ),
-                            SizedBox(
-                                width: 115,
-                                child: Text(
-                                    formatDate.format(
-                                        optionInstrument.expirationDate!),
-                                    style: TextStyle(
-                                        fontSize: 12.0,
-                                        color: Theme.of(context)
-                                            .appBarTheme
-                                            .foregroundColor),
-                                    textAlign: TextAlign.right)),
-                            Container(
-                              width: 10,
-                            ),
-                          ],
-                        ),
-                        if (optionInstrument.optionMarketData != null) ...[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Container(
-                                width: 10,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 70,
-                                      child: Text(
-                                        "Price",
-                                        style: TextStyle(
-                                            fontSize: 10.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                      ),
-                                    )
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              SizedBox(
-                                  width: 115,
-                                  child: Text(
-                                      formatCurrency.format(optionInstrument
-                                          .optionMarketData!.adjustedMarkPrice),
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                      textAlign: TextAlign.right)),
-                              Container(
-                                width: 10,
-                              ),
-                            ],
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Container(
-                                  width: 10,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 55,
-                                        child: Text(
-                                          "Change",
-                                          style: TextStyle(
-                                              fontSize: 10.0,
-                                              color: Theme.of(context)
-                                                  .appBarTheme
-                                                  .foregroundColor),
-                                        ),
-                                      )
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                          width: 65,
-                                          child: Wrap(
-                                              alignment: WrapAlignment.end,
-                                              children: [
-                                                Icon(
-                                                    optionInstrument
-                                                                .optionMarketData!
-                                                                .changeToday >
-                                                            0
-                                                        ? Icons.trending_up
-                                                        : (optionInstrument
-                                                                    .optionMarketData!
-                                                                    .changeToday <
-                                                                0
-                                                            ? Icons
-                                                                .trending_down
-                                                            : Icons
-                                                                .trending_flat),
-                                                    color: (optionInstrument
-                                                                .optionMarketData!
-                                                                .changeToday >
-                                                            0
-                                                        ? Colors
-                                                            .lightGreenAccent
-                                                        : (optionInstrument
-                                                                    .optionMarketData!
-                                                                    .changeToday <
-                                                                0
-                                                            ? Colors.red
-                                                            : Colors.grey)),
-                                                    size: 14.0),
-                                                Container(
-                                                  width: 2,
-                                                ),
-                                                Text(
-                                                    formatPercentage.format(
-                                                        optionInstrument
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                            optionInstrument.optionMarketData!
+                                                        .changeToday >
+                                                    0
+                                                ? Icons.trending_up
+                                                : (optionInstrument
                                                             .optionMarketData!
-                                                            .changePercentToday
-                                                            .abs()),
-                                                    style: TextStyle(
-                                                        fontSize: 12.0,
-                                                        color: Theme.of(context)
-                                                            .appBarTheme
-                                                            .foregroundColor),
-                                                    textAlign: TextAlign.right),
-                                              ]))
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                SizedBox(
-                                    width: 60,
-                                    child: Text(
-                                        "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
-                                        style: TextStyle(
-                                            fontSize: 12.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                        textAlign: TextAlign.right)),
-                                Container(
-                                  width: 10,
-                                ),
-                              ]),
-                        ],
-                        if (optionPosition != null) ...[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Container(
-                                width: 10,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 70,
-                                      child: Text(
-                                        "Strategy",
-                                        style: TextStyle(
-                                            fontSize: 10.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                      ),
-                                    )
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              SizedBox(
-                                  width: 115,
-                                  child: Text(
-                                      "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                      textAlign: TextAlign.right)),
-                              Container(
-                                width: 10,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Container(
-                                width: 10,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 70,
-                                      child: Text(
-                                        "Contracts",
-                                        style: TextStyle(
-                                            fontSize: 10.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                      ),
-                                    )
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              SizedBox(
-                                  width: 115,
-                                  child: Text(
-                                      "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                      textAlign: TextAlign.right)),
-                              Container(
-                                width: 10,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Container(
-                                width: 10,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 70,
-                                      child: Text(
-                                        optionPosition
-                                                    .legs.first.positionType ==
-                                                "long"
-                                            ? "Cost"
-                                            : "Credit",
-                                        style: TextStyle(
-                                            fontSize: 10.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                      ),
-                                    )
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    SizedBox(
-                                        width: 40,
-                                        child: Text(
-                                            "", //${formatPercentage.format(1)}
-                                            style: TextStyle(
-                                                fontSize: 10.0,
-                                                color: Theme.of(context)
-                                                    .appBarTheme
-                                                    .foregroundColor),
-                                            textAlign: TextAlign.right))
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                      formatCurrency
-                                          .format(optionPosition.totalCost),
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                      textAlign: TextAlign.right)),
-                              Container(
-                                width: 10,
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Container(
-                                width: 10,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 70,
-                                      child: Text(
-                                        "Market Value",
-                                        style: TextStyle(
-                                            fontSize: 10.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                      ),
-                                    )
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    SizedBox(
-                                        width: 40,
-                                        child: Text(
-                                            "", //${formatPercentage.format(1)}
-                                            style: TextStyle(
-                                                fontSize: 10.0,
-                                                color: Theme.of(context)
-                                                    .appBarTheme
-                                                    .foregroundColor),
-                                            textAlign: TextAlign.right))
-                                  ]),
-                              Container(
-                                width: 5,
-                              ),
-                              SizedBox(
-                                  width: 70,
-                                  child: Text(
-                                      formatCurrency
-                                          .format(optionPosition.marketValue),
-                                      style: TextStyle(
-                                          fontSize: 12.0,
-                                          color: Theme.of(context)
-                                              .appBarTheme
-                                              .foregroundColor),
-                                      textAlign: TextAlign.right)),
-                              Container(
-                                width: 10,
-                              ),
-                            ],
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Container(
-                                  width: 10,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 55,
-                                        child: Text(
-                                          "Today",
+                                                            .changeToday <
+                                                        0
+                                                    ? Icons.trending_down
+                                                    : Icons.trending_flat),
+                                            color: (optionInstrument
+                                                        .optionMarketData!
+                                                        .changeToday >
+                                                    0
+                                                ? (Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.light
+                                                    ? Colors.green
+                                                    : Colors.lightGreenAccent)
+                                                : (optionInstrument
+                                                            .optionMarketData!
+                                                            .changeToday <
+                                                        0
+                                                    ? Colors.red
+                                                    : Colors.grey)),
+                                            size: 20.0),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          formatPercentage.format(
+                                              optionInstrument.optionMarketData!
+                                                  .changePercentToday),
                                           style: TextStyle(
-                                              fontSize: 10.0,
+                                              fontSize: 16.0,
                                               color: Theme.of(context)
                                                   .appBarTheme
                                                   .foregroundColor),
                                         ),
-                                      )
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                          width: 65,
-                                          child: Wrap(
-                                              alignment: WrapAlignment.end,
-                                              children: [
-                                                optionPosition
-                                                    .trendingIconToday,
-                                                Container(
-                                                  width: 2,
-                                                ),
-                                                Text(
-                                                    formatPercentage.format(
-                                                        optionPosition
-                                                            .changePercentToday
-                                                            .abs()),
-                                                    style: TextStyle(
-                                                        fontSize: 12.0,
-                                                        color: Theme.of(context)
-                                                            .appBarTheme
-                                                            .foregroundColor),
-                                                    textAlign: TextAlign.right),
-                                              ]))
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                SizedBox(
-                                    width: 60,
-                                    child: Text(
-                                        "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
-                                        style: TextStyle(
-                                            fontSize: 12.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                        textAlign: TextAlign.right)),
-                                Container(
-                                  width: 10,
-                                ),
-                              ]),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Container(
-                                  width: 10,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                        width: 55,
-                                        child: Text(
-                                          "Return",
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
                                           style: TextStyle(
-                                              fontSize: 10.0,
+                                              fontSize: 16.0,
                                               color: Theme.of(context)
                                                   .appBarTheme
                                                   .foregroundColor),
                                         ),
-                                      )
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      SizedBox(
-                                          width: 65,
-                                          child: Wrap(
-                                              alignment: WrapAlignment.end,
-                                              children: [
-                                                optionPosition.trendingIcon,
-                                                Container(
-                                                  width: 2,
-                                                ),
-                                                Text(
-                                                    formatPercentage.format(
-                                                        optionPosition
-                                                            .gainLossPercent
-                                                            .abs()),
-                                                    style: TextStyle(
-                                                        fontSize: 12.0,
-                                                        color: Theme.of(context)
-                                                            .appBarTheme
-                                                            .foregroundColor),
-                                                    textAlign: TextAlign.right),
-                                              ]))
-                                    ]),
-                                Container(
-                                  width: 5,
-                                ),
-                                SizedBox(
-                                    width: 60,
-                                    child: Text(
-                                        "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
-                                        style: TextStyle(
-                                            fontSize: 12.0,
-                                            color: Theme.of(context)
-                                                .appBarTheme
-                                                .foregroundColor),
-                                        textAlign: TextAlign.right)),
-                                Container(
-                                  width: 10,
-                                ),
-                              ]),
-                        ],
+                                      ],
+                                    ),
+                                  ]
+                                ]))
                       ]))));
           /*
             actions: <Widget>[
@@ -2357,162 +1560,262 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     });
   }
 
-  Iterable<Widget> _buildLegs(OptionAggregatePosition optionPosition) sync* {
+  List<Widget> _buildLegs(OptionAggregatePosition optionPosition) {
+    var widgets = <Widget>[];
     for (int i = 0; i < optionPosition.legs.length; i++) {
       var leg = optionPosition.legs[i];
-      yield ListTile(
-          title: Text("Leg ${i + 1}", style: const TextStyle(fontSize: 20)));
-      // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
-      yield ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Position Type"),
-        trailing:
-            Text("${leg.positionType}", style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Position Effect"),
-        trailing:
-            Text("${leg.positionEffect}", style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Option Type"),
-        trailing: Text(leg.optionType, style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Strike Price"),
-        trailing: Text(formatCurrency.format(leg.strikePrice),
-            style: const TextStyle(fontSize: 18)),
-      );
-      yield ListTile(
-        title: const Text("Ratio Quantity"),
-        trailing:
-            Text("${leg.ratioQuantity}", style: const TextStyle(fontSize: 18)),
-      );
+      widgets.add(ListTile(
+          title: Text("Leg ${i + 1}", style: const TextStyle(fontSize: 20))));
+      widgets.add(_buildDetailRow(
+          "Expiration Date", formatDate.format(leg.expirationDate!)));
+      widgets.add(_buildDetailRow("Position Type", "${leg.positionType}"));
+      widgets.add(_buildDetailRow("Position Effect", "${leg.positionEffect}"));
+      widgets.add(_buildDetailRow("Option Type", leg.optionType));
+      widgets.add(_buildDetailRow(
+          "Strike Price", formatCurrency.format(leg.strikePrice)));
+      widgets.add(_buildDetailRow("Ratio Quantity", "${leg.ratioQuantity}"));
     }
+    return widgets;
   }
 
-  Card buildOverview(BrokerageUser user, OptionInstrument optionInstrument,
+  Widget _buildOptionFlowAnalysis(
+      OptionInstrument optionInstrument, Instrument instrument) {
+    if (optionInstrument.optionMarketData == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    final md = optionInstrument.optionMarketData!;
+    final contract = {
+      'volume': md.volume,
+      'openInterest': md.openInterest,
+      'strike': optionInstrument.strikePrice,
+      'lastPrice': md.lastTradePrice ?? md.markPrice ?? 0.0,
+      'bid': md.bidPrice,
+      'ask': md.askPrice,
+      'impliedVolatility': md.impliedVolatility,
+      'percentChange': md.changePercentToday,
+      'lastTradeDate': md.updatedAt,
+    };
+
+    final item = OptionsFlowStore.processOptionContract(
+      contract,
+      optionInstrument.type.substring(0, 1).toUpperCase() +
+          optionInstrument.type.substring(1), // 'call' -> 'Call'
+      optionInstrument.chainSymbol,
+      optionInstrument.expirationDate!,
+      instrument.quoteObj?.lastTradePrice ?? 0.0,
+      skipFilters: true,
+      delta: md.delta,
+      gamma: md.gamma,
+      marketCap: instrument.fundamentalsObj?.marketCap,
+      sector: instrument.fundamentalsObj?.sector,
+    );
+
+    if (item == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    return SliverToBoxAdapter(
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 0),
+            child: OptionFlowListItem(
+              item: item,
+              brokerageUser: widget.brokerageUser,
+              service: widget.service,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: widget.generativeService,
+              user: widget.user,
+              userDocRef: widget.userDocRef,
+            )));
+  }
+
+  Widget _buildOverview(BrokerageUser user, OptionInstrument optionInstrument,
       Instrument instrument,
       {OptionAggregatePosition? optionPosition}) {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          // leading: const Icon(Icons.album),
-          title: Text(instrument.simpleName ?? instrument.symbol),
-          subtitle: Text(instrument.name),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              AnimatedPriceText(
-                price: instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                    instrument.quoteObj!.lastTradePrice!,
-                format: formatCurrency,
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
+    return Column(children: [
+      Card(
+          clipBehavior: Clip.hardEdge,
+          child: InkWell(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              user,
+                              widget.service,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: ListTile(
+                  title: Text(instrument.simpleName ?? instrument.symbol,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  subtitle: Text(instrument.name),
+                  trailing: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AnimatedPriceText(
+                        price:
+                            instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                                instrument.quoteObj!.lastTradePrice!,
+                        format: formatCurrency,
+                        style: const TextStyle(
+                            fontSize: 18.0, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.right,
+                      ),
+                      Wrap(
+                        spacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(
+                              instrument.quoteObj!.changeToday > 0
+                                  ? Icons.trending_up
+                                  : (instrument.quoteObj!.changeToday < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              size: 16,
+                              color: (instrument.quoteObj!.changeToday > 0
+                                  ? Colors.green
+                                  : (instrument.quoteObj!.changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey))),
+                          Text(
+                            formatPercentage.format(
+                                instrument.quoteObj!.changePercentToday),
+                            style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w500,
+                                color: (instrument.quoteObj!.changeToday > 0
+                                    ? Colors.green
+                                    : (instrument.quoteObj!.changeToday < 0
+                                        ? Colors.red
+                                        : Colors.grey))),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ))),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+                icon: const Icon(Icons.list_alt, size: 20),
+                label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Chain',
+                        maxLines: 1, overflow: TextOverflow.ellipsis)),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => InstrumentOptionChainWidget(
+                                user,
+                                widget.service,
+                                instrument,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
+                                initialExpirationDate:
+                                    optionInstrument.expirationDate,
+                                initialTypeFilter:
+                                    optionInstrument.type == 'call'
+                                        ? 'Call'
+                                        : 'Put',
+                                selectedOption: optionInstrument,
+                              )));
+                },
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: <Widget>[
+            ),
+            const SizedBox(width: 8),
+            if (optionPosition != null) ...[
               Expanded(
-                child: OutlinedButton(
-                  child: const Text('View Stock'),
-                  onPressed: () {
-                    Navigator.push(
+                child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
+                    icon: const Icon(Icons.add, size: 20),
+                    label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(optionPosition.direction == "debit"
+                            ? "Buy"
+                            : "Buy to Close")),
+                    onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => InstrumentWidget(
+                            builder: (context) => TradeOptionWidget(
                                   user,
                                   widget.service,
-                                  instrument,
+                                  optionPosition: optionPosition,
+                                  optionInstrument: optionInstrument,
+                                  positionType: "Buy",
                                   analytics: widget.analytics,
                                   observer: widget.observer,
-                                  generativeService: widget.generativeService,
-                                  user: widget.user,
-                                  userDocRef: widget.userDocRef,
-                                )));
-                  },
-                ),
+                                )))),
               ),
               const SizedBox(width: 8),
-              if (optionPosition != null) ...[
-                Expanded(
-                  child: FilledButton(
-                      child: Text(optionPosition.direction == "debit"
-                          ? "Buy"
-                          : "Buy to Close"),
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => TradeOptionWidget(
-                                    user,
-                                    widget.service,
-                                    optionPosition: optionPosition,
-                                    optionInstrument: optionInstrument,
-                                    positionType: "Buy",
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  )))),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.tonal(
-                      child: Text(optionPosition.direction == "debit"
-                          ? "Sell"
-                          : "Sell to Open"),
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => TradeOptionWidget(
-                                    user,
-                                    widget.service,
-                                    optionPosition: optionPosition,
-                                    optionInstrument: optionInstrument,
-                                    positionType: "Sell",
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  )))),
-                ),
-              ] else ...[
-                Expanded(
-                  child: FilledButton(
-                      child: const Text('Trade'),
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => TradeOptionWidget(
-                                    user,
-                                    widget.service,
-                                    optionInstrument: optionInstrument,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  )))),
-                ),
-              ],
+              Expanded(
+                child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
+                    icon: const Icon(Icons.remove, size: 20),
+                    label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(optionPosition.direction == "debit"
+                            ? "Sell"
+                            : "Sell to Open")),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(
+                                  user,
+                                  widget.service,
+                                  optionPosition: optionPosition,
+                                  optionInstrument: optionInstrument,
+                                  positionType: "Sell",
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                )))),
+              ),
+            ] else ...[
+              Expanded(
+                child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
+                    icon: const Icon(Icons.attach_money, size: 20),
+                    label: const FittedBox(
+                        fit: BoxFit.scaleDown, child: Text('Trade Option')),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(
+                                  user,
+                                  widget.service,
+                                  optionInstrument: optionInstrument,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                )))),
+              ),
             ],
-          ),
+          ],
         ),
-      ],
-    ));
+      ),
+    ]);
   }
 }

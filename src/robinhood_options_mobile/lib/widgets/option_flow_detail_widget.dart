@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
 import 'package:share_plus/share_plus.dart';
 
 class OptionFlowDetailWidget extends StatefulWidget {
@@ -98,88 +99,6 @@ Provide a concise analysis (under 150 words) covering:
       }
     }
   }
-
-  static const Map<String, String> _flagDocumentation = {
-    'SWEEP':
-        'Orders executed across multiple exchanges to fill a large order quickly. Indicates urgency and stealth. Often a sign of institutional buying.',
-    'BLOCK':
-        'Large privately negotiated orders. Often institutional rebalancing or hedging. Less urgent than sweeps.',
-    'DARK POOL':
-        'Off-exchange trading. Used by institutions to hide intent and avoid market impact. Can indicate accumulation.',
-    'BULLISH':
-        'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.',
-    'BEARISH':
-        'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.',
-    'NEUTRAL':
-        'Neutral sentiment. Trade executed between bid and ask, or straddle/strangle strategy.',
-    'ITM':
-        'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.',
-    'OTM':
-        'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
-    'WHALE':
-        'Massive institutional order >\$1M premium. Represents highest conviction from major players.',
-    'Golden Sweep':
-        'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.',
-    'Steamroller':
-        'Massive size (>\$500k), short term (<30 days), aggressive OTM sweep.',
-    'Mega Vol':
-        'Volume is >10x Open Interest. Extreme unusual activity indicating major new positioning.',
-    'Vol Explosion':
-        'Volume is >5x Open Interest. Significant unusual activity.',
-    'High Vol/OI': 'Volume is >1.5x Open Interest. Indicates unusual interest.',
-    'New Position':
-        'Volume exceeds Open Interest, confirming new contracts are being opened.',
-    'Aggressive':
-        'Order executed at or above the ask price, showing urgency to enter the position.',
-    'Tight Spread':
-        'Bid-Ask spread < 5%. Indicates high liquidity and potential institutional algo execution.',
-    'Wide Spread':
-        'Bid-Ask spread > 20%. Warning: Low liquidity or poor execution prices.',
-    'Bullish Divergence':
-        'Call buying while stock is down. Smart money betting on a reversal.',
-    'Bearish Divergence':
-        'Put buying while stock is up. Smart money betting on a reversal.',
-    'Panic Hedge':
-        'Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k). Fear/hedging against crash.',
-    'Gamma Squeeze':
-        'Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k). Can force dealer buying.',
-    'Contrarian':
-        'Trade direction opposes current stock trend (>2% move). Betting on reversal.',
-    'Earnings Play':
-        'Options expiring shortly after earnings (2-14 days). Betting on volatility event.',
-    'Extreme IV':
-        'Implied Volatility > 250%. Extreme fear/greed or binary event.',
-    'High IV': 'Implied Volatility > 100%. Market pricing in a massive move.',
-    'Low IV': 'Implied Volatility < 20%. Options are cheap. Good for buying.',
-    'Cheap Vol':
-        'High volume (>2000) on low-priced options (<\$0.50). Speculative activity on cheap contracts.',
-    'High Premium':
-        'Significant volume (>100) on expensive options (>\$20.00). High capital commitment per contract.',
-    '0DTE': 'Expires today. Maximum gamma risk/reward. Pure speculation.',
-    'Weekly OTM':
-        'Expires < 1 week and Out-of-the-Money with volume > 500. Short-term speculative bet.',
-    'LEAPS': 'Expires > 1 year. Long-term investment substitute for stock.',
-    'Lotto':
-        'Cheap OTM (>15%) options (< \$1.00). High risk, potential 10x+ return.',
-    'ATM Flow':
-        'At-The-Money options (strike within 1% of spot). High Gamma potential, often used by market makers.',
-    'Deep ITM':
-        'Deep In-The-Money contracts (>10% ITM). Often used as a stock replacement strategy.',
-    'Deep OTM':
-        'Deep Out-Of-The-Money contracts (>15% OTM). Aggressive speculative bets.',
-    'UNUSUAL':
-        'Volume > Open Interest. Indicates new positioning and potential institutional interest.',
-    'Above Ask':
-        'Trade executed at a price higher than the ask price. Indicates extreme urgency to buy.',
-    'Below Bid':
-        'Trade executed at a price lower than the bid price. Indicates extreme urgency to sell.',
-    'Mid Market':
-        'Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.',
-    'Ask Side': 'Trade executed at the ask price. Indicates buying pressure.',
-    'Bid Side': 'Trade executed at the bid price. Indicates selling pressure.',
-    'Large Block / Dark Pool':
-        'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +208,8 @@ Provide a concise analysis (under 150 words) covering:
                   const Spacer(),
                   Tooltip(
                     message:
-                        _flagDocumentation[sentimentLabel] ?? sentimentLabel,
+                        OptionsFlowStore.flagDocumentation[sentimentLabel] ??
+                            sentimentLabel,
                     triggerMode: TooltipTriggerMode.tap,
                     padding: const EdgeInsets.all(12),
                     margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -356,36 +276,42 @@ Provide a concise analysis (under 150 words) covering:
                 runSpacing: 8,
                 children: [
                   if (item.isUnusual)
-                    _buildBadge(
-                        'UNUSUAL',
+                    OptionFlowBadge(
+                        label: 'UNUSUAL',
                         fontSize: 11,
-                        isDark ? Colors.purple.shade200 : Colors.purple,
-                        Icons.bolt),
+                        color: isDark ? Colors.purple.shade200 : Colors.purple,
+                        icon: Icons.bolt),
                   if (item.flowType == FlowType.sweep)
-                    _buildBadge(
-                        'SWEEP', fontSize: 11, Colors.orange, Icons.waves),
+                    OptionFlowBadge(
+                        label: 'SWEEP',
+                        fontSize: 11,
+                        color: Colors.orange,
+                        icon: Icons.waves),
                   if (item.flowType == FlowType.block)
-                    _buildBadge(
-                        'BLOCK', fontSize: 11, Colors.blue, Icons.view_module),
+                    OptionFlowBadge(
+                        label: 'BLOCK',
+                        fontSize: 11,
+                        color: Colors.blue,
+                        icon: Icons.view_module),
                   if (item.flowType == FlowType.darkPool)
-                    _buildBadge(
-                        'DARK POOL',
+                    OptionFlowBadge(
+                        label: 'DARK POOL',
                         fontSize: 11,
-                        Colors.grey.shade800,
-                        Icons.visibility_off),
+                        color: Colors.grey.shade800,
+                        icon: Icons.visibility_off),
                   if (item.details.isNotEmpty)
-                    _buildBadge(
-                        item.details,
+                    OptionFlowBadge(
+                        label: item.details,
                         fontSize: 11,
-                        Theme.of(context).colorScheme.secondary,
-                        null),
+                        color: Theme.of(context).colorScheme.secondary,
+                        icon: null),
                   ...item.flags.asMap().entries.map((entry) {
                     final index = entry.key;
                     final flag = entry.value;
                     final reason = index < item.reasons.length
                         ? item.reasons[index]
                         : null;
-                    return _buildFlagBadge(flag, reason: reason);
+                    return OptionFlowFlagBadge(flag: flag, reason: reason);
                   }),
                 ],
               ),
@@ -420,23 +346,24 @@ Provide a concise analysis (under 150 words) covering:
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getScoreColor(item.score)
+                            color: getScoreColor(context, item.score)
                                 .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                                color: _getScoreColor(item.score)
+                                color: getScoreColor(context, item.score)
                                     .withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.star,
-                                  size: 14, color: _getScoreColor(item.score)),
+                                  size: 14,
+                                  color: getScoreColor(context, item.score)),
                               const SizedBox(width: 4),
                               Text(
                                 '${item.score}/100',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: _getScoreColor(item.score),
+                                  color: getScoreColor(context, item.score),
                                 ),
                               ),
                             ],
@@ -453,7 +380,7 @@ Provide a concise analysis (under 150 words) covering:
                     backgroundColor:
                         Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                        _getScoreColor(item.score)),
+                        getScoreColor(context, item.score)),
                     minHeight: 6,
                   ),
                 ),
@@ -906,306 +833,6 @@ Provide a concise analysis (under 150 words) covering:
     );
   }
 
-  Widget _buildBadge(String label, Color color, IconData? icon,
-      {double fontSize = 10, bool showTooltip = true, String? reason}) {
-    final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: fontSize + 2, color: color),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (showTooltip) {
-      final doc = _flagDocumentation[label];
-      final tooltipMessage =
-          reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
-
-      if (tooltipMessage != null) {
-        return Tooltip(
-          message: tooltipMessage,
-          triggerMode: TooltipTriggerMode.tap,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          showDuration: const Duration(seconds: 5),
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: const TextStyle(color: Colors.white),
-          child: badge,
-        );
-      }
-    }
-    return badge;
-  }
-
-  Widget _buildFlagBadge(String flag,
-      {bool small = false,
-      double fontSize = 11,
-      bool showTooltip = true,
-      String? reason}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = _getFlagStyle(flag, isDark);
-    final color = style.color;
-    final icon = style.icon;
-
-    if (small) {
-      final badge = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: fontSize + 2,
-                color: color,
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              flag,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      );
-
-      if (showTooltip) {
-        final doc = _flagDocumentation[flag];
-        final tooltipMessage =
-            reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
-
-        if (tooltipMessage != null) {
-          return Tooltip(
-            message: tooltipMessage,
-            triggerMode: TooltipTriggerMode.tap,
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            showDuration: const Duration(seconds: 5),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            textStyle: const TextStyle(color: Colors.white),
-            child: badge,
-          );
-        }
-      }
-      return badge;
-    }
-
-    return _buildBadge(flag, color, icon,
-        fontSize: fontSize, showTooltip: showTooltip, reason: reason);
-  }
-
-  static final List<FlagRule> _flagRules = [
-    FlagRule(
-        'Super Whale',
-        Icons.diamond,
-        (isDark) => isDark
-            ? Colors.purpleAccent.shade100
-            : Colors.purpleAccent.shade700,
-        exactMatch: true),
-    FlagRule('WHALE', Icons.water,
-        (isDark) => isDark ? Colors.blue.shade300 : Colors.blue.shade700),
-    FlagRule('Institutional', Icons.account_balance,
-        (isDark) => isDark ? Colors.indigo.shade200 : Colors.indigo.shade800,
-        exactMatch: true),
-    FlagRule('Golden', Icons.star,
-        (isDark) => isDark ? Colors.amber.shade300 : Colors.amber.shade800),
-    FlagRule('Mega Vol', Icons.tsunami,
-        (isDark) => isDark ? Colors.deepPurple.shade300 : Colors.deepPurple),
-    FlagRule(
-        'Vol Explosion',
-        Icons.local_fire_department,
-        (isDark) => isDark
-            ? Colors.deepOrangeAccent.shade200
-            : Colors.deepOrangeAccent),
-    FlagRule('High Vol/OI', Icons.trending_up,
-        (isDark) => isDark ? Colors.orange.shade300 : Colors.orange.shade800),
-    FlagRule('Vol', Icons.local_fire_department,
-        (isDark) => isDark ? Colors.deepOrange.shade300 : Colors.deepOrange),
-    FlagRule(
-        'IV Crush Risk',
-        Icons.compress,
-        (isDark) => isDark
-            ? Colors.orangeAccent.shade100
-            : Colors.orangeAccent.shade700,
-        exactMatch: true),
-    FlagRule('Extreme IV', Icons.dangerous,
-        (isDark) => isDark ? Colors.pinkAccent.shade100 : Colors.pinkAccent),
-    FlagRule('High IV', Icons.trending_up,
-        (isDark) => isDark ? Colors.purple.shade300 : Colors.purple.shade600),
-    FlagRule('IV', Icons.trending_up,
-        (isDark) => isDark ? Colors.purple.shade300 : Colors.purple.shade600),
-    FlagRule(
-        '0DTE Lotto',
-        Icons.casino,
-        (isDark) => isDark
-            ? Colors.deepOrangeAccent.shade100
-            : Colors.deepOrangeAccent.shade700,
-        exactMatch: true),
-    FlagRule('0DTE', Icons.timer_off,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade700),
-    FlagRule('Lotto', Icons.casino,
-        (isDark) => isDark ? Colors.pink.shade300 : Colors.pink),
-    FlagRule('ATM Flow', Icons.center_focus_strong,
-        (isDark) => isDark ? Colors.cyanAccent.shade200 : Colors.cyan.shade800),
-    FlagRule('Deep ITM', Icons.vertical_align_bottom,
-        (isDark) => isDark ? Colors.green.shade300 : Colors.green.shade700),
-    FlagRule('Deep OTM', Icons.vertical_align_top,
-        (isDark) => isDark ? Colors.orange.shade300 : Colors.orange.shade800),
-    FlagRule('Aggressive', Icons.flash_on,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade700),
-    FlagRule('Weekly', Icons.calendar_today,
-        (isDark) => isDark ? Colors.teal.shade300 : Colors.teal),
-    FlagRule(
-        'Leaps Buy',
-        Icons.savings,
-        (isDark) => isDark
-            ? Colors.indigoAccent.shade100
-            : Colors.indigoAccent.shade700,
-        exactMatch: true),
-    FlagRule('LEAPS', Icons.schedule,
-        (isDark) => isDark ? Colors.indigo.shade300 : Colors.indigo),
-    FlagRule('Earnings', Icons.event,
-        (isDark) => isDark ? Colors.purple.shade300 : Colors.purple.shade700),
-    FlagRule(
-        'Bullish Divergence',
-        Icons.call_made,
-        (isDark) =>
-            isDark ? Colors.greenAccent.shade200 : Colors.green.shade800),
-    FlagRule('Bearish Divergence', Icons.call_received,
-        (isDark) => isDark ? Colors.redAccent.shade200 : Colors.red.shade800),
-    FlagRule('Contrarian', Icons.compare_arrows,
-        (isDark) => isDark ? Colors.cyan.shade300 : Colors.cyan.shade700),
-    FlagRule('New Position', Icons.fiber_new,
-        (isDark) => isDark ? Colors.green.shade300 : Colors.green.shade600),
-    FlagRule('Steamroller', Icons.compress,
-        (isDark) => isDark ? Colors.brown.shade300 : Colors.brown.shade700),
-    FlagRule('Gamma Squeeze', Icons.rocket_launch,
-        (isDark) => isDark ? Colors.orange.shade300 : Colors.orange.shade900),
-    FlagRule('Panic', Icons.shield,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade900),
-    FlagRule('Floor Protection', Icons.layers,
-        (isDark) => isDark ? Colors.teal.shade200 : Colors.teal.shade800,
-        exactMatch: true),
-    FlagRule('Tight Spread', Icons.align_horizontal_center,
-        (isDark) => isDark ? Colors.blue.shade200 : Colors.blue.shade800),
-    FlagRule('Wide Spread', Icons.align_horizontal_left,
-        (isDark) => isDark ? Colors.brown.shade200 : Colors.brown.shade800),
-    FlagRule('Low IV', Icons.trending_down,
-        (isDark) => isDark ? Colors.blueGrey.shade300 : Colors.blueGrey),
-    FlagRule('Cheap Vol', Icons.savings,
-        (isDark) => isDark ? Colors.green.shade200 : Colors.green.shade800),
-    FlagRule('High Premium', Icons.monetization_on,
-        (isDark) => isDark ? Colors.amber.shade200 : Colors.amber.shade800),
-    FlagRule('Above Ask', Icons.arrow_upward,
-        (isDark) => isDark ? Colors.green.shade300 : Colors.green.shade700),
-    FlagRule('Ask Side', Icons.arrow_upward,
-        (isDark) => isDark ? Colors.green.shade300 : Colors.green.shade700),
-    FlagRule('Below Bid', Icons.arrow_downward,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade700),
-    FlagRule('Bid Side', Icons.arrow_downward,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade700),
-    FlagRule(
-        'Cross Trade',
-        Icons.swap_horiz,
-        (isDark) =>
-            isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700,
-        exactMatch: true),
-    FlagRule(
-        'Mid Market',
-        Icons.horizontal_rule,
-        (isDark) =>
-            isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade700),
-    FlagRule('Large Block', Icons.visibility_off,
-        (isDark) => isDark ? Colors.grey.shade400 : Colors.grey.shade800),
-    FlagRule('DARK POOL', Icons.visibility_off,
-        (isDark) => isDark ? Colors.grey.shade400 : Colors.grey.shade800),
-    FlagRule('SWEEP', Icons.waves,
-        (isDark) => isDark ? Colors.orange.shade300 : Colors.orange.shade900),
-    FlagRule('BLOCK', Icons.view_module, (isDark) => Colors.blue),
-    FlagRule('BULLISH', Icons.trending_up, (isDark) => Colors.green),
-    FlagRule('BEARISH', Icons.trending_down, (isDark) => Colors.red),
-    FlagRule('Bullish', null,
-        (isDark) => isDark ? Colors.green.shade300 : Colors.green.shade700),
-    FlagRule('Bearish', null,
-        (isDark) => isDark ? Colors.red.shade300 : Colors.red.shade700),
-    FlagRule('ITM', Icons.check_circle_outline,
-        (isDark) => isDark ? Colors.amber : Colors.amber.shade900,
-        exactMatch: true),
-    FlagRule('OTM', Icons.radio_button_unchecked, (isDark) => Colors.grey,
-        exactMatch: true),
-    FlagRule('UNUSUAL', Icons.bolt,
-        (isDark) => isDark ? Colors.purple.shade200 : Colors.purple,
-        exactMatch: true),
-  ];
-
-  _FlagStyle _getFlagStyle(String flag, bool isDark) {
-    for (final rule in _flagRules) {
-      if (rule.matches(flag)) {
-        // Special case for DARK POOL case insensitivity in original code
-        if (rule.pattern == 'DARK POOL' &&
-            !flag.toUpperCase().contains('DARK POOL')) {
-          continue;
-        }
-
-        Color color = rule.colorProvider(isDark);
-        if (rule.pattern == 'OTM' && rule.exactMatch) {
-          color = Theme.of(context).colorScheme.onSurfaceVariant;
-        }
-        return _FlagStyle(color, rule.icon);
-      }
-    }
-    return _FlagStyle(Theme.of(context).colorScheme.secondary, null);
-  }
-
-  Color _getScoreColor(int score) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (score >= 80) {
-      return isDark ? Colors.purple.shade300 : Colors.purple.shade700;
-    }
-    if (score >= 60) {
-      return isDark ? Colors.green.shade300 : Colors.green.shade700;
-    }
-    if (score >= 40) {
-      return isDark ? Colors.amber.shade300 : Colors.amber.shade900;
-    }
-    return Colors.grey;
-  }
-
   Widget _buildDetailRow(String label, String value,
       {Widget? valueWidget, Color? valueColor}) {
     return Padding(
@@ -1548,8 +1175,10 @@ Provide a concise analysis (under 150 words) covering:
                   '${_currencyFormat.format(item.premium)} • ${_timeFormat.format(item.lastTradeDate ?? DateTime.fromMillisecondsSinceEpoch(0))}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                trailing: _buildFlagBadge(
-                    item.sentiment == Sentiment.bullish ? 'BULLISH' : 'BEARISH',
+                trailing: OptionFlowFlagBadge(
+                    flag: item.sentiment == Sentiment.bullish
+                        ? 'BULLISH'
+                        : 'BEARISH',
                     small: true,
                     showTooltip: false),
                 onTap: () {
@@ -1592,12 +1221,6 @@ Provide a concise analysis (under 150 words) covering:
           box != null ? box.localToGlobal(Offset.zero) & box.size : null,
     );
   }
-}
-
-class _FlagStyle {
-  final Color color;
-  final IconData? icon;
-  _FlagStyle(this.color, this.icon);
 }
 
 class StrategyPayoffChart extends StatelessWidget {
@@ -1694,22 +1317,5 @@ class StrategyPayoffChart extends StatelessWidget {
         ),
       );
     });
-  }
-}
-
-class FlagRule {
-  final String pattern;
-  final IconData? icon;
-  final Color Function(bool isDark) colorProvider;
-  final bool exactMatch;
-
-  const FlagRule(this.pattern, this.icon, this.colorProvider,
-      {this.exactMatch = false});
-
-  bool matches(String flag) {
-    if (exactMatch) {
-      return flag == pattern;
-    }
-    return flag.contains(pattern);
   }
 }

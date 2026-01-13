@@ -10,7 +10,7 @@ import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/widgets/option_flow_detail_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
 
 class OptionsFlowWidget extends StatefulWidget {
   final String? initialSymbol;
@@ -41,104 +41,7 @@ class OptionsFlowWidget extends StatefulWidget {
 }
 
 class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
-  final NumberFormat _currencyFormat = NumberFormat.simpleCurrency();
   final NumberFormat _compactFormat = NumberFormat.compact();
-  final DateFormat _dateFormat = DateFormat('MMM d');
-  final DateFormat _timeFormat = DateFormat('h:mm a');
-
-  static const Map<String, String> _flagDocumentation = {
-    'SWEEP':
-        'Orders executed across multiple exchanges to fill a large order quickly. Indicates urgency and stealth. Often a sign of institutional buying.',
-    'BLOCK':
-        'Large privately negotiated orders. Often institutional rebalancing or hedging. Less urgent than sweeps.',
-    'DARK POOL':
-        'Off-exchange trading. Used by institutions to hide intent and avoid market impact. Can indicate accumulation.',
-    'BULLISH':
-        'Positive sentiment. Calls bought at Ask or Puts sold at Bid. Expecting price to rise.',
-    'BEARISH':
-        'Negative sentiment. Puts bought at Ask or Calls sold at Bid. Expecting price to fall.',
-    'NEUTRAL':
-        'Neutral sentiment. Trade executed between bid and ask, or straddle/strangle strategy.',
-    'ITM':
-        'In The Money. Strike price is favorable (e.g. Call Strike < Stock Price). Higher probability, more expensive. Often used for stock replacement.',
-    'OTM':
-        'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
-    'Super Whale':
-        'Massive premium > \$5M. Represents the highest level of institutional conviction.',
-    'WHALE':
-        'Large premium order >\$1M. Represents high conviction from major players.',
-    'Institutional':
-        'Large block trade > \$2M premium. Often indicates institutional rebalancing or positioning.',
-    'Golden Sweep':
-        'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.',
-    'Steamroller':
-        'Massive size (>\$500k), short term (<30 days), aggressive OTM sweep.',
-    'Mega Vol':
-        'Volume is >10x Open Interest. Extreme unusual activity indicating major new positioning.',
-    'Vol Explosion':
-        'Volume is >5x Open Interest. Significant unusual activity.',
-    'High Vol/OI': 'Volume is >1.5x Open Interest. Indicates unusual interest.',
-    'New Position':
-        'Volume exceeds Open Interest, confirming new contracts are being opened.',
-    'Aggressive':
-        'Order executed at or above the ask price, showing urgency to enter the position.',
-    'Tight Spread':
-        'Bid-Ask spread < 5%. Indicates high liquidity and potential institutional algo execution.',
-    'Wide Spread':
-        'Bid-Ask spread > 20%. Warning: Low liquidity or poor execution prices.',
-    'Bullish Divergence':
-        'Call buying while stock is down. Smart money betting on a reversal.',
-    'Bearish Divergence':
-        'Put buying while stock is up. Smart money betting on a reversal.',
-    'Panic Hedge':
-        'Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k). Fear/hedging against crash.',
-    'Floor Protection':
-        'High volume deep OTM puts. Likely institutional hedging/insurance.',
-    'Gamma Squeeze':
-        'Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k). Can force dealer buying.',
-    'Contrarian':
-        'Trade direction opposes current stock trend (>2% move). Betting on reversal.',
-    'Earnings Play':
-        'Options expiring shortly after earnings (2-14 days). Betting on volatility event.',
-    'IV Crush Risk': 'High IV just before earnings. Risk of volatility crush.',
-    'Extreme IV':
-        'Implied Volatility > 250%. Extreme fear/greed or binary event.',
-    'High IV': 'Implied Volatility > 100%. Market pricing in a massive move.',
-    'Low IV': 'Implied Volatility < 20%. Options are cheap. Good for buying.',
-    'Cheap Vol':
-        'High volume (>2000) on low-priced options (<\$0.50). Speculative activity on cheap contracts.',
-    'High Premium':
-        'Significant volume (>100) on expensive options (>\$20.00). High capital commitment per contract.',
-    '0DTE': 'Expires today. Maximum gamma risk/reward. Pure speculation.',
-    '0DTE Lotto':
-        'High volume (>1000) OTM options expiring today. Extremely speculative "lotto" ticket bets.',
-    'Weekly OTM':
-        'Expires < 1 week and Out-of-the-Money with volume > 500. Short-term speculative bet.',
-    'LEAPS': 'Expires > 1 year. Long-term investment substitute for stock.',
-    'Leaps Buy': 'Long-term OTM bullish speculation.',
-    'Lotto':
-        'Cheap OTM (>15%) options (< \$1.00). High risk, potential 10x+ return.',
-    'ATM Flow':
-        'At-The-Money options (strike within 1% of spot). High Gamma potential, often used by market makers.',
-    'Deep ITM':
-        'Deep In-The-Money contracts (>10% ITM). Often used as a stock replacement strategy.',
-    'Deep OTM':
-        'Deep Out-Of-The-Money contracts (>15% OTM). Aggressive speculative bets.',
-    'UNUSUAL':
-        'Volume > Open Interest. Indicates new positioning and potential institutional interest.',
-    'Above Ask':
-        'Trade executed at a price higher than the ask price. Indicates extreme urgency to buy.',
-    'Below Bid':
-        'Trade executed at a price lower than the bid price. Indicates extreme urgency to sell.',
-    'Mid Market':
-        'Trade executed between the bid and ask prices. Often indicates a negotiated block trade or less urgency.',
-    'Ask Side': 'Trade executed at the ask price. Indicates buying pressure.',
-    'Bid Side': 'Trade executed at the bid price. Indicates selling pressure.',
-    'Cross Trade':
-        'High volume trade executed exactly at the Bid or Ask price. Often pre-arranged and neutral in sentiment.',
-    'Large Block / Dark Pool':
-        'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
-  };
 
   List<String> _defaultSymbols = [
     'SPY',
@@ -362,7 +265,16 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final item = store.items[index];
-                        return _buildFlowItemCard(item);
+                        return OptionFlowListItem(
+                          item: item,
+                          brokerageUser: widget.brokerageUser,
+                          service: widget.service,
+                          analytics: widget.analytics,
+                          observer: widget.observer,
+                          generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        );
                       },
                       childCount: store.items.length,
                     ),
@@ -656,8 +568,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     if (store.filterFlags != null && store.filterFlags!.isNotEmpty) {
       for (final flag in store.filterFlags!) {
-        final style = _getFlagStyle(
-            flag, Theme.of(context).brightness == Brightness.dark);
+        final style = getFlagStyle(
+            context, flag, Theme.of(context).brightness == Brightness.dark);
         chips.add(InputChip(
           avatar: style.icon != null
               ? Icon(style.icon, size: 16, color: style.color)
@@ -1119,8 +1031,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                               [...currentFlags, e.key]);
                                         }
                                       },
-                                      child: _buildFlagBadge(e.key,
-                                          small: true, showTooltip: false),
+                                      child: OptionFlowFlagBadge(
+                                          flag: e.key,
+                                          small: true,
+                                          showTooltip: false),
                                     ))
                                 .toList(),
                           ),
@@ -1168,668 +1082,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             //   ),
             // ],
           ],
-        ),
-      ),
-    );
-  }
-
-  _FlagStyle _getFlagStyle(String flag, bool isDark) {
-    Color color = Theme.of(context).colorScheme.secondary;
-    IconData? icon;
-    if (flag == 'Super Whale') {
-      color =
-          isDark ? Colors.purpleAccent.shade100 : Colors.purpleAccent.shade700;
-      icon = Icons.diamond;
-    } else if (flag.contains('WHALE')) {
-      color = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
-      icon = Icons.water;
-    } else if (flag == 'Institutional') {
-      color = isDark ? Colors.indigo.shade200 : Colors.indigo.shade800;
-      icon = Icons.account_balance;
-    } else if (flag.contains('Golden')) {
-      color = isDark ? Colors.amber.shade300 : Colors.amber.shade800;
-      icon = Icons.star;
-    } else if (flag.contains('Mega Vol')) {
-      color = isDark ? Colors.deepPurple.shade300 : Colors.deepPurple;
-      icon = Icons.tsunami;
-    } else if (flag.contains('Vol Explosion')) {
-      color =
-          isDark ? Colors.deepOrangeAccent.shade200 : Colors.deepOrangeAccent;
-      icon = Icons.local_fire_department;
-    } else if (flag.contains('High Vol/OI')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
-      icon = Icons.trending_up;
-    } else if (flag.contains('Vol')) {
-      color = isDark ? Colors.deepOrange.shade300 : Colors.deepOrange;
-      icon = Icons.local_fire_department;
-    } else if (flag == 'IV Crush Risk') {
-      color =
-          isDark ? Colors.orangeAccent.shade100 : Colors.orangeAccent.shade700;
-      icon = Icons.compress;
-    } else if (flag.contains('Extreme IV')) {
-      color = isDark ? Colors.pinkAccent.shade100 : Colors.pinkAccent;
-      icon = Icons.dangerous;
-    } else if (flag.contains('High IV') || flag.contains('IV')) {
-      color = isDark ? Colors.purple.shade300 : Colors.purple.shade600;
-      icon = Icons.trending_up;
-    } else if (flag == '0DTE Lotto') {
-      color = isDark
-          ? Colors.deepOrangeAccent.shade100
-          : Colors.deepOrangeAccent.shade700;
-      icon = Icons.casino;
-    } else if (flag.contains('0DTE')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.timer_off;
-    } else if (flag.contains('Lotto')) {
-      color = isDark ? Colors.pink.shade300 : Colors.pink;
-      icon = Icons.casino;
-    } else if (flag.contains('ATM Flow')) {
-      color = isDark ? Colors.cyanAccent.shade200 : Colors.cyan.shade800;
-      icon = Icons.center_focus_strong;
-    } else if (flag.contains('Deep ITM')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-      icon = Icons.vertical_align_bottom;
-    } else if (flag.contains('Deep OTM')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
-      icon = Icons.vertical_align_top;
-    } else if (flag.contains('Aggressive')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.flash_on;
-    } else if (flag.contains('Weekly')) {
-      color = isDark ? Colors.teal.shade300 : Colors.teal;
-      icon = Icons.calendar_today;
-    } else if (flag == 'Leaps Buy') {
-      color =
-          isDark ? Colors.indigoAccent.shade100 : Colors.indigoAccent.shade700;
-      icon = Icons.savings;
-    } else if (flag.contains('LEAPS')) {
-      color = isDark ? Colors.indigo.shade300 : Colors.indigo;
-      icon = Icons.schedule;
-    } else if (flag.contains('Earnings')) {
-      color = isDark ? Colors.purple.shade300 : Colors.purple.shade700;
-      icon = Icons.event;
-    } else if (flag.contains('Bullish Divergence')) {
-      color = isDark ? Colors.greenAccent.shade200 : Colors.green.shade800;
-      icon = Icons.call_made;
-    } else if (flag.contains('Bearish Divergence')) {
-      color = isDark ? Colors.redAccent.shade200 : Colors.red.shade800;
-      icon = Icons.call_received;
-    } else if (flag.contains('Contrarian')) {
-      color = isDark ? Colors.cyan.shade300 : Colors.cyan.shade700;
-      icon = Icons.compare_arrows;
-    } else if (flag.contains('New Position')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade600;
-      icon = Icons.fiber_new;
-    } else if (flag.contains('Steamroller')) {
-      color = isDark ? Colors.brown.shade300 : Colors.brown.shade700;
-      icon = Icons.compress;
-    } else if (flag.contains('Gamma Squeeze')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
-      icon = Icons.rocket_launch;
-    } else if (flag.contains('Panic')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade900;
-      icon = Icons.shield;
-    } else if (flag == 'Floor Protection') {
-      color = isDark ? Colors.teal.shade200 : Colors.teal.shade800;
-      icon = Icons.layers;
-    } else if (flag.contains('Tight Spread')) {
-      color = isDark ? Colors.blue.shade200 : Colors.blue.shade800;
-      icon = Icons.align_horizontal_center;
-    } else if (flag.contains('Wide Spread')) {
-      color = isDark ? Colors.brown.shade200 : Colors.brown.shade800;
-      icon = Icons.align_horizontal_left;
-    } else if (flag.contains('Low IV')) {
-      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey;
-      icon = Icons.trending_down;
-    } else if (flag.contains('Cheap Vol')) {
-      color = isDark ? Colors.green.shade200 : Colors.green.shade800;
-      icon = Icons.savings;
-    } else if (flag.contains('High Premium')) {
-      color = isDark ? Colors.amber.shade200 : Colors.amber.shade800;
-      icon = Icons.monetization_on;
-    } else if (flag.contains('Above Ask') || flag.contains('Ask Side')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-      icon = Icons.arrow_upward;
-    } else if (flag.contains('Below Bid') || flag.contains('Bid Side')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.arrow_downward;
-    } else if (flag == 'Cross Trade') {
-      color = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
-      icon = Icons.swap_horiz;
-    } else if (flag.contains('Mid Market')) {
-      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade700;
-      icon = Icons.horizontal_rule;
-    } else if (flag.contains('Large Block') ||
-        flag.toUpperCase().contains('DARK POOL')) {
-      color = isDark ? Colors.grey.shade400 : Colors.grey.shade800;
-      icon = Icons.visibility_off;
-    } else if (flag.contains('SWEEP')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
-      icon = Icons.waves;
-    } else if (flag.contains('BLOCK')) {
-      color = Colors.blue;
-      icon = Icons.view_module;
-    } else if (flag.contains('BULLISH')) {
-      color = Colors.green;
-      icon = Icons.trending_up;
-    } else if (flag.contains('BEARISH')) {
-      color = Colors.red;
-      icon = Icons.trending_down;
-    } else if (flag.contains('Bullish')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-    } else if (flag.contains('Bearish')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-    } else if (flag == 'ITM') {
-      color = isDark ? Colors.amber : Colors.amber.shade900;
-      icon = Icons.check_circle_outline;
-    } else if (flag == 'OTM') {
-      color = Theme.of(context).colorScheme.onSurfaceVariant;
-      icon = Icons.radio_button_unchecked;
-    } else if (flag == 'UNUSUAL') {
-      color = isDark ? Colors.purple.shade200 : Colors.purple;
-      icon = Icons.bolt;
-    }
-    return _FlagStyle(color, icon);
-  }
-
-  Widget _buildFlagBadge(String flag,
-      {bool small = false,
-      double fontSize = 10,
-      bool showTooltip = true,
-      String? reason}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = _getFlagStyle(flag, isDark);
-    final color = style.color;
-    final icon = style.icon;
-
-    if (small) {
-      final badge = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: fontSize + 2,
-                color: color,
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              flag,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      );
-
-      if (showTooltip) {
-        final doc = _flagDocumentation[flag];
-        final tooltipMessage =
-            reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
-
-        if (tooltipMessage != null) {
-          return Tooltip(
-            message: tooltipMessage,
-            triggerMode: TooltipTriggerMode.tap,
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            showDuration: const Duration(seconds: 5),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            textStyle: const TextStyle(color: Colors.white),
-            child: badge,
-          );
-        }
-      }
-      return badge;
-    }
-
-    return _buildBadge(flag, color, icon,
-        fontSize: fontSize, showTooltip: showTooltip, reason: reason);
-  }
-
-  Widget _buildFlowItemCard(OptionFlowItem item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    Color sentimentColor;
-    IconData sentimentIcon;
-
-    switch (item.sentiment) {
-      case Sentiment.bullish:
-        sentimentColor = Colors.green;
-        sentimentIcon = Icons.trending_up;
-        break;
-      case Sentiment.bearish:
-        sentimentColor = Colors.red;
-        sentimentIcon = Icons.trending_down;
-        break;
-      case Sentiment.neutral:
-        sentimentColor = Colors.grey;
-        sentimentIcon = Icons.remove;
-        break;
-    }
-
-    final dte = item.daysToExpiration;
-    final daysLabel = dte <= 0 ? '0d' : '${dte}d';
-
-    // Moneyness
-    double moneynessPct = 0;
-    bool isItm = false;
-    if (item.type.toUpperCase() == 'CALL') {
-      moneynessPct = (item.spotPrice - item.strike) / item.spotPrice;
-      isItm = item.spotPrice >= item.strike;
-    } else {
-      moneynessPct = (item.strike - item.spotPrice) / item.spotPrice;
-      isItm = item.strike >= item.spotPrice;
-    }
-    final moneynessLabel =
-        '${(moneynessPct.abs() * 100).toStringAsFixed(1)}% ${isItm ? "ITM" : "OTM"}';
-    final moneynessColor = isItm
-        ? (isDark ? Colors.amber : Colors.amber.shade900)
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => _handleItemTap(item),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: sentimentColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(sentimentIcon, color: sentimentColor, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              item.symbol,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (item.score > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: _getScoreColor(item.score)
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                      color: _getScoreColor(item.score),
-                                      width: 0.5),
-                                ),
-                                child: Text(
-                                  '${item.score}',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: _getScoreColor(item.score),
-                                  ),
-                                ),
-                              ),
-                            const Spacer(),
-                            Text(
-                              _currencyFormat.format(item.premium),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            if (isItm) ...[
-                              const SizedBox(width: 6),
-                              _buildFlagBadge('ITM',
-                                  small: true, showTooltip: false),
-                            ],
-                            const Spacer(),
-                            Text(
-                              _timeFormat.format(item.lastTradeDate ??
-                                  DateTime.fromMillisecondsSinceEpoch(0)),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                        // if (item.sector != null || item.marketCap != null) ...[
-                        //   const SizedBox(height: 4),
-                        //   Row(
-                        //     children: [
-                        //       if (item.sector != null)
-                        //         Container(
-                        //           padding: const EdgeInsets.symmetric(
-                        //               horizontal: 6, vertical: 2),
-                        //           decoration: BoxDecoration(
-                        //             color: Theme.of(context)
-                        //                 .colorScheme
-                        //                 .surfaceContainerHighest,
-                        //             borderRadius: BorderRadius.circular(4),
-                        //           ),
-                        //           child: Text(
-                        //             item.sector!,
-                        //             style: TextStyle(
-                        //               fontSize: 10,
-                        //               color: Theme.of(context)
-                        //                   .colorScheme
-                        //                   .onSurfaceVariant,
-                        //             ),
-                        //           ),
-                        //         ),
-                        //       if (item.sector != null && item.marketCap != null)
-                        //         const SizedBox(width: 8),
-                        //       if (item.marketCap != null)
-                        //         Text(
-                        //           '${_compactFormat.format(item.marketCap)} Cap',
-                        //           style: TextStyle(
-                        //             fontSize: 10,
-                        //             color: Theme.of(context)
-                        //                 .colorScheme
-                        //                 .onSurfaceVariant,
-                        //           ),
-                        //         ),
-                        //     ],
-                        //   ),
-                        // ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (item.isUnusual)
-                    _buildBadge(
-                        'UNUSUAL',
-                        isDark
-                            ? Colors.purple.shade200
-                            : Colors.purple.shade700,
-                        Icons.bolt,
-                        showTooltip: false),
-                  if (item.flowType == FlowType.sweep)
-                    _buildBadge(
-                        'SWEEP',
-                        isDark
-                            ? Colors.orange.shade300
-                            : Colors.orange.shade900,
-                        Icons.waves,
-                        showTooltip: false),
-                  if (item.flowType == FlowType.block)
-                    _buildBadge('BLOCK', Colors.blue, Icons.view_module,
-                        showTooltip: false),
-                  if (item.flowType == FlowType.darkPool)
-                    _buildBadge(
-                        'DARK POOL', Colors.grey.shade800, Icons.visibility_off,
-                        showTooltip: false),
-                  _buildBadge(item.details,
-                      Theme.of(context).colorScheme.secondary, null,
-                      showTooltip: false),
-                  ...item.flags.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final flag = entry.value;
-                    final reason = index < item.reasons.length
-                        ? item.reasons[index]
-                        : null;
-                    return _buildFlagBadge(flag,
-                        showTooltip: false, reason: reason);
-                  }),
-                ],
-              ),
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Spot Price',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            _currencyFormat.format(item.spotPrice),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            moneynessLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: moneynessColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Vol / OI',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            '${_compactFormat.format(item.volume)} / ${_compactFormat.format(item.openInterest)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (item.openInterest > 0 &&
-                              item.volume > item.openInterest) ...[
-                            const SizedBox(width: 4),
-                            Tooltip(
-                              message:
-                                  'Volume is ${(item.volume / item.openInterest).toStringAsFixed(1)}x Open Interest',
-                              triggerMode: TooltipTriggerMode.tap,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              textStyle: const TextStyle(color: Colors.white),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: (item.volume / item.openInterest > 5
-                                          ? (isDark
-                                              ? Colors.purple.shade200
-                                              : Colors.purple)
-                                          : (isDark
-                                              ? Colors.amber
-                                              : Colors.amber.shade900))
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${(item.volume / item.openInterest).toStringAsFixed(1)}x',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: item.volume / item.openInterest > 5
-                                        ? (isDark
-                                            ? Colors.purple.shade200
-                                            : Colors.purple)
-                                        : (isDark
-                                            ? Colors.amber
-                                            : Colors.amber.shade900),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                  _buildDetailItem('Implied Vol',
-                      '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String label, Color color, IconData? icon,
-      {double fontSize = 10, bool showTooltip = true, String? reason}) {
-    final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: fontSize + 2, color: color),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (showTooltip) {
-      final doc = _flagDocumentation[label];
-      final tooltipMessage =
-          reason != null ? (doc != null ? '$doc\n\n$reason' : reason) : doc;
-
-      if (tooltipMessage != null) {
-        return Tooltip(
-          message: tooltipMessage,
-          triggerMode: TooltipTriggerMode.tap,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          showDuration: const Duration(seconds: 5),
-          decoration: BoxDecoration(
-            color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: const TextStyle(color: Colors.white),
-          child: badge,
-        );
-      }
-    }
-    return badge;
-  }
-
-  Widget _buildDetailItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 10,
-              ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _handleItemTap(OptionFlowItem item) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OptionFlowDetailWidget(
-          item: item,
-          brokerageUser: widget.brokerageUser,
-          service: widget.service,
-          analytics: widget.analytics,
-          observer: widget.observer,
-          generativeService: widget.generativeService,
-          user: widget.user,
-          userDocRef: widget.userDocRef,
         ),
       ),
     );
@@ -2344,28 +1596,31 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildBadge('0-39', Colors.grey, null,
+                          const OptionFlowBadge(
+                              label: '0-39',
+                              color: Colors.grey,
                               showTooltip: false),
-                          _buildBadge(
-                              '40-59',
-                              Theme.of(context).brightness == Brightness.dark
+                          OptionFlowBadge(
+                              label: '40-59',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.amber.shade300
                                   : Colors.amber.shade900,
-                              null,
                               showTooltip: false),
-                          _buildBadge(
-                              '60-79',
-                              Theme.of(context).brightness == Brightness.dark
+                          OptionFlowBadge(
+                              label: '60-79',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.green.shade300
                                   : Colors.green.shade700,
-                              null,
                               showTooltip: false),
-                          _buildBadge(
-                              '80+',
-                              Theme.of(context).brightness == Brightness.dark
+                          OptionFlowBadge(
+                              label: '80+',
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.purple.shade300
                                   : Colors.purple.shade700,
-                              Icons.bolt,
+                              icon: Icons.bolt,
                               showTooltip: false),
                         ],
                       ),
@@ -2464,20 +1719,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             ));
   }
 
-  Color _getScoreColor(int score) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (score >= 80) {
-      return isDark ? Colors.purple.shade300 : Colors.purple.shade700;
-    }
-    if (score >= 60) {
-      return isDark ? Colors.green.shade300 : Colors.green.shade700;
-    }
-    if (score >= 40) {
-      return isDark ? Colors.amber.shade300 : Colors.amber.shade900;
-    }
-    return Colors.grey;
-  }
-
   Widget _buildHelpItem(String title, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -2488,7 +1729,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             width: 180,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _buildFlagBadge(title, fontSize: 13, showTooltip: false),
+              child: OptionFlowFlagBadge(
+                  flag: title, fontSize: 13, showTooltip: false),
             ),
           ),
           Expanded(
@@ -2515,12 +1757,6 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   }
 }
 
-class _FlagStyle {
-  final Color color;
-  final IconData? icon;
-  _FlagStyle(this.color, this.icon);
-}
-
 class _FilterDialog extends StatefulWidget {
   const _FilterDialog();
 
@@ -2542,165 +1778,6 @@ class _FilterDialogState extends State<_FilterDialog> {
   void dispose() {
     _symbolController.dispose();
     super.dispose();
-  }
-
-  _FlagStyle _getFlagStyle(String flag, bool isDark) {
-    Color color = Theme.of(context).colorScheme.secondary;
-    IconData? icon;
-    if (flag == 'Super Whale') {
-      color =
-          isDark ? Colors.purpleAccent.shade100 : Colors.purpleAccent.shade700;
-      icon = Icons.diamond;
-    } else if (flag.contains('WHALE')) {
-      color = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
-      icon = Icons.water;
-    } else if (flag == 'Institutional') {
-      color = isDark ? Colors.indigo.shade200 : Colors.indigo.shade800;
-      icon = Icons.account_balance;
-    } else if (flag.contains('Golden')) {
-      color = isDark ? Colors.amber.shade300 : Colors.amber.shade800;
-      icon = Icons.star;
-    } else if (flag.contains('Mega Vol')) {
-      color = isDark ? Colors.deepPurple.shade300 : Colors.deepPurple;
-      icon = Icons.tsunami;
-    } else if (flag.contains('Vol Explosion')) {
-      color =
-          isDark ? Colors.deepOrangeAccent.shade200 : Colors.deepOrangeAccent;
-      icon = Icons.local_fire_department;
-    } else if (flag.contains('High Vol/OI')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
-      icon = Icons.trending_up;
-    } else if (flag.contains('Vol')) {
-      color = isDark ? Colors.deepOrange.shade300 : Colors.deepOrange;
-      icon = Icons.local_fire_department;
-    } else if (flag == 'IV Crush Risk') {
-      color =
-          isDark ? Colors.orangeAccent.shade100 : Colors.orangeAccent.shade700;
-      icon = Icons.compress;
-    } else if (flag.contains('Extreme IV')) {
-      color = isDark ? Colors.pinkAccent.shade100 : Colors.pinkAccent;
-      icon = Icons.dangerous;
-    } else if (flag.contains('High IV') || flag.contains('IV')) {
-      color = isDark ? Colors.purple.shade300 : Colors.purple.shade600;
-      icon = Icons.trending_up;
-    } else if (flag == '0DTE Lotto') {
-      color = isDark
-          ? Colors.deepOrangeAccent.shade100
-          : Colors.deepOrangeAccent.shade700;
-      icon = Icons.casino;
-    } else if (flag.contains('0DTE')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.timer_off;
-    } else if (flag.contains('Lotto')) {
-      color = isDark ? Colors.pink.shade300 : Colors.pink;
-      icon = Icons.casino;
-    } else if (flag.contains('ATM Flow')) {
-      color = isDark ? Colors.cyanAccent.shade200 : Colors.cyan.shade800;
-      icon = Icons.center_focus_strong;
-    } else if (flag.contains('Deep ITM')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-      icon = Icons.vertical_align_bottom;
-    } else if (flag.contains('Deep OTM')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
-      icon = Icons.vertical_align_top;
-    } else if (flag.contains('Aggressive')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.flash_on;
-    } else if (flag.contains('Weekly')) {
-      color = isDark ? Colors.teal.shade300 : Colors.teal;
-      icon = Icons.calendar_today;
-    } else if (flag == 'Leaps Buy') {
-      color =
-          isDark ? Colors.indigoAccent.shade100 : Colors.indigoAccent.shade700;
-      icon = Icons.savings;
-    } else if (flag.contains('LEAPS')) {
-      color = isDark ? Colors.indigo.shade300 : Colors.indigo;
-      icon = Icons.schedule;
-    } else if (flag.contains('Earnings')) {
-      color = isDark ? Colors.purple.shade300 : Colors.purple.shade700;
-      icon = Icons.event;
-    } else if (flag.contains('Bullish Divergence')) {
-      color = isDark ? Colors.greenAccent.shade200 : Colors.green.shade800;
-      icon = Icons.call_made;
-    } else if (flag.contains('Bearish Divergence')) {
-      color = isDark ? Colors.redAccent.shade200 : Colors.red.shade800;
-      icon = Icons.call_received;
-    } else if (flag.contains('Contrarian')) {
-      color = isDark ? Colors.cyan.shade300 : Colors.cyan.shade700;
-      icon = Icons.compare_arrows;
-    } else if (flag.contains('New Position')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade600;
-      icon = Icons.fiber_new;
-    } else if (flag.contains('Steamroller')) {
-      color = isDark ? Colors.brown.shade300 : Colors.brown.shade700;
-      icon = Icons.compress;
-    } else if (flag.contains('Gamma Squeeze')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
-      icon = Icons.rocket_launch;
-    } else if (flag.contains('Panic')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade900;
-      icon = Icons.shield;
-    } else if (flag == 'Floor Protection') {
-      color = isDark ? Colors.teal.shade200 : Colors.teal.shade800;
-      icon = Icons.layers;
-    } else if (flag.contains('Tight Spread')) {
-      color = isDark ? Colors.blue.shade200 : Colors.blue.shade800;
-      icon = Icons.align_horizontal_center;
-    } else if (flag.contains('Wide Spread')) {
-      color = isDark ? Colors.brown.shade200 : Colors.brown.shade800;
-      icon = Icons.align_horizontal_left;
-    } else if (flag.contains('Low IV')) {
-      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey;
-      icon = Icons.trending_down;
-    } else if (flag.contains('Cheap Vol')) {
-      color = isDark ? Colors.green.shade200 : Colors.green.shade800;
-      icon = Icons.savings;
-    } else if (flag.contains('High Premium')) {
-      color = isDark ? Colors.amber.shade200 : Colors.amber.shade800;
-      icon = Icons.monetization_on;
-    } else if (flag.contains('Above Ask') || flag.contains('Ask Side')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-      icon = Icons.arrow_upward;
-    } else if (flag.contains('Below Bid') || flag.contains('Bid Side')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-      icon = Icons.arrow_downward;
-    } else if (flag == 'Cross Trade') {
-      color = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
-      icon = Icons.swap_horiz;
-    } else if (flag.contains('Mid Market')) {
-      color = isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade700;
-      icon = Icons.horizontal_rule;
-    } else if (flag.contains('Large Block') ||
-        flag.toUpperCase().contains('DARK POOL')) {
-      color = isDark ? Colors.grey.shade400 : Colors.grey.shade800;
-      icon = Icons.visibility_off;
-    } else if (flag.contains('SWEEP')) {
-      color = isDark ? Colors.orange.shade300 : Colors.orange.shade900;
-      icon = Icons.waves;
-    } else if (flag.contains('BLOCK')) {
-      color = Colors.blue;
-      icon = Icons.view_module;
-    } else if (flag.contains('BULLISH')) {
-      color = Colors.green;
-      icon = Icons.trending_up;
-    } else if (flag.contains('BEARISH')) {
-      color = Colors.red;
-      icon = Icons.trending_down;
-    } else if (flag.contains('Bullish')) {
-      color = isDark ? Colors.green.shade300 : Colors.green.shade700;
-    } else if (flag.contains('Bearish')) {
-      color = isDark ? Colors.red.shade300 : Colors.red.shade700;
-    } else if (flag == 'ITM') {
-      color = isDark ? Colors.amber : Colors.amber.shade900;
-      icon = Icons.check_circle_outline;
-    } else if (flag == 'OTM') {
-      color = Theme.of(context).colorScheme.onSurfaceVariant;
-      icon = Icons.radio_button_unchecked;
-    } else if (flag == 'UNUSUAL') {
-      color = isDark ? Colors.purple.shade200 : Colors.purple;
-      icon = Icons.bolt;
-    }
-    return _FlagStyle(color, icon);
   }
 
   @override
@@ -2850,7 +1927,7 @@ class _FilterDialogState extends State<_FilterDialog> {
                       Widget buildChip(String label, String value) {
                         final isDark =
                             Theme.of(context).brightness == Brightness.dark;
-                        final style = _getFlagStyle(value, isDark);
+                        final style = getFlagStyle(context, value, isDark);
                         final isSelected =
                             store.filterFlags?.contains(value) ?? false;
                         return FilterChip(

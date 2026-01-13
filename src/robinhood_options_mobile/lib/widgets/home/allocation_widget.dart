@@ -216,7 +216,10 @@ class _AllocationWidgetState extends State<AllocationWidget> {
                 if (widget.user != null &&
                     widget.userDocRef != null &&
                     widget.account != null)
-                  TextButton(
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
                     onPressed: () {
                       final user = widget.user;
                       final userDocRef = widget.userDocRef;
@@ -236,7 +239,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
                         );
                       }
                     },
-                    child: const Text("Rebalance"),
+                    icon: const Icon(Icons.balance, size: 18),
+                    label: const Text("Rebalance"),
                   ),
               ],
             ),

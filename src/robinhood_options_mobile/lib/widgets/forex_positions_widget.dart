@@ -241,35 +241,6 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         sortedFilteredHoldings,
         displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = widget.brokerageUser.getDisplayValueForexHoldings(
-        sortedFilteredHoldings,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.brokerageUser
-        .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
-
-    double? totalReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHoldings(sortedFilteredHoldings,
-            displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
-        totalReturnPercent!,
-        displayValue: DisplayValue.totalReturnPercent);
-
-    double? todayReturn = widget.brokerageUser.getDisplayValueForexHoldings(
-        sortedFilteredHoldings,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.brokerageUser
-        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
-
-    double? todayReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHoldings(sortedFilteredHoldings,
-            displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent!,
-        displayValue: DisplayValue.todayReturnPercent);
-
-    Icon todayIcon = widget.brokerageUser.getDisplayIcon(todayReturn);
-    Icon totalIcon = widget.brokerageUser.getDisplayIcon(totalReturn);
-
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
@@ -327,17 +298,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   navigateToFullPage(context);
                 },
         ),
-        buildSummaryScrollView(
-            todayIcon,
-            todayReturnText,
-            todayReturnPercentText,
-            totalIcon,
-            totalReturnText,
-            totalReturnPercentText,
-            todayReturn,
-            todayReturnPercent,
-            totalReturn,
-            totalReturnPercent)
+        _buildDetailScrollRow(sortedFilteredHoldings)
       ])),
       if (
           // user.displayValue != DisplayValue.lastPrice &&
@@ -361,9 +322,11 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 8.0,
           children: [
-            TextButton.icon(
-                // FilledButton.tonalIcon(
-                // OutlinedButton.icon(
+            ActionChip(
+                visualDensity: VisualDensity.compact,
+                avatar: const Icon(Icons.line_axis, size: 16),
+                label: Text(BrokerageUser.displayValueText(
+                    widget.brokerageUser.displayValue!)),
                 onPressed: () {
                   showModalBottomSheet<void>(
                       context: context,
@@ -378,13 +341,16 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                               onSettingsChanged: (value) {
                             setState(() {});
                           }));
-                },
+                }),
+            ActionChip(
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(
+                    widget.brokerageUser.sortDirection == SortDirection.desc
+                        ? Icons.south
+                        : Icons.north,
+                    size: 16),
                 label: Text(BrokerageUser.displayValueText(
-                    widget.brokerageUser.displayValue!)),
-                icon: Icon(Icons.line_axis)),
-            TextButton.icon(
-                // FilledButton.tonalIcon(
-                // OutlinedButton.icon(
+                    widget.brokerageUser.sortOptions!)),
                 onPressed: () {
                   showModalBottomSheet<void>(
                       context: context,
@@ -398,22 +364,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                               showOnlySort: true, onSettingsChanged: (value) {
                             setState(() {});
                           }));
-                },
-                label: Text(BrokerageUser.displayValueText(
-                    widget.brokerageUser.sortOptions!)),
-                icon: Icon(
-                    widget.brokerageUser.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north)
-                // Icon(Icons.sort)
-                ),
-            // ListTile(
-            //   trailing: FilledButton.tonalIcon(
-            //       // OutlinedButton.icon(
-            //       onPressed: () {},
-            //       label: Text('Market Value'),
-            //       icon: Icon(Icons.sort)),
-            // ),
+                }),
           ],
         ),
       )),
@@ -482,17 +433,23 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
     return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        leading: Hero(
-            tag: 'logo_crypto_${holdings[index].currencyCode}',
-            child: CircleAvatar(
-                radius: 25,
-                // foregroundColor: Theme.of(context).colorScheme.primary,
-                child: Text(holdings[index].currencyCode,
-                    overflow: TextOverflow.fade, softWrap: false))),
+          ListTile(
+            leading: Hero(
+                tag: 'logo_crypto_${holdings[index].currencyCode}',
+                child: CircleAvatar(
+                    radius: 25,
+                    // foregroundColor: Theme.of(context).colorScheme.primary,
+                    child: Text(holdings[index].currencyCode,
+                        overflow: TextOverflow.fade, softWrap: false))),
 
-        /*
+            /*
         leading: CircleAvatar(
             child: Icon(
                 holdings[index].gainLossPerShare > 0
@@ -507,39 +464,39 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                         : Colors.grey)),
                 size: 36.0)),
                 */
-        title: Text(holdings[index].currencyName),
-        subtitle: Text("${holdings[index].quantity} shares"),
-        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-        /*
+            title: Text(holdings[index].currencyName),
+            subtitle: Text("${holdings[index].quantity} shares"),
+            //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+            /*
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: Wrap(spacing: 8, children: [
-          if (icon != null) ...[
-            icon,
-          ],
-          //if (trailingText != null) ...[
-          Text(
-            trailingText,
-            style: const TextStyle(fontSize: positionValueFontSize),
-            textAlign: TextAlign.right,
-          )
-          //]
-        ]),
-        // isThreeLine: true,
-        onTap: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => ForexInstrumentWidget(
-                        widget.brokerageUser,
-                        widget.service,
-                        //account!,
-                        holdings[index],
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      )));
-          /*
+            trailing: Wrap(spacing: 8, children: [
+              if (icon != null) ...[
+                icon,
+              ],
+              //if (trailingText != null) ...[
+              Text(
+                trailingText,
+                style: const TextStyle(fontSize: positionValueFontSize),
+                textAlign: TextAlign.right,
+              )
+              //]
+            ]),
+            // isThreeLine: true,
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => ForexInstrumentWidget(
+                            widget.brokerageUser,
+                            widget.service,
+                            //account!,
+                            holdings[index],
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                          )));
+              /*
           showDialog<String>(
               context: context,
               builder: (BuildContext context) => AlertDialog(
@@ -559,273 +516,132 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                     ],
                   ));
                   */
-        },
-      ),
-      if (widget.brokerageUser.showPositionDetails) ...[
-        buildDetailScrollView(holdings[index])
-      ]
-    ]));
+            },
+          ),
+          if (widget.brokerageUser.showPositionDetails) ...[
+            _buildDetailScrollRow([holdings[index]])
+          ]
+        ]));
   }
 
-  SingleChildScrollView buildSummaryScrollView(
-      Icon todayIcon,
-      String todayReturnText,
-      String todayReturnPercentText,
-      Icon totalIcon,
-      String totalReturnText,
-      String totalReturnPercentText,
-      double todayReturn,
-      double todayReturnPercent,
-      double totalReturn,
-      double totalReturnPercent) {
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.todayReturn;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: todayReturnText, value: todayReturn),
-                    const SizedBox(height: 4),
-                    const Text("Return Today",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.todayReturnPercent;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(
-                        text: todayReturnPercentText,
-                        value: todayReturnPercent),
-                    const SizedBox(height: 4),
-                    const Text("Return Today %",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.totalReturn;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child: Column(
-                    children: <Widget>[
-                      PnlBadge(text: totalReturnText, value: totalReturn),
-                      const SizedBox(height: 4),
-                      const Text("Total Return",
-                          style: TextStyle(fontSize: summaryLabelFontSize)),
-                    ],
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.totalReturnPercent;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(
-                        text: totalReturnPercentText,
-                        value: totalReturnPercent),
-                    const SizedBox(height: 4),
-                    const Text("Total Return %",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-            ])));
-  }
-
-  SingleChildScrollView buildDetailScrollView(ForexHolding holding) {
-    double? totalReturn = widget.brokerageUser.getDisplayValueForexHolding(
-        holding,
+  SingleChildScrollView _buildDetailScrollRow(List<ForexHolding> holdings) {
+    double? totalReturn = widget.brokerageUser.getDisplayValueForexHoldings(
+        holdings,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.brokerageUser
-        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
+        .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
     double? totalReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHolding(holding,
+        .getDisplayValueForexHoldings(holdings,
             displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
-        totalReturnPercent,
+        totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.brokerageUser.getDisplayValueForexHolding(
-        holding,
+    double? todayReturn = widget.brokerageUser.getDisplayValueForexHoldings(
+        holdings,
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.brokerageUser
-        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
+        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = widget.brokerageUser
-        .getDisplayValueForexHolding(holding,
+        .getDisplayValueForexHoldings(holdings,
             displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent,
+        todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
+
+    Widget buildTile(String label, String valueText, double? value,
+        {bool neutral = false}) {
+      return InkWell(
+        onTap: () {
+          if (label == "Return Today") {
+            setState(() {
+              widget.brokerageUser.displayValue = DisplayValue.todayReturn;
+            });
+          } else if (label == "Return Today %") {
+            setState(() {
+              widget.brokerageUser.displayValue =
+                  DisplayValue.todayReturnPercent;
+            });
+          } else if (label == "Total Return") {
+            setState(() {
+              widget.brokerageUser.displayValue = DisplayValue.totalReturn;
+            });
+          } else if (label == "Total Return %") {
+            setState(() {
+              widget.brokerageUser.displayValue =
+                  DisplayValue.totalReturnPercent;
+            });
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+            PnlBadge(
+                text: valueText,
+                value: neutral ? null : value,
+                neutral: neutral),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: summaryLabelFontSize,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ]),
+        ),
+      );
+    }
+
+    List<Widget> tiles = [
+      buildTile("Return Today", todayReturnText, todayReturn),
+      buildTile("Return Today %", todayReturnPercentText, todayReturnPercent),
+      buildTile("Total Return", totalReturnText, totalReturn),
+      buildTile("Total Return %", totalReturnPercentText, totalReturnPercent),
+    ];
+
+    if (holdings.length == 1) {
+      var holding = holdings.first;
+      tiles.add(buildTile(
+          "Average Cost",
+          holding.averageCost < 0.001
+              ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                  .format(holding.averageCost)
+              : formatCurrency.format(holding.averageCost),
+          holding.averageCost,
+          neutral: true));
+      tiles.add(buildTile("Total Cost",
+          formatCurrency.format(holding.totalCost), holding.totalCost,
+          neutral: true));
+      if (holding.quoteObj != null) {
+        tiles.add(buildTile(
+            "Mark Price",
+            formatCurrency.format(holding.quoteObj!.markPrice),
+            holding.quoteObj!.markPrice,
+            neutral: true));
+        if (holding.quoteObj!.volume != null) {
+          tiles.add(buildTile(
+              "Volume",
+              formatCompactNumber.format(holding.quoteObj!.volume),
+              holding.quoteObj!.volume,
+              neutral: true));
+        }
+      }
+    }
 
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              /*
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Text(marketValueText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                            //Container(height: 5),
-                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                            const Text("Market Value",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    */
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.todayReturn;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(text: todayReturnText, value: todayReturn),
-                    const SizedBox(height: 4),
-                    const Text("Return Today",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.todayReturnPercent;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(
-                        text: todayReturnPercentText,
-                        value: todayReturnPercent),
-                    const SizedBox(height: 4),
-                    const Text("Return Today %",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.totalReturn;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child: Column(
-                    children: <Widget>[
-                      PnlBadge(text: totalReturnText, value: totalReturn),
-                      const SizedBox(height: 4),
-                      const Text("Total Return",
-                          style: TextStyle(fontSize: summaryLabelFontSize)),
-                    ],
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    widget.brokerageUser.displayValue =
-                        DisplayValue.totalReturnPercent;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    PnlBadge(
-                        text: totalReturnPercentText,
-                        value: totalReturnPercent),
-                    const SizedBox(height: 4),
-                    const Text("Total Return %",
-                        style: TextStyle(fontSize: summaryLabelFontSize)),
-                  ]),
-                ),
-              ),
-              Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(
-                        holding.averageCost < 0.001
-                            ? NumberFormat.simpleCurrency(decimalDigits: 8)
-                                .format(holding.averageCost)
-                            : formatCurrency.format(holding.averageCost),
-                        style: const TextStyle(fontSize: summaryValueFontSize)),
-                    const SizedBox(height: 4),
-                    const Text("Average Cost",
-                        style: TextStyle(fontSize: summaryLabelFontSize))
-                  ])),
-              Padding(
-                  padding: const EdgeInsets.all(summaryEgdeInset),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(formatCurrency.format(holding.totalCost),
-                        style: const TextStyle(fontSize: summaryValueFontSize)),
-                    const SizedBox(height: 4),
-                    const Text("Total Cost",
-                        style: TextStyle(fontSize: summaryLabelFontSize))
-                  ])),
-              if (holding.quoteObj != null) ...[
-                Padding(
-                    padding: const EdgeInsets.all(summaryEgdeInset),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(formatCurrency.format(holding.quoteObj!.markPrice),
-                          style:
-                              const TextStyle(fontSize: summaryValueFontSize)),
-                      const SizedBox(height: 4),
-                      const Text("Mark Price",
-                          style: TextStyle(fontSize: summaryLabelFontSize))
-                    ])),
-              ]
-            ])));
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: tiles)));
   }
 }

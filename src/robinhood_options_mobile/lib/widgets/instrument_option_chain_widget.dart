@@ -40,6 +40,7 @@ class InstrumentOptionChainWidget extends StatefulWidget {
       this.onOptionSelected,
       this.initialActionFilter,
       this.initialTypeFilter,
+      this.initialExpirationDate,
       this.selectedOption,
       this.title,
       this.subtitleBuilder,
@@ -58,6 +59,7 @@ class InstrumentOptionChainWidget extends StatefulWidget {
   final Function(OptionInstrument, String)? onOptionSelected;
   final String? initialActionFilter;
   final String? initialTypeFilter;
+  final DateTime? initialExpirationDate;
   final OptionInstrument? selectedOption;
   final String? title;
   final Widget? Function(OptionInstrument)? subtitleBuilder;
@@ -102,6 +104,9 @@ class _InstrumentOptionChainWidgetState
     }
     if (widget.initialTypeFilter != null) {
       typeFilter = widget.initialTypeFilter;
+    }
+    if (widget.initialExpirationDate != null) {
+      expirationDateFilter = widget.initialExpirationDate;
     }
 
     if (widget.user?.defaultOptionFilterPreset != null &&
