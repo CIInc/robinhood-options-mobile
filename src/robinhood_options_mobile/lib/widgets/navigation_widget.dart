@@ -35,6 +35,7 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -588,6 +589,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         selectedIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
         onDestinationSelected: _onPageChanged,
       ),
+      floatingActionButton: message == null
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChatWidget(
+                      generativeService: _generativeService,
+                      user: user,
+                    ),
+                  ),
+                );
+              },
+              tooltip: 'Ask Market Assistant',
+              child: const Icon(Icons.auto_awesome),
+            )
+          : null,
     );
   }
 

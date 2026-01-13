@@ -20,7 +20,6 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -168,19 +167,80 @@ class _InstrumentOptionChainWidgetState
         '"market_sentiment" (string, "Bullish", "Bearish", "Neutral"), '
         '"predicted_price_target" (string, e.g. "Rise to \$150").';
 
-    var newPrompt =
-        Prompt(key: prompt.key, title: prompt.title, prompt: finalPrompt);
+    // var newPrompt =
+    //    Prompt(key: prompt.key, title: prompt.title, prompt: finalPrompt);
 
     if (!context.mounted) return;
-
     setState(() {
       isGeneratingAI = true;
     });
 
     try {
-      await generateContent(
-          generativeProvider, widget.generativeService, newPrompt, context,
-          showModal: false);
+      var response = await widget.generativeService
+          .sendChatMessage(finalPrompt, user: widget.user);
+      var jsonString = response;
+      // Robust JSON extraction
+      final jsonStart = jsonString.indexOf('[');
+      final jsonEnd = jsonString.lastIndexOf(']');
+      if (jsonStart != -1 && jsonEnd != -1) {
+        jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
+      } else {
+        // Fallback for single object response
+        final objStart = jsonString.indexOf('{');
+        final objEnd = jsonString.lastIndexOf('}');
+        if (objStart != -1 && objEnd != -1) {
+          jsonString = jsonString.substring(objStart, objEnd + 1);
+        }
+      }
+
+      var json = jsonDecode(jsonString);
+      List<dynamic> recommendations = [];
+      if (json is List) {
+        recommendations = json;
+      } else {
+        recommendations = [json];
+      }
+
+      if (recommendations.isNotEmpty) {
+        setState(() {
+          if (expirationDateFilter != null) {
+            aiRecommendationsMap[
+                    expirationDateFilter!.toString().substring(0, 10)] =
+                recommendations;
+          }
+        });
+
+        // Find the first option to scroll to
+        var firstRec = recommendations.first;
+        var strikePrice = firstRec['strike_price'];
+        var type = firstRec['type'];
+
+        // Find the option
+        var optionIndex = filteredOptionsInstruments!.indexWhere((oi) =>
+            oi.strikePrice == strikePrice &&
+            oi.type.toLowerCase() == type.toLowerCase());
+
+        if (optionIndex != -1) {
+          // Scroll to option
+          itemScrollController.scrollTo(
+              index: optionIndex > 2 ? optionIndex - 2 : 0,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOutCubic,
+              alignment: 0);
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    "Could not find the suggested option in the current list. Reason: ${firstRec['reason']}")));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing AI response: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Error parsing AI response. Please try again.")));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -189,74 +249,7 @@ class _InstrumentOptionChainWidgetState
       }
     }
 
-    var response = generativeProvider.promptResponses[newPrompt.prompt];
-    if (response != null) {
-      try {
-        var jsonString = response;
-        // Robust JSON extraction
-        final jsonStart = jsonString.indexOf('[');
-        final jsonEnd = jsonString.lastIndexOf(']');
-        if (jsonStart != -1 && jsonEnd != -1) {
-          jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
-        } else {
-          // Fallback for single object response
-          final objStart = jsonString.indexOf('{');
-          final objEnd = jsonString.lastIndexOf('}');
-          if (objStart != -1 && objEnd != -1) {
-            jsonString = jsonString.substring(objStart, objEnd + 1);
-          }
-        }
 
-        var json = jsonDecode(jsonString);
-        List<dynamic> recommendations = [];
-        if (json is List) {
-          recommendations = json;
-        } else {
-          recommendations = [json];
-        }
-
-        if (recommendations.isNotEmpty) {
-          setState(() {
-            if (expirationDateFilter != null) {
-              aiRecommendationsMap[expirationDateFilter!
-                  .toString()
-                  .substring(0, 10)] = recommendations;
-            }
-          });
-
-          // Find the first option to scroll to
-          var firstRec = recommendations.first;
-          var strikePrice = firstRec['strike_price'];
-          var type = firstRec['type'];
-
-          // Find the option
-          var optionIndex = filteredOptionsInstruments!.indexWhere((oi) =>
-              oi.strikePrice == strikePrice &&
-              oi.type.toLowerCase() == type.toLowerCase());
-
-          if (optionIndex != -1) {
-            // Scroll to option
-            itemScrollController.scrollTo(
-                index: optionIndex > 2 ? optionIndex - 2 : 0,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeInOutCubic,
-                alignment: 0);
-          } else {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                      "Could not find the suggested option in the current list. Reason: ${firstRec['reason']}")));
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('Error parsing AI response: $e');
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("Error parsing AI response. Please try again.")));
-        }
-      }
-    }
   }
 
   Future<Map<String, dynamic>?> _showAIOptionsDialog(BuildContext context) {

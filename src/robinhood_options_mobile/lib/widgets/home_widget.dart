@@ -44,9 +44,9 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 // import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/generative_actions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
@@ -982,9 +982,95 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
             SliverToBoxAdapter(
-              child: GenerativeActionsWidget(
-                generativeService: widget.generativeService,
-                user: widget.user,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatWidget(
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.auto_awesome,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Ask Market Assistant',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Get instant insights on your portfolio & markets',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                            .withOpacity(0.8),
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer
+                                .withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 

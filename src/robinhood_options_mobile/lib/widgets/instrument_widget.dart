@@ -27,10 +27,10 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
@@ -443,7 +443,112 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
     return Scaffold(
-        body: buildScrollView(instrument, done: instrument.quoteObj != null));
+      body: buildScrollView(instrument, done: instrument.quoteObj != null),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAIOptions(context, instrument),
+        child: const Icon(Icons.auto_awesome),
+      ),
+    );
+  }
+
+  void _showAIOptions(BuildContext context, Instrument instrument) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.chat),
+                title: const Text('Go to Chat'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatWidget(
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: Text('Tell me about ${instrument.symbol}'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatWidget(
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        initialMessage: "Tell me about ${instrument.symbol}",
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.trending_up),
+                title: const Text('Trend Analysis'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatWidget(
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        initialMessage:
+                            "Analyze chart trend for ${instrument.symbol}",
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.summarize_outlined),
+                title: Text('Summarize ${instrument.symbol}'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatWidget(
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        initialMessage: "Summarize ${instrument.symbol}",
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.article_outlined),
+                title: const Text('Generate Investment Thesis'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatWidget(
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        initialMessage:
+                            "Generate investment thesis for ${instrument.symbol}",
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _startRefreshTimer() {
@@ -653,87 +758,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ),
           Consumer2<InstrumentHistoricalsStore, GenerativeProvider>(builder:
               (context, instrumentHistoricalsStore, generativeProvider, child) {
-            return SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                height: 50,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  children: [
-                    ActionChip(
-                      avatar: generativeProvider.generating &&
-                              generativeProvider.generatingPrompt ==
-                                  'chart-trend'
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.trending_up, size: 18),
-                      label: const Text('Trend Analysis'),
-                      onPressed: () async {
-                        var prompt = widget.generativeService.prompts
-                            .firstWhere((p) => p.key == 'chart-trend');
-                        String historicalDataString = instrument
-                            .instrumentHistoricalsObj!.historicals
-                            .where((e) => e.volume > 0)
-                            .map((e) =>
-                                'Date: ${e.beginsAt}, Open: ${formatCurrency.format(e.openPrice)}, High: ${formatCurrency.format(e.highPrice)}, Low: ${formatCurrency.format(e.lowPrice)}, Close: ${formatCurrency.format(e.closePrice)}, Volume: ${formatCompactNumber.format(e.volume)}')
-                            .join("\n");
-                        var newPrompt = Prompt(
-                            key: prompt.key,
-                            title: prompt.title,
-                            prompt:
-                                '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}\nwith the following chart data:\n$historicalDataString');
-                        await generateContent(generativeProvider,
-                            widget.generativeService, newPrompt, context);
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ActionChip(
-                      avatar: generativeProvider.generating &&
-                              generativeProvider.generatingPrompt ==
-                                  'stock-summary'
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.summarize_outlined, size: 18),
-                      label: const Text('Summary'),
-                      onPressed: () async {
-                        var prompt = widget.generativeService.prompts
-                            .firstWhere((p) => p.key == 'stock-summary');
-                        var newPrompt = Prompt(
-                            key: prompt.key,
-                            title: prompt.title,
-                            prompt: prompt.prompt
-                                .replaceAll("{{symbol}}", instrument.symbol));
-                        await generateContent(generativeProvider,
-                            widget.generativeService, newPrompt, context);
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ActionChip(
-                      avatar: generativeProvider.generating &&
-                              generativeProvider.generatingPrompt == 'ask'
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.chat_bubble_outline, size: 18),
-                      label: const Text('Ask AI'),
-                      onPressed: () async {
-                        var prompt = widget.generativeService.prompts
-                            .firstWhere((p) => p.key == 'ask');
-                        prompt.appendPortfolioToPrompt = false;
-                        await generateContent(generativeProvider,
-                            widget.generativeService, prompt, context);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
 
             // return SliverToBoxAdapter(
             //   child: Column(children: [

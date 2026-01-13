@@ -4,6 +4,7 @@ import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/model/chat_message.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
@@ -29,13 +30,14 @@ class GenerativeService {
     Prompt(
         key: 'portfolio-summary',
         title: 'Portfolio Summary',
-        prompt: 'Summarize this portfolio data',
+        prompt: 'Summarize my portfolio including key metrics and performance.',
         appendPortfolioToPrompt: true),
     Prompt(
         key: 'portfolio-recommendations',
         title: 'Portfolio Recommendations',
-        prompt: 'Provide recommendations for this portfolio, including risk '
-            'management, diversification, and potential trades to consider.',
+        prompt: 'Recommend improvements for my portfolio',
+        // prompt: 'Provide recommendations for my portfolio, including risk '
+        //     'management, diversification, and potential trades to consider.',
         appendPortfolioToPrompt: true),
     Prompt(
         key: 'market-summary',
@@ -46,6 +48,11 @@ class GenerativeService {
         key: 'stock-summary',
         title: 'Stock Summary',
         prompt: 'Summarize the stock {{symbol}}.'), // in a single paragraph
+    Prompt(
+        key: 'investment-thesis',
+        title: 'Investment Thesis',
+        prompt:
+            'Generate a comprehensive investment thesis for {{symbol}}, covering bullish and bearish arguments, key risks, and catalysts.'),
     Prompt(
         key: 'chart-trend',
         title: 'Chart Trend',
@@ -77,7 +84,7 @@ Volume - Volume bar or other volume indicators
         key: 'market-predictions',
         title: 'Market Predictions',
         prompt:
-            'Analyze the financial markets and provide predictions for ${formatLongDate.format(DateTime.now().add(Duration(days: 1)))}'), // in a single paragraph
+            'Predict the market movements for today and the next week, including major indices and sectors.'),
     Prompt(
         key: 'select-option',
         title: 'Option Selector',
@@ -136,6 +143,64 @@ Volume - Volume bar or other volume indicators
     return response ?? '';
   }
 
+  Future<String> sendChatMessage(
+    String message, {
+    List<ChatMessage>? history,
+    InstrumentPositionStore? stockPositionStore,
+    OptionPositionStore? optionPositionStore,
+    ForexHoldingStore? forexHoldingStore,
+    User? user,
+  }) async {
+    // Basic history formatting if we want to include context
+    String promptString = "";
+
+    // Add portfolio context if stores are provided
+    if (stockPositionStore != null &&
+        optionPositionStore != null &&
+        forexHoldingStore != null) {
+      promptString += portfolioPrompt(
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user);
+      promptString += "\n";
+    }
+
+    if (history != null && history.isNotEmpty) {
+      promptString += "History:\n";
+      for (var msg in history) {
+        promptString += "${msg.isUser ? 'User' : 'Assistant'}: ${msg.text}\n";
+      }
+      promptString += "\nCurrent Question:\n";
+    }
+    promptString += message;
+
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('generateContent25');
+    final resp = await callable.call(<String, dynamic>{
+      'prompt': promptString,
+    });
+
+    // Parse response similar to generateContentFromServer
+    String? response;
+    if (resp.data != null) {
+      // Handle potential structure variations
+      try {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          response = (resp.data["candidates"][0]["content"]["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          response = (resp.data["response"]["candidates"][0]["content"]["parts"]
+                  as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      } catch (e) {
+        debugPrint("Error parsing chat response: $e");
+      }
+    }
+    return response ?? "Sorry, I couldn't understand that.";
+  }
+
   Future<GenerateContentResponse> generatePortfolioContent(
       Prompt prompt,
       InstrumentPositionStore? stockPositionStore,
@@ -167,6 +232,56 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     ); // grounding.GoogleSearchRetrieval()
     provider.setGenerativeResponse(prompt.prompt, response.text!);
     return response;
+  }
+
+  Stream<String> streamChatMessage(
+    String message, {
+    List<ChatMessage>? history,
+    InstrumentPositionStore? stockPositionStore,
+    OptionPositionStore? optionPositionStore,
+    ForexHoldingStore? forexHoldingStore,
+    User? user,
+  }) async* {
+    String promptString = "";
+
+    // Add portfolio context if stores are provided
+    if (stockPositionStore != null &&
+        optionPositionStore != null &&
+        forexHoldingStore != null) {
+      promptString += portfolioPrompt(
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user);
+      promptString += "\n";
+    }
+
+    if (history != null && history.isNotEmpty) {
+      promptString += "History:\n";
+      for (var msg in history) {
+        promptString += "${msg.isUser ? 'User' : 'Assistant'}: ${msg.text}\n";
+      }
+      promptString += "\nCurrent Question:\n";
+    }
+    promptString += message;
+
+    final prompts = [Content.text(promptString)];
+    final buffer = StringBuffer();
+
+    await for (final event in model.generateContentStream(prompts)) {
+      final text = event.text;
+      if (text != null && text.isNotEmpty) {
+        final current = buffer.toString();
+        if (current.isEmpty) {
+          buffer.write(text);
+        } else if (text.startsWith(current)) {
+          // Only append the new part.
+          buffer.write(text.substring(current.length));
+        } else if (!current.endsWith(text)) {
+          // Unusual case: append as-is.
+          buffer.write(text);
+        }
+        yield buffer.toString();
+      }
+    }
   }
 
   Stream<String> streamPortfolioContent(
@@ -268,28 +383,75 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     }
 
     positionPrompt += """
-    ## Portfolio Positions
-    | Instrument | Quantity | Created | Gain/Loss Today | Gain/Loss Total | Market Value |
-    | ---------- | --------- | --------- | --------- | --------- | --------- |""";
+## Stocks
+| Symbol | Quantity | Avg Cost | Last Price | Market Value | Day Return | Total Return |
+| ------ | -------- | -------- | ---------- | ------------ | ---------- | ------------ |""";
     for (var item in stockPositionStore.items) {
       if (item.instrumentObj != null) {
+        final lastPrice = item.instrumentObj!.quoteObj?.lastTradePrice ?? 0;
+        final lastPriceStr = formatCurrency.format(lastPrice);
+        final avgCostStr = formatCurrency.format(item.averageBuyPrice ?? 0);
+        final marketValueStr = formatCurrency.format(item.marketValue);
+        final dayReturnStr =
+            "${formatCurrency.format(item.gainLossToday)} (${formatPercentage.format(item.gainLossPercentToday)})";
+        final totalReturnStr =
+            "${formatCurrency.format(item.gainLoss)} (${formatPercentage.format(item.gainLossPercent)})";
+
         positionPrompt +=
-            "| ${item.instrumentObj!.symbol} | ${item.quantity} | ${item.createdAt} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
+            "\n| ${item.instrumentObj!.symbol} | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $lastPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr |";
       }
     }
     positionPrompt += """
-    | Option | Gain/Loss Today | Gain/Loss Total | Market Value |
-    | ------ | --------- | --------- | --------- |""";
+\n\n## Options
+| Contract | Side | Qty | Avg Cost | Mark Price | Value | Day Return | Total Return | Expires |
+| -------- | ---- | --- | -------- | ---------- | ----- | ---------- | ------------ | ------- |""";
     for (var item in optionPositionStore.items) {
+      var contract =
+          "${item.symbol} \$${item.legs.isNotEmpty && item.legs.first.strikePrice != null ? formatCompactNumber.format(item.legs.first.strikePrice) : ""} ${item.legs.isNotEmpty ? item.legs.first.optionType.capitalize() : ""}";
+      var side = item.legs.isNotEmpty
+          ? (item.legs.first.positionType == 'long' ? 'Long' : 'Short')
+          : "";
+      var avgCost = item.averageOpenPrice ?? 0;
+      // Note: Average Open Price from Robinhood is usually x100 per contract cost basis for display?
+      // Actually standard convention is per share.
+      var avgCostStr = formatCurrency.format(avgCost);
+
+      var markPrice =
+          item.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
+              item.optionInstrument?.optionMarketData?.markPrice ??
+              0;
+      var markPriceStr = formatCurrency.format(markPrice);
+      var marketValueStr = formatCurrency.format(item.marketValue);
+
+      var dayReturnStr = "-";
+      try {
+        dayReturnStr = formatCurrency.format(item.changeToday);
+      } catch (_) {}
+
+      var totalReturnStr =
+          "${formatCurrency.format(item.gainLoss)} (${item.totalCost != 0 ? formatPercentage.format(item.gainLoss / item.totalCost) : '0%'})";
+
+      var expiry =
+          item.legs.isNotEmpty && item.legs.first.expirationDate != null
+              ? formatDate.format(item.legs.first.expirationDate!)
+              : "";
+
       positionPrompt +=
-          "| ${item.symbol} \$${item.legs.isNotEmpty && item.legs.first.strikePrice != null ? formatCompactNumber.format(item.legs.first.strikePrice) : ""} ${item.legs.isNotEmpty && item.legs.first.optionType != '' ? item.legs.first.optionType.capitalize() : ""} ${item.legs.isNotEmpty ? (item.legs.first.positionType == 'long' ? '+' : '-') : ""}${formatCompactNumber.format(item.quantity!)} ${item.legs.isNotEmpty && item.legs.first.expirationDate != null ? item.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ""} ${item.legs.isNotEmpty && item.legs.first.expirationDate != null ? formatDate.format(item.legs.first.expirationDate!) : ""} | ${item.changeToday} | ${item.gainLoss} | ${item.marketValue} |\n";
+          "\n| $contract | $side | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $markPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr | $expiry |";
     }
     positionPrompt += """
-    | Crypto | Gain/Loss Today | Gain/Loss Total | Market Value |
-    | ------ | --------- | --------- | --------- |""";
+\n\n## Crypto
+| Currency | Quantity | Avg Price | Market Value | Day Return | Total Return |
+| -------- | -------- | --------- | ------------ | ---------- | ------------ |""";
     for (var item in forexHoldingStore.items) {
+      final avgCostStr = formatCurrency.format(item.averageCost);
+      final marketValueStr = formatCurrency.format(item.marketValue);
+      final dayReturnStr = formatCurrency.format(item.gainLossToday);
+      final totalReturnStr =
+          "${formatCurrency.format(item.gainLoss)} (${item.totalCost != 0 ? formatPercentage.format(item.gainLoss / item.totalCost) : '0%'})";
+
       positionPrompt +=
-          "| ${item.currencyName} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
+          "\n| ${item.currencyName} | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $marketValueStr | $dayReturnStr | $totalReturnStr |";
     }
     return positionPrompt;
   }

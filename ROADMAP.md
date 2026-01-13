@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -820,10 +820,10 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Import/Export**: Import from other brokerages, export to Excel/CSV - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
-- [ ] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
-- [ ] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
-- [ ] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
-- [ ] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Interest payment tracking - **Small** (1 week)
+- [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
+- [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
+- [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
+- [x] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Interest payment tracking - **Small** (1 week)
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
