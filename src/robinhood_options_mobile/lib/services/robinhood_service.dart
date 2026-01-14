@@ -1475,6 +1475,153 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     return ops;
   }
 
+  /*
+  Example:
+  [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "ref_id": "22222222-2222-2222-2222-222222222222",
+      "url": "https://api.robinhood.com/orders/11111111-1111-1111-1111-111111111111/",
+      "account": "https://api.robinhood.com/accounts/12345678/",
+      "user_uuid": "00000000-0000-0000-0000-000000000000",
+      "position": "https://api.robinhood.com/positions/12345678/33333333-3333-3333-3333-333333333333/",
+      "cancel": "https://api.robinhood.com/orders/11111111-1111-1111-1111-111111111111/cancel/",
+      "instrument": "https://api.robinhood.com/instruments/33333333-3333-3333-3333-333333333333/",
+      "instrument_id": "33333333-3333-3333-3333-333333333333",
+      "cumulative_quantity": "0.00000000",
+      "average_price": null,
+      "fees": "0",
+      "sec_fees": "0.00",
+      "taf_fees": "0.00",
+      "cat_fees": "0.00",
+      "sales_taxes": [],
+      "state": "queued",
+      "derived_state": "queued",
+      "pending_cancel_open_agent": null,
+      "type": "market",
+      "side": "sell",
+      "time_in_force": "gtc",
+      "trigger": "stop",
+      "price": null,
+      "stop_price": "10.00000000",
+      "quantity": "432.00000000",
+      "reject_reason": null,
+      "created_at": "2026-01-14T00:32:27.948317Z",
+      "updated_at": "2026-01-14T00:32:28.201171Z",
+      "last_transaction_at": "2026-01-14T00:32:27.948317Z",
+      "executions": [],
+      "extended_hours": false,
+      "market_hours": "regular_hours",
+      "override_dtbp_checks": false,
+      "override_day_trade_checks": false,
+      "response_category": null,
+      "stop_triggered_at": null,
+      "last_trail_price": null,
+      "last_trail_price_updated_at": null,
+      "last_trail_price_source": null,
+      "dollar_based_amount": null,
+      "drip_dividend_id": null,
+      "total_notional": null,
+      "executed_notional": null,
+      "investment_schedule_id": null,
+      "is_ipo_access_order": false,
+      "ipo_access_cancellation_reason": null,
+      "ipo_access_lower_collared_price": null,
+      "ipo_access_upper_collared_price": null,
+      "ipo_access_upper_price": null,
+      "ipo_access_lower_price": null,
+      "is_ipo_access_price_finalized": false,
+      "is_visible_to_user": true,
+      "has_ipo_access_custom_price_limit": false,
+      "is_primary_account": true,
+      "order_form_version": 6,
+      "preset_percent_limit": null,
+      "order_form_type": "share_based_market_buys",
+      "last_update_version": -1,
+      "placed_agent": "user",
+      "is_editable": true,
+      "replaces": null,
+      "user_cancel_request_state": "no_cancel_requested",
+      "tax_lot_selection_type": "fifo",
+      "position_effect": "close",
+      "root_advanced_order_id": null,
+      "requested_notional_amount": null
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "ref_id": "55555555-5555-5555-5555-555555555555",
+      "url": "https://api.robinhood.com/orders/44444444-4444-4444-4444-444444444444/",
+      "account": "https://api.robinhood.com/accounts/12345678/",
+      "user_uuid": "00000000-0000-0000-0000-000000000000",
+      "position": "https://api.robinhood.com/positions/12345678/66666666-6666-6666-6666-666666666666/",
+      "cancel": "https://api.robinhood.com/orders/44444444-4444-4444-4444-444444444444/cancel/",
+      "instrument": "https://api.robinhood.com/instruments/66666666-6666-6666-6666-666666666666/",
+      "instrument_id": "66666666-6666-6666-6666-666666666666",
+      "cumulative_quantity": "0.00000000",
+      "average_price": null,
+      "fees": "0",
+      "sec_fees": "0.00",
+      "taf_fees": "0.00",
+      "cat_fees": "0.00",
+      "sales_taxes": [],
+      "state": "queued",
+      "derived_state": "queued",
+      "pending_cancel_open_agent": null,
+      "type": "market",
+      "side": "sell",
+      "time_in_force": "gtc",
+      "trigger": "stop",
+      "price": null,
+      "stop_price": "86.43000000",
+      "quantity": "20.00000000",
+      "reject_reason": null,
+      "created_at": "2026-01-14T00:30:31.561727Z",
+      "updated_at": "2026-01-14T00:30:31.787649Z",
+      "last_transaction_at": "2026-01-14T00:30:31.561727Z",
+      "executions": [],
+      "extended_hours": false,
+      "market_hours": "regular_hours",
+      "override_dtbp_checks": false,
+      "override_day_trade_checks": false,
+      "response_category": null,
+      "trailing_peg": {
+        "type": "percentage",
+        "percentage": 20
+      },
+      "stop_triggered_at": null,
+      "last_trail_price": null,
+      "last_trail_price_updated_at": null,
+      "last_trail_price_source": null,
+      "dollar_based_amount": null,
+      "drip_dividend_id": null,
+      "total_notional": null,
+      "executed_notional": null,
+      "investment_schedule_id": null,
+      "is_ipo_access_order": false,
+      "ipo_access_cancellation_reason": null,
+      "ipo_access_lower_collared_price": null,
+      "ipo_access_upper_collared_price": null,
+      "ipo_access_upper_price": null,
+      "ipo_access_lower_price": null,
+      "is_ipo_access_price_finalized": false,
+      "is_visible_to_user": true,
+      "has_ipo_access_custom_price_limit": false,
+      "is_primary_account": true,
+      "order_form_version": 6,
+      "preset_percent_limit": null,
+      "order_form_type": "share_based_market_buys",
+      "last_update_version": -1,
+      "placed_agent": "user",
+      "is_editable": false,
+      "replaces": null,
+      "user_cancel_request_state": "no_cancel_requested",
+      "tax_lot_selection_type": "fifo",
+      "position_effect": "close",
+      "root_advanced_order_id": null,
+      "requested_notional_amount": null
+    }
+]
+  */
   @override
   Stream<List<InstrumentOrder>> streamPositionOrders(
     BrokerageUser user,
@@ -3820,14 +3967,21 @@ WATCHLIST
     }
   }
 
-  static Future pagedGet(BrokerageUser user, String url) async {
+  static Future pagedGet(BrokerageUser user, String url,
+      {bool Function(List<dynamic> items)? shouldStop}) async {
     dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
+    if (shouldStop != null && shouldStop(results)) {
+      return results;
+    }
     var nextUrl = responseJson['next'];
     while (nextUrl != null) {
       responseJson = await getJson(user, nextUrl);
-      results.addAll(responseJson['results']);
-      //results.push.apply(results, responseJson['results']);
+      var nextResults = responseJson['results'];
+      results.addAll(nextResults);
+      if (shouldStop != null && shouldStop(results)) {
+        return results;
+      }
       nextUrl = responseJson['next'];
     }
     return results;

@@ -384,8 +384,8 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
 
     positionPrompt += """
 ## Stocks
-| Symbol | Quantity | Avg Cost | Last Price | Market Value | Day Return | Total Return |
-| ------ | -------- | -------- | ---------- | ------------ | ---------- | ------------ |""";
+| Symbol | Quantity | Avg Cost | Last Price | Market Value | Day Return | Total Return | PE | Div Yield | 52W High | 52W Low | Sector |
+| ------ | -------- | -------- | ---------- | ------------ | ---------- | ------------ | -- | --------- | -------- | ------- | ------ |""";
     for (var item in stockPositionStore.items) {
       if (item.instrumentObj != null) {
         final lastPrice = item.instrumentObj!.quoteObj?.lastTradePrice ?? 0;
@@ -397,14 +397,30 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
         final totalReturnStr =
             "${formatCurrency.format(item.gainLoss)} (${formatPercentage.format(item.gainLossPercent)})";
 
+        // Fundamentals
+        final fundamentals = item.instrumentObj!.fundamentalsObj;
+        final pe = fundamentals?.peRatio != null
+            ? fundamentals!.peRatio.toString()
+            : "-";
+        final divObj = fundamentals?.dividendYield;
+        final divYield =
+            divObj != null ? formatPercentage.format(divObj / 100) : "-";
+        final high52 = fundamentals?.high52Weeks != null
+            ? formatCurrency.format(fundamentals!.high52Weeks)
+            : "-";
+        final low52 = fundamentals?.low52Weeks != null
+            ? formatCurrency.format(fundamentals!.low52Weeks)
+            : "-";
+        final sector = fundamentals?.sector ?? "-";
+
         positionPrompt +=
-            "\n| ${item.instrumentObj!.symbol} | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $lastPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr |";
+            "\n| ${item.instrumentObj!.symbol} | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $lastPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr | $pe | $divYield | $high52 | $low52 | $sector |";
       }
     }
     positionPrompt += """
 \n\n## Options
-| Contract | Side | Qty | Avg Cost | Mark Price | Value | Day Return | Total Return | Expires |
-| -------- | ---- | --- | -------- | ---------- | ----- | ---------- | ------------ | ------- |""";
+| Contract | Side | Qty | Avg Cost | Mark Price | Value | Day Return | Total Return | Expires | IV | Delta | Theta | Gamma | Vega | Chance Profit |
+| -------- | ---- | --- | -------- | ---------- | ----- | ---------- | ------------ | ------- | -- | ----- | ----- | ----- | ---- | ------------- |""";
     for (var item in optionPositionStore.items) {
       var contract =
           "${item.symbol} \$${item.legs.isNotEmpty && item.legs.first.strikePrice != null ? formatCompactNumber.format(item.legs.first.strikePrice) : ""} ${item.legs.isNotEmpty ? item.legs.first.optionType.capitalize() : ""}";
@@ -436,8 +452,28 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
               ? formatDate.format(item.legs.first.expirationDate!)
               : "";
 
+      // Greeks & Risk
+      var iv = item.optionInstrument?.optionMarketData?.impliedVolatility != null
+          ? formatPercentage
+              .format(item.optionInstrument!.optionMarketData!.impliedVolatility)
+          : "-";
+      var delta = item.optionInstrument?.optionMarketData?.delta?.toString() ?? "-";
+      var theta = item.optionInstrument?.optionMarketData?.theta?.toString() ?? "-";
+      var gamma = item.optionInstrument?.optionMarketData?.gamma?.toString() ?? "-";
+      var vega = item.optionInstrument?.optionMarketData?.vega?.toString() ?? "-";
+      var chanceProfit = item.optionInstrument?.optionMarketData?.chanceOfProfitLong != null
+          ? (side == 'Long'
+              ? formatPercentage.format(
+                  item.optionInstrument!.optionMarketData!.chanceOfProfitLong)
+              : (item.optionInstrument?.optionMarketData?.chanceOfProfitShort !=
+                      null
+                  ? formatPercentage.format(item
+                      .optionInstrument!.optionMarketData!.chanceOfProfitShort)
+                  : "-"))
+          : "-";
+
       positionPrompt +=
-          "\n| $contract | $side | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $markPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr | $expiry |";
+          "\n| $contract | $side | ${formatCompactNumber.format(item.quantity)} | $avgCostStr | $markPriceStr | $marketValueStr | $dayReturnStr | $totalReturnStr | $expiry | $iv | $delta | $theta | $gamma | $vega | $chanceProfit |";
     }
     positionPrompt += """
 \n\n## Crypto

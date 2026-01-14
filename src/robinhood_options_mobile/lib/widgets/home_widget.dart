@@ -60,6 +60,7 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
+import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
 
 /*
 class DrawerItem {
@@ -614,6 +615,78 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     }
                   }),
             ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.psychology,
+                          size: 24,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onTertiaryContainer),
+                    ),
+                    title: const Text('AI Trading Coach',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Padding(
+                      padding: EdgeInsets.only(top: 4.0),
+                      child: Text(
+                          'Analyze habits, biases & get personalized coaching'),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PersonalizedCoachingWidget(
+                            service: widget.service!,
+                            user: widget.brokerageUser!,
+                            userDoc: widget.userDoc,
+                            firebaseUser: widget.user,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                includePortfolioSymbols: true,
+              ),
+            ),
             Consumer<OptionPositionStore>(
                 builder: (context, optionPositionStore, child) {
               //if (optionPositions != null) {
@@ -821,18 +894,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     observer: widget.observer);
               }),
             ],
-            SliverToBoxAdapter(
-              child: OptionsFlowCardWidget(
-                brokerageUser: widget.brokerageUser,
-                service: widget.service,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                includePortfolioSymbols: true,
-              ),
-            ),
             SliverToBoxAdapter(
               child:
                   // Promote Automated Trading & Backtesting

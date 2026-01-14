@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
@@ -31,6 +32,7 @@ class InstrumentOrder {
   final String? rejectReason;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? trailingPeg;
 
   Instrument? instrumentObj;
 
@@ -57,7 +59,8 @@ class InstrumentOrder {
       this.quantity,
       this.rejectReason,
       this.createdAt,
-      this.updatedAt);
+      this.updatedAt,
+      this.trailingPeg);
 
   InstrumentOrder.fromJson(dynamic json)
       : id = json['id'],
@@ -81,6 +84,7 @@ class InstrumentOrder {
         stopPrice = parseDouble(json['stop_price']),
         quantity = parseDouble(json['quantity']),
         rejectReason = json['reject_reason'],
+        trailingPeg = json['trailing_peg'],
         updatedAt = json['updated_at'] is Timestamp
             ? (json['updated_at'] as Timestamp).toDate()
             : (json['updated_at'] is String
@@ -119,6 +123,7 @@ class InstrumentOrder {
         stopPrice = json['stopPrice']?.toDouble(),
         quantity = json['quantity'].toDouble(),
         rejectReason = null,
+        trailingPeg = null,
         createdAt = DateTime.tryParse(json['enteredTime']),
         updatedAt = DateTime.tryParse(json['closeTime'] ?? json['enteredTime']);
 
@@ -144,6 +149,7 @@ class InstrumentOrder {
         'stop_price': stopPrice,
         'quantity': quantity,
         'reject_reason': rejectReason,
+        'trailing_peg': trailingPeg,
         'created_at': createdAt,
         'updated_at': updatedAt
       };
@@ -173,6 +179,7 @@ class InstrumentOrder {
     row.add(stopPrice);
     row.add(quantity);
     row.add(rejectReason);
+    row.add(trailingPeg != null ? jsonEncode(trailingPeg) : null);
     row.add(createdAt);
     row.add(updatedAt);
     //row.add(jsonEncode(this));
@@ -203,6 +210,7 @@ class InstrumentOrder {
     row.add("stopPrice");
     row.add("quantity");
     row.add("rejectReason");
+    row.add("trailingPeg");
     row.add("createdAt");
     row.add("updatedAt");
 

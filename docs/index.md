@@ -41,6 +41,7 @@
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
 - **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
 - **[ESG Scoring](esg-scoring.md):** Comprehensive Environmental, Social, and Governance scoring for individual instruments and portfolio-wide weighted averages to align investments with values.
+- **[AI Trading Coach](ai-trading-coach.md):** Behavioral analysis tool that assigns a **Trader Archetype** and **Discipline Score** based on execution history. Features **Coaching Personas** (Drill Sergeant, Zen Master), **Sub-score breakdowns** (Risk, Consistency), and an **Accountability Loop** with tracked challenges.
 
 ## Investment Profile Feature
 

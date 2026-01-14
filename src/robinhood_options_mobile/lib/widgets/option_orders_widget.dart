@@ -42,7 +42,7 @@ class OptionOrdersWidget extends StatefulWidget {
 }
 
 class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
-  //final List<String> orderFilters = <String>["confirmed", "filled"];
+  List<String> orderFilters = [];
   bool _showAllOptionOrders = false;
 
   _OptionOrdersWidgetState();
@@ -50,6 +50,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
   @override
   void initState() {
     super.initState();
+    orderFilters = List.from(widget.orderFilters);
   }
 
   @override
@@ -61,7 +62,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
     );
     */
     var optionOrders = widget.optionOrders;
-    var orderFilters = widget.orderFilters;
+    // var orderFilters = widget.orderFilters;
     var optionOrdersPremiumBalance = optionOrders.isNotEmpty
         ? optionOrders
             .map((e) =>
@@ -74,6 +75,8 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
         .where((element) =>
             orderFilters.isEmpty || orderFilters.contains(element.state))
         .toList();
+    filteredOptionOrders.sort((a, b) =>
+        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
     final displayCount = _showAllOptionOrders
         ? filteredOptionOrders.length
@@ -112,7 +115,9 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",
-                                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 /*
                                   trailing: TextButton(
@@ -247,7 +252,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
   }
 
   Widget get orderFilterWidget {
-    var orderFilters = widget.orderFilters;
+    // var orderFilters = widget.orderFilters;
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -255,6 +260,24 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
           scrollDirection: Axis.horizontal,
           itemBuilder: (context, index) {
             return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  label: const Text('Queued'),
+                  selected: orderFilters.contains("queued"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("queued");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "queued";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(

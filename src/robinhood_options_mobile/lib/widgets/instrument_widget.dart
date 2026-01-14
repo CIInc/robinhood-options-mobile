@@ -1150,7 +1150,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       widget.brokerageUser,
                       widget.service,
                       instrument.optionOrders!,
-                      const ["confirmed", "filled"],
+                      const ["confirmed", "filled", "queued"],
                       analytics: widget.analytics,
                       observer: widget.observer,
                       generativeService: widget.generativeService,
@@ -2993,6 +2993,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         .where((element) =>
             orderFilters.isEmpty || orderFilters.contains(element.state))
         .toList();
+    filteredPositionOrders.sort((a, b) =>
+        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
     final displayCount = _showAllPositionOrders
         ? filteredPositionOrders.length
@@ -3059,7 +3061,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 title: Text(
                     "${filteredPositionOrders[index].side == "buy" ? "Buy" : filteredPositionOrders[index].side == "sell" ? "Sell" : filteredPositionOrders[index].side} ${filteredPositionOrders[index].quantity} at \$${filteredPositionOrders[index].averagePrice != null ? formatCompactNumber.format(filteredPositionOrders[index].averagePrice) : (filteredPositionOrders[index].price != null ? formatCompactNumber.format(filteredPositionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
-                    "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
+                    "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}${filteredPositionOrders[index].trailingPeg != null ? "\nTrailing: ${filteredPositionOrders[index].trailingPeg!['percentage'] != null ? "${filteredPositionOrders[index].trailingPeg!['percentage']}%" : (filteredPositionOrders[index].trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(filteredPositionOrders[index].trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (filteredPositionOrders[index].side == "sell" ? "+" : "-") +

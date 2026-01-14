@@ -198,6 +198,23 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
               _buildDetailRow("Type", positionOrder.type),
               _buildDetailRow("Time in Force", positionOrder.timeInForce),
               _buildDetailRow("Trigger", positionOrder.trigger),
+              if (positionOrder.trailingPeg != null) ...[
+                _buildDetailRow(
+                    "Trailing Peg Type",
+                    positionOrder.trailingPeg!['type']
+                            ?.toString()
+                            .toLowerCase() ??
+                        ""),
+                if (positionOrder.trailingPeg!['percentage'] != null)
+                  _buildDetailRow("Trailing Peg Percentage",
+                      "${positionOrder.trailingPeg!['percentage']}%"),
+                if (positionOrder.trailingPeg!['price'] != null &&
+                    positionOrder.trailingPeg!['price']['amount'] != null)
+                  _buildDetailRow(
+                      "Trailing Peg Amount",
+                      formatCurrency.format(double.tryParse(
+                          positionOrder.trailingPeg!['price']['amount']))),
+              ],
               if (positionOrder.stopPrice != null)
                 _buildDetailRow("Stop Price",
                     formatCurrency.format(positionOrder.stopPrice)),

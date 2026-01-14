@@ -351,8 +351,10 @@ class _ChatWidgetState extends State<ChatWidget> {
     // Add generic ones if we want, or rely on service prompts
     // suggestions.add('Ask a question...');
     suggestions.insert(0, 'Summarize my portfolio');
-    suggestions.insert(2, 'How is the market today?');
-    suggestions.add('What are the top movers?');
+    suggestions.insert(1, 'Analyze my portfolio risk');
+    suggestions.insert(2, 'What is my performance?');
+    suggestions.add('What is my Options Greeks exposure?');
+    suggestions.add('How is the market today?');
     suggestions.add('Analyze Apple stock');
 
     return Center(
@@ -420,6 +422,9 @@ class _ChatWidgetState extends State<ChatWidget> {
     if (title.toLowerCase().contains('market')) return Icons.public;
     if (title.toLowerCase().contains('predict'))
       return Icons.batch_prediction_outlined;
+    if (title.toLowerCase().contains('risk')) return Icons.security;
+    if (title.toLowerCase().contains('performance')) return Icons.trending_up;
+    if (title.toLowerCase().contains('greeks')) return Icons.functions;
     return Icons.lightbulb_outline;
   }
 

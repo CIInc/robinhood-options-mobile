@@ -217,8 +217,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                   "Created", formatDate.format(widget.optionOrder.createdAt!)),
               _buildDetailRow(
                   "Updated", formatDate.format(widget.optionOrder.updatedAt!)),
-              if (widget.optionOrder.cancelUrl != null)
-                _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
+              // if (widget.optionOrder.cancelUrl != null)
+              //   _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),
             ],
           ),
         ),

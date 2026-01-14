@@ -926,6 +926,18 @@ class _HistoryPageState extends State<HistoryPage>
                                             const SizedBox(height: 4),
                                             Text(
                                                 "${order.type} @ ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : "-"}"),
+                                            if (order.trailingPeg != null) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "Trailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null && order.trailingPeg!['price']['amount'] != null ? formatCurrency.format(double.tryParse(order.trailingPeg!['price']['amount'])) : "")}",
+                                                style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.color),
+                                              )
+                                            ],
                                             const SizedBox(height: 2),
                                             Text(
                                               "${order.state} • ${formatDate.format(order.updatedAt!)}",
