@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-01-13
+
+### Added
+- **AI Trading Coach - Hidden Risks UI:** Enhanced the "Hidden Risks" card in the Personalized Coaching widget. It now dynamically adapts to dark mode, ensuring text readability against a dark background.
+- **AI Trading Coach - Challenge Adherence:** Implemented logic to detect if the user adhered to the previous coaching challenge. The AI prompt now includes previous challenge context, and a new "Previous Challenge Review" card displays the AI's assessment of adherence.
+- **AI Trading Coach - History visualization:** Added a new "Coaching Score Chart" that visualizes the user's discipline score and sub-scores over time, allowing them to track their improvement trend.
+- **AI Trading Coach - Enhanced Context:** The AI analysis now includes derived statistics such as Limit Order %, Protected Order %, Busiest Hour, and Symbol Concentration to provide more grounded and data-driven feedback.
+- **AI Trading Coach - Session Journaling:** Users can now write and save personal reflection notes for each coaching session, creating a trading journal alongside their AI analysis.
+- **AI Trading Coach - Custom Focus & Personas:** Added configuration options to customize the AI's analysis focus (e.g., Risk, Psychology) and Coaching Persona (e.g., Drill Sergeant, Zen Master, Wall St. Veteran).
+- **AI Trading Coach - Streak Tracking:** Implemented a "Day Streak" counter that tracks consecutive successful challenge completions to gamify discipline.
+- **AI Trading Coach - Share & Export:** Added functionality to share the coaching summary as text or copy the full detailed analysis to the clipboard.
+- **Market Assistant:** Integrated real-time market assistance to provide contextual insights and answers to user queries about market conditions and instrument details.
+- **Performance Optimization:** Optimized `RobinhoodService.pagedGet` to support an early exist mechanism (`shouldStop` callback). This is used in `PersonalizedCoachingWidget` to fetch only recent option orders (last 30 days) instead of fetching all history, significantly reducing load times and API calls.
+
 ## [0.27.7] - 2026-01-12
 
 ### Added

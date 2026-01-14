@@ -25,10 +25,16 @@ Choose the coaching style that motivates you best:
 ### 3. The "Accountability Loop"
 The Coach doesn't just analyze; it tracks your progress over time.
 - **Next Session Challenge:** At the end of every analysis, the AI assigns a specific, actionable goal (e.g., *"Do not take any 0DTE trades tomorrow"* or *"Use a stop loss on every trade"*).
-- **Challenge Tracking:** You can mark challenges as **Completed** directly in the app.
-- **Memory & Feedback:** The AI remembers your previous score and whether you completed your challenge. It will explicitly praise improvements or call out regression in the next session.
+- **Challenge Adherence Verification:** The system automatically analyzes your trading activity since the last session to verify if you adhered to the assigned challenge.
+- **Memory & Feedback:** The AI remembers your previous score and challenge performance. It will explicitly praise improvements or call out regression in the next session.
 
-### 4. Scoring Breakdown
+### 4. Hidden Risks Detection
+The system goes beyond obvious metrics to find subtle risks:
+- **Correlated Exposure:** Detects if multiple positions are betting on the same outcome (e.g., Tech sector concentration).
+- **Hidden Leverage:** Identifies excessive risk-taking through high-delta options or margin usage.
+- **Dark Mode Support:** The analysis insights are presented in a UI that adapts seamlessly to both light and dark themes.
+
+### 5. Scoring Breakdown
 Get a granular view of your performance with three sub-scores:
 - **Discipline:** Adherence to plans and avoidance of impulsive behavior.
 - **Risk Management:** Proper sizing, use of stops, and avoiding "lotto" tickets.
