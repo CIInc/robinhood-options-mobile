@@ -1,4 +1,14 @@
-enum IndicatorType { SMA, EMA, RSI, MACD, Bollinger, Stochastic, ATR, OBV }
+enum IndicatorType {
+  SMA,
+  EMA,
+  RSI,
+  MACD,
+  Bollinger,
+  Stochastic,
+  ATR,
+  OBV,
+  WilliamsR
+}
 
 enum SignalCondition { GreaterThan, LessThan, CrossOverAbove, CrossOverBelow }
 

@@ -3,9 +3,11 @@
 /// Models for the backtesting interface and historical strategy simulation.
 library;
 
+import 'agentic_trading_config.dart';
+import 'custom_indicator_config.dart';
+
 /// Configuration for a backtesting run
-class BacktestConfig {
-  final String symbol;
+class TradeStrategyConfig {
   final DateTime startDate;
   final DateTime endDate;
   final double initialCapital;
@@ -21,8 +23,22 @@ class BacktestConfig {
   final int smaPeriodSlow;
   final String marketIndexSymbol;
 
-  BacktestConfig({
-    required this.symbol,
+  // Advanced Auto-Trading Alignment
+  final double minSignalStrength;
+  final bool requireAllIndicatorsGreen;
+  final bool timeBasedExitEnabled;
+  final int timeBasedExitMinutes;
+  final bool marketCloseExitEnabled;
+  final int marketCloseExitMinutes;
+  final bool enablePartialExits;
+  final List<ExitStage> exitStages;
+  final bool enableDynamicPositionSizing;
+  final double riskPerTrade;
+  final double atrMultiplier;
+  final List<CustomIndicatorConfig> customIndicators;
+  final List<String> symbolFilter;
+
+  TradeStrategyConfig({
     required this.startDate,
     required this.endDate,
     this.initialCapital = 10000.0,
@@ -37,6 +53,19 @@ class BacktestConfig {
     this.smaPeriodFast = 10,
     this.smaPeriodSlow = 30,
     this.marketIndexSymbol = 'SPY',
+    this.minSignalStrength = 50.0,
+    this.requireAllIndicatorsGreen = false,
+    this.timeBasedExitEnabled = false,
+    this.timeBasedExitMinutes = 120,
+    this.marketCloseExitEnabled = false,
+    this.marketCloseExitMinutes = 15,
+    this.enablePartialExits = false,
+    this.exitStages = const [],
+    this.enableDynamicPositionSizing = false,
+    this.riskPerTrade = 0.01,
+    this.atrMultiplier = 2.0,
+    this.customIndicators = const [],
+    this.symbolFilter = const [],
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -54,7 +83,6 @@ class BacktestConfig {
             };
 
   Map<String, dynamic> toJson() => {
-        'symbol': symbol,
         'startDate': startDate.toIso8601String(),
         'endDate': endDate.toIso8601String(),
         'initialCapital': initialCapital,
@@ -69,10 +97,23 @@ class BacktestConfig {
         'smaPeriodFast': smaPeriodFast,
         'smaPeriodSlow': smaPeriodSlow,
         'marketIndexSymbol': marketIndexSymbol,
+        'minSignalStrength': minSignalStrength,
+        'requireAllIndicatorsGreen': requireAllIndicatorsGreen,
+        'timeBasedExitEnabled': timeBasedExitEnabled,
+        'timeBasedExitMinutes': timeBasedExitMinutes,
+        'marketCloseExitEnabled': marketCloseExitEnabled,
+        'marketCloseExitMinutes': marketCloseExitMinutes,
+        'enablePartialExits': enablePartialExits,
+        'exitStages': exitStages.map((e) => e.toJson()).toList(),
+        'enableDynamicPositionSizing': enableDynamicPositionSizing,
+        'riskPerTrade': riskPerTrade,
+        'atrMultiplier': atrMultiplier,
+        'customIndicators': customIndicators.map((e) => e.toJson()).toList(),
+        'symbolFilter': symbolFilter,
       };
 
-  factory BacktestConfig.fromJson(Map<String, dynamic> json) => BacktestConfig(
-        symbol: json['symbol'] as String,
+  factory TradeStrategyConfig.fromJson(Map<String, dynamic> json) =>
+      TradeStrategyConfig(
         startDate: DateTime.parse(json['startDate'] as String),
         endDate: DateTime.parse(json['endDate'] as String),
         initialCapital: (json['initialCapital'] as num).toDouble(),
@@ -90,6 +131,34 @@ class BacktestConfig {
         smaPeriodFast: json['smaPeriodFast'] as int,
         smaPeriodSlow: json['smaPeriodSlow'] as int,
         marketIndexSymbol: json['marketIndexSymbol'] as String,
+        minSignalStrength:
+            (json['minSignalStrength'] as num?)?.toDouble() ?? 50.0,
+        requireAllIndicatorsGreen:
+            json['requireAllIndicatorsGreen'] as bool? ?? false,
+        timeBasedExitEnabled: json['timeBasedExitEnabled'] as bool? ?? false,
+        timeBasedExitMinutes: json['timeBasedExitMinutes'] as int? ?? 120,
+        marketCloseExitEnabled:
+            json['marketCloseExitEnabled'] as bool? ?? false,
+        marketCloseExitMinutes: json['marketCloseExitMinutes'] as int? ?? 15,
+        enablePartialExits: json['enablePartialExits'] as bool? ?? false,
+        exitStages: (json['exitStages'] as List<dynamic>?)
+                ?.map((e) =>
+                    ExitStage.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList() ??
+            [],
+        enableDynamicPositionSizing:
+            json['enableDynamicPositionSizing'] as bool? ?? false,
+        riskPerTrade: (json['riskPerTrade'] as num?)?.toDouble() ?? 0.01,
+        atrMultiplier: (json['atrMultiplier'] as num?)?.toDouble() ?? 2.0,
+        customIndicators: (json['customIndicators'] as List<dynamic>?)
+                ?.map((e) => CustomIndicatorConfig.fromJson(
+                    Map<String, dynamic>.from(e as Map)))
+                .toList() ??
+            [],
+        symbolFilter: (json['symbolFilter'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
       );
 }
 
@@ -140,7 +209,7 @@ class BacktestTrade {
 
 /// Results from a completed backtest run
 class BacktestResult {
-  final BacktestConfig config;
+  final TradeStrategyConfig config;
   final List<BacktestTrade> trades;
   final double finalCapital;
   final double totalReturn;
@@ -211,7 +280,7 @@ class BacktestResult {
       };
 
   factory BacktestResult.fromJson(Map<String, dynamic> json) => BacktestResult(
-        config: BacktestConfig.fromJson(
+        config: TradeStrategyConfig.fromJson(
           Map<String, dynamic>.from(json['config'] as Map),
         ),
         trades: (json['trades'] as List)
@@ -245,15 +314,15 @@ class BacktestResult {
 }
 
 /// Saved backtest configuration template
-class BacktestTemplate {
+class TradeStrategyTemplate {
   final String id;
   final String name;
   final String description;
-  final BacktestConfig config;
+  final TradeStrategyConfig config;
   final DateTime createdAt;
   final DateTime? lastUsedAt;
 
-  BacktestTemplate({
+  TradeStrategyTemplate({
     required this.id,
     required this.name,
     required this.description,
@@ -271,12 +340,12 @@ class BacktestTemplate {
         'lastUsedAt': lastUsedAt?.toIso8601String(),
       };
 
-  factory BacktestTemplate.fromJson(Map<String, dynamic> json) =>
-      BacktestTemplate(
+  factory TradeStrategyTemplate.fromJson(Map<String, dynamic> json) =>
+      TradeStrategyTemplate(
         id: json['id'] as String,
         name: json['name'] as String,
         description: json['description'] as String,
-        config: BacktestConfig.fromJson(
+        config: TradeStrategyConfig.fromJson(
           Map<String, dynamic>.from(json['config'] as Map),
         ),
         createdAt: DateTime.parse(json['createdAt'] as String),

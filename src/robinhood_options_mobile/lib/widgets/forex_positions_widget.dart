@@ -250,7 +250,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           title: Wrap(children: [
             const Text(
               "Crypto",
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.0),
             ),
             if (!widget.showList) ...[
               SizedBox(

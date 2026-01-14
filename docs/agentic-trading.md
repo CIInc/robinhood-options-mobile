@@ -686,11 +686,6 @@ The recent refactoring (commit 861f2bc) introduced a cleaner architecture with s
 - **Purpose**: Enforces minimum time between trades
 - **Behavior**: Trades are blocked until cooldown expires
 
-#### Maximum Daily Loss
-- **Config Field**: `maxDailyLossPercent` (default: 2.0%)
-- **Purpose**: Stops trading if losses exceed threshold
-- **Status**: Configuration field available; enforcement requires portfolio P&L tracking integration (planned enhancement)
-
 #### Emergency Stop
 - **Activation**: Via UI button or API call
 - **Effect**: Immediately halts all auto-trading
@@ -745,7 +740,6 @@ autoTradeCooldownMinutes: 60 // Minutes between trades
 ```dart
 maxPositionSize: 100                // Max shares per position
 maxPortfolioConcentration: 0.5      // Max 50% in single position
-maxDailyLossPercent: 2.0            // Stop at 2% daily loss
 takeProfitPercent: 10.0             // Auto-exit at 10% profit
 stopLossPercent: 5.0                // Auto-exit at 5% loss
 ```

@@ -1054,8 +1054,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 children: [
                   Text(
                     "${widget.interestStore == null ? 'Dividend ' : ''}Income",
-                    style: const TextStyle(
-                        fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 20.0),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -1223,8 +1222,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 children: [
                   Text(
                     "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
-                    style: const TextStyle(
-                        fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 20.0),
                   ),
                   if (!widget.showList)
                     const SizedBox(

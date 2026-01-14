@@ -413,10 +413,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 title: Wrap(children: [
                   Text(
                     "Options",
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   if (!widget.showList) ...[
                     SizedBox(

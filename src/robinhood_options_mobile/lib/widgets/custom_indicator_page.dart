@@ -59,6 +59,9 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
         break;
       case IndicatorType.OBV:
         break;
+      case IndicatorType.WilliamsR:
+        _parameters['period'] = 14;
+        break;
     }
   }
 

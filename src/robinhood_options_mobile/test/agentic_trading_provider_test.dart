@@ -29,7 +29,6 @@ void main() {
       expect(provider.config['autoTradeEnabled'], equals(false));
       expect(provider.config['dailyTradeLimit'], equals(5));
       expect(provider.config['autoTradeCooldownMinutes'], equals(60));
-      expect(provider.config['maxDailyLossPercent'], equals(2.0));
       expect(provider.config['tradeQuantity'], equals(1));
       expect(provider.config['maxPositionSize'], equals(100));
       expect(provider.config['maxPortfolioConcentration'], equals(0.5));
@@ -231,7 +230,6 @@ void main() {
       expect(provider.config['maxPortfolioConcentration'], isNotNull);
       expect(provider.config['dailyTradeLimit'], isNotNull);
       expect(provider.config['autoTradeCooldownMinutes'], isNotNull);
-      expect(provider.config['maxDailyLossPercent'], isNotNull);
     });
 
     test('Daily counters should reset on new day', () {

@@ -1494,10 +1494,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text('Portfolio Analytics',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+              style: Theme.of(context).textTheme.titleLarge),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [

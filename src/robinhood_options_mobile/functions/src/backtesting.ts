@@ -2,6 +2,7 @@ import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as agenticTrading from "./agentic-trading";
 import * as technicalIndicators from "./technical-indicators";
+import { CustomIndicatorConfig } from "./technical-indicators";
 
 interface MarketData {
   timestamps?: number[];
@@ -12,6 +13,11 @@ interface MarketData {
   volumes: number[];
   currentPrice?: number | null;
   symbol?: string;
+}
+
+interface ExitStage {
+  profitTargetPercent: number;
+  quantityPercent: number;
 }
 
 interface BacktestParams {
@@ -31,6 +37,19 @@ interface BacktestParams {
   smaPeriodFast: number;
   smaPeriodSlow: number;
   config: Record<string, unknown>;
+  // New Params
+  minSignalStrength: number;
+  requireAllIndicatorsGreen: boolean;
+  timeBasedExitEnabled: boolean;
+  timeBasedExitMinutes: number;
+  marketCloseExitEnabled: boolean;
+  marketCloseExitMinutes: number;
+  enablePartialExits: boolean;
+  exitStages: ExitStage[];
+  enableDynamicPositionSizing: boolean;
+  riskPerTrade: number;
+  atrMultiplier: number;
+  customIndicators: CustomIndicatorConfig[];
 }
 
 interface Trade {
@@ -47,6 +66,7 @@ interface Position {
   entryPrice: number;
   quantity: number;
   entryTimestamp: Date;
+  executedExitStages: number[]; // Indices of exit stages already executed
 }
 
 interface EquityPoint {
@@ -97,9 +117,12 @@ export const runBacktest = onCall(async (request) => {
       throw new Error("startDate must be before endDate");
     }
 
-    // Calculate range for historical data fetch
+    // Calculate range for historical data fetch based
+    // on start date relative to now
+    // We need enough history to cover the start date
+    const now = new Date();
     const daysDiff = Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
     );
     let range = "1y";
     if (daysDiff <= 7) range = "5d";
@@ -108,7 +131,8 @@ export const runBacktest = onCall(async (request) => {
     else if (daysDiff <= 180) range = "6mo";
     else if (daysDiff <= 365) range = "1y";
     else if (daysDiff <= 730) range = "2y";
-    else range = "5y";
+    else if (daysDiff <= 1825) range = "5y";
+    else range = "10y";
 
     logger.info("Fetching historical data", {
       symbol,
@@ -153,6 +177,20 @@ export const runBacktest = onCall(async (request) => {
       smaPeriodFast: smaPeriodFast || 10,
       smaPeriodSlow: smaPeriodSlow || 30,
       config,
+      minSignalStrength: request.data.minSignalStrength || 50,
+      requireAllIndicatorsGreen:
+        request.data.requireAllIndicatorsGreen || false,
+      timeBasedExitEnabled: request.data.timeBasedExitEnabled || false,
+      timeBasedExitMinutes: request.data.timeBasedExitMinutes || 120,
+      marketCloseExitEnabled: request.data.marketCloseExitEnabled || false,
+      marketCloseExitMinutes: request.data.marketCloseExitMinutes || 15,
+      enablePartialExits: request.data.enablePartialExits || false,
+      exitStages: request.data.exitStages || [],
+      enableDynamicPositionSizing:
+        request.data.enableDynamicPositionSizing || false,
+      riskPerTrade: request.data.riskPerTrade || 0.01,
+      atrMultiplier: request.data.atrMultiplier || 2.0,
+      customIndicators: request.data.customIndicators || [],
     });
 
     logger.info("Backtest completed", {
@@ -190,6 +228,18 @@ async function runBacktestSimulation(params: BacktestParams) {
     smaPeriodFast,
     smaPeriodSlow,
     config,
+    minSignalStrength,
+    requireAllIndicatorsGreen,
+    timeBasedExitEnabled,
+    timeBasedExitMinutes,
+    marketCloseExitEnabled,
+    marketCloseExitMinutes,
+    enablePartialExits,
+    exitStages,
+    enableDynamicPositionSizing,
+    riskPerTrade,
+    atrMultiplier,
+    customIndicators,
   } = params;
 
   const trades: Trade[] = [];
@@ -198,6 +248,7 @@ async function runBacktestSimulation(params: BacktestParams) {
   let highestPriceInPosition = 0;
   const equityCurve: EquityPoint[] = [];
   const performanceByIndicator: Record<string, unknown> = {};
+  let initialPositionQuantity = 0; // Track initial quantity for partial exits
 
   // Get timestamps and prices
   const timestamps = symbolData.timestamps || [];
@@ -251,7 +302,8 @@ async function runBacktestSimulation(params: BacktestParams) {
         rsiPeriod,
         marketFastPeriod: smaPeriodFast,
         marketSlowPeriod: smaPeriodSlow,
-        customIndicators: config?.customIndicators as any,
+        customIndicators: customIndicators ||
+          (config?.customIndicators as CustomIndicatorConfig[]),
       }
     );
 
@@ -265,6 +317,49 @@ async function runBacktestSimulation(params: BacktestParams) {
       // Check exit conditions
       let exitReason: string | null = null;
       const exitPrice = close;
+
+      // Partial Exits
+      if (enablePartialExits && exitStages && exitStages.length > 0) {
+        const profitPercent =
+          ((close - position.entryPrice) / position.entryPrice) * 100;
+
+        for (let j = 0; j < exitStages.length; j++) {
+          const stage = exitStages[j];
+          if (!position.executedExitStages.includes(j) &&
+            profitPercent >= stage.profitTargetPercent) {
+            // Execute partial exit
+            const exitQuantity = Math.floor(
+              initialPositionQuantity * stage.quantityPercent
+            );
+            if (exitQuantity > 0 && exitQuantity <= position.quantity) {
+              const exitValue = exitPrice * exitQuantity;
+              capital += exitValue;
+
+              trades.push({
+                timestamp: timestamp.toISOString(),
+                action: "SELL",
+                price: exitPrice,
+                quantity: exitQuantity,
+                commission: 0,
+                reason: `Partial Take Profit (${stage.profitTargetPercent}%)`,
+                signalData: multiIndicatorResult,
+              });
+
+              position.quantity -= exitQuantity;
+              position.executedExitStages.push(j);
+
+              // If completely exited
+              if (position.quantity <= 0) {
+                position = null;
+                // Just to skip other checks
+                exitReason = "Partial Exit Completed";
+                break;
+              }
+            }
+          }
+        }
+        if (!position) continue; // Skip rest of loop if position closed
+      }
 
       // Take profit
       const profitPercent =
@@ -284,6 +379,36 @@ async function runBacktestSimulation(params: BacktestParams) {
           ((highestPriceInPosition - close) / highestPriceInPosition) * 100;
         if (drawdownFromHigh >= trailingStopPercent) {
           exitReason = "Trailing Stop";
+        }
+      }
+
+      // Time-Based Exit
+      if (!exitReason && timeBasedExitEnabled) {
+        const durationMs =
+          timestamp.getTime() - position.entryTimestamp.getTime();
+        const durationMinutes = durationMs / (1000 * 60);
+        if (durationMinutes >= timeBasedExitMinutes) {
+          exitReason = "Time-Based Exit";
+        }
+      }
+
+      // Market Close Exit
+      if (!exitReason && marketCloseExitEnabled) {
+        // Assuming timestamp is in UTC, convert to EST to check time
+        // Market Closes at 16:00 EST.
+        const estTime = new Date(timestamp.toLocaleString("en-US", {
+          timeZone: "America/New_York",
+        }));
+        const hour = estTime.getHours();
+        const minute = estTime.getMinutes();
+
+        const closeHour = 15; // 3 PM used as base
+        // If it is 15:XX and we are within minutes of close (16:00 is close)
+        // Actually market close is 16:00.
+        // If marketCloseExitMinutes is 15, we exit at 15:45 or later.
+
+        if (hour === closeHour && minute >= (60 - marketCloseExitMinutes)) {
+          exitReason = "Market Close Exit";
         }
       }
 
@@ -312,33 +437,85 @@ async function runBacktestSimulation(params: BacktestParams) {
         (key) => enabledIndicators[key] === true
       );
 
-      if (activeIndicators.length === 0) {
+      // Add custom indicators to evaluation
+      const activeCustomIndicators = customIndicators || [];
+      const totalActiveIndicators =
+        activeIndicators.length + activeCustomIndicators.length;
+
+      if (totalActiveIndicators === 0) {
         continue; // Skip if no indicators enabled
       }
 
-      // Check if all enabled indicators signal BUY
       const indicatorResults = multiIndicatorResult.indicators;
-      const allBuy = activeIndicators.every((indicator) => {
+      const customResults = multiIndicatorResult.customIndicators || {};
+
+      let indicatorsBuy = 0;
+      let indicatorsGreen = true;
+
+      // Check standard indicators
+      for (const indicator of activeIndicators) {
         const result = (indicatorResults as Record<
           string,
           technicalIndicators.IndicatorResult
         >)[indicator];
-        return result && result.signal === "BUY";
-      });
+        if (result) {
+          if (result.signal === "BUY") {
+            indicatorsBuy++;
+          } else {
+            indicatorsGreen = false;
+          }
+        }
+      }
 
-      if (allBuy) {
+      // Check custom indicators
+      for (const customInd of activeCustomIndicators) {
+        const result = customResults[customInd.id];
+        if (result) {
+          if (result.signal === "BUY") {
+            indicatorsBuy++;
+          } else {
+            indicatorsGreen = false;
+          }
+        }
+      }
+
+      // Calculate signal strength based on ENABLED indicators
+      const strength = (indicatorsBuy / totalActiveIndicators) * 100;
+
+      let shouldEnter = false;
+      if (requireAllIndicatorsGreen) {
+        shouldEnter = indicatorsGreen;
+      } else {
+        shouldEnter = strength >= minSignalStrength;
+      }
+
+      if (shouldEnter) {
         // Enter position
         const entryPrice = close;
-        const quantity = tradeQuantity;
+        let quantity = tradeQuantity;
+
+        // Dynamic Position Sizing
+        if (enableDynamicPositionSizing &&
+          multiIndicatorResult.indicators.atr?.value) {
+          const atr = multiIndicatorResult.indicators.atr.value;
+          const riskPerShare = atr * atrMultiplier;
+          if (riskPerShare > 0) {
+            const riskAmount = capital * riskPerTrade;
+            quantity = Math.floor(riskAmount / riskPerShare);
+          }
+        }
+
         const entryCost = entryPrice * quantity;
 
-        if (entryCost <= capital) {
+        if (entryCost <= capital && quantity > 0) {
           capital -= entryCost;
           position = {
             entryPrice,
             quantity,
             entryTimestamp: timestamp,
+            executedExitStages: [],
           };
+          initialPositionQuantity = quantity;
           highestPriceInPosition = entryPrice;
 
           trades.push({
@@ -347,7 +524,7 @@ async function runBacktestSimulation(params: BacktestParams) {
             price: entryPrice,
             quantity,
             commission: 0,
-            reason: "Multi-indicator BUY signal",
+            reason: `Signal Entry (Strength: ${strength.toFixed(1)}%)`,
             signalData: multiIndicatorResult,
           });
         }

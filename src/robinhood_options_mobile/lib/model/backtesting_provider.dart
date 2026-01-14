@@ -4,7 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
-import 'package:robinhood_options_mobile/model/backtesting_defaults.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
 /// Provider for managing backtesting operations
@@ -24,9 +24,9 @@ class BacktestingProvider with ChangeNotifier {
   String? _errorMessage;
   double _progress = 0.0;
   List<BacktestResult> _backtestHistory = [];
-  List<BacktestTemplate> _userTemplates = [];
+  List<TradeStrategyTemplate> _userTemplates = [];
   DocumentReference<User>? _userDocRef;
-  BacktestTemplate? _pendingTemplate; // Template waiting to be loaded
+  TradeStrategyTemplate? _pendingTemplate; // Template waiting to be loaded
 
   // Getters
   BacktestResult? get currentResult => _currentResult;
@@ -34,9 +34,9 @@ class BacktestingProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double get progress => _progress;
   List<BacktestResult> get backtestHistory => _backtestHistory;
-  List<BacktestTemplate> get templates =>
-      [...BacktestingDefaults.defaultTemplates, ..._userTemplates];
-  BacktestTemplate? get pendingTemplate => _pendingTemplate;
+  List<TradeStrategyTemplate> get templates =>
+      [...TradeStrategyDefaults.defaultTemplates, ..._userTemplates];
+  TradeStrategyTemplate? get pendingTemplate => _pendingTemplate;
 
   /// Initialize provider with user document reference
   void initialize(DocumentReference<User>? userDocRef) {
@@ -48,7 +48,7 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Run a backtest with the given configuration
-  Future<BacktestResult?> runBacktest(BacktestConfig config) async {
+  Future<BacktestResult?> runBacktest(TradeStrategyConfig config) async {
     if (_isRunning) {
       debugPrint('⚠️ Backtest already in progress');
       return null;
@@ -61,11 +61,11 @@ class BacktestingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint('🔄 Starting backtest for ${config.symbol}...');
+      debugPrint('🔄 Starting backtest for ${config.symbolFilter}...');
       await _analytics.logEvent(
         name: 'backtest_started',
         parameters: {
-          'symbol': config.symbol,
+          'symbols': config.symbolFilter.join(','),
           'start_date': config.startDate.toIso8601String(),
           'end_date': config.endDate.toIso8601String(),
           'interval': config.interval,
@@ -93,7 +93,7 @@ class BacktestingProvider with ChangeNotifier {
       await _analytics.logEvent(
         name: 'backtest_completed',
         parameters: {
-          'symbol': config.symbol,
+          'symbols': config.symbolFilter.join(','),
           'total_trades': result.totalTrades,
           'win_rate': result.winRate,
           'total_return_percent': result.totalReturnPercent,
@@ -112,7 +112,7 @@ class BacktestingProvider with ChangeNotifier {
       await _analytics.logEvent(
         name: 'backtest_error',
         parameters: {
-          'symbol': config.symbol,
+          'symbols': config.symbolFilter.join(','),
           'error': e.toString(),
         },
       );
@@ -172,7 +172,7 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Save a backtest configuration as a template
-  Future<void> saveTemplate(BacktestTemplate template) async {
+  Future<void> saveTemplate(TradeStrategyTemplate template) async {
     if (_userDocRef == null) return;
 
     try {
@@ -183,7 +183,12 @@ class BacktestingProvider with ChangeNotifier {
           .doc(template.id)
           .set(template.toJson());
 
-      _userTemplates.add(template);
+      final index = _userTemplates.indexWhere((t) => t.id == template.id);
+      if (index != -1) {
+        _userTemplates[index] = template;
+      } else {
+        _userTemplates.add(template);
+      }
       notifyListeners();
 
       await _analytics.logEvent(
@@ -197,13 +202,14 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Create and save a template from a backtest config
-  Future<void> saveConfigAsTemplate({
+  Future<String> saveConfigAsTemplate({
     required String name,
     required String description,
-    required BacktestConfig config,
+    required TradeStrategyConfig config,
   }) async {
-    final template = BacktestTemplate(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final template = TradeStrategyTemplate(
+      id: id,
       name: name,
       description: description,
       config: config,
@@ -211,6 +217,7 @@ class BacktestingProvider with ChangeNotifier {
     );
 
     await saveTemplate(template);
+    return id;
   }
 
   /// Load backtest templates from Firestore
@@ -225,7 +232,7 @@ class BacktestingProvider with ChangeNotifier {
           .get();
 
       _userTemplates = snapshot.docs
-          .map((doc) => BacktestTemplate.fromJson(
+          .map((doc) => TradeStrategyTemplate.fromJson(
                 Map<String, dynamic>.from(doc.data()),
               ))
           .toList();
@@ -286,7 +293,7 @@ class BacktestingProvider with ChangeNotifier {
       final index = _userTemplates.indexWhere((t) => t.id == templateId);
       if (index != -1) {
         final template = _userTemplates[index];
-        _userTemplates[index] = BacktestTemplate(
+        _userTemplates[index] = TradeStrategyTemplate(
           id: template.id,
           name: template.name,
           description: template.description,
@@ -302,7 +309,7 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Set a template to be loaded by the run tab
-  void setPendingTemplate(BacktestTemplate template) {
+  void setPendingTemplate(TradeStrategyTemplate template) {
     _pendingTemplate = template;
     notifyListeners();
   }
@@ -331,18 +338,33 @@ class BacktestingProvider with ChangeNotifier {
       final result = _backtestHistory[index];
 
       // Find and delete from Firestore
-      final snapshot = await _firestore
-          .collection('user')
-          .doc(_userDocRef!.id)
-          .collection('backtest_history')
-          .where('result.config.symbol', isEqualTo: result.config.symbol)
-          .where('result.config.startDate',
-              isEqualTo: result.config.startDate.toIso8601String())
-          .limit(1)
-          .get();
+      // Use query based on available fields. If symbolFilter is present in object, query it.
+      // If object is old and has no symbolFilter, this query might fail to find it if we rely on symbolFilter.
+      // But we can try to delete by ID if we had it, but we don't store ID in result object.
+      // Best effort: query for symbolFilter containing first symbol if available.
+      if (result.config.symbolFilter.isNotEmpty) {
+        final snapshot = await _firestore
+            .collection('user')
+            .doc(_userDocRef!.id)
+            .collection('backtest_history')
+            .where('result.config.symbolFilter',
+                arrayContains: result.config.symbolFilter.first)
+            .where('result.config.startDate',
+                isEqualTo: result.config.startDate.toIso8601String())
+            .limit(1)
+            .get();
 
-      for (final doc in snapshot.docs) {
-        await doc.reference.delete();
+        for (final doc in snapshot.docs) {
+          await doc.reference.delete();
+        }
+      } else {
+        // Fallback for old records without symbolFilter (if we can infer they are old)
+        // But we removed `symbol` field from local object so we can't query by it easily
+        // unless we kept it around. Since we didn't, we can try to query by date only?
+        // That might be too broad.
+        // For now, let's just log warning.
+        debugPrint(
+            '⚠️ Cannot delete backtest with empty symbolFilter (legacy record)');
       }
 
       _backtestHistory.removeAt(index);
@@ -350,7 +372,7 @@ class BacktestingProvider with ChangeNotifier {
 
       await _analytics.logEvent(
         name: 'backtest_deleted_from_history',
-        parameters: {'symbol': result.config.symbol},
+        parameters: {'symbols': result.config.symbolFilter.join(',')},
       );
     } catch (e) {
       debugPrint('⚠️ Error deleting backtest from history: $e');

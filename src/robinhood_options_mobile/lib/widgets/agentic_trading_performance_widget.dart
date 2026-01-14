@@ -2174,6 +2174,7 @@ class _AgenticTradingPerformanceWidgetState
         'vwap': 'VWAP',
         'adx': 'ADX',
         'williamsR': 'W%R',
+        'ichimoku': 'Cloud',
       };
       return labels[key] ?? key;
     }
@@ -2456,6 +2457,7 @@ class _AgenticTradingPerformanceWidgetState
         'vwap': 'VWAP',
         'adx': 'ADX',
         'williamsR': 'Williams %R',
+        'ichimoku': 'Ichimoku Cloud',
       };
       return labels[key] ?? key;
     }

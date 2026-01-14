@@ -25,7 +25,7 @@ class FuturesPositionsWidget extends StatelessWidget {
               title: Wrap(children: [
                 const Text(
                   'Futures',
-                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20.0),
                 ),
                 // if (!showList) ...[
                 //   SizedBox(

@@ -286,6 +286,29 @@ class TradeSignalsProvider with ChangeNotifier {
                   '\n'
                   '_Similar to Stochastic but inverted scale. Fast-reacting oscillator for momentum shifts._'
         };
+      case 'ichimoku':
+        return {
+          'title': 'Ichimoku Cloud',
+          'description':
+              'Ichimoku Kinko Hyo represents trend direction, momentum, and support/resistance levels all in one. '
+                  'Price above the cloud with green cloud suggests a strong uptrend (BUY). Price below the red cloud indicates '
+                  'a strong downtrend (SELL). The crossover of Tenkan-sen and Kijun-sen provides early entry signals.',
+          'technicalDetails': '**Components**:\n'
+              '- Tenkan-sen (Conversion Line): `(9-period High + Low) / 2`\n'
+              '- Kijun-sen (Base Line): `(26-period High + Low) / 2`\n'
+              '- Senkou Span A (Leading A): `(Tenkan + Kijun) / 2` projected 26 periods ahead\n'
+              '- Senkou Span B (Leading B): `(52-period High + Low) / 2` projected 26 periods ahead\n'
+              '- Kumo (Cloud): Area between Span A and Span B\n'
+              '- Chikou Span (Lagging): Close plotted 26 periods behind\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Strong Buy**: Price > Cloud, Tenkan > Kijun, Cloud Green (Span A > B)\n'
+              '- **Strong Sell**: Price < Cloud, Tenkan < Kijun, Cloud Red (Span A < B)\n'
+              '- **TK Cross**: Tenkan crossing Kijun (Buy above cloud, Sell below)\n'
+              '- **Kumo Breakout**: Price breaking out of the cloud\n'
+              '\n'
+              '_Comprehensive system for identifying trend and potential reversals._'
+        };
       default:
         return {
           'title': 'Technical Indicator',

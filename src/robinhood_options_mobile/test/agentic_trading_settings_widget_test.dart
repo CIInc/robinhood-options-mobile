@@ -36,7 +36,6 @@ void main() {
           marketIndexSymbol: 'SPY',
           dailyTradeLimit: 5,
           autoTradeCooldownMinutes: 60,
-          maxDailyLossPercent: 2.0,
           takeProfitPercent: 10.0,
           stopLossPercent: 5.0,
           enabledIndicators: {
@@ -52,38 +51,6 @@ void main() {
           },
         ),
       );
-    });
-
-    testWidgets('Auto-save should trigger when max daily loss is changed',
-        (WidgetTester tester) async {
-      // Mock the user document reference - we'll use a null value since we're just testing the widget
-      testUserDocRef = FirebaseFirestore.instance
-          .collection('user')
-          .doc('test_user_123') as DocumentReference<User>;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
-              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
-            ],
-            child: AgenticTradingSettingsWidget(
-              user: testUser,
-              userDocRef: testUserDocRef,
-              service: mockService,
-            ),
-          ),
-        ),
-      );
-
-      // Find the max daily loss field
-      final textFormFields = find.byType(TextFormField);
-      expect(textFormFields, findsWidgets);
-
-      // Find the specific field by looking at the form inputs - this test
-      // verifies the field exists and responds to changes
-      await tester.pumpAndSettle();
     });
 
     testWidgets('Auto-save should trigger when take profit is changed',

@@ -9,7 +9,7 @@ export interface IndicatorResult {
   value: number | null;
   signal: "BUY" | "SELL" | "HOLD";
   reason: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CustomIndicatorConfig {
@@ -38,6 +38,7 @@ export interface MultiIndicatorResult {
     vwap: IndicatorResult;
     adx: IndicatorResult;
     williamsR: IndicatorResult;
+    ichimoku: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
   overallSignal: "BUY" | "SELL" | "HOLD";
@@ -2041,6 +2042,209 @@ export function evaluateWilliamsR(
 }
 
 /**
+ * Compute Ichimoku Cloud
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} conversionPeriod - Tenkan-sen period (default 9).
+ * @param {number} basePeriod - Kijun-sen period (default 26).
+ * @param {number} spanBPeriod - Senkou Span B period (default 52).
+ * @param {number} displacement - Displacement for Chikou Span (default 26).
+ * @return {object|null} The computed Ichimoku components or null.
+ */
+export function computeIchimokuCloud(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  conversionPeriod = 9,
+  basePeriod = 26,
+  spanBPeriod = 52,
+  displacement = 26
+): {
+  conversionLine: number;
+  baseLine: number;
+  spanA: number;
+  spanB: number;
+  laggingSpan: number;
+} | null {
+  if (!highs || !lows || !closes ||
+    highs.length < spanBPeriod ||
+    lows.length < spanBPeriod ||
+    closes.length < spanBPeriod) {
+    return null;
+  }
+
+  const currentIdx = closes.length - 1;
+
+  // Helper to calculate midpoint of high and low over a period
+  const getMidpoint = (p: number, idx: number) => {
+    const start = idx - p + 1;
+    if (start < 0) return null;
+    const periodHighs = highs.slice(start, idx + 1);
+    const periodLows = lows.slice(start, idx + 1);
+    const maxH = Math.max(...periodHighs);
+    const minL = Math.min(...periodLows);
+    return (maxH + minL) / 2;
+  };
+
+  const conversionLine = getMidpoint(conversionPeriod, currentIdx);
+  const baseLine = getMidpoint(basePeriod, currentIdx);
+
+  // Span A: (Conversion Line + Base Line) / 2, shifted forward by displacement
+  // To get the CURRENT Span A value, we need the calculation
+  // from 'displacement' periods ago
+  const idxAgo = currentIdx - displacement;
+  if (idxAgo < 0) return null;
+
+  const convAgo = getMidpoint(conversionPeriod, idxAgo);
+  const baseAgo = getMidpoint(basePeriod, idxAgo);
+
+  if (convAgo === null || baseAgo === null) return null;
+  const spanA = (convAgo + baseAgo) / 2;
+
+  // Span B: (52-period high + low) / 2, shifted forward
+  const spanBAgo = getMidpoint(spanBPeriod, idxAgo);
+  const spanB = spanBAgo; // If null, return null
+
+  // Lagging Span: Current closing price, shifted back.
+  // In real-time context, we look at where today's price is
+  // relative to price 26 periods ago
+  const laggingSpan = closes[currentIdx];
+
+  if (conversionLine === null || baseLine === null ||
+    spanA === null || spanB === null) {
+    return null;
+  }
+
+  return {
+    conversionLine,
+    baseLine,
+    spanA,
+    spanB,
+    laggingSpan,
+  };
+}
+
+/**
+ * Evaluate Ichimoku Cloud
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @return {IndicatorResult} The Ichimoku Cloud evaluation result.
+ */
+export function evaluateIchimokuCloud(
+  highs: number[],
+  lows: number[],
+  closes: number[]
+): IndicatorResult {
+  const ichimoku = computeIchimokuCloud(highs, lows, closes);
+
+  if (!ichimoku) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for Ichimoku Cloud",
+    };
+  }
+
+  const { conversionLine, baseLine, spanA, spanB } = ichimoku;
+  const currentPrice = closes[closes.length - 1];
+
+  // Cloud (Kumo) Analysis
+  const aboveCloud = currentPrice > Math.max(spanA, spanB);
+  const belowCloud = currentPrice < Math.min(spanA, spanB);
+  const inCloud = currentPrice >= Math.min(spanA, spanB) &&
+    currentPrice <= Math.max(spanA, spanB);
+
+  const greenCloud = spanA > spanB; // Bullish Kumo
+  const tkCrossBullish = conversionLine > baseLine;
+  const tkCrossBearish = conversionLine < baseLine;
+
+  // Strong Bullish Signal (TK Cross + Price > Cloud)
+  if (tkCrossBullish && aboveCloud && greenCloud) {
+    return {
+      value: currentPrice,
+      signal: "BUY",
+      reason: "Strong Ichimoku Bullish (Price > Cloud, TK Cross, Green Cloud)",
+      metadata: { ...ichimoku, interpretation: "strong_bullish" },
+    };
+  }
+
+  // Strong Bearish Signal (TK Cross + Price < Cloud)
+  if (tkCrossBearish && belowCloud && !greenCloud) {
+    return {
+      value: currentPrice,
+      signal: "SELL",
+      reason: "Strong Ichimoku Bearish (Price < Cloud, TK Cross, Red Cloud)",
+      metadata: { ...ichimoku, interpretation: "strong_bearish" },
+    };
+  }
+
+  // TK Cross (Bullish)
+  if (tkCrossBullish && aboveCloud) {
+    return {
+      value: currentPrice,
+      signal: "BUY",
+      reason: "Ichimoku Bullish TK Cross above Cloud",
+      metadata: { ...ichimoku, interpretation: "bullish_tk_cross" },
+    };
+  }
+
+  // TK Cross (Bearish)
+  if (tkCrossBearish && belowCloud) {
+    return {
+      value: currentPrice,
+      signal: "SELL",
+      reason: "Ichimoku Bearish TK Cross below Cloud",
+      metadata: { ...ichimoku, interpretation: "bearish_tk_cross" },
+    };
+  }
+
+  // Kumo Breakout (Bullish)
+  if (aboveCloud) {
+    // Check previous candle to confirm breakout
+    const prevPrice = closes[closes.length - 2];
+    if (prevPrice <= Math.max(spanA, spanB)) {
+      return {
+        value: currentPrice,
+        signal: "BUY",
+        reason: "Ichimoku Cloud Breakout (Bullish)",
+        metadata: { ...ichimoku, interpretation: "cloud_breakout_bullish" },
+      };
+    }
+  }
+
+  // Kumo Breakout (Bearish)
+  if (belowCloud) {
+    const prevPrice = closes[closes.length - 2];
+    if (prevPrice >= Math.min(spanA, spanB)) {
+      return {
+        value: currentPrice,
+        signal: "SELL",
+        reason: "Ichimoku Cloud Breakdown (Bearish)",
+        metadata: { ...ichimoku, interpretation: "cloud_breakout_bearish" },
+      };
+    }
+  }
+
+  if (inCloud) {
+    return {
+      value: currentPrice,
+      signal: "HOLD",
+      reason: "Price inside Ichimoku Cloud (Neutral/Volatile)",
+      metadata: { ...ichimoku, interpretation: "neutral_in_cloud" },
+    };
+  }
+
+  return {
+    value: currentPrice,
+    signal: "HOLD",
+    reason: "Ichimoku Neutral",
+    metadata: { ...ichimoku, interpretation: "neutral" },
+  };
+}
+
+/**
  * Evaluate all 12 indicators and determine if all are "green" meeting criteria
  * @param {object} symbolData - Symbol OHLCV data.
  * @param {object} marketData - Market index price and volume data.
@@ -2146,6 +2350,13 @@ export function evaluateAllIndicators(
     symbolData.closes
   );
 
+  // 13. Ichimoku Cloud
+  const ichimoku = evaluateIchimokuCloud(
+    highs,
+    lows,
+    symbolData.closes
+  );
+
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
@@ -2173,6 +2384,7 @@ export function evaluateAllIndicators(
     vwap,
     adx,
     williamsR,
+    ichimoku,
   };
 
   // Calculate signal strength (0-100)
@@ -2243,6 +2455,7 @@ export function evaluateAllIndicators(
       vwap: vwap.signal,
       adx: adx.signal,
       williamsR: williamsR.signal,
+      ichimoku: ichimoku.signal,
     },
     customIndicators: Object.keys(customResults).reduce((acc, key) => {
       acc[key] = customResults[key].signal;
@@ -2281,7 +2494,7 @@ export function evaluateCustomIndicator(
   let reason = "";
 
   try {
-    const toPeriod = (val: any, defaultVal: number): number => {
+    const toPeriod = (val: unknown, defaultVal: number): number => {
       if (typeof val === "number") return val;
       if (typeof val === "string") {
         const parsed = parseInt(val, 10);

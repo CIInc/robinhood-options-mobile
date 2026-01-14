@@ -33,7 +33,6 @@ class AgenticTradingConfig {
   bool autoTradeEnabled;
   int dailyTradeLimit;
   int autoTradeCooldownMinutes;
-  double maxDailyLossPercent;
   double takeProfitPercent;
   double stopLossPercent;
   bool allowPreMarketTrading;
@@ -48,6 +47,7 @@ class AgenticTradingConfig {
   bool paperTradingMode;
   bool requireApproval;
   bool enablePartialExits;
+  String? selectedTemplateId;
   List<ExitStage> exitStages;
   List<CustomIndicatorConfig> customIndicators;
 
@@ -76,6 +76,10 @@ class AgenticTradingConfig {
   double riskPerTrade; // Risk per trade as % of account (e.g. 0.01 for 1%)
   double atrMultiplier; // Multiplier for ATR to determine stop loss distance
 
+  // Symbol Filter
+  // If empty, all symbols are eligible. If populated, only these symbols will be traded.
+  List<String> symbolFilter;
+
   AgenticTradingConfig({
     this.smaPeriodFast = 10,
     this.smaPeriodSlow = 30,
@@ -88,7 +92,6 @@ class AgenticTradingConfig {
     this.autoTradeEnabled = false,
     this.dailyTradeLimit = 5,
     this.autoTradeCooldownMinutes = 60,
-    this.maxDailyLossPercent = 2.0,
     this.takeProfitPercent = 10.0,
     this.stopLossPercent = 5.0,
     this.allowPreMarketTrading = false,
@@ -103,6 +106,7 @@ class AgenticTradingConfig {
     this.paperTradingMode = false,
     this.requireApproval = false,
     this.enablePartialExits = false,
+    this.selectedTemplateId,
     List<ExitStage>? exitStages,
     List<CustomIndicatorConfig>? customIndicators,
     this.timeBasedExitEnabled = false,
@@ -121,8 +125,9 @@ class AgenticTradingConfig {
     this.minSignalStrength = 75.0,
     this.requireAllIndicatorsGreen = true,
     this.enableDynamicPositionSizing = false,
-    this.riskPerTrade = 0.01,
+    this.riskPerTrade = 0.0, // 0.01,
     this.atrMultiplier = 2.0,
+    this.symbolFilter = const [],
   })  : exitStages = exitStages ??
             [
               ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
@@ -143,6 +148,7 @@ class AgenticTradingConfig {
               'vwap': true,
               'adx': true,
               'williamsR': true,
+              'ichimoku': true,
             };
 
   AgenticTradingConfig.fromJson(Map<String, dynamic> json)
@@ -158,8 +164,6 @@ class AgenticTradingConfig {
         dailyTradeLimit = json['dailyTradeLimit'] as int? ?? 5,
         autoTradeCooldownMinutes =
             json['autoTradeCooldownMinutes'] as int? ?? 60,
-        maxDailyLossPercent =
-            (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 2.0,
         takeProfitPercent =
             (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
         stopLossPercent = (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
@@ -177,6 +181,7 @@ class AgenticTradingConfig {
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
         requireApproval = json['requireApproval'] as bool? ?? false,
         enablePartialExits = json['enablePartialExits'] as bool? ?? false,
+        selectedTemplateId = json['selectedTemplateId'] as String?,
         exitStages = (json['exitStages'] as List<dynamic>?)
                 ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
                 .toList() ??
@@ -212,6 +217,10 @@ class AgenticTradingConfig {
             json['enableDynamicPositionSizing'] as bool? ?? false,
         riskPerTrade = (json['riskPerTrade'] as num?)?.toDouble() ?? 0.01,
         atrMultiplier = (json['atrMultiplier'] as num?)?.toDouble() ?? 2.0,
+        symbolFilter = (json['symbolFilter'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
         enabledIndicators = (json['enabledIndicators'] != null)
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -249,7 +258,6 @@ class AgenticTradingConfig {
       'autoTradeEnabled': autoTradeEnabled,
       'dailyTradeLimit': dailyTradeLimit,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,
-      'maxDailyLossPercent': maxDailyLossPercent,
       'takeProfitPercent': takeProfitPercent,
       'stopLossPercent': stopLossPercent,
       'timeBasedExitEnabled': timeBasedExitEnabled,
@@ -261,6 +269,7 @@ class AgenticTradingConfig {
       'requireApproval': requireApproval,
       'paperTradingMode': paperTradingMode,
       'enablePartialExits': enablePartialExits,
+      'selectedTemplateId': selectedTemplateId,
       'exitStages': exitStages.map((e) => e.toJson()).toList(),
       'customIndicators': customIndicators.map((e) => e.toJson()).toList(),
       'enableSectorLimits': enableSectorLimits,
@@ -277,6 +286,7 @@ class AgenticTradingConfig {
       'enableDynamicPositionSizing': enableDynamicPositionSizing,
       'riskPerTrade': riskPerTrade,
       'atrMultiplier': atrMultiplier,
+      'symbolFilter': symbolFilter,
     };
   }
 
@@ -292,15 +302,16 @@ class AgenticTradingConfig {
     bool? autoTradeEnabled,
     int? dailyTradeLimit,
     int? autoTradeCooldownMinutes,
-    double? maxDailyLossPercent,
     double? takeProfitPercent,
     double? stopLossPercent,
     bool? allowPreMarketTrading,
     bool? requireApproval,
     bool? allowAfterHoursTrading,
     bool? enablePartialExits,
+    String? selectedTemplateId,
     List<ExitStage>? exitStages,
     List<CustomIndicatorConfig>? customIndicators,
+    List<String>? symbolFilter,
     bool? timeBasedExitEnabled,
     int? timeBasedExitMinutes,
     bool? marketCloseExitEnabled,
@@ -335,7 +346,6 @@ class AgenticTradingConfig {
       dailyTradeLimit: dailyTradeLimit ?? this.dailyTradeLimit,
       autoTradeCooldownMinutes:
           autoTradeCooldownMinutes ?? this.autoTradeCooldownMinutes,
-      maxDailyLossPercent: maxDailyLossPercent ?? this.maxDailyLossPercent,
       takeProfitPercent: takeProfitPercent ?? this.takeProfitPercent,
       stopLossPercent: stopLossPercent ?? this.stopLossPercent,
       allowPreMarketTrading:
@@ -350,6 +360,7 @@ class AgenticTradingConfig {
       marketCloseExitMinutes:
           marketCloseExitMinutes ?? this.marketCloseExitMinutes,
       enablePartialExits: enablePartialExits ?? this.enablePartialExits,
+      selectedTemplateId: selectedTemplateId ?? this.selectedTemplateId,
       exitStages: exitStages ?? List.from(this.exitStages),
       customIndicators: customIndicators ?? List.from(this.customIndicators),
       enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,
@@ -371,6 +382,7 @@ class AgenticTradingConfig {
           enableDynamicPositionSizing ?? this.enableDynamicPositionSizing,
       riskPerTrade: riskPerTrade ?? this.riskPerTrade,
       atrMultiplier: atrMultiplier ?? this.atrMultiplier,
+      symbolFilter: symbolFilter ?? List.from(this.symbolFilter),
     );
   }
 }

@@ -346,6 +346,21 @@ class AgenticTradingProvider with ChangeNotifier {
         startDate: startDate,
       );
 
+      // Filter by symbol whitelist if configured
+      final symbolFilter = _config['symbolFilter'];
+      if (symbolFilter != null &&
+          symbolFilter is List &&
+          symbolFilter.isNotEmpty) {
+        final allowedSymbols =
+            symbolFilter.map((e) => e.toString().toUpperCase()).toSet();
+        debugPrint(
+            '🤖 Auto-trade check: filtering for allowed symbols: $allowedSymbols');
+        tradeSignals = tradeSignals.where((s) {
+          final symbol = s['symbol'] as String?;
+          return symbol != null && allowedSymbols.contains(symbol);
+        }).toList();
+      }
+
       // Filter out already processed signals (deduplication)
       final originalCount = tradeSignals.length;
       tradeSignals = tradeSignals.where((s) {
@@ -438,7 +453,6 @@ class AgenticTradingProvider with ChangeNotifier {
         'autoTradeEnabled': false,
         'dailyTradeLimit': 5,
         'autoTradeCooldownMinutes': 60,
-        'maxDailyLossPercent': 2.0,
         'enabledIndicators': {
           'priceMovement': true,
           'momentum': true,

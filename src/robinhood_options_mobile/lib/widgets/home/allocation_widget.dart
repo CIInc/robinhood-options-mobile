@@ -208,10 +208,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
               children: [
                 Text(
                   "Allocation",
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 if (widget.user != null &&
                     widget.userDocRef != null &&

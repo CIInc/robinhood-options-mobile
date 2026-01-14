@@ -378,7 +378,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           title: Wrap(children: [
             const Text(
               "Stocks & ETFs",
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.0),
             ),
             if (!widget.showList) ...[
               SizedBox(

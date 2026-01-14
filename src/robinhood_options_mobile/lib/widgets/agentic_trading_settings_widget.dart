@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
+import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
@@ -42,7 +44,6 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxPortfolioConcentrationController;
   late TextEditingController _dailyTradeLimitController;
   late TextEditingController _autoTradeCooldownController;
-  late TextEditingController _maxDailyLossPercentController;
   late TextEditingController _takeProfitPercentController;
   late TextEditingController _stopLossPercentController;
   late TextEditingController _maxSectorExposureController;
@@ -55,10 +56,18 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _marketCloseExitMinutesController;
   late TextEditingController _riskPerTradeController;
   late TextEditingController _atrMultiplierController;
+  late TextEditingController _trailingStopPercentController;
   late bool _enableDynamicPositionSizing;
   late Map<String, bool> _enabledIndicators;
   late List<ExitStage> _exitStages;
+  late List<TextEditingController> _exitStageProfitControllers;
+  late List<TextEditingController> _exitStageQuantityControllers;
   late List<CustomIndicatorConfig> _customIndicators;
+  String? _selectedTemplateId;
+  late List<String> _symbolFilter;
+  final TextEditingController _newSymbolController = TextEditingController();
+  final ScrollController _templateScrollController = ScrollController();
+  bool _hasScrolledToTemplate = false;
 
   @override
   void initState() {
@@ -77,6 +86,13 @@ class _AgenticTradingSettingsWidgetState
       });
     }
 
+    // Initialize BacktestingProvider to load saved templates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final backtestingProvider =
+          Provider.of<BacktestingProvider>(context, listen: false);
+      backtestingProvider.initialize(widget.userDocRef);
+    });
+
     // Load config after frame to avoid setState during build
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     //   final agenticTradingProvider =
@@ -87,6 +103,7 @@ class _AgenticTradingSettingsWidgetState
 
     // Initialize controllers from user's config
     final config = widget.user.agenticTradingConfig?.toJson() ?? {};
+    _selectedTemplateId = config['selectedTemplateId'] as String?;
     _enabledIndicators = widget.user.agenticTradingConfig?.enabledIndicators ??
         {
           'priceMovement': true,
@@ -101,6 +118,7 @@ class _AgenticTradingSettingsWidgetState
           'vwap': true,
           'adx': true,
           'williamsR': true,
+          'ichimoku': true,
         };
     _exitStages = (config['exitStages'] as List<dynamic>?)
             ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
@@ -109,11 +127,21 @@ class _AgenticTradingSettingsWidgetState
           ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
           ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
         ];
+
+    _exitStageProfitControllers = [];
+    _exitStageQuantityControllers = [];
+    _syncExitStageControllers();
+
     _customIndicators = (config['customIndicators'] as List<dynamic>?)
             ?.map((e) =>
                 CustomIndicatorConfig.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
+    _symbolFilter = (config['symbolFilter'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        [];
+
     _tradeQuantityController =
         TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
@@ -124,12 +152,12 @@ class _AgenticTradingSettingsWidgetState
         text: config['dailyTradeLimit']?.toString() ?? '5');
     _autoTradeCooldownController = TextEditingController(
         text: config['autoTradeCooldownMinutes']?.toString() ?? '60');
-    _maxDailyLossPercentController = TextEditingController(
-        text: config['maxDailyLossPercent']?.toString() ?? '2.0');
     _takeProfitPercentController = TextEditingController(
         text: config['takeProfitPercent']?.toString() ?? '10.0');
     _stopLossPercentController = TextEditingController(
         text: config['stopLossPercent']?.toString() ?? '5.0');
+    _trailingStopPercentController = TextEditingController(
+        text: config['trailingStopPercent']?.toString() ?? '3.0');
     _maxSectorExposureController = TextEditingController(
         text: config['maxSectorExposure']?.toString() ?? '20.0');
     _maxCorrelationController = TextEditingController(
@@ -173,9 +201,9 @@ class _AgenticTradingSettingsWidgetState
     _maxPortfolioConcentrationController.dispose();
     _dailyTradeLimitController.dispose();
     _autoTradeCooldownController.dispose();
-    _maxDailyLossPercentController.dispose();
     _takeProfitPercentController.dispose();
     _stopLossPercentController.dispose();
+    _trailingStopPercentController.dispose();
     _maxSectorExposureController.dispose();
     _maxCorrelationController.dispose();
     _minVolatilityController.dispose();
@@ -186,7 +214,44 @@ class _AgenticTradingSettingsWidgetState
     _minSignalStrengthController.dispose();
     _riskPerTradeController.dispose();
     _atrMultiplierController.dispose();
+    _newSymbolController.dispose();
+    _templateScrollController.dispose();
+    for (var c in _exitStageProfitControllers) {
+      c.dispose();
+    }
+    for (var c in _exitStageQuantityControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _syncExitStageControllers() {
+    // Dispose old controllers if any (handled by clear or reassignment?)
+    // This method assumes we are rebuilding the list from _exitStages.
+    // Ideally we should dispose old ones before overwriting if this list is not empty.
+
+    // However, in initState they are uninitialized.
+    // In _loadFromTemplate, we might have old ones.
+
+    // Better pattern: dispose existing provided they are initialized
+    try {
+      for (var c in _exitStageProfitControllers) {
+        c.dispose();
+      }
+      for (var c in _exitStageQuantityControllers) {
+        c.dispose();
+      }
+    } catch (_) {
+      // ignore initialization error
+    }
+
+    _exitStageProfitControllers = _exitStages
+        .map((e) =>
+            TextEditingController(text: e.profitTargetPercent.toString()))
+        .toList();
+    _exitStageQuantityControllers = _exitStages
+        .map((e) => TextEditingController(text: e.quantityPercent.toString()))
+        .toList();
   }
 
   Widget _buildIndicatorToggle(
@@ -385,6 +450,7 @@ class _AgenticTradingSettingsWidgetState
       }
 
       final newConfig = {
+        'selectedTemplateId': _selectedTemplateId,
         'smaPeriodFast': agenticTradingProvider.config['smaPeriodFast'] ?? 10,
         'smaPeriodSlow': agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
         'tradeQuantity': int.parse(_tradeQuantityController.text),
@@ -400,8 +466,6 @@ class _AgenticTradingSettingsWidgetState
         'dailyTradeLimit': int.parse(_dailyTradeLimitController.text),
         'autoTradeCooldownMinutes':
             int.parse(_autoTradeCooldownController.text),
-        'maxDailyLossPercent':
-            double.parse(_maxDailyLossPercentController.text),
         'takeProfitPercent': double.parse(_takeProfitPercentController.text),
         'stopLossPercent': double.parse(_stopLossPercentController.text),
         'allowPreMarketTrading':
@@ -463,8 +527,22 @@ class _AgenticTradingSettingsWidgetState
         'riskPerTrade': double.parse(_riskPerTradeController.text) /
             100.0, // Convert % to decimal
         'atrMultiplier': double.parse(_atrMultiplierController.text),
+        'symbolFilter': _symbolFilter,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+
+      // Update local user object to ensure persistence when navigating back/forth
+      // if the parent widget holds the User object
+      if (widget.user.agenticTradingConfig != null) {
+        // Can't easily update fields in place, so recreate.
+        // Note: Using setState isn't strictly required for *this* widget since we already have the state,
+        // but it's good for consistency if we used widget.user in build.
+        widget.user.agenticTradingConfig =
+            AgenticTradingConfig.fromJson(newConfig);
+      } else {
+        widget.user.agenticTradingConfig =
+            AgenticTradingConfig.fromJson(newConfig);
+      }
     } catch (e) {
       debugPrint('Error auto-saving settings: $e');
     }
@@ -547,6 +625,190 @@ class _AgenticTradingSettingsWidgetState
     _saveSettings();
   }
 
+  void _loadFromTemplate(TradeStrategyTemplate template) {
+    final provider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+
+    setState(() {
+      _selectedTemplateId = template.id;
+      // Update local state variables
+      _enabledIndicators =
+          Map<String, bool>.from(template.config.enabledIndicators);
+
+      _takeProfitPercentController.text =
+          template.config.takeProfitPercent.toString();
+      _stopLossPercentController.text =
+          template.config.stopLossPercent.toString();
+      _trailingStopPercentController.text =
+          template.config.trailingStopPercent.toString();
+
+      _minSignalStrengthController.text =
+          template.config.minSignalStrength.toString();
+
+      _timeBasedExitMinutesController.text =
+          template.config.timeBasedExitMinutes.toString();
+      _marketCloseExitMinutesController.text =
+          template.config.marketCloseExitMinutes.toString();
+
+      _enableDynamicPositionSizing =
+          template.config.enableDynamicPositionSizing;
+      _riskPerTradeController.text =
+          (template.config.riskPerTrade * 100).toString();
+      _atrMultiplierController.text = template.config.atrMultiplier.toString();
+
+      _exitStages = List.from(template.config.exitStages);
+      _syncExitStageControllers();
+      _customIndicators = List.from(template.config.customIndicators);
+      // Only apply symbol filter if the template has one, otherwise keep current
+      if (template.config.symbolFilter.isNotEmpty) {
+        _symbolFilter = List.from(template.config.symbolFilter);
+      }
+
+      // We don't load initialCapital, tradeQuantity (keep user pref), etc.
+      // But we load risk params if they exist in template
+
+      // Update provider config map
+      provider.config['selectedTemplateId'] = template.id;
+      provider.config['enabledIndicators'] = _enabledIndicators;
+      provider.config['takeProfitPercent'] = template.config.takeProfitPercent;
+      provider.config['stopLossPercent'] = template.config.stopLossPercent;
+      provider.config['trailingStopEnabled'] =
+          template.config.trailingStopEnabled;
+      provider.config['trailingStopPercent'] =
+          template.config.trailingStopPercent;
+      provider.config['rsiPeriod'] = template.config.rsiPeriod;
+      provider.config['smaPeriodFast'] = template.config.smaPeriodFast;
+      provider.config['smaPeriodSlow'] = template.config.smaPeriodSlow;
+      provider.config['marketIndexSymbol'] = template.config.marketIndexSymbol;
+      provider.config['minSignalStrength'] = template.config.minSignalStrength;
+      provider.config['requireAllIndicatorsGreen'] =
+          template.config.requireAllIndicatorsGreen;
+      provider.config['timeBasedExitEnabled'] =
+          template.config.timeBasedExitEnabled;
+      provider.config['timeBasedExitMinutes'] =
+          template.config.timeBasedExitMinutes;
+      provider.config['marketCloseExitEnabled'] =
+          template.config.marketCloseExitEnabled;
+      provider.config['marketCloseExitMinutes'] =
+          template.config.marketCloseExitMinutes;
+      provider.config['enablePartialExits'] =
+          template.config.enablePartialExits;
+      provider.config['enableDynamicPositionSizing'] =
+          template.config.enableDynamicPositionSizing;
+      provider.config['riskPerTrade'] = template.config.riskPerTrade;
+      provider.config['atrMultiplier'] = template.config.atrMultiplier;
+
+      // Complex objects need to be serialized for the map
+      provider.config['exitStages'] =
+          _exitStages.map((e) => e.toJson()).toList();
+      provider.config['customIndicators'] =
+          _customIndicators.map((e) => e.toJson()).toList();
+      provider.config['symbolFilter'] = _symbolFilter;
+    });
+
+    _saveSettings();
+  }
+
+  void _showSaveTemplateDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final provider = Provider.of<BacktestingProvider>(context, listen: false);
+    final agenticProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save as Template'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Strategy Name'),
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.isEmpty) return;
+
+              final currentConfig =
+                  _createConfigFromCurrentSettings(agenticProvider);
+              final template = TradeStrategyTemplate(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: nameController.text,
+                description: descriptionController.text,
+                config: currentConfig,
+                createdAt: DateTime.now(),
+              );
+
+              provider.saveTemplate(template);
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Saved strategy "${template.name}"')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  TradeStrategyConfig _createConfigFromCurrentSettings(
+      AgenticTradingProvider provider) {
+    final config = provider.config;
+    return TradeStrategyConfig(
+      startDate: DateTime.now().subtract(const Duration(days: 30)),
+      endDate: DateTime.now(),
+      initialCapital: 10000,
+      interval: '1d',
+      enabledIndicators: Map<String, bool>.from(_enabledIndicators),
+      takeProfitPercent:
+          double.tryParse(_takeProfitPercentController.text) ?? 10.0,
+      stopLossPercent: double.tryParse(_stopLossPercentController.text) ?? 5.0,
+      trailingStopEnabled: config['trailingStopEnabled'] ?? false,
+      trailingStopPercent:
+          double.tryParse(_trailingStopPercentController.text) ?? 3.0,
+      rsiPeriod: config['rsiPeriod'] ?? 14,
+      smaPeriodFast: config['smaPeriodFast'] ?? 10,
+      smaPeriodSlow: config['smaPeriodSlow'] ?? 30,
+      marketIndexSymbol: config['marketIndexSymbol'] ?? 'SPY',
+      minSignalStrength:
+          double.tryParse(_minSignalStrengthController.text) ?? 50.0,
+      requireAllIndicatorsGreen: config['requireAllIndicatorsGreen'] ?? false,
+      timeBasedExitEnabled: config['timeBasedExitEnabled'] ?? false,
+      timeBasedExitMinutes:
+          int.tryParse(_timeBasedExitMinutesController.text) ?? 0,
+      marketCloseExitEnabled: config['marketCloseExitEnabled'] ?? false,
+      marketCloseExitMinutes:
+          int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
+      enablePartialExits: config['enablePartialExits'] ?? false,
+      exitStages: List.from(_exitStages),
+      enableDynamicPositionSizing: _enableDynamicPositionSizing,
+      riskPerTrade: (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
+          100.0, // Convert % to decimal
+      atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      customIndicators: List.from(_customIndicators),
+      symbolFilter: List.from(_symbolFilter),
+      tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -565,13 +827,14 @@ class _AgenticTradingSettingsWidgetState
                   const SizedBox(height: 16),
                   // _buildSignalQueue(context, agenticTradingProvider),
                   _buildPendingOrders(context, agenticTradingProvider),
+                  _buildTemplateList(context),
                   _buildExecutionSettings(context, agenticTradingProvider),
                   _buildRiskManagement(context, agenticTradingProvider),
-                  _buildExitStrategies(context, agenticTradingProvider),
                   _buildEntryStrategies(context, agenticTradingProvider,
                       initiallyExpanded:
                           widget.initialSection == 'entryStrategies',
                       key: _entryStrategiesKey),
+                  _buildExitStrategies(context, agenticTradingProvider),
                   _buildNotificationSettings(context, agenticTradingProvider),
                   _buildBacktesting(context, agenticTradingProvider),
                 ],
@@ -631,164 +894,654 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
-  Widget _buildSignalQueue(
-      BuildContext context, AgenticTradingProvider provider) {
-    final signals = provider.signalProcessingHistory;
-    if (signals.isEmpty) return const SizedBox.shrink();
+  Widget _buildTemplateList(BuildContext context) {
+    return Consumer<BacktestingProvider>(
+      builder: (context, backtestingProvider, child) {
+        final templates = backtestingProvider.templates;
+        final colorScheme = Theme.of(context).colorScheme;
 
-    final colorScheme = Theme.of(context).colorScheme;
+        if (!_hasScrolledToTemplate &&
+            templates.isNotEmpty &&
+            _selectedTemplateId != null) {
+          final index =
+              templates.indexWhere((t) => t.id == _selectedTemplateId);
+          if (index != -1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_templateScrollController.hasClients) {
+                final offset = 152.0 + (index * 232.0);
+                // Center the item if possible (approximate screen width logic omitted for simplicity)
+                // Or just ensure it's visible. With horizontal list, scrolling to offset puts it at start.
+                // Let's scroll to put it a bit more to the middle if index > 0.
+                final targetOffset =
+                    index > 0 ? offset - 60 : offset; // Simple adjustment
+                _templateScrollController.animateTo(
+                  targetOffset,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                );
+              }
+            });
+            _hasScrolledToTemplate = true;
+          }
+        }
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-        ),
-      ),
-      child: ExpansionTile(
-        title: Text(
-          'Signal Processing Queue',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-          ),
-        ),
-        subtitle: Text(
-          '${signals.length} signals processed',
-          style: TextStyle(
-            fontSize: 12,
-            color: colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-        children: [
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: signals.length > 10 ? 10 : signals.length, // Show max 10
-            separatorBuilder: (context, index) => Divider(
-              height: 1,
-              indent: 16,
-              endIndent: 16,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            itemBuilder: (context, index) =>
-                _buildSignalListTile(context, signals[index]),
-          ),
-          if (signals.length > 10)
+        return Column(
+          children: [
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextButton(
-                onPressed: () {
-                  _showAllSignalsDialog(context, signals);
-                },
-                child: Text('Show all ${signals.length} signals'),
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Row(
+                children: [
+                  Icon(Icons.bolt, size: 20, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Trading Strategies',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 180,
+              child: ListView.separated(
+                controller: _templateScrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                itemCount: templates.length + 1,
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return SizedBox(
+                      width: 140,
+                      child: Card(
+                        elevation: 0,
+                        margin: EdgeInsets.zero,
+                        color: colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: colorScheme.primary.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: () => _showSaveTemplateDialog(context),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.add,
+                                    size: 28, color: colorScheme.primary),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                "Save Current",
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "as Template",
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final template = templates[index - 1];
+                  final isDefault = template.id.startsWith('default_');
+                  final isSelected = template.id == _selectedTemplateId;
+
+                  return SizedBox(
+                    width: 220,
+                    child: Card(
+                      elevation: isSelected ? 4 : 2,
+                      shadowColor: isSelected
+                          ? colorScheme.primary.withValues(alpha: 0.4)
+                          : Colors.black12,
+                      color: isSelected
+                          ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                          : null,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.outline.withValues(alpha: 0.1),
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: Text('Load ${template.name}?'),
+                              content: const Text(
+                                  'This will overwrite your current settings.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(dialogContext);
+                                    _loadFromTemplate(template);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Loaded strategy: ${template.name}')),
+                                    );
+                                  },
+                                  child: const Text('Load'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Stack(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: isDefault
+                                                  ? Colors.amber
+                                                      .withValues(alpha: 0.1)
+                                                  : colorScheme.primaryContainer
+                                                      .withValues(alpha: 0.5),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                                isDefault
+                                                    ? Icons.verified_rounded
+                                                    : Icons.bookmark_rounded,
+                                                size: 18,
+                                                color: isDefault
+                                                    ? Colors.amber[700]
+                                                    : colorScheme.primary),
+                                          ),
+                                          if (isSelected)
+                                            Positioned(
+                                              right: 0,
+                                              bottom: 0,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: colorScheme.primary,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                      color:
+                                                          colorScheme.surface,
+                                                      width: 1.5),
+                                                ),
+                                                child: Icon(Icons.check,
+                                                    size: 10,
+                                                    color:
+                                                        colorScheme.onPrimary),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              template.name,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              isDefault
+                                                  ? 'Built-in'
+                                                  : (template.lastUsedAt != null
+                                                      ? 'Used ${DateFormat('MMM d').format(template.lastUsedAt!)}'
+                                                      : 'Custom'),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    template.description,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: colorScheme.onSurfaceVariant,
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const Spacer(),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildCompactMetric(
+                                          context,
+                                          "TP",
+                                          "${template.config.takeProfitPercent.toStringAsFixed(1)}%",
+                                          Colors.green,
+                                          Icons.trending_up),
+                                      _buildCompactMetric(
+                                          context,
+                                          "SL",
+                                          "${template.config.stopLossPercent.toStringAsFixed(1)}%",
+                                          Colors.red,
+                                          Icons.trending_down),
+                                      _buildCompactMetric(
+                                          context,
+                                          "Risk",
+                                          "${(template.config.riskPerTrade * 100).toStringAsFixed(1)}%",
+                                          Colors.orange,
+                                          Icons.shield_outlined),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        if (template.config.symbolFilter
+                                            .isNotEmpty) ...[
+                                          _buildTag(
+                                            context,
+                                            template.config.symbolFilter
+                                                        .length >
+                                                    3
+                                                ? "${template.config.symbolFilter.length} Symbols"
+                                                : template.config.symbolFilter
+                                                    .join(','),
+                                            colorScheme.primaryContainer,
+                                            colorScheme.onPrimaryContainer,
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        if (template
+                                            .config.exitStages.isNotEmpty) ...[
+                                          _buildTag(
+                                            context,
+                                            "Multi-Exit",
+                                            colorScheme.secondaryContainer,
+                                            colorScheme.onSecondaryContainer,
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        if (template.config.customIndicators
+                                            .isNotEmpty) ...[
+                                          _buildTag(
+                                            context,
+                                            "Custom",
+                                            colorScheme.tertiaryContainer,
+                                            colorScheme.onTertiaryContainer,
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        if (template
+                                                .config.exitStages.isEmpty &&
+                                            template.config.customIndicators
+                                                .isEmpty &&
+                                            template
+                                                .config.symbolFilter.isEmpty)
+                                          _buildTag(
+                                            context,
+                                            "Standard",
+                                            colorScheme.surfaceContainerHighest,
+                                            colorScheme.onSurface,
+                                          ),
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ),
+                            if (!isDefault)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: PopupMenuButton<String>(
+                                  icon: Icon(Icons.more_vert,
+                                      size: 18,
+                                      color: colorScheme.onSurfaceVariant),
+                                  onSelected: (value) {
+                                    if (value == 'delete') {
+                                      _confirmDeleteTemplate(context, template,
+                                          backtestingProvider);
+                                    } else if (value == 'edit') {
+                                      _showEditTemplateDialog(context, template,
+                                          backtestingProvider);
+                                    } else if (value == 'update') {
+                                      _confirmUpdateTemplateConfig(context,
+                                          template, backtestingProvider);
+                                    } else if (value == 'duplicate') {
+                                      _duplicateTemplate(context, template,
+                                          backtestingProvider);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'update',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.save_as_outlined,
+                                              size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Update Config'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit_outlined, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Edit Info'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'duplicate',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.copy_outlined, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Duplicate'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline,
+                                              size: 20, color: Colors.red),
+                                          SizedBox(width: 12),
+                                          Text('Delete',
+                                              style:
+                                                  TextStyle(color: Colors.red)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: PopupMenuButton<String>(
+                                  icon: Icon(Icons.more_vert,
+                                      size: 18,
+                                      color: colorScheme.onSurfaceVariant),
+                                  onSelected: (value) {
+                                    if (value == 'duplicate') {
+                                      _duplicateTemplate(context, template,
+                                          backtestingProvider);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'duplicate',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.copy_outlined, size: 20),
+                                          SizedBox(width: 12),
+                                          Text('Duplicate'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+    );
+  }
+
+  void _duplicateTemplate(BuildContext context, TradeStrategyTemplate template,
+      BacktestingProvider provider) {
+    final newTemplate = TradeStrategyTemplate(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: "${template.name} (Copy)",
+      description: template.description,
+      config: template.config,
+      createdAt: DateTime.now(),
+    );
+    provider.saveTemplate(newTemplate);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Duplicated "${template.name}"')),
+    );
+  }
+
+  void _confirmUpdateTemplateConfig(BuildContext context,
+      TradeStrategyTemplate template, BacktestingProvider provider) {
+    final agenticProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Update ${template.name}?'),
+        content: const Text(
+            'This will overwrite the strategy configuration with your current settings.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final newConfig =
+                  _createConfigFromCurrentSettings(agenticProvider);
+              final updatedTemplate = TradeStrategyTemplate(
+                id: template.id,
+                name: template.name,
+                description: template.description,
+                config: newConfig,
+                createdAt: template.createdAt,
+                lastUsedAt: DateTime.now(),
+              );
+              provider.saveTemplate(updatedTemplate);
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Updated strategy "${template.name}"')),
+              );
+            },
+            child: const Text('Update'),
+          ),
         ],
       ),
     );
   }
 
-  void _showAllSignalsDialog(BuildContext context, List<dynamic> signals) {
+  void _showEditTemplateDialog(BuildContext context,
+      TradeStrategyTemplate template, BacktestingProvider provider) {
+    final nameController = TextEditingController(text: template.name);
+    final descriptionController =
+        TextEditingController(text: template.description);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Signal Processing Queue'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.separated(
-            shrinkWrap: true,
-            itemCount: signals.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) =>
-                _buildSignalListTile(context, signals[index]),
-          ),
+        title: const Text('Edit Strategy Info'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Strategy Name'),
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.isEmpty) return;
+
+              final updatedTemplate = TradeStrategyTemplate(
+                id: template.id,
+                name: nameController.text,
+                description: descriptionController.text,
+                config: template.config,
+                createdAt: template.createdAt,
+                lastUsedAt: template.lastUsedAt,
+              );
+
+              provider.saveTemplate(updatedTemplate);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSignalListTile(BuildContext context, dynamic signal) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final symbol = signal['symbol'] as String? ?? 'UNKNOWN';
-    final status = signal['processedStatus'] as String? ?? 'Unknown';
-    final reason = signal['rejectionReason'] as String?;
-    final timestamp = signal['timestamp'] != null
-        ? (signal['timestamp'] is Timestamp
-            ? (signal['timestamp'] as Timestamp).toDate()
-            : DateTime.tryParse(signal['timestamp'].toString()))
-        : null;
-
-    final isAccepted = status == 'Accepted';
-
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: isAccepted
-            ? colorScheme.primaryContainer
-            : colorScheme.errorContainer,
-        child: Icon(
-          isAccepted ? Icons.check : Icons.close,
-          size: 16,
-          color: isAccepted ? colorScheme.primary : colorScheme.error,
+  Widget _buildCompactMetric(BuildContext context, String label, String value,
+      Color color, IconData? icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon,
+                  size: 10,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(width: 2),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
-      ),
-      title: Row(
-        children: [
-          Text(
-            symbol,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isAccepted
-                  ? colorScheme.primary.withValues(alpha: 0.1)
-                  : colorScheme.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: isAccepted ? colorScheme.primary : colorScheme.error,
-              ),
-            ),
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTag(BuildContext context, String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
       ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (reason != null)
-            Text(
-              reason,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          if (timestamp != null)
-            Text(
-              _formatTime(timestamp),
-              style: TextStyle(
-                fontSize: 10,
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg),
+      ),
+    );
+  }
+
+  void _confirmDeleteTemplate(BuildContext context,
+      TradeStrategyTemplate template, BacktestingProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Strategy?'),
+        content: Text(
+            'Are you sure you want to delete "${template.name}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              provider.deleteTemplate(template.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Deleted "${template.name}"')),
+              );
+            },
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -799,6 +1552,19 @@ class _AgenticTradingSettingsWidgetState
     final colorScheme = Theme.of(context).colorScheme;
     final isEnabled =
         agenticTradingProvider.config['autoTradeEnabled'] as bool? ?? false;
+
+    // Determine strategy display name
+    String strategyDisplay =
+        'Min Strength: ${_minSignalStrengthController.text}%';
+    if (_selectedTemplateId != null) {
+      final backtestingProvider =
+          Provider.of<BacktestingProvider>(context, listen: false);
+      final templateIndex = backtestingProvider.templates
+          .indexWhere((t) => t.id == _selectedTemplateId);
+      if (templateIndex != -1) {
+        strategyDisplay = backtestingProvider.templates[templateIndex].name;
+      }
+    }
 
     return Column(
       children: [
@@ -857,7 +1623,9 @@ class _AgenticTradingSettingsWidgetState
                             ),
                           ),
                           Text(
-                            isEnabled ? 'Active & Monitoring' : 'Paused',
+                            isEnabled
+                                ? 'Active • $strategyDisplay'
+                                : 'Paused • $strategyDisplay',
                             style: TextStyle(
                               fontSize: 13,
                               color: isEnabled
@@ -865,6 +1633,8 @@ class _AgenticTradingSettingsWidgetState
                                   : colorScheme.onSurfaceVariant,
                               fontWeight: isEnabled ? FontWeight.w600 : null,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -1001,7 +1771,7 @@ class _AgenticTradingSettingsWidgetState
                                           as bool? ??
                                       true)
                                   ? 'All Green'
-                                  : 'Min Strength',
+                                  : 'Min ${_minSignalStrengthController.text}%',
                               Icons.psychology,
                             ),
                             _buildVerticalDivider(colorScheme),
@@ -1031,21 +1801,47 @@ class _AgenticTradingSettingsWidgetState
                           Expanded(
                             child: _buildMetricCard(
                               context,
-                              'Daily Trades',
+                              'Trades', // Shortened from Daily Trades
                               '${agenticTradingProvider.dailyTradeCount}/${int.tryParse(_dailyTradeLimitController.text) ?? 5}',
                               Icons.receipt_long,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 4), // Reduced spacing from 8
                           Expanded(
                             child: _buildMetricCard(
                               context,
-                              'Last Trade',
+                              'Last', // Shortened from Last Trade
                               agenticTradingProvider.lastAutoTradeTime != null
                                   ? _formatTime(
                                       agenticTradingProvider.lastAutoTradeTime!)
                                   : '--:--',
                               Icons.history,
+                              onTap: () {
+                                if (agenticTradingProvider
+                                        .lastAutoTradeResult !=
+                                    null) {
+                                  _showLastExecutionDetails(
+                                      context, agenticTradingProvider);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 4), // Reduced spacing from 8
+                          Expanded(
+                            child: _buildMetricCard(
+                              context,
+                              'Perf', // Shortened from Performance
+                              'View >',
+                              Icons.analytics,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AgenticTradingPerformanceWidget(),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -1120,50 +1916,88 @@ class _AgenticTradingSettingsWidgetState
                                 ],
                               ),
                             ),
-                            FilledButton.icon(
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Run Auto-Trade?'),
-                                    content: const Text(
-                                        'This will immediately analyze the market and execute trades based on your strategy. Are you sure?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: const Text('Run Now'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (!context.mounted) return;
-
-                                if (confirm == true) {
-                                  agenticTradingProvider.runAutoTradeCycle(
+                            SizedBox(
+                              height: 36,
+                              child: OutlinedButton.icon(
+                                onPressed: (isEnabled)
+                                    ? (agenticTradingProvider
+                                            .emergencyStopActivated
+                                        ? null
+                                        : () {
+                                            agenticTradingProvider
+                                                .activateEmergencyStop(
+                                              userDocRef: widget.userDocRef,
+                                            );
+                                          })
+                                    : null,
+                                icon: const Icon(Icons.stop_circle_outlined,
+                                    size: 18),
+                                label: const Text('Stop',
+                                    style: TextStyle(fontSize: 13)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: colorScheme.error,
+                                  side: BorderSide(
+                                      color: isEnabled
+                                          ? colorScheme.error
+                                              .withValues(alpha: 0.5)
+                                          : colorScheme.error
+                                              .withValues(alpha: 0.2)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 36,
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
                                     context: context,
-                                    brokerageService: widget.service,
-                                    userDocRef: widget.userDocRef,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Run Auto-Trade?'),
+                                      content: const Text(
+                                          'This will immediately analyze the market and execute trades based on your strategy. Are you sure?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text('Run Now'),
+                                        ),
+                                      ],
+                                    ),
                                   );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Auto-trade cycle triggered manually'),
-                                        duration: Duration(seconds: 2),
-                                      ),
+
+                                  if (!context.mounted) return;
+
+                                  if (confirm == true) {
+                                    agenticTradingProvider.runAutoTradeCycle(
+                                      context: context,
+                                      brokerageService: widget.service,
+                                      userDocRef: widget.userDocRef,
                                     );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Auto-trade cycle triggered manually'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
                                   }
-                                }
-                              },
-                              icon: const Icon(Icons.play_arrow_rounded),
-                              label: const Text('Run Now'),
+                                },
+                                icon: const Icon(Icons.play_arrow_rounded,
+                                    size: 18),
+                                label: const Text('Run',
+                                    style: TextStyle(fontSize: 13)),
+                              ),
                             ),
                           ],
                         ),
@@ -1183,601 +2017,6 @@ class _AgenticTradingSettingsWidgetState
                 ),
             ],
           ),
-        ),
-
-        // Last Execution Result
-        Consumer<AgenticTradingProvider>(
-          builder: (context, agenticTradingProvider, child) {
-            final hasAutoTradeResult =
-                agenticTradingProvider.lastAutoTradeResult != null;
-
-            if (!hasAutoTradeResult) {
-              return const SizedBox.shrink();
-            }
-
-            final result = agenticTradingProvider.lastAutoTradeResult;
-            final isSuccess = result!['success'] == true;
-
-            DateTime? executionTime;
-            if (result.containsKey('timestamp')) {
-              final ts = result['timestamp'];
-              if (ts is String) {
-                executionTime = DateTime.tryParse(ts);
-              } else if (ts is int) {
-                executionTime = DateTime.fromMillisecondsSinceEpoch(ts);
-              }
-            }
-            // Fallback to now if no timestamp
-            executionTime ??= DateTime.now();
-
-            final message = result['message']?.toString() ?? 'No message';
-
-            final trades =
-                result['trades'] is List ? result['trades'] as List : [];
-
-            final processedSignals = result['processedSignals'] is List
-                ? result['processedSignals'] as List
-                : [];
-
-            return Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSuccess
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : colorScheme.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSuccess
-                          ? Colors.green.withValues(alpha: 0.3)
-                          : colorScheme.error.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            isSuccess
-                                ? Icons.check_circle
-                                : Icons.error_outline,
-                            size: 18,
-                            color: isSuccess ? Colors.green : colorScheme.error,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Last Execution',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          if (agenticTradingProvider.isAutoTrading) ...[
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              width: 10,
-                              height: 10,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                          const Spacer(),
-                          Text(
-                            _formatTime(executionTime),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Tooltip(
-                        message: message,
-                        triggerMode: TooltipTriggerMode.tap,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                message,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (trades.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Executed Trades:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        ...trades.map((trade) {
-                          final symbol = trade['symbol'] ?? 'Unknown';
-                          final side = trade['side'] ?? 'Unknown';
-                          final quantity = trade['quantity'] ?? 0;
-                          final price = trade['price'];
-                          return Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surface.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: side.toString().toLowerCase() ==
-                                            'buy'
-                                        ? Colors.green.withValues(alpha: 0.2)
-                                        : Colors.red.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    side.toString().toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          side.toString().toLowerCase() == 'buy'
-                                              ? Colors.green
-                                              : Colors.red,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$quantity $symbol',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                if (price != null) ...[
-                                  const Spacer(),
-                                  Text(
-                                    '@ \$${price.toString()}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontFamily: 'RobotoMono',
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        }),
-                      ],
-                      if (agenticTradingProvider
-                          .signalProcessingHistory.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        ExpansionTile(
-                          shape: const Border(),
-                          tilePadding: EdgeInsets.zero,
-                          title: Row(
-                            children: [
-                              Text(
-                                'Processed Signals',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.secondaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${agenticTradingProvider.signalProcessingHistory.length}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.onSecondaryContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          initiallyExpanded: true,
-                          children: [
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: agenticTradingProvider
-                                  .signalProcessingHistory
-                                  .take(20)
-                                  .length,
-                              itemBuilder: (context, index) {
-                                final s = agenticTradingProvider
-                                    .signalProcessingHistory[index];
-                                final symbol =
-                                    s['symbol'] as String? ?? "Unknown";
-                                final price = s['currentPrice'];
-                                final strength = s['multiIndicatorResult']
-                                    ?['signalStrength'] as int?;
-                                final isAccepted =
-                                    s['processedStatus'] == 'Accepted';
-                                final rejectionReason =
-                                    s['rejectionReason'] as String?;
-                                final optimization =
-                                    s['optimization'] as Map<String, dynamic>?;
-                                final timestamp = s['timestamp'] as int?;
-
-                                return Card(
-                                  elevation: 0,
-                                  color: colorScheme.surfaceContainerLow,
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
-                                      color: colorScheme.outlineVariant
-                                          .withOpacity(0.5),
-                                    ),
-                                  ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: Row(
-                                            children: [
-                                              Text('$symbol Signal'),
-                                              const Spacer(),
-                                              if (strength != null)
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: (strength >= 80
-                                                            ? Colors.green
-                                                            : (strength >= 60
-                                                                ? Colors.orange
-                                                                : Colors.red))
-                                                        .withOpacity(0.1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  child: Text(
-                                                    '$strength%',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: strength >= 80
-                                                          ? Colors.green
-                                                          : (strength >= 60
-                                                              ? Colors.orange
-                                                              : Colors.red),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          content: SingleChildScrollView(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                _buildDetailRow(
-                                                    'Status',
-                                                    isAccepted
-                                                        ? 'Accepted'
-                                                        : 'Rejected',
-                                                    color: isAccepted
-                                                        ? Colors.green
-                                                        : Colors.red),
-                                                if (price != null)
-                                                  _buildDetailRow('Price',
-                                                      '\$${price.toStringAsFixed(2)}'),
-                                                if (timestamp != null)
-                                                  _buildDetailRow(
-                                                      'Time',
-                                                      DateFormat(
-                                                              'MMM d, yyyy h:mm:ss a')
-                                                          .format(DateTime
-                                                              .fromMillisecondsSinceEpoch(
-                                                                  timestamp))),
-                                                if (rejectionReason !=
-                                                    null) ...[
-                                                  const SizedBox(height: 12),
-                                                  const Text(
-                                                      'Rejection Reason:',
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold)),
-                                                  const SizedBox(height: 4),
-                                                  Text(rejectionReason,
-                                                      style: TextStyle(
-                                                          color: colorScheme
-                                                              .error)),
-                                                ],
-                                                if (optimization != null) ...[
-                                                  const SizedBox(height: 12),
-                                                  const Text('AI Optimization:',
-                                                      style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold)),
-                                                  const SizedBox(height: 4),
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: colorScheme
-                                                          .primaryContainer
-                                                          .withOpacity(0.3),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                            'Signal: ${optimization['refinedSignal']}'),
-                                                        Text(
-                                                            'Confidence: ${optimization['confidenceScore']}%'),
-                                                        const SizedBox(
-                                                            height: 4),
-                                                        Text(
-                                                            'Reasoning: ${optimization['reasoning']}',
-                                                            style:
-                                                                const TextStyle(
-                                                                    fontSize:
-                                                                        12)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: const Text('Close'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                isAccepted
-                                                    ? Icons.check_circle
-                                                    : Icons.cancel,
-                                                color: isAccepted
-                                                    ? Colors.green
-                                                    : Colors.red,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                symbol,
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15),
-                                              ),
-                                              if (price != null) ...[
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  '\$${price.toStringAsFixed(2)}',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ],
-                                              const Spacer(),
-                                              if (strength != null)
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: (strength >= 80
-                                                            ? Colors.green
-                                                            : (strength >= 60
-                                                                ? Colors.orange
-                                                                : Colors.red))
-                                                        .withOpacity(0.1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
-                                                  ),
-                                                  child: Text(
-                                                    '$strength%',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: strength >= 80
-                                                          ? Colors.green
-                                                          : (strength >= 60
-                                                              ? Colors.orange
-                                                              : Colors.red),
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          if (rejectionReason != null ||
-                                              optimization != null ||
-                                              timestamp != null) ...[
-                                            const SizedBox(height: 8),
-                                            if (rejectionReason != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    bottom: 4),
-                                                child: Text(
-                                                  rejectionReason,
-                                                  style: TextStyle(
-                                                    color: colorScheme.error,
-                                                    fontSize: 12,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            if (optimization != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    bottom: 4),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.auto_awesome,
-                                                        size: 12,
-                                                        color: colorScheme
-                                                            .primary),
-                                                    const SizedBox(width: 4),
-                                                    Expanded(
-                                                      child: Text(
-                                                        'AI: ${optimization['refinedSignal']} (${optimization['confidenceScore']}%)',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: colorScheme
-                                                              .primary,
-                                                        ),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            if (timestamp != null)
-                                              Text(
-                                                DateFormat('MMM d, h:mm a')
-                                                    .format(DateTime
-                                                        .fromMillisecondsSinceEpoch(
-                                                            timestamp)),
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: colorScheme
-                                                      .onSurfaceVariant
-                                                      .withOpacity(0.6),
-                                                ),
-                                              ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-
-        const SizedBox(height: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            OutlinedButton.icon(
-              onPressed: (isEnabled)
-                  ? (agenticTradingProvider.emergencyStopActivated
-                      ? null
-                      : () {
-                          agenticTradingProvider.activateEmergencyStop(
-                            userDocRef: widget.userDocRef,
-                          );
-                        })
-                  : null,
-              icon: const Icon(Icons.stop_circle_outlined),
-              label: const Text('Emergency Stop'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.error,
-                side: BorderSide(
-                    color: isEnabled
-                        ? colorScheme.error
-                        : colorScheme.error.withValues(alpha: 0.3)),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const AgenticTradingPerformanceWidget(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.analytics_outlined),
-              label: const Text('View Performance'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.secondaryContainer,
-                foregroundColor: colorScheme.onSecondaryContainer,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );
@@ -1931,6 +2170,80 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  Widget _buildSymbolFilterInput(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Symbol Filter (Whitelist)',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'If added, only these symbols will be traded. Leave empty to trade all supported symbols.',
+          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          children: [
+            ..._symbolFilter.map((symbol) => Chip(
+                  label: Text(symbol),
+                  onDeleted: () {
+                    setState(() {
+                      _symbolFilter.remove(symbol);
+                    });
+                    _saveSettings();
+                  },
+                )),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 16),
+              label: const Text('Add'),
+              onPressed: () {
+                _showAddSymbolDialog(context);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showAddSymbolDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Symbol'),
+        content: TextField(
+          controller: _newSymbolController,
+          decoration: const InputDecoration(labelText: 'Symbol (e.g. AAPL)'),
+          textCapitalization: TextCapitalization.characters,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final symbol = _newSymbolController.text.trim().toUpperCase();
+              if (symbol.isNotEmpty && !_symbolFilter.contains(symbol)) {
+                setState(() {
+                  _symbolFilter.add(symbol);
+                });
+                _newSymbolController.clear();
+                _saveSettings();
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildExecutionSettings(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -2020,91 +2333,7 @@ class _AgenticTradingSettingsWidgetState
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        _buildSwitchListTile(
-          'requireApproval',
-          'Require Approval',
-          'Review trades before execution',
-          agenticTradingProvider,
-          defaultValue: false,
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _tradeQuantityController,
-          decoration: InputDecoration(
-            labelText: 'Trade Quantity',
-            helperText: 'Number of shares per trade',
-            prefixIcon: const Icon(Icons.shopping_cart),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            filled: true,
-            fillColor: colorScheme.surface,
-          ),
-          keyboardType: TextInputType.number,
-          onChanged: (_) => _saveSettings(),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a value';
-            }
-            if (int.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _dailyTradeLimitController,
-          decoration: InputDecoration(
-            labelText: 'Daily Trade Limit',
-            helperText: 'Maximum trades per day',
-            prefixIcon: const Icon(Icons.calendar_today),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            filled: true,
-            fillColor: colorScheme.surface,
-          ),
-          keyboardType: TextInputType.number,
-          onChanged: (_) => _saveSettings(),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a value';
-            }
-            final parsed = int.tryParse(value);
-            if (parsed == null || parsed < 1) {
-              return 'Must be at least 1';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _autoTradeCooldownController,
-          decoration: InputDecoration(
-            labelText: 'Cooldown Period (minutes)',
-            helperText: 'Minimum time between trades',
-            prefixIcon: const Icon(Icons.timer),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            filled: true,
-            fillColor: colorScheme.surface,
-          ),
-          keyboardType: TextInputType.number,
-          onChanged: (_) => _saveSettings(),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a value';
-            }
-            final parsed = int.tryParse(value);
-            if (parsed == null || parsed < 1) {
-              return 'Must be at least 1';
-            }
-            return null;
-          },
-        ),
+
         const SizedBox(height: 16),
         // Extended Trading Hours Section
         Row(
@@ -2204,6 +2433,39 @@ class _AgenticTradingSettingsWidgetState
       title: 'Risk Management',
       icon: Icons.security,
       children: [
+        _buildSwitchListTile(
+          'requireApproval',
+          'Require Approval',
+          'Review trades before execution',
+          agenticTradingProvider,
+          defaultValue: false,
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _tradeQuantityController,
+          decoration: InputDecoration(
+            labelText: 'Trade Quantity',
+            helperText: 'Number of shares per trade',
+            prefixIcon: const Icon(Icons.shopping_cart),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            if (int.tryParse(value) == null) {
+              return 'Please enter a valid number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _maxPositionSizeController,
           decoration: InputDecoration(
@@ -2258,27 +2520,55 @@ class _AgenticTradingSettingsWidgetState
           },
         ),
         const SizedBox(height: 16),
+        _buildSymbolFilterInput(context),
+        const SizedBox(height: 16),
         TextFormField(
-          controller: _maxDailyLossPercentController,
+          controller: _dailyTradeLimitController,
           decoration: InputDecoration(
-            labelText: 'Max Daily Loss %',
-            helperText: 'Stop trading if loss exceeds this %',
-            prefixIcon: const Icon(Icons.trending_down),
+            labelText: 'Daily Trade Limit',
+            helperText: 'Maximum trades per day',
+            prefixIcon: const Icon(Icons.calendar_today),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             filled: true,
             fillColor: colorScheme.surface,
           ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: TextInputType.number,
           onChanged: (_) => _saveSettings(),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter a value';
             }
-            final parsed = double.tryParse(value);
-            if (parsed == null || parsed <= 0) {
-              return 'Must be greater than 0';
+            final parsed = int.tryParse(value);
+            if (parsed == null || parsed < 1) {
+              return 'Must be at least 1';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _autoTradeCooldownController,
+          decoration: InputDecoration(
+            labelText: 'Cooldown Period (minutes)',
+            helperText: 'Minimum time between trades',
+            prefixIcon: const Icon(Icons.timer),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            filled: true,
+            fillColor: colorScheme.surface,
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _saveSettings(),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a value';
+            }
+            final parsed = int.tryParse(value);
+            if (parsed == null || parsed < 1) {
+              return 'Must be at least 1';
             }
             return null;
           },
@@ -2598,10 +2888,7 @@ class _AgenticTradingSettingsWidgetState
               children: [
                 Expanded(
                   child: TextFormField(
-                    initialValue: (agenticTradingProvider
-                                .config['trailingStopPercent'] as double? ??
-                            3.0)
-                        .toStringAsFixed(1),
+                    controller: _trailingStopPercentController,
                     decoration: InputDecoration(
                       labelText: 'Trailing Stop %',
                       helperText: 'Sell if price falls by this % from the peak',
@@ -2659,9 +2946,15 @@ class _AgenticTradingSettingsWidgetState
                     textAlign: TextAlign.center,
                   ),
                 ),
-              ..._exitStages.asMap().entries.map((entry) {
-                final index = entry.key;
-                final stage = entry.value;
+              ...List.generate(_exitStages.length, (index) {
+                final stage = _exitStages[index];
+                // Safety check for controllers
+                if (index >= _exitStageProfitControllers.length) {
+                  return const SizedBox.shrink();
+                }
+                final profitController = _exitStageProfitControllers[index];
+                final quantityController = _exitStageQuantityControllers[index];
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
@@ -2695,6 +2988,10 @@ class _AgenticTradingSettingsWidgetState
                             onTap: () {
                               setState(() {
                                 _exitStages.removeAt(index);
+                                _exitStageProfitControllers[index].dispose();
+                                _exitStageProfitControllers.removeAt(index);
+                                _exitStageQuantityControllers[index].dispose();
+                                _exitStageQuantityControllers.removeAt(index);
                               });
                               _saveSettings();
                             },
@@ -2718,8 +3015,7 @@ class _AgenticTradingSettingsWidgetState
                         children: [
                           Expanded(
                             child: TextFormField(
-                              initialValue:
-                                  stage.profitTargetPercent.toString(),
+                              controller: profitController,
                               decoration: InputDecoration(
                                 labelText: 'Profit Target',
                                 suffixText: '%',
@@ -2752,8 +3048,7 @@ class _AgenticTradingSettingsWidgetState
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
-                              initialValue:
-                                  (stage.quantityPercent * 100).toString(),
+                              controller: quantityController,
                               decoration: InputDecoration(
                                 labelText: 'Sell Amount',
                                 suffixText: '%',
@@ -2806,9 +3101,14 @@ class _AgenticTradingSettingsWidgetState
                 child: OutlinedButton.icon(
                   onPressed: () {
                     setState(() {
-                      _exitStages.add(ExitStage(
+                      final newStage = ExitStage(
                           profitTargetPercent: _exitStages.isEmpty ? 5.0 : 10.0,
-                          quantityPercent: 0.5));
+                          quantityPercent: 0.5);
+                      _exitStages.add(newStage);
+                      _exitStageProfitControllers.add(TextEditingController(
+                          text: newStage.profitTargetPercent.toString()));
+                      _exitStageQuantityControllers.add(TextEditingController(
+                          text: (newStage.quantityPercent * 100).toString()));
                     });
                     _saveSettings();
                   },
@@ -2963,6 +3263,7 @@ class _AgenticTradingSettingsWidgetState
                             _buildDocSection('vwap'),
                             _buildDocSection('adx'),
                             _buildDocSection('williamsR'),
+                            _buildDocSection('ichimoku'),
                           ],
                         ),
                       ),
@@ -2989,36 +3290,11 @@ class _AgenticTradingSettingsWidgetState
           ),
           child: Column(
             children: [
-              RadioListTile<bool>(
-                title: const Text('Require All Indicators Green'),
-                subtitle: const Text(
-                    'All enabled indicators must be BUY for a signal'),
-                value: true,
-                groupValue: agenticTradingProvider
-                        .config['requireAllIndicatorsGreen'] ??
-                    true,
-                onChanged: (value) {
-                  setState(() {
-                    agenticTradingProvider.config['requireAllIndicatorsGreen'] =
-                        value;
-                  });
-                  _saveSettings();
-                },
-              ),
-              RadioListTile<bool>(
-                title: const Text('Minimum Signal Strength'),
-                subtitle: const Text('Use a score threshold (0-100)'),
-                value: false,
-                groupValue: agenticTradingProvider
-                        .config['requireAllIndicatorsGreen'] ??
-                    true,
-                onChanged: (value) {
-                  setState(() {
-                    agenticTradingProvider.config['requireAllIndicatorsGreen'] =
-                        value;
-                  });
-                  _saveSettings();
-                },
+              _buildSwitchListTile(
+                'requireAllIndicatorsGreen',
+                'Strict Entry Mode',
+                'Require ALL enabled indicators to be green',
+                agenticTradingProvider,
               ),
               if (agenticTradingProvider.config['requireAllIndicatorsGreen'] ==
                   false)
@@ -3028,8 +3304,8 @@ class _AgenticTradingSettingsWidgetState
                     controller: _minSignalStrengthController,
                     decoration: InputDecoration(
                       labelText: 'Min Signal Strength',
-                      helperText: 'Default: 75',
-                      suffixText: '/ 100',
+                      helperText: 'Minimum confidence score required',
+                      suffixText: '%',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -3151,6 +3427,12 @@ class _AgenticTradingSettingsWidgetState
           'Williams %R',
           'Momentum oscillator - overbought/oversold conditions',
           icon: Icons.percent,
+        ),
+        _buildIndicatorToggle(
+          'ichimoku',
+          'Ichimoku Cloud',
+          'Trend, support/resistance, and momentum (Tenkan/Kijun/Kumo)',
+          icon: Icons.cloud,
         ),
         const SizedBox(height: 8),
         const Divider(),
@@ -3331,8 +3613,6 @@ class _AgenticTradingSettingsWidgetState
                     int.tryParse(_dailyTradeLimitController.text) ?? 5,
                 'autoTradeCooldownMinutes':
                     int.tryParse(_autoTradeCooldownController.text) ?? 60,
-                'maxDailyLossPercent':
-                    double.tryParse(_maxDailyLossPercentController.text) ?? 2.0,
                 'takeProfitPercent':
                     double.tryParse(_takeProfitPercentController.text) ?? 10.0,
                 'stopLossPercent':
@@ -3409,9 +3689,11 @@ class _AgenticTradingSettingsWidgetState
                     false,
                 'enableDynamicPositionSizing': _enableDynamicPositionSizing,
                 'riskPerTrade':
-                    double.tryParse(_riskPerTradeController.text) ?? 0.02,
+                    (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
+                        100.0,
                 'atrMultiplier':
                     double.tryParse(_atrMultiplierController.text) ?? 2.0,
+                'symbolFilter': _symbolFilter,
               };
 
               final config = AgenticTradingConfig.fromJson(configMap);
@@ -3474,72 +3756,417 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildMetricCard(
-      BuildContext context, String label, String value, IconData icon) {
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
           color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      color: colorScheme.surface,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 16, color: colorScheme.primary),
-              const SizedBox(width: 6),
+              Row(
+                children: [
+                  Icon(icon, size: 14, color: colorScheme.primary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
+  void _showLastExecutionDetails(
+      BuildContext context, AgenticTradingProvider provider) {
+    if (provider.lastAutoTradeResult == null) return;
+
+    final result = provider.lastAutoTradeResult!;
+    final isSuccess = result['success'] == true;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    DateTime? executionTime;
+    if (result.containsKey('timestamp')) {
+      final ts = result['timestamp'];
+      if (ts is String) {
+        executionTime = DateTime.tryParse(ts);
+      } else if (ts is int) {
+        executionTime = DateTime.fromMillisecondsSinceEpoch(ts);
+      }
+    }
+    executionTime ??= DateTime.now();
+    final message = result['message']?.toString() ?? 'No message';
+    final isNoAction = !isSuccess &&
+        (message.contains('No trades executed') ||
+            message.contains('No BUY signals') ||
+            message.contains('No signals'));
+    final trades = result['trades'] is List ? result['trades'] as List : [];
+    final signals = (result['processedSignals'] is List &&
+            (result['processedSignals'] as List).isNotEmpty)
+        ? (result['processedSignals'] as List)
+        : provider.signalProcessingHistory.take(20).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              'Last Execution',
               style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: color,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isSuccess
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : (isNoAction
+                        ? Colors.orange.withValues(alpha: 0.1)
+                        : colorScheme.error.withValues(alpha: 0.1)),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSuccess
+                      ? Colors.green.withValues(alpha: 0.3)
+                      : (isNoAction
+                          ? Colors.orange.withValues(alpha: 0.3)
+                          : colorScheme.error.withValues(alpha: 0.3)),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        isSuccess
+                            ? Icons.check_circle
+                            : (isNoAction
+                                ? Icons.info_outline
+                                : Icons.error_outline),
+                        size: 20,
+                        color: isSuccess
+                            ? Colors.green
+                            : (isNoAction ? Colors.orange : colorScheme.error),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isSuccess
+                            ? 'Success'
+                            : (isNoAction ? 'No Action' : 'Failed'),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isSuccess
+                              ? Colors.green
+                              : (isNoAction
+                                  ? Colors.orange
+                                  : colorScheme.error),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _formatTime(executionTime!),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (trades.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Executed Trades',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...trades.map((trade) {
+                final symbol = trade['symbol'] ?? 'Unknown';
+                final side = trade['side'] ?? 'Unknown';
+                final quantity = trade['quantity'] ?? 0;
+                final price = trade['price'];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  elevation: 0,
+                  color: colorScheme.surfaceContainer,
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: side.toString().toLowerCase() == 'buy'
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        side.toString().substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: side.toString().toLowerCase() == 'buy'
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ),
+                    title: Text('$quantity $symbol'),
+                    subtitle:
+                        price != null ? Text('@ \$${price.toString()}') : null,
+                  ),
+                );
+              }),
+            ],
+            if (signals.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Processed Signals',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...signals.map((s) {
+                final symbol = s['symbol'] as String? ?? "Unknown";
+                final strength =
+                    s['multiIndicatorResult']?['signalStrength'] as int?;
+                final isAccepted = s['processedStatus'] == 'Accepted';
+                final rejectionReason = s['rejectionReason'] as String?;
+                final optimization = s['optimization'] as Map<String, dynamic>?;
+                final price = s['currentPrice'];
+                final timestamp = s['timestamp'] as int?;
+
+                return Card(
+                  elevation: 0,
+                  color: colorScheme.surfaceContainerLow,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isAccepted ? Icons.check_circle : Icons.cancel,
+                              color: isAccepted ? Colors.green : Colors.red,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              symbol,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            if (price != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '\$${price.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            const Spacer(),
+                            if (strength != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (strength >= 80
+                                          ? Colors.green
+                                          : (strength >= 60
+                                              ? Colors.orange
+                                              : Colors.red))
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '$strength%',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: strength >= 80
+                                        ? Colors.green
+                                        : (strength >= 60
+                                            ? Colors.orange
+                                            : Colors.red),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (rejectionReason != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              rejectionReason,
+                              style: TextStyle(
+                                color: colorScheme.error,
+                                fontSize: 12,
+                              ),
+                            ),
+                          )
+                        else if (isAccepted)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Signal accepted',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        if (optimization != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer
+                                    .withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.auto_awesome,
+                                          size: 12, color: colorScheme.primary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'AI Optimization',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${optimization['refinedSignal']} (${optimization['confidenceScore']}%)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  if (optimization['reasoning'] != null)
+                                    Text(
+                                      optimization['reasoning'],
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (timestamp != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              DateFormat('MMM d, h:mm a').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                      timestamp)),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
       ),
     );
   }

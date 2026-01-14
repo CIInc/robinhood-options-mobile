@@ -17,7 +17,6 @@ void main() {
         autoTradeEnabled: true,
         dailyTradeLimit: 10,
         autoTradeCooldownMinutes: 30,
-        maxDailyLossPercent: 1.5,
         takeProfitPercent: 15.0,
         stopLossPercent: 7.5,
         enableDynamicPositionSizing: true,
@@ -50,7 +49,6 @@ void main() {
       expect(json['autoTradeEnabled'], equals(true));
       expect(json['dailyTradeLimit'], equals(10));
       expect(json['autoTradeCooldownMinutes'], equals(30));
-      expect(json['maxDailyLossPercent'], equals(1.5));
       expect(json['enableDynamicPositionSizing'], equals(true));
       expect(json['riskPerTrade'], equals(0.02));
       expect(json['atrMultiplier'], equals(2.5));
@@ -76,7 +74,6 @@ void main() {
       expect(deserializedConfig.autoTradeEnabled, equals(true));
       expect(deserializedConfig.dailyTradeLimit, equals(10));
       expect(deserializedConfig.autoTradeCooldownMinutes, equals(30));
-      expect(deserializedConfig.maxDailyLossPercent, equals(1.5));
       expect(deserializedConfig.takeProfitPercent, equals(15.0));
       expect(deserializedConfig.stopLossPercent, equals(7.5));
       expect(
@@ -98,7 +95,6 @@ void main() {
       expect(config.autoTradeEnabled, equals(false));
       expect(config.dailyTradeLimit, equals(5));
       expect(config.autoTradeCooldownMinutes, equals(60));
-      expect(config.maxDailyLossPercent, equals(2.0));
       expect(config.takeProfitPercent, equals(10.0));
       expect(config.stopLossPercent, equals(5.0));
 
@@ -149,7 +145,6 @@ void main() {
       expect(config.autoTradeEnabled, equals(false));
       expect(config.dailyTradeLimit, equals(5));
       expect(config.autoTradeCooldownMinutes, equals(60));
-      expect(config.maxDailyLossPercent, equals(2.0));
     });
 
     test('AgenticTradingConfig copyWith should work correctly', () {
@@ -180,13 +175,11 @@ void main() {
       final config = AgenticTradingConfig(
         autoTradeEnabled: true,
         dailyTradeLimit: 5,
-        maxDailyLossPercent: 2.0,
         maxPortfolioConcentration: 0.5,
       );
 
       // Verify risk management fields are set correctly
       expect(config.dailyTradeLimit, equals(5));
-      expect(config.maxDailyLossPercent, equals(2.0));
       expect(config.maxPortfolioConcentration, equals(0.5));
     });
   });

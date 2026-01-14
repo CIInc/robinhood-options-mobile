@@ -816,90 +816,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
             ),
             SliverToBoxAdapter(
-              child: PerformanceChartWidget(
-                futureMarketIndexHistoricalsSp500:
-                    futureMarketIndexHistoricalsSp500,
-                futureMarketIndexHistoricalsNasdaq:
-                    futureMarketIndexHistoricalsNasdaq,
-                futureMarketIndexHistoricalsDow:
-                    futureMarketIndexHistoricalsDow,
-                futureMarketIndexHistoricalsRussell2000:
-                    futureMarketIndexHistoricalsRussell2000,
-                futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
-                benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
-                onFilterChanged: (span) {
-                  setState(() {
-                    benchmarkChartDateSpanFilter = span;
-                    _loadPortfolioHistoricals();
-                    _loadMarketIndices();
-                  });
-                },
-              ),
-            ),
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-                widget.brokerageUser!.source == BrokerageSource.demo)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: PortfolioAnalyticsWidget(
-                    user: widget.brokerageUser!,
-                    service: widget.service!,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    appUser: widget.user,
-                    userDocRef: widget.userDoc,
-                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
-                    futureMarketIndexHistoricalsSp500:
-                        futureMarketIndexHistoricalsSp500,
-                    futureMarketIndexHistoricalsNasdaq:
-                        futureMarketIndexHistoricalsNasdaq,
-                    futureMarketIndexHistoricalsDow:
-                        futureMarketIndexHistoricalsDow,
-                    futureMarketIndexHistoricalsRussell2000:
-                        futureMarketIndexHistoricalsRussell2000,
-                  ),
-                ),
-              ),
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-                widget.brokerageUser!.source == BrokerageSource.demo) ...[
-              Consumer2<DividendStore, InterestStore>(
-                  //, ChartSelectionStore
-                  builder: (context, dividendStore, interestStore, child) {
-                //, chartSelectionStore
-                // var dividendStore =
-                //     Provider.of<DividendStore>(context, listen: false);
-                // var interestStore =
-                //     Provider.of<InterestStore>(context, listen: false);
-                var instrumentPositionStore =
-                    Provider.of<InstrumentPositionStore>(context,
-                        listen: false);
-                var instrumentOrderStore =
-                    Provider.of<InstrumentOrderStore>(context, listen: false);
-                var chartSelectionStore =
-                    Provider.of<ChartSelectionStore>(context, listen: false);
-                return IncomeTransactionsWidget(
-                    widget.brokerageUser!,
-                    widget.service!,
-                    dividendStore,
-                    instrumentPositionStore,
-                    instrumentOrderStore,
-                    chartSelectionStore,
-                    interestStore: interestStore,
-                    showChips: false,
-                    showList: false,
-                    showFooter: false,
-                    analytics: widget.analytics,
-                    observer: widget.observer);
-              }),
-            ],
-            SliverToBoxAdapter(
               child:
                   // Promote Automated Trading & Backtesting
                   Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    const EdgeInsetsGeometry.fromLTRB(16.0, 16.0, 16.0, 8.0),
                 child: Card(
                   elevation: 0,
                   color: Theme.of(context)
@@ -1042,6 +963,86 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: PerformanceChartWidget(
+                futureMarketIndexHistoricalsSp500:
+                    futureMarketIndexHistoricalsSp500,
+                futureMarketIndexHistoricalsNasdaq:
+                    futureMarketIndexHistoricalsNasdaq,
+                futureMarketIndexHistoricalsDow:
+                    futureMarketIndexHistoricalsDow,
+                futureMarketIndexHistoricalsRussell2000:
+                    futureMarketIndexHistoricalsRussell2000,
+                futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
+                benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
+                onFilterChanged: (span) {
+                  setState(() {
+                    benchmarkChartDateSpanFilter = span;
+                    _loadPortfolioHistoricals();
+                    _loadMarketIndices();
+                  });
+                },
+              ),
+            ),
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: PortfolioAnalyticsWidget(
+                    user: widget.brokerageUser!,
+                    service: widget.service!,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.user,
+                    userDocRef: widget.userDoc,
+                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+                    futureMarketIndexHistoricalsSp500:
+                        futureMarketIndexHistoricalsSp500,
+                    futureMarketIndexHistoricalsNasdaq:
+                        futureMarketIndexHistoricalsNasdaq,
+                    futureMarketIndexHistoricalsDow:
+                        futureMarketIndexHistoricalsDow,
+                    futureMarketIndexHistoricalsRussell2000:
+                        futureMarketIndexHistoricalsRussell2000,
+                  ),
+                ),
+              ),
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo) ...[
+              Consumer2<DividendStore, InterestStore>(
+                  //, ChartSelectionStore
+                  builder: (context, dividendStore, interestStore, child) {
+                //, chartSelectionStore
+                // var dividendStore =
+                //     Provider.of<DividendStore>(context, listen: false);
+                // var interestStore =
+                //     Provider.of<InterestStore>(context, listen: false);
+                var instrumentPositionStore =
+                    Provider.of<InstrumentPositionStore>(context,
+                        listen: false);
+                var instrumentOrderStore =
+                    Provider.of<InstrumentOrderStore>(context, listen: false);
+                var chartSelectionStore =
+                    Provider.of<ChartSelectionStore>(context, listen: false);
+                return IncomeTransactionsWidget(
+                    widget.brokerageUser!,
+                    widget.service!,
+                    dividendStore,
+                    instrumentPositionStore,
+                    instrumentOrderStore,
+                    chartSelectionStore,
+                    interestStore: interestStore,
+                    showChips: false,
+                    showList: false,
+                    showFooter: false,
+                    analytics: widget.analytics,
+                    observer: widget.observer);
+              }),
+            ],
+
             SliverToBoxAdapter(
               child: Padding(
                 padding:

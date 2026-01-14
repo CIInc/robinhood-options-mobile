@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -114,10 +115,29 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
   final _smaSlowController = TextEditingController(text: '30');
   final _marketIndexController = TextEditingController(text: 'SPY');
 
+  // Advanced Settings
+  final _minSignalStrengthController = TextEditingController(text: '50');
+  final _timeBasedExitController = TextEditingController(text: '120');
+  final _marketCloseExitController = TextEditingController(text: '15');
+  final _riskPerTradeController = TextEditingController(text: '1.0');
+  final _atrMultiplierController = TextEditingController(text: '2.0');
+
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 365));
   DateTime _endDate = DateTime.now();
   String _interval = '1d';
   bool _trailingStopEnabled = false;
+
+  TradeStrategyTemplate? _loadedTemplate;
+
+  // Advanced State
+  bool _requireAllIndicatorsGreen = false;
+  bool _timeBasedExitEnabled = false;
+  bool _marketCloseExitEnabled = false;
+  bool _enablePartialExits = false;
+  bool _enableDynamicPositionSizing = false;
+  List<ExitStage> _exitStages = [];
+  List<CustomIndicatorConfig> _customIndicators = [];
+
   final Map<String, bool> _enabledIndicators = {
     'priceMovement': true,
     'momentum': true,
@@ -152,6 +172,21 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       _smaSlowController.text = config.smaPeriodSlow.toString();
       _marketIndexController.text = config.marketIndexSymbol;
       _enabledIndicators.addAll(config.enabledIndicators);
+
+      // Advanced Init
+      _minSignalStrengthController.text = config.minSignalStrength.toString();
+      _requireAllIndicatorsGreen = config.requireAllIndicatorsGreen;
+      _timeBasedExitEnabled = config.timeBasedExitEnabled;
+      _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
+      _marketCloseExitEnabled = config.marketCloseExitEnabled;
+      _marketCloseExitController.text =
+          config.marketCloseExitMinutes.toString();
+      _enablePartialExits = config.enablePartialExits;
+      _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
+      _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
+      _atrMultiplierController.text = config.atrMultiplier.toString();
+      _exitStages = List.from(config.exitStages);
+      _customIndicators = List.from(config.customIndicators);
     }
   }
 
@@ -167,12 +202,20 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     _smaFastController.dispose();
     _smaSlowController.dispose();
     _marketIndexController.dispose();
+    _minSignalStrengthController.dispose();
+    _timeBasedExitController.dispose();
+    _marketCloseExitController.dispose();
+    _riskPerTradeController.dispose();
+    _atrMultiplierController.dispose();
     super.dispose();
   }
 
-  void _loadFromTemplate(BacktestTemplate template) {
+  void _loadFromTemplate(TradeStrategyTemplate template) {
     setState(() {
-      _symbolController.text = template.config.symbol;
+      _loadedTemplate = template;
+      _symbolController.text = template.config.symbolFilter.isNotEmpty
+          ? template.config.symbolFilter.first
+          : '';
       _initialCapitalController.text =
           template.config.initialCapital.toString();
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
@@ -190,14 +233,388 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       _trailingStopEnabled = template.config.trailingStopEnabled;
       _enabledIndicators.clear();
       _enabledIndicators.addAll(template.config.enabledIndicators);
+
+      _minSignalStrengthController.text =
+          template.config.minSignalStrength.toString();
+      _requireAllIndicatorsGreen = template.config.requireAllIndicatorsGreen;
+      _timeBasedExitEnabled = template.config.timeBasedExitEnabled;
+      _timeBasedExitController.text =
+          template.config.timeBasedExitMinutes.toString();
+      _marketCloseExitEnabled = template.config.marketCloseExitEnabled;
+      _marketCloseExitController.text =
+          template.config.marketCloseExitMinutes.toString();
+      _enablePartialExits = template.config.enablePartialExits;
+      _enableDynamicPositionSizing =
+          template.config.enableDynamicPositionSizing;
+      _riskPerTradeController.text =
+          (template.config.riskPerTrade * 100).toString();
+      _atrMultiplierController.text = template.config.atrMultiplier.toString();
+      _exitStages = List.from(template.config.exitStages);
+      _customIndicators = List.from(template.config.customIndicators);
     });
+  }
+
+  Widget _buildSection({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+    String? subtitle,
+    bool initiallyExpanded = false,
+  }) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: subtitle != null
+              ? Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                )
+              : null,
+          leading: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          children: children,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 24),
+      color: colorScheme.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.science, color: colorScheme.primary),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Backtesting Engine',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Test strategies on historical data',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (_loadedTemplate != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: colorScheme.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.bookmark,
+                          size: 16, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Using Template: ${_loadedTemplate!.name}',
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _loadedTemplate = null;
+                          });
+                        },
+                        child: Icon(Icons.close,
+                            size: 16, color: colorScheme.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            if (_loadedTemplate == null) const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _symbolController,
+                    decoration: InputDecoration(
+                      labelText: 'Symbol',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: colorScheme.surface,
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: '1d', label: Text('1D')),
+                    ButtonSegment(value: '1h', label: Text('1H')),
+                    ButtonSegment(value: '15m', label: Text('15m')),
+                  ],
+                  selected: {_interval},
+                  onSelectionChanged: (Set<String> value) {
+                    setState(() => _interval = value.first);
+                  },
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: WidgetStateProperty.all(EdgeInsets.zero),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () async {
+                final range = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                  initialDateRange:
+                      DateTimeRange(start: _startDate, end: _endDate),
+                );
+                if (range != null) {
+                  setState(() {
+                    _startDate = range.start;
+                    _endDate = range.end;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today,
+                        size: 18, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${DateFormat('MMM dd, yyyy').format(_startDate)} - ${DateFormat('MMM dd, yyyy').format(_endDate)}',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_endDate.difference(_startDate).inDays} days',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    String? helperText,
+    String? suffixText,
+    IconData? prefixIcon,
+    TextInputType keyboardType = TextInputType.number,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        suffixText: suffixText,
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+          ),
+        ),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surface,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      ),
+      keyboardType: keyboardType,
+      validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+    );
+  }
+
+  Widget _buildSwitchListTile(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged, {
+    bool isSecondary = false,
+  }) {
+    return SwitchListTile(
+      title: Text(title,
+          style: TextStyle(
+              fontWeight: isSecondary ? FontWeight.normal : FontWeight.w600,
+              fontSize: isSecondary ? 14 : 16)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      value: value,
+      onChanged: onChanged,
+      contentPadding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  Widget _buildStartButton(BacktestingProvider provider) {
+    return SizedBox(
+      height: 56,
+      child: FilledButton.icon(
+        onPressed: provider.isRunning ? null : _runBacktest,
+        icon: provider.isRunning
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.play_arrow_rounded, size: 28),
+        label: Text(
+          provider.isRunning ? 'Running Simulation...' : 'Start Simulation',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        style: FilledButton.styleFrom(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicatorToggle(String key) {
+    final isEnabled = _enabledIndicators[key] ?? true;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isEnabled
+              ? colorScheme.primary.withOpacity(0.3)
+              : colorScheme.outline.withOpacity(0.2),
+          width: isEnabled ? 1.5 : 1,
+        ),
+      ),
+      child: SwitchListTile(
+        title: Text(
+          _indicatorLabel(key),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isEnabled
+                ? colorScheme.onSurface
+                : colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        subtitle: isEnabled ? _getIndicatorSubtitle(key) : null,
+        value: isEnabled,
+        onChanged: (val) => setState(() => _enabledIndicators[key] = val),
+        activeThumbColor: colorScheme.primary,
+        dense: true,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        tileColor: isEnabled ? colorScheme.primary.withOpacity(0.05) : null,
+      ),
+    );
+  }
+
+  Widget _getIndicatorSubtitle(String key) {
+    // Optional helper to show context about the indicator settings
+    String text = '';
+    if (key == 'momentum') text = 'Period: ${_rsiPeriodController.text}';
+    if (key == 'priceMovement')
+      text = 'S: ${_smaFastController.text} L: ${_smaSlowController.text}';
+    if (key == 'marketDirection')
+      text = 'Index: ${_marketIndexController.text}';
+
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Text(text,
+        style: TextStyle(
+            fontSize: 11, color: Theme.of(context).colorScheme.primary));
   }
 
   Future<void> _runBacktest() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final config = BacktestConfig(
-      symbol: _symbolController.text.trim().toUpperCase(),
+    final config = TradeStrategyConfig(
+      symbolFilter: [_symbolController.text.trim().toUpperCase()],
       startDate: _startDate,
       endDate: _endDate,
       initialCapital: double.parse(_initialCapitalController.text),
@@ -212,6 +629,21 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       smaPeriodFast: int.parse(_smaFastController.text),
       smaPeriodSlow: int.parse(_smaSlowController.text),
       marketIndexSymbol: _marketIndexController.text.trim().toUpperCase(),
+      minSignalStrength:
+          double.tryParse(_minSignalStrengthController.text) ?? 50.0,
+      requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+      timeBasedExitEnabled: _timeBasedExitEnabled,
+      timeBasedExitMinutes: int.tryParse(_timeBasedExitController.text) ?? 120,
+      marketCloseExitEnabled: _marketCloseExitEnabled,
+      marketCloseExitMinutes:
+          int.tryParse(_marketCloseExitController.text) ?? 15,
+      enablePartialExits: _enablePartialExits,
+      enableDynamicPositionSizing: _enableDynamicPositionSizing,
+      riskPerTrade:
+          (double.tryParse(_riskPerTradeController.text) ?? 1.0) / 100.0,
+      atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      exitStages: _exitStages,
+      customIndicators: _customIndicators,
     );
 
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
@@ -239,7 +671,6 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
   Widget build(BuildContext context) {
     return Consumer<BacktestingProvider>(
       builder: (context, provider, child) {
-        // Check if there's a pending template to load
         if (provider.pendingTemplate != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _loadFromTemplate(provider.pendingTemplate!);
@@ -254,505 +685,233 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header info card
-                Card(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
+                _buildStatusHeader(context),
+                _buildSection(
+                  context: context,
+                  title: 'Execution Settings',
+                  icon: Icons.tune,
+                  children: [
+                    Row(
                       children: [
-                        Icon(Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary),
+                        Expanded(
+                          child: _buildTextField(
+                            _initialCapitalController,
+                            'Initial Capital',
+                            prefixIcon: Icons.attach_money,
+                            helperText: 'Starting Value',
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            'Test your strategy on historical data using the same indicators as live trading.',
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                            ),
+                          child: _buildTextField(
+                            _tradeQuantityController,
+                            'Base Quantity',
+                            prefixIcon: Icons.pie_chart,
+                            helperText: 'Shares if sizing disabled',
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Symbol section header
-                Row(
-                  children: [
-                    Icon(Icons.show_chart,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    const Text('Symbol',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Symbol input
-                TextFormField(
-                  controller: _symbolController,
-                  decoration: InputDecoration(
-                    labelText: 'Stock Symbol',
-                    hintText: 'e.g., AAPL, TSLA',
-                    helperText: 'Enter ticker symbol to backtest',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                _buildSection(
+                  context: context,
+                  title: 'Risk Management',
+                  icon: Icons.shield,
+                  children: [
+                    _buildSwitchListTile(
+                      'Dynamic Position Sizing',
+                      'Calculate size based on ATR & Risk %',
+                      _enableDynamicPositionSizing,
+                      (val) =>
+                          setState(() => _enableDynamicPositionSizing = val),
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).colorScheme.surface,
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 24),
-
-                // Date Range section header
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    const Text('Date Range',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Date range
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: _startDate,
-                                firstDate: DateTime(2000),
-                                lastDate: _endDate,
-                              );
-                              if (date != null) {
-                                setState(() => _startDate = date);
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Start Date',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.event),
-                              ),
-                              child: Text(
-                                DateFormat('MMM dd, yyyy').format(_startDate),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(Icons.arrow_forward, size: 20),
-                        ),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final date = await showDatePicker(
-                                context: context,
-                                initialDate: _endDate,
-                                firstDate: _startDate,
-                                lastDate: DateTime.now(),
-                              );
-                              if (date != null) {
-                                setState(() => _endDate = date);
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'End Date',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.event),
-                              ),
-                              child: Text(
-                                DateFormat('MMM dd, yyyy').format(_endDate),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Interval section header
-                Row(
-                  children: [
-                    Icon(Icons.access_time,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    const Text('Interval',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Interval selector
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                        value: '1d',
-                        label: Text('Daily'),
-                        icon: Icon(Icons.calendar_view_day)),
-                    ButtonSegment(
-                        value: '1h',
-                        label: Text('Hourly'),
-                        icon: Icon(Icons.schedule)),
-                    ButtonSegment(
-                        value: '15m',
-                        label: Text('15min'),
-                        icon: Icon(Icons.timer)),
-                  ],
-                  selected: {_interval},
-                  onSelectionChanged: (Set<String> value) {
-                    setState(() => _interval = value.first);
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Trading Parameters section header
-                Row(
-                  children: [
-                    Icon(Icons.tune,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    const Text('Trading Parameters',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        // Capital and trade settings
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _initialCapitalController,
-                                decoration: InputDecoration(
-                                  labelText: 'Initial Capital',
-                                  helperText: 'Starting portfolio value',
-                                  prefixText: '\$',
-                                  prefixIcon:
-                                      const Icon(Icons.account_balance_wallet),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (value) =>
-                                    value?.isEmpty ?? true ? 'Required' : null,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _tradeQuantityController,
-                                decoration: InputDecoration(
-                                  labelText: 'Shares per Trade',
-                                  helperText: 'Position size',
-                                  prefixIcon: const Icon(Icons.shopping_cart),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                                keyboardType: TextInputType.number,
-                                validator: (value) =>
-                                    value?.isEmpty ?? true ? 'Required' : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // TP/SL settings
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _takeProfitController,
-                                decoration: InputDecoration(
-                                  labelText: 'Take Profit %',
-                                  helperText: 'Exit when profit exceeds',
-                                  suffixText: '%',
-                                  prefixIcon: const Icon(Icons.trending_up,
-                                      color: Colors.green),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (value) =>
-                                    value?.isEmpty ?? true ? 'Required' : null,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _stopLossController,
-                                decoration: InputDecoration(
-                                  labelText: 'Stop Loss %',
-                                  helperText: 'Exit when loss exceeds',
-                                  suffixText: '%',
-                                  prefixIcon: const Icon(Icons.trending_down,
-                                      color: Colors.red),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  filled: true,
-                                  fillColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                validator: (value) =>
-                                    value?.isEmpty ?? true ? 'Required' : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Trailing stop
-                        SwitchListTile(
-                          title: const Text('Enable Trailing Stop'),
-                          subtitle:
-                              const Text('Lock in profits as price rises'),
-                          value: _trailingStopEnabled,
-                          onChanged: (value) =>
-                              setState(() => _trailingStopEnabled = value),
-                        ),
-                        if (_trailingStopEnabled)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: TextFormField(
-                              controller: _trailingStopController,
-                              decoration: InputDecoration(
-                                labelText: 'Trailing Stop %',
-                                helperText: 'Trail behind highest price',
-                                suffixText: '%',
-                                prefixIcon: const Icon(Icons.percent),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                filled: true,
-                                fillColor:
-                                    Theme.of(context).colorScheme.surface,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              validator: (value) =>
-                                  value?.isEmpty ?? true ? 'Required' : null,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Indicators section header
-                Row(
-                  children: [
-                    Icon(Icons.insights,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 8),
-                    const Text('Indicators',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          final allEnabled = _enabledIndicators.values
-                              .every((enabled) => enabled);
-                          _enabledIndicators
-                              .updateAll((key, value) => !allEnabled);
-                        });
-                      },
-                      icon: const Icon(Icons.select_all, size: 16),
-                      label: const Text('Toggle All'),
-                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Technical indicators
-                Card(
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ..._enabledIndicators.keys.map((indicator) {
-                          return CheckboxListTile(
-                            title: Text(_indicatorLabel(indicator)),
-                            value: _enabledIndicators[indicator],
-                            dense: true,
-                            onChanged: (value) {
-                              setState(() {
-                                _enabledIndicators[indicator] = value ?? false;
-                              });
-                            },
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Advanced settings (collapsed)
-                ExpansionTile(
-                  title: const Text('Advanced Settings'),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
+                    if (_enableDynamicPositionSizing) ...[
+                      const SizedBox(height: 12),
+                      Row(
                         children: [
-                          TextFormField(
-                            controller: _rsiPeriodController,
-                            decoration: InputDecoration(
-                              labelText: 'RSI Period',
-                              helperText: 'Default: 14',
-                              prefixIcon: const Icon(Icons.speed),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: Theme.of(context).colorScheme.surface,
-                            ),
-                            keyboardType: TextInputType.number,
+                          Expanded(
+                            child: _buildTextField(
+                                _riskPerTradeController, 'Risk per Trade',
+                                suffixText: '%'),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField(
+                                _atrMultiplierController, 'ATR Multiplier',
+                                suffixText: 'x'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+                _buildSection(
+                  context: context,
+                  title: 'Entry Strategies',
+                  icon: Icons.login,
+                  initiallyExpanded: true,
+                  children: [
+                    _buildSwitchListTile(
+                      'Strict Entry Mode',
+                      'Require ALL enabled indicators to be green',
+                      _requireAllIndicatorsGreen,
+                      (val) => setState(() => _requireAllIndicatorsGreen = val),
+                    ),
+                    if (!_requireAllIndicatorsGreen) ...[
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                        _minSignalStrengthController,
+                        'Min Signal Strength',
+                        suffixText: '%',
+                        helperText: 'Minimum confidence score required',
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    const Text('Active Indicators',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              final allEnabled = _enabledIndicators.values
+                                  .every((enabled) => enabled);
+                              _enabledIndicators
+                                  .updateAll((key, value) => !allEnabled);
+                            });
+                          },
+                          icon: const Icon(Icons.select_all, size: 16),
+                          label: const Text('Toggle All'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ],
+                    ),
+                    ..._enabledIndicators.keys
+                        .map((key) => _buildIndicatorToggle(key)),
+                    const SizedBox(height: 16),
+                    Theme(
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        title: const Text('Indicator Parameters',
+                            style: TextStyle(fontSize: 14)),
+                        tilePadding: EdgeInsets.zero,
+                        children: [
+                          const SizedBox(height: 8),
+                          _buildTextField(_rsiPeriodController, 'RSI Period'),
                           const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
-                                child: TextFormField(
-                                  controller: _smaFastController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Fast SMA',
-                                    helperText: 'Short-term average',
-                                    prefixIcon: const Icon(Icons.trending_up),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        Theme.of(context).colorScheme.surface,
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
+                                  child: _buildTextField(
+                                      _smaFastController, 'Fast SMA')),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: TextFormField(
-                                  controller: _smaSlowController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Slow SMA',
-                                    helperText: 'Long-term average',
-                                    prefixIcon: const Icon(Icons.trending_flat),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    filled: true,
-                                    fillColor:
-                                        Theme.of(context).colorScheme.surface,
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
+                                  child: _buildTextField(
+                                      _smaSlowController, 'Slow SMA')),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _marketIndexController,
-                            decoration: InputDecoration(
-                              labelText: 'Market Index Symbol',
-                              helperText: 'SPY or QQQ',
-                              prefixIcon: const Icon(Icons.business),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: Theme.of(context).colorScheme.surface,
-                            ),
-                          ),
+                          _buildTextField(
+                              _marketIndexController, 'Market Index',
+                              helperText: 'SPY or QQQ'),
                         ],
                       ),
                     ),
                   ],
                 ),
+                _buildSection(
+                  context: context,
+                  title: 'Exit Strategies',
+                  icon: Icons.logout,
+                  initiallyExpanded: true,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            _takeProfitController,
+                            'Take Profit',
+                            suffixText: '%',
+                            prefixIcon: Icons.trending_up,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField(
+                            _stopLossController,
+                            'Stop Loss',
+                            suffixText: '%',
+                            prefixIcon: Icons.trending_down,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSwitchListTile(
+                      'Trailing Stop',
+                      'Dynamically adjust stop price',
+                      _trailingStopEnabled,
+                      (val) => setState(() => _trailingStopEnabled = val),
+                    ),
+                    if (_trailingStopEnabled) ...[
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        _trailingStopController,
+                        'Trailing Stop Distance',
+                        suffixText: '%',
+                        prefixIcon: Icons.show_chart,
+                      ),
+                    ],
+                    const Divider(height: 24),
+                    _buildSwitchListTile(
+                      'Time-Based Hard Stop',
+                      'Close trade after fixed duration',
+                      _timeBasedExitEnabled,
+                      (val) => setState(() => _timeBasedExitEnabled = val),
+                    ),
+                    if (_timeBasedExitEnabled) ...[
+                      const SizedBox(height: 8),
+                      _buildTextField(_timeBasedExitController, 'Max Hold Time',
+                          suffixText: 'min'),
+                    ],
+                    _buildSwitchListTile(
+                      'Market Close Exit',
+                      'Close positions before market close',
+                      _marketCloseExitEnabled,
+                      (val) => setState(() => _marketCloseExitEnabled = val),
+                    ),
+                    if (_marketCloseExitEnabled) ...[
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                          _marketCloseExitController, 'Mins Before Close',
+                          suffixText: 'min'),
+                    ],
+                    _buildSwitchListTile(
+                      'Partial Exits',
+                      'Scale out at defined profit levels',
+                      _enablePartialExits,
+                      (val) => setState(() => _enablePartialExits = val),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
-
-                // Run button
-                SizedBox(
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: provider.isRunning ? null : _runBacktest,
-                    icon: provider.isRunning
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.play_arrow, size: 28),
-                    label: Text(
-                      provider.isRunning
-                          ? 'Running Backtest...'
-                          : 'Run Backtest',
-                      style: const TextStyle(fontSize: 18),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      elevation: 4,
-                    ),
+                _buildStartButton(provider),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => _showSaveTemplateDialog(context),
+                    icon: const Icon(Icons.bookmark_border),
+                    label: const Text('Save Configuration as Template'),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Save Template button
-                OutlinedButton.icon(
-                  onPressed: () => _showSaveTemplateDialog(context),
-                  icon: const Icon(Icons.save_alt),
-                  label: const Text('Save Configuration as Template'),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -800,6 +959,91 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
+          if (_loadedTemplate != null &&
+              !_loadedTemplate!.id.startsWith('default_'))
+            TextButton(
+              onPressed: () async {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please enter a template name')),
+                  );
+                  return;
+                }
+
+                final config = TradeStrategyConfig(
+                  symbolFilter: [symbol],
+                  startDate: _startDate,
+                  endDate: _endDate,
+                  initialCapital: double.parse(_initialCapitalController.text),
+                  interval: _interval,
+                  enabledIndicators: _enabledIndicators,
+                  tradeQuantity: int.parse(_tradeQuantityController.text),
+                  takeProfitPercent: double.parse(_takeProfitController.text),
+                  stopLossPercent: double.parse(_stopLossController.text),
+                  trailingStopEnabled: _trailingStopEnabled,
+                  trailingStopPercent:
+                      double.parse(_trailingStopController.text),
+                  rsiPeriod: int.parse(_rsiPeriodController.text),
+                  smaPeriodFast: int.parse(_smaFastController.text),
+                  smaPeriodSlow: int.parse(_smaSlowController.text),
+                  marketIndexSymbol:
+                      _marketIndexController.text.trim().toUpperCase(),
+                  minSignalStrength:
+                      double.tryParse(_minSignalStrengthController.text) ??
+                          50.0,
+                  requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+                  timeBasedExitEnabled: _timeBasedExitEnabled,
+                  timeBasedExitMinutes:
+                      int.tryParse(_timeBasedExitController.text) ?? 120,
+                  marketCloseExitEnabled: _marketCloseExitEnabled,
+                  marketCloseExitMinutes:
+                      int.tryParse(_marketCloseExitController.text) ?? 15,
+                  enablePartialExits: _enablePartialExits,
+                  enableDynamicPositionSizing: _enableDynamicPositionSizing,
+                  riskPerTrade:
+                      (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
+                          100.0,
+                  atrMultiplier:
+                      double.tryParse(_atrMultiplierController.text) ?? 2.0,
+                  exitStages: _exitStages,
+                  customIndicators: _customIndicators,
+                );
+
+                final provider =
+                    Provider.of<BacktestingProvider>(context, listen: false);
+                try {
+                  // Update existing template
+                  final template = TradeStrategyTemplate(
+                    id: _loadedTemplate!.id,
+                    name: nameController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    config: config,
+                    createdAt: _loadedTemplate!.createdAt,
+                    lastUsedAt: DateTime.now(),
+                  );
+                  await provider.saveTemplate(template);
+
+                  if (context.mounted) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Template updated successfully')),
+                    );
+                    setState(() {
+                      _loadedTemplate = template;
+                    });
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating template: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Update Existing'),
+            ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isEmpty) {
@@ -809,8 +1053,8 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 return;
               }
 
-              final config = BacktestConfig(
-                symbol: symbol,
+              final config = TradeStrategyConfig(
+                symbolFilter: [symbol],
                 startDate: _startDate,
                 endDate: _endDate,
                 initialCapital: double.parse(_initialCapitalController.text),
@@ -826,22 +1070,46 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 smaPeriodSlow: int.parse(_smaSlowController.text),
                 marketIndexSymbol:
                     _marketIndexController.text.trim().toUpperCase(),
+                minSignalStrength:
+                    double.tryParse(_minSignalStrengthController.text) ?? 50.0,
+                requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+                timeBasedExitEnabled: _timeBasedExitEnabled,
+                timeBasedExitMinutes:
+                    int.tryParse(_timeBasedExitController.text) ?? 120,
+                marketCloseExitEnabled: _marketCloseExitEnabled,
+                marketCloseExitMinutes:
+                    int.tryParse(_marketCloseExitController.text) ?? 15,
+                enablePartialExits: _enablePartialExits,
+                enableDynamicPositionSizing: _enableDynamicPositionSizing,
+                riskPerTrade:
+                    (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
+                        100.0,
+                atrMultiplier:
+                    double.tryParse(_atrMultiplierController.text) ?? 2.0,
+                exitStages: _exitStages,
+                customIndicators: _customIndicators,
               );
 
               final provider =
                   Provider.of<BacktestingProvider>(context, listen: false);
               try {
-                await provider.saveConfigAsTemplate(
+                final newId = await provider.saveConfigAsTemplate(
                   name: nameController.text.trim(),
                   description: descriptionController.text.trim(),
                   config: config,
                 );
+
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Template saved successfully')),
                   );
+                  final newTemplate =
+                      provider.templates.firstWhere((t) => t.id == newId);
+                  setState(() {
+                    _loadedTemplate = newTemplate;
+                  });
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -851,7 +1119,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 }
               }
             },
-            child: const Text('Save'),
+            child: const Text('Save as New'),
           ),
         ],
       ),
@@ -1013,9 +1281,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     // Generate default name and description
     final dateFormat = DateFormat('MM/dd/yy');
     final defaultName =
-        '${widget.result.config.symbol} ${widget.result.config.interval} Strategy';
+        '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi"} ${widget.result.config.interval} Strategy';
     final defaultDescription =
-        '${widget.result.config.symbol} backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
+        '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"} backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
         '(${widget.result.totalTrades} trades, ${(widget.result.winRate * 100).toStringAsFixed(1)}% win rate)';
 
     final nameController = TextEditingController(text: defaultName);
@@ -1119,7 +1387,12 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
       final provider = Provider.of<BacktestingProvider>(context, listen: false);
       // Find index of this result in history
       final index = provider.backtestHistory.indexWhere((r) =>
-          r.config.symbol == widget.result.config.symbol &&
+          ((r.config.symbolFilter.isEmpty &&
+                  widget.result.config.symbolFilter.isEmpty) ||
+              (r.config.symbolFilter.isNotEmpty &&
+                  widget.result.config.symbolFilter.isNotEmpty &&
+                  r.config.symbolFilter.first ==
+                      widget.result.config.symbolFilter.first)) &&
           r.config.startDate == widget.result.config.startDate &&
           r.config.endDate == widget.result.config.endDate &&
           r.totalTrades == widget.result.totalTrades);
@@ -1150,7 +1423,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
             children: [
               const Text('Backtest Results', style: TextStyle(fontSize: 16)),
               Text(
-                '${widget.result.config.symbol} · ${DateFormat('MMM dd').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
+                '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"} · ${DateFormat('MMM dd').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
@@ -1268,7 +1541,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
   Future<void> _shareResults(BuildContext context) async {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final shareText = '''
-📊 Backtest Results - ${widget.result.config.symbol}
+📊 Backtest Results - ${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"}
 
 📅 Period: ${dateFormat.format(widget.result.config.startDate)} - ${dateFormat.format(widget.result.config.endDate)}
 ⏱️ Interval: ${widget.result.config.interval}
@@ -1304,7 +1577,8 @@ Generated by RealizeAlpha
     final box = context.findRenderObject() as RenderBox?;
     await Share.share(
       shareText,
-      subject: 'Backtest Results - ${widget.result.config.symbol}',
+      subject:
+          'Backtest Results - ${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"}',
       sharePositionOrigin:
           box != null ? box.localToGlobal(Offset.zero) & box.size : null,
     );
@@ -1651,7 +1925,11 @@ Generated by RealizeAlpha
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow('Symbol', widget.result.config.symbol),
+                  _buildDetailRow(
+                      'Symbol',
+                      widget.result.config.symbolFilter.isNotEmpty
+                          ? widget.result.config.symbolFilter.first
+                          : "Multi"),
                   _buildDetailRow('Interval', widget.result.config.interval),
                   _buildDetailRow('Initial Capital',
                       '\$${widget.result.config.initialCapital.toStringAsFixed(2)}'),
@@ -2060,7 +2338,9 @@ class _BacktestHistoryTab extends StatelessWidget {
                                   Row(
                                     children: [
                                       Text(
-                                        result.config.symbol,
+                                        result.config.symbolFilter.isNotEmpty
+                                            ? result.config.symbolFilter.first
+                                            : "Multi",
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -2289,7 +2569,9 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                                     template.description,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[600],
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -2352,7 +2634,9 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
                         children: [
                           _buildTemplateChip(
                             Icons.show_chart,
-                            template.config.symbol,
+                            template.config.symbolFilter.isNotEmpty
+                                ? template.config.symbolFilter.first
+                                : "Multi",
                           ),
                           _buildTemplateChip(
                             Icons.calendar_today,

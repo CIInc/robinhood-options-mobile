@@ -84,7 +84,8 @@ ATR:${indicators.atr.signal}(${indicators.atr.reason})
 OBV:${indicators.obv.signal}(${indicators.obv.reason})
 VWAP:${indicators.vwap.signal}(${indicators.vwap.reason})
 ADX:${indicators.adx.signal}(${indicators.adx.reason})
-W%R:${indicators.williamsR.signal}(${indicators.williamsR.reason})` +
+W%R:${indicators.williamsR.signal}(${indicators.williamsR.reason})
+Ichimoku:${indicators.ichimoku.signal}(${indicators.ichimoku.reason})` +
       `${customIndicatorsText}
 Prices:${lastPrices.join(",")}
 Vols:${lastVolumes.join(",")}

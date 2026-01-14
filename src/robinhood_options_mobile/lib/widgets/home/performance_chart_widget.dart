@@ -300,8 +300,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 ListTile(
                   title: const Text(
                     "Performance",
-                    style:
-                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20.0),
                   ),
                   subtitle: Text(
                     "Compare market indices and benchmarks (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter).toUpperCase()})",
