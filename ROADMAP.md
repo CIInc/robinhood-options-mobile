@@ -39,7 +39,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (15+)**, **Trading Strategies Manager**, **Russell 2000 Support**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -199,6 +199,35 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Bug Fixes** (Options Flow, Yahoo API, ESG logic, Automated Trading, Auth form autofocus, daily cron timezone handling, toast styling)
 
 ### v0.27.6 ✅ (Released Jan 10, 2026)
+**Portfolio Analytics Enhancements**
+- ✅ **Performance Overview Card**: Comprehensive metrics side-by-side (Total Return, Alpha, Tracking Error)
+- ✅ **Health Score Improvements**: Better calculation and visualization
+
+### v0.27.7 ✅ (Released Jan 12, 2026)
+**Market Index Support & UI Refinement**
+- ✅ **Russell 2000 (IWM)**: Added support for benchmark comparisons
+- ✅ **Option Instrument Position UI**: Redesigned card with ITM/OTM badges, larger P&L, and better stats
+- ✅ **Account Handling Stability**: Refactored logic for better reliability
+
+### v0.28.0 ✅ (Released Jan 13, 2026)
+**AI Trading Coach 2.0 & Market Assistant**
+- ✅ **Hidden Risks UI**: Enhanced visibility and dark mode support
+- ✅ **Challenge Adherence**: Validation of previous coaching challenges
+- ✅ **Coaching Score Chart**: Historical trend visualization
+- ✅ **Session Journaling**: Personal notes for each coaching session
+- ✅ **Custom Personas**: Configurable AI personalities (Drill Sergeant, Zen Master)
+- ✅ **Streak Tracking**: Gamified discipline tracking
+- ✅ **Market Assistant**: Real-time Q&A widget for market insights
+- ✅ **Performance**: Optimized loading (30-day window for orders)
+
+### v0.28.1 ✅ (Released Jan 14, 2026)
+**Technical Analysis & Strategy Management**
+- ✅ **Expanded Indicators**: Added Ichimoku Cloud, CCI, Parabolic SAR (15 Total)
+- ✅ **Trading Strategies Page**: Dedicated management for strategy templates
+- ✅ **Entry Strategies UI**: New widget for strategy configuration
+
+
+### v0.27.6 ✅ (Released Jan 10, 2026)
 **Portfolio Analytics Enhancements & UI Polish**
 - ✅ **Performance Overview Card** (Benchmark-relative tracking metrics)
 - ✅ **Health Score Improvements** (Refined calculation logic)
@@ -220,7 +249,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Performance Optimization**: Efficient early-exit data fetching for faster analysis.
 - ✅ **Market Assistant**: Real-time market insights and query assistance.
 
-### v0.28.1 (Q1 2026 - Late January)
+### v0.28.1 ✅ (Released Jan 14, 2026)
+**UI Refinement & Strategy Core**
+- ✅ **UI Consistency**: Standardized visuals across Crypto, Futures, and Allocation sections.
+- ✅ **Home Screen**: Enhanced layout with reintroduced Performance Chart.
+- ✅ **Custom Indicators**: Added Williams %R configuration defaults.
+- ✅ **Strategy Engine**: Consolidated strategy defaults and templates for better maintainability.
+
+### v0.28.2 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking

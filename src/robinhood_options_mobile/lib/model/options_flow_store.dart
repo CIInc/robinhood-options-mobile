@@ -643,22 +643,6 @@ class OptionsFlowStore extends ChangeNotifier {
     }
   }
 
-  dynamic _sanitizeForFirestore(dynamic value) {
-    if (value is double && value.isNaN) {
-      return null;
-    }
-    if (value is Map) {
-      // return value.map((k, v) => MapEntry(k, _sanitizeForFirestore(v)));
-      return value
-          .map((k, v) => MapEntry(k.toString(), _sanitizeForFirestore(v)))
-          .cast<String, dynamic>();
-    }
-    if (value is List) {
-      return value.map((e) => _sanitizeForFirestore(e)).toList();
-    }
-    return value;
-  }
-
   static dynamic _extractValue(dynamic val) {
     if (val is Map) {
       return val['raw'];

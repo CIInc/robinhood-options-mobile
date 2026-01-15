@@ -47,9 +47,6 @@ String convertChartBoundsFilter(Bounds chartBoundsFilter) {
     case Bounds.trading:
       bounds = "trading";
       break;
-    default:
-      bounds = "regular";
-      break;
   }
   return bounds;
 }

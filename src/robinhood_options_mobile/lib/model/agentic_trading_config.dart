@@ -149,6 +149,8 @@ class AgenticTradingConfig {
               'adx': true,
               'williamsR': true,
               'ichimoku': true,
+              'cci': true,
+              'parabolicSar': true,
             };
 
   AgenticTradingConfig.fromJson(Map<String, dynamic> json)
@@ -221,22 +223,40 @@ class AgenticTradingConfig {
                 ?.map((e) => e as String)
                 .toList() ??
             [],
-        enabledIndicators = (json['enabledIndicators'] != null)
-            ? Map<String, bool>.from(json['enabledIndicators'] as Map)
-            : {
-                'priceMovement': true,
-                'momentum': true,
-                'marketDirection': true,
-                'volume': true,
-                'macd': true,
-                'bollingerBands': true,
-                'stochastic': true,
-                'atr': true,
-                'obv': true,
-                'vwap': true,
-                'adx': true,
-                'williamsR': true,
-              };
+        enabledIndicators = _parseEnabledIndicators(json['enabledIndicators']);
+
+  static Map<String, bool> _parseEnabledIndicators(dynamic jsonMap) {
+    final defaults = {
+      'priceMovement': true,
+      'momentum': true,
+      'marketDirection': true,
+      'volume': true,
+      'macd': true,
+      'bollingerBands': true,
+      'stochastic': true,
+      'atr': true,
+      'obv': true,
+      'vwap': true,
+      'adx': true,
+      'williamsR': true,
+      'ichimoku': true,
+      'cci': true,
+      'parabolicSar': true,
+    };
+
+    if (jsonMap == null) return defaults;
+
+    final loaded = Map<String, bool>.from(jsonMap as Map);
+
+    // Ensure all keys exist
+    defaults.forEach((key, value) {
+      if (!loaded.containsKey(key)) {
+        loaded[key] = value;
+      }
+    });
+
+    return loaded;
+  }
 
   Map<String, dynamic> toJson() {
     return {

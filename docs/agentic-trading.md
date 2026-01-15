@@ -24,7 +24,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
    - Fetches signals from Firestore with real-time listeners
-   - Provides indicator documentation for all 12 indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R)
+   - Provides indicator documentation for all 15 indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR)
    - Used across InstrumentWidget, SearchWidget for consistent signal display
    - Separates signal management from execution logic
 
@@ -63,7 +63,7 @@ The Search tab provides powerful tools to discover and filter trade signals gene
   - **Strong (75-100):** High-confidence setups with multiple confirming indicators.
   - **Moderate (50-74):** Good setups with solid support but fewer confirmations.
   - **Weak (0-49):** Low-confidence or conflicting signals (often used for contrarian analysis).
-- **Indicator-Specific Filtering:** Granular control over all 12 indicators. Each indicator chip supports a 4-way toggle:
+- **Indicator-Specific Filtering:** Granular control over all 15 indicators. Each indicator chip supports a 4-way toggle:
   - **Off:** No filter applied.
   - **BUY:** Show only signals where this indicator is bullish.
   - **SELL:** Show only signals where this indicator is bearish.
@@ -142,7 +142,7 @@ Beyond standard Take Profit and Stop Loss, the system now supports advanced exit
 
 ### Custom Indicators
 
-Users can now define their own technical indicators to be used alongside the standard 12-indicator system.
+Users can now define their own technical indicators to be used alongside the standard 15-indicator system.
 
 - **Creation:** Define custom logic based on price action, volume, or other available data points.
 - **Integration:** Custom indicators are evaluated as part of the signal generation process.
@@ -282,7 +282,7 @@ The system now includes a sophisticated `RiskGuardAgent` that enforces portfolio
 
 ### Custom Indicators
 
-Users can now define their own technical indicators to be used alongside the standard 12-indicator system.
+Users can now define their own technical indicators to be used alongside the standard 15-indicator system.
 
 - **Creation:** Define custom logic based on price action, volume, or other available data points.
 - **Integration:** Custom indicators are evaluated as part of the signal generation process.

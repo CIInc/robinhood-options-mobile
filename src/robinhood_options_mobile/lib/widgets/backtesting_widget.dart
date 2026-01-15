@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
 
 /// Main backtesting interface widget
 class BacktestingWidget extends StatefulWidget {
@@ -151,6 +152,9 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     'vwap': true,
     'adx': true,
     'williamsR': true,
+    'ichimoku': true,
+    'cci': true,
+    'parabolicSar': true,
   };
 
   @override
@@ -558,58 +562,6 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     );
   }
 
-  Widget _buildIndicatorToggle(String key) {
-    final isEnabled = _enabledIndicators[key] ?? true;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isEnabled
-              ? colorScheme.primary.withOpacity(0.3)
-              : colorScheme.outline.withOpacity(0.2),
-          width: isEnabled ? 1.5 : 1,
-        ),
-      ),
-      child: SwitchListTile(
-        title: Text(
-          _indicatorLabel(key),
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isEnabled
-                ? colorScheme.onSurface
-                : colorScheme.onSurface.withOpacity(0.6),
-          ),
-        ),
-        subtitle: isEnabled ? _getIndicatorSubtitle(key) : null,
-        value: isEnabled,
-        onChanged: (val) => setState(() => _enabledIndicators[key] = val),
-        activeThumbColor: colorScheme.primary,
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: isEnabled ? colorScheme.primary.withOpacity(0.05) : null,
-      ),
-    );
-  }
-
-  Widget _getIndicatorSubtitle(String key) {
-    // Optional helper to show context about the indicator settings
-    String text = '';
-    if (key == 'momentum') text = 'Period: ${_rsiPeriodController.text}';
-    if (key == 'priceMovement')
-      text = 'S: ${_smaFastController.text} L: ${_smaSlowController.text}';
-    if (key == 'marketDirection')
-      text = 'Index: ${_marketIndexController.text}';
-
-    if (text.isEmpty) return const SizedBox.shrink();
-    return Text(text,
-        style: TextStyle(
-            fontSize: 11, color: Theme.of(context).colorScheme.primary));
-  }
-
   Future<void> _runBacktest() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -752,77 +704,26 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   icon: Icons.login,
                   initiallyExpanded: true,
                   children: [
-                    _buildSwitchListTile(
-                      'Strict Entry Mode',
-                      'Require ALL enabled indicators to be green',
-                      _requireAllIndicatorsGreen,
-                      (val) => setState(() => _requireAllIndicatorsGreen = val),
-                    ),
-                    if (!_requireAllIndicatorsGreen) ...[
-                      const SizedBox(height: 12),
-                      _buildTextField(
-                        _minSignalStrengthController,
-                        'Min Signal Strength',
-                        suffixText: '%',
-                        helperText: 'Minimum confidence score required',
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    const Text('Active Indicators',
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              final allEnabled = _enabledIndicators.values
-                                  .every((enabled) => enabled);
-                              _enabledIndicators
-                                  .updateAll((key, value) => !allEnabled);
-                            });
-                          },
-                          icon: const Icon(Icons.select_all, size: 16),
-                          label: const Text('Toggle All'),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ],
-                    ),
-                    ..._enabledIndicators.keys
-                        .map((key) => _buildIndicatorToggle(key)),
-                    const SizedBox(height: 16),
-                    Theme(
-                      data: Theme.of(context)
-                          .copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        title: const Text('Indicator Parameters',
-                            style: TextStyle(fontSize: 14)),
-                        tilePadding: EdgeInsets.zero,
-                        children: [
-                          const SizedBox(height: 8),
-                          _buildTextField(_rsiPeriodController, 'RSI Period'),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _buildTextField(
-                                      _smaFastController, 'Fast SMA')),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                  child: _buildTextField(
-                                      _smaSlowController, 'Slow SMA')),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildTextField(
-                              _marketIndexController, 'Market Index',
-                              helperText: 'SPY or QQQ'),
-                        ],
-                      ),
+                    EntryStrategiesWidget(
+                      requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+                      onRequireStrictEntryChanged: (val) =>
+                          setState(() => _requireAllIndicatorsGreen = val),
+                      minSignalStrengthController: _minSignalStrengthController,
+                      enabledIndicators: _enabledIndicators,
+                      onToggleIndicator: (key, val) =>
+                          setState(() => _enabledIndicators[key] = val),
+                      onToggleAllIndicators: () {
+                        setState(() {
+                          final allEnabled = _enabledIndicators.values
+                              .every((enabled) => enabled);
+                          _enabledIndicators
+                              .updateAll((key, value) => !allEnabled);
+                        });
+                      },
+                      rsiPeriodController: _rsiPeriodController,
+                      smaFastController: _smaFastController,
+                      smaSlowController: _smaSlowController,
+                      marketIndexController: _marketIndexController,
                     ),
                   ],
                 ),
@@ -1124,24 +1025,6 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
         ],
       ),
     );
-  }
-
-  String _indicatorLabel(String key) {
-    final labels = {
-      'priceMovement': 'Price Movement',
-      'momentum': 'Momentum (RSI)',
-      'marketDirection': 'Market Direction',
-      'volume': 'Volume',
-      'macd': 'MACD',
-      'bollingerBands': 'Bollinger Bands',
-      'stochastic': 'Stochastic',
-      'atr': 'ATR',
-      'obv': 'OBV',
-      'vwap': 'VWAP',
-      'adx': 'ADX',
-      'williamsR': 'Williams %R',
-    };
-    return labels[key] ?? key;
   }
 }
 

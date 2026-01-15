@@ -39,6 +39,8 @@ export interface MultiIndicatorResult {
     adx: IndicatorResult;
     williamsR: IndicatorResult;
     ichimoku: IndicatorResult;
+    cci: IndicatorResult;
+    parabolicSar: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
   overallSignal: "BUY" | "SELL" | "HOLD";
@@ -535,11 +537,17 @@ export function computeWilliamsR(
  * Simplified pattern detection based on recent price action
  * @param {number[]} prices - Array of historical prices.
  * @param {number[]} volumes - Optional array of volumes.
+ * @param {Array<number>} opens - Optional array of open prices for candlestick.
+ * @param {Array<number>} highs - Optional array of high prices for candlestick.
+ * @param {Array<number>} lows - Optional array of low prices for candlestick.
  * @return {IndicatorResult} The pattern detection result.
  */
 export function detectChartPattern(
   prices: number[],
-  volumes?: number[]
+  volumes?: number[],
+  opens?: number[],
+  highs?: number[],
+  lows?: number[]
 ): IndicatorResult {
   // Expanded multi-pattern heuristic based detection
   // Volumes (if supplied) can confirm breakouts (higher relative volume)
@@ -805,6 +813,77 @@ export function detectChartPattern(
     return null;
   })();
   if (flagCandidate) patterns.push(flagCandidate);
+
+  // 7. Candlestick Patterns (if OHLC data available)
+  if (opens && highs && lows && opens.length >= 2) {
+    const i = prices.length - 1; // Current (latest) candle
+    const open = opens[i];
+    const close = prices[i];
+    const high = highs[i];
+    const low = lows[i];
+    const bodySize = Math.abs(close - open);
+    const upperShadow = high - Math.max(open, close);
+    const lowerShadow = Math.min(open, close) - low;
+    const isGreen = close > open;
+
+    const prevOpen = opens[i - 1];
+    const prevClose = prices[i - 1];
+    const isPrevGreen = prevClose > prevOpen;
+
+    // Bullish Engulfing
+    // Previous red, current green completely engulfs previous body
+    if (!isPrevGreen && isGreen &&
+      close > prevOpen && open < prevClose) {
+      patterns.push({
+        key: "bullish_engulfing",
+        label: "Bullish Engulfing",
+        direction: "bullish",
+        confidence: 0.65,
+        details: { candle: i },
+      });
+    }
+
+    // Bearish Engulfing
+    // Previous green, current red completely engulfs previous body
+    if (isPrevGreen && !isGreen &&
+      open > prevClose && close < prevOpen) {
+      patterns.push({
+        key: "bearish_engulfing",
+        label: "Bearish Engulfing",
+        direction: "bearish",
+        confidence: 0.65,
+        details: { candle: i },
+      });
+    }
+
+    // Hammer (Bullish reversal)
+    // Small body, long lower shadow, little upper shadow
+    // Occurs after downtrend (simplified by checking if price < ma20)
+    if (lowerShadow > 2 * bodySize && upperShadow < bodySize &&
+      currentPrice < ma20) {
+      patterns.push({
+        key: "hammer",
+        label: "Hammer",
+        direction: "bullish",
+        confidence: 0.6,
+        details: { ratio: lowerShadow / bodySize },
+      });
+    }
+
+    // Shooting Star (Bearish reversal)
+    // Small body, long upper shadow, little lower shadow
+    // Occurs after uptrend
+    if (upperShadow > 2 * bodySize && lowerShadow < bodySize &&
+      currentPrice > ma20) {
+      patterns.push({
+        key: "shooting_star",
+        label: "Shooting Star",
+        direction: "bearish",
+        confidence: 0.6,
+        details: { ratio: upperShadow / bodySize },
+      });
+    }
+  }
 
   // Aggregate decision
   // Choose highest confidence non-neutral pattern
@@ -2245,6 +2324,201 @@ export function evaluateIchimokuCloud(
 }
 
 /**
+ * Compute Commodity Channel Index (CCI)
+ * @param {number[]} prices - Typical prices preferably
+ * @param {number} period - The period (default 20).
+ * @return {number|null} The computed CCI or null.
+ */
+export function computeCCI(prices: number[], period = 20): number | null {
+  if (!prices || prices.length < period) return null;
+
+  const currentPrices = prices.slice(prices.length - period);
+  const sma = currentPrices.reduce((a, b) => a + b, 0) / period;
+
+  const meanDeviation = currentPrices.reduce((acc, price) =>
+    acc + Math.abs(price - sma), 0) / period;
+
+  if (meanDeviation === 0) return 0;
+
+  const currentPrice = currentPrices[currentPrices.length - 1];
+  return (currentPrice - sma) / (0.015 * meanDeviation);
+}
+
+/**
+ * Evaluate CCI
+ * @param {number[]} highs - High prices
+ * @param {number[]} lows - Low prices
+ * @param {number[]} closes - Close prices
+ * @param {number} [period=20] - Period for CCI (default 20)
+ * @return {IndicatorResult} IndicatorResult
+ */
+export function evaluateCCI(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 20
+): IndicatorResult {
+  if (!highs || !lows || !closes || closes.length < period) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data (need ${period})`,
+    };
+  }
+
+  // Calculate Typical Prices
+  const typicalPrices: number[] = [];
+  for (let i = 0; i < closes.length; i++) {
+    typicalPrices.push((highs[i] + lows[i] + closes[i]) / 3);
+  }
+
+  const cci = computeCCI(typicalPrices, period);
+  if (cci === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute CCI",
+    };
+  }
+
+  // CCI Strategies
+  // Bullish: > 100 (Strong Trend) or rising from oversold < -100
+  // Bearish: < -100 (Strong Trend) or falling from overbought > 100
+
+  if (cci > 100) {
+    return {
+      value: cci,
+      signal: "BUY",
+      reason: `CCI indicating strong uptrend (${cci.toFixed(0)} > 100)`,
+      metadata: { cci },
+    };
+  }
+
+  if (cci < -100) {
+    return {
+      value: cci,
+      signal: "SELL",
+      reason: `CCI indicating strong downtrend (${cci.toFixed(0)} < -100)`,
+      metadata: { cci },
+    };
+  }
+
+  return {
+    value: cci,
+    signal: "HOLD",
+    reason: `CCI neutral (${cci.toFixed(0)})`,
+    metadata: { cci },
+  };
+}
+
+/**
+ * Compute Parabolic SAR
+ * @param {number[]} highs - High prices
+ * @param {number[]} lows - Low prices
+ * @param {number[]} closes - Close prices
+ * @param {number} [startStep=0.02] - Start step (default 0.02)
+ * @param {number} [maxStep=0.2] - Max step (default 0.2)
+ * @return {Object|null} SAR value and trend direction
+ */
+export function computeParabolicSAR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  startStep = 0.02,
+  maxStep = 0.2
+): { sar: number; isUptrend: boolean } | null {
+  if (!highs || !lows || highs.length < 2) return null;
+
+  let isUptrend = true;
+  let ep = highs[0]; // Extreme Point
+  let sar = lows[0]; // Starting SAR
+  let af = startStep; // Acceleration Factor
+
+  for (let i = 1; i < closes.length; i++) {
+    const prevSar = sar;
+    sar = prevSar + af * (ep - prevSar);
+
+    if (isUptrend) {
+      if (i >= 1) sar = Math.min(sar, lows[i - 1]);
+      if (i >= 2) sar = Math.min(sar, lows[i - 2]);
+
+      if (lows[i] < sar) {
+        isUptrend = false;
+        sar = ep;
+        ep = lows[i];
+        af = startStep;
+      } else {
+        if (highs[i] > ep) {
+          ep = highs[i];
+          af = Math.min(af + startStep, maxStep);
+        }
+      }
+    } else {
+      if (i >= 1) sar = Math.max(sar, highs[i - 1]);
+      if (i >= 2) sar = Math.max(sar, highs[i - 2]);
+
+      if (highs[i] > sar) {
+        isUptrend = true;
+        sar = ep;
+        ep = highs[i];
+        af = startStep;
+      } else {
+        if (lows[i] < ep) {
+          ep = lows[i];
+          af = Math.min(af + startStep, maxStep);
+        }
+      }
+    }
+  }
+
+  return { sar, isUptrend };
+}
+
+/**
+ * Evaluate Parabolic SAR
+ * @param {number[]} highs - High prices
+ * @param {number[]} lows - Low prices
+ * @param {number[]} closes - Close prices
+ * @param {number} [step=0.02] - Acceleration factor step (default 0.02)
+ * @param {number} [max=0.2] - Max acceleration factor (default 0.2)
+ * @return {IndicatorResult} IndicatorResult
+ */
+export function evaluateParabolicSAR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  step = 0.02,
+  max = 0.2
+): IndicatorResult {
+  const result = computeParabolicSAR(highs, lows, closes, step, max);
+  if (!result) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Cannot calculate SAR",
+    };
+  }
+
+  const { sar, isUptrend } = result;
+
+  if (isUptrend) {
+    return {
+      value: sar,
+      signal: "BUY",
+      reason: `Parabolic SAR below price (${sar.toFixed(2)})`,
+      metadata: { sar, isUptrend: true },
+    };
+  } else {
+    return {
+      value: sar,
+      signal: "SELL",
+      reason: `Parabolic SAR above price (${sar.toFixed(2)})`,
+      metadata: { sar, isUptrend: false },
+    };
+  }
+}
+
+/**
  * Evaluate all 12 indicators and determine if all are "green" meeting criteria
  * @param {object} symbolData - Symbol OHLCV data.
  * @param {object} marketData - Market index price and volume data.
@@ -2280,7 +2554,10 @@ export function evaluateAllIndicators(
   // 1. Price Movement (chart patterns)
   const priceMovement = detectChartPattern(
     symbolData.closes,
-    volumes
+    volumes,
+    symbolData.opens,
+    highs,
+    lows
   );
 
   // 2. Momentum (RSI)
@@ -2357,6 +2634,20 @@ export function evaluateAllIndicators(
     symbolData.closes
   );
 
+  // 14. CCI
+  const cci = evaluateCCI(
+    highs,
+    lows,
+    symbolData.closes
+  );
+
+  // 15. Parabolic SAR
+  const parabolicSar = evaluateParabolicSAR(
+    highs,
+    lows,
+    symbolData.closes
+  );
+
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
@@ -2385,9 +2676,27 @@ export function evaluateAllIndicators(
     adx,
     williamsR,
     ichimoku,
+    cci,
+    parabolicSar,
   };
 
-  // Calculate signal strength (0-100)
+  // Calculate weighted signal strength (0-100)
+  // Weight distribution:
+  // - High (1.5): Price Movement (Patterns)
+  // - Medium (1.2): Momentum (RSI, Stochastic),
+  //   Trend (MACD, ADX, Market Direction)
+  // - Low (1.0): Others
+  const weights: Record<string, number> = {
+    priceMovement: 1.5,
+    momentum: 1.2,
+    marketDirection: 1.2,
+    macd: 1.2,
+    adx: 1.2,
+    // Default others to 1.0
+  };
+
+  let totalWeight = 0;
+  let weightedScore = 0;
   const standardVals = Object.values(indicators);
   const customVals = Object.values(customResults);
   const allVals = [...standardVals, ...customVals];
@@ -2397,14 +2706,34 @@ export function evaluateAllIndicators(
   const holdCount = allVals.filter((i) => i.signal === "HOLD").length;
   const totalIndicators = allVals.length;
 
-  // Signal strength calculation:
-  // - BUY signals contribute positively
-  // - SELL signals contribute negatively
-  // - HOLD signals are neutral
-  // Scale from 0 (all SELL) to 100 (all BUY)
-  const signalStrength = Math.round(
-    ((buyCount - sellCount + totalIndicators) / (2 * totalIndicators)) * 100
-  );
+  // Process standard indicators
+  for (const [key, indicator] of Object.entries(indicators)) {
+    const weight = weights[key] || 1.0;
+    totalWeight += weight;
+    if (indicator.signal === "BUY") {
+      weightedScore += weight;
+    } else if (indicator.signal === "SELL") {
+      weightedScore -= weight;
+    }
+    // HOLD adds 0
+  }
+
+  // Process custom indicators (weight 1.0)
+  for (const indicator of customVals) {
+    totalWeight += 1.0;
+    if (indicator.signal === "BUY") {
+      weightedScore += 1.0;
+    } else if (indicator.signal === "SELL") {
+      weightedScore -= 1.0;
+    }
+  }
+
+  // Normalize to 0-100 range
+  // Range of weightedScore is [-totalWeight, +totalWeight]
+  // Shift to [0, 2*totalWeight] then divide by 2*totalWeight
+  const normalizedScore = totalWeight > 0 ?
+    (weightedScore + totalWeight) / (2 * totalWeight) : 0.5;
+  const signalStrength = Math.round(normalizedScore * 100);
 
   // Check if all indicators are "green" (BUY signal)
   const allGreen = allVals.every((ind) => ind.signal === "BUY");
@@ -2456,6 +2785,8 @@ export function evaluateAllIndicators(
       adx: adx.signal,
       williamsR: williamsR.signal,
       ichimoku: ichimoku.signal,
+      cci: cci.signal,
+      parabolicSar: parabolicSar.signal,
     },
     customIndicators: Object.keys(customResults).reduce((acc, key) => {
       acc[key] = customResults[key].signal;

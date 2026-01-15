@@ -10,7 +10,8 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
-import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trading_strategies_page.dart';
+import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -56,6 +57,10 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _marketCloseExitMinutesController;
   late TextEditingController _riskPerTradeController;
   late TextEditingController _atrMultiplierController;
+  late TextEditingController _rsiPeriodController;
+  late TextEditingController _smaFastController;
+  late TextEditingController _smaSlowController;
+  late TextEditingController _marketIndexController;
   late TextEditingController _trailingStopPercentController;
   late bool _enableDynamicPositionSizing;
   late Map<String, bool> _enabledIndicators;
@@ -104,22 +109,28 @@ class _AgenticTradingSettingsWidgetState
     // Initialize controllers from user's config
     final config = widget.user.agenticTradingConfig?.toJson() ?? {};
     _selectedTemplateId = config['selectedTemplateId'] as String?;
-    _enabledIndicators = widget.user.agenticTradingConfig?.enabledIndicators ??
-        {
-          'priceMovement': true,
-          'momentum': true,
-          'marketDirection': true,
-          'volume': true,
-          'macd': true,
-          'bollingerBands': true,
-          'stochastic': true,
-          'atr': true,
-          'obv': true,
-          'vwap': true,
-          'adx': true,
-          'williamsR': true,
-          'ichimoku': true,
-        };
+    final defaultIndicators = {
+      'priceMovement': true,
+      'momentum': true,
+      'marketDirection': true,
+      'volume': true,
+      'macd': true,
+      'bollingerBands': true,
+      'stochastic': true,
+      'atr': true,
+      'obv': true,
+      'vwap': true,
+      'adx': true,
+      'williamsR': true,
+      'ichimoku': true,
+      'cci': true,
+      'parabolicSar': true,
+    };
+    _enabledIndicators = Map.from(defaultIndicators);
+    if (widget.user.agenticTradingConfig?.enabledIndicators != null) {
+      _enabledIndicators
+          .addAll(widget.user.agenticTradingConfig!.enabledIndicators);
+    }
     _exitStages = (config['exitStages'] as List<dynamic>?)
             ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
             .toList() ??
@@ -190,6 +201,14 @@ class _AgenticTradingSettingsWidgetState
 
     _atrMultiplierController = TextEditingController(
         text: config['atrMultiplier']?.toString() ?? '2.0');
+    _rsiPeriodController =
+        TextEditingController(text: config['rsiPeriod']?.toString() ?? '14');
+    _smaFastController = TextEditingController(
+        text: config['smaPeriodFast']?.toString() ?? '10');
+    _smaSlowController = TextEditingController(
+        text: config['smaPeriodSlow']?.toString() ?? '30');
+    _marketIndexController = TextEditingController(
+        text: config['marketIndexSymbol']?.toString() ?? 'SPY');
     _enableDynamicPositionSizing =
         config['enableDynamicPositionSizing'] as bool? ?? false;
   }
@@ -214,6 +233,10 @@ class _AgenticTradingSettingsWidgetState
     _minSignalStrengthController.dispose();
     _riskPerTradeController.dispose();
     _atrMultiplierController.dispose();
+    _rsiPeriodController.dispose();
+    _smaFastController.dispose();
+    _smaSlowController.dispose();
+    _marketIndexController.dispose();
     _newSymbolController.dispose();
     _templateScrollController.dispose();
     for (var c in _exitStageProfitControllers) {
@@ -252,102 +275,6 @@ class _AgenticTradingSettingsWidgetState
     _exitStageQuantityControllers = _exitStages
         .map((e) => TextEditingController(text: e.quantityPercent.toString()))
         .toList();
-  }
-
-  Widget _buildIndicatorToggle(
-    String key,
-    String title,
-    String description, {
-    List<Widget>? settings,
-    IconData? icon,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isEnabled = _enabledIndicators[key] ?? true;
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isEnabled
-              ? colorScheme.primary.withValues(alpha: 0.3)
-              : colorScheme.outline.withValues(alpha: 0.2),
-          width: isEnabled ? 1.5 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SwitchListTile(
-            secondary: icon != null
-                ? Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isEnabled
-                          ? colorScheme.primary.withValues(alpha: 0.1)
-                          : colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isEnabled
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                      size: 20,
-                    ),
-                  )
-                : null,
-            title: Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isEnabled
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            subtitle: Text(
-              description,
-              style: TextStyle(
-                fontSize: 13,
-                color: isEnabled
-                    ? colorScheme.onSurface.withValues(alpha: 0.7)
-                    : colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-            value: isEnabled,
-            onChanged: (bool value) {
-              setState(() {
-                _enabledIndicators[key] = value;
-              });
-              _saveSettings();
-            },
-            activeThumbColor: colorScheme.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          if (settings != null && isEnabled)
-            Container(
-              decoration: BoxDecoration(
-                color:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-              child: Column(
-                children: settings,
-              ),
-            ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSwitchListTile(
@@ -412,13 +339,6 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
-  Widget _buildDocSection(String key) {
-    return IndicatorDocumentationWidget(
-      indicatorKey: key,
-      showContainer: true,
-    );
-  }
-
   String _formatTime(DateTime time) {
     final now = DateTime.now();
     final difference = now.difference(time);
@@ -451,15 +371,14 @@ class _AgenticTradingSettingsWidgetState
 
       final newConfig = {
         'selectedTemplateId': _selectedTemplateId,
-        'smaPeriodFast': agenticTradingProvider.config['smaPeriodFast'] ?? 10,
-        'smaPeriodSlow': agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
+        'smaPeriodFast': int.tryParse(_smaFastController.text) ?? 10,
+        'smaPeriodSlow': int.tryParse(_smaSlowController.text) ?? 30,
         'tradeQuantity': int.parse(_tradeQuantityController.text),
         'maxPositionSize': int.parse(_maxPositionSizeController.text),
         'maxPortfolioConcentration':
             double.parse(_maxPortfolioConcentrationController.text),
-        'rsiPeriod': agenticTradingProvider.config['rsiPeriod'] ?? 14,
-        'marketIndexSymbol':
-            agenticTradingProvider.config['marketIndexSymbol'] ?? 'SPY',
+        'rsiPeriod': int.tryParse(_rsiPeriodController.text) ?? 14,
+        'marketIndexSymbol': _marketIndexController.text,
         'enabledIndicators': _enabledIndicators,
         'autoTradeEnabled':
             agenticTradingProvider.config['autoTradeEnabled'] ?? false,
@@ -631,6 +550,7 @@ class _AgenticTradingSettingsWidgetState
 
     setState(() {
       _selectedTemplateId = template.id;
+      _hasScrolledToTemplate = false;
       // Update local state variables
       _enabledIndicators =
           Map<String, bool>.from(template.config.enabledIndicators);
@@ -941,12 +861,39 @@ class _AgenticTradingSettingsWidgetState
                       color: colorScheme.onSurface,
                     ),
                   ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      final agenticProvider =
+                          Provider.of<AgenticTradingProvider>(context,
+                              listen: false);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TradingStrategiesPage(
+                            currentConfig: _createConfigFromCurrentSettings(
+                                agenticProvider),
+                            selectedStrategyId: _selectedTemplateId,
+                            onLoadStrategy: (template) {
+                              _loadFromTemplate(template);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Loaded strategy: ${template.name}')),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Show All'),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 180,
+              height: 188,
               child: ListView.separated(
                 controller: _templateScrollController,
                 scrollDirection: Axis.horizontal,
@@ -971,38 +918,48 @@ class _AgenticTradingSettingsWidgetState
                         ),
                         child: InkWell(
                           onTap: () => _showSaveTemplateDialog(context),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.add,
-                                    size: 28, color: colorScheme.primary),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color:
+                                    colorScheme.primary.withValues(alpha: 0.3),
+                                width: 2,
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                "Save Current",
-                                style: TextStyle(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary
+                                        .withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.add_rounded,
+                                      size: 32, color: colorScheme.primary),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "as Template",
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 11,
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Save Strategy",
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Create Template",
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1118,33 +1075,38 @@ class _AgenticTradingSettingsWidgetState
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              template.name,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              isDefault
-                                                  ? 'Built-in'
-                                                  : (template.lastUsedAt != null
-                                                      ? 'Used ${DateFormat('MMM d').format(template.lastUsedAt!)}'
-                                                      : 'Custom'),
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: colorScheme
-                                                    .onSurfaceVariant,
-                                                fontWeight: FontWeight.w500,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                              right: 24.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                template.name,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                          ],
+                                              // const SizedBox(height: 2),
+                                              // Text(
+                                              //   isDefault
+                                              //       ? 'Built-in'
+                                              //       : (template.lastUsedAt !=
+                                              //               null
+                                              //           ? 'Last used ${DateFormat('MMM d').format(template.lastUsedAt!)}'
+                                              //           : 'Custom Strategy'),
+                                              //   style: TextStyle(
+                                              //     fontSize: 10,
+                                              //     color: colorScheme
+                                              //         .onSurfaceVariant,
+                                              //     fontWeight: FontWeight.w500,
+                                              //   ),
+                                              // ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1157,7 +1119,7 @@ class _AgenticTradingSettingsWidgetState
                                       color: colorScheme.onSurfaceVariant,
                                       height: 1.2,
                                     ),
-                                    maxLines: 2,
+                                    maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const Spacer(),
@@ -1243,105 +1205,6 @@ class _AgenticTradingSettingsWidgetState
                                 ],
                               ),
                             ),
-                            if (!isDefault)
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert,
-                                      size: 18,
-                                      color: colorScheme.onSurfaceVariant),
-                                  onSelected: (value) {
-                                    if (value == 'delete') {
-                                      _confirmDeleteTemplate(context, template,
-                                          backtestingProvider);
-                                    } else if (value == 'edit') {
-                                      _showEditTemplateDialog(context, template,
-                                          backtestingProvider);
-                                    } else if (value == 'update') {
-                                      _confirmUpdateTemplateConfig(context,
-                                          template, backtestingProvider);
-                                    } else if (value == 'duplicate') {
-                                      _duplicateTemplate(context, template,
-                                          backtestingProvider);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'update',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.save_as_outlined,
-                                              size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Update Config'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit_outlined, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Edit Info'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'duplicate',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.copy_outlined, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Duplicate'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete_outline,
-                                              size: 20, color: Colors.red),
-                                          SizedBox(width: 12),
-                                          Text('Delete',
-                                              style:
-                                                  TextStyle(color: Colors.red)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            else
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert,
-                                      size: 18,
-                                      color: colorScheme.onSurfaceVariant),
-                                  onSelected: (value) {
-                                    if (value == 'duplicate') {
-                                      _duplicateTemplate(context, template,
-                                          backtestingProvider);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'duplicate',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.copy_outlined, size: 20),
-                                          SizedBox(width: 12),
-                                          Text('Duplicate'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                           ],
                         ),
                       ),
@@ -1354,117 +1217,6 @@ class _AgenticTradingSettingsWidgetState
           ],
         );
       },
-    );
-  }
-
-  void _duplicateTemplate(BuildContext context, TradeStrategyTemplate template,
-      BacktestingProvider provider) {
-    final newTemplate = TradeStrategyTemplate(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: "${template.name} (Copy)",
-      description: template.description,
-      config: template.config,
-      createdAt: DateTime.now(),
-    );
-    provider.saveTemplate(newTemplate);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Duplicated "${template.name}"')),
-    );
-  }
-
-  void _confirmUpdateTemplateConfig(BuildContext context,
-      TradeStrategyTemplate template, BacktestingProvider provider) {
-    final agenticProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Update ${template.name}?'),
-        content: const Text(
-            'This will overwrite the strategy configuration with your current settings.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final newConfig =
-                  _createConfigFromCurrentSettings(agenticProvider);
-              final updatedTemplate = TradeStrategyTemplate(
-                id: template.id,
-                name: template.name,
-                description: template.description,
-                config: newConfig,
-                createdAt: template.createdAt,
-                lastUsedAt: DateTime.now(),
-              );
-              provider.saveTemplate(updatedTemplate);
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Updated strategy "${template.name}"')),
-              );
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditTemplateDialog(BuildContext context,
-      TradeStrategyTemplate template, BacktestingProvider provider) {
-    final nameController = TextEditingController(text: template.name);
-    final descriptionController =
-        TextEditingController(text: template.description);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Strategy Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Strategy Name'),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: 2,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (nameController.text.isEmpty) return;
-
-              final updatedTemplate = TradeStrategyTemplate(
-                id: template.id,
-                name: nameController.text,
-                description: descriptionController.text,
-                config: template.config,
-                createdAt: template.createdAt,
-                lastUsedAt: template.lastUsedAt,
-              );
-
-              provider.saveTemplate(updatedTemplate);
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1514,35 +1266,6 @@ class _AgenticTradingSettingsWidgetState
       child: Text(
         text,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg),
-      ),
-    );
-  }
-
-  void _confirmDeleteTemplate(BuildContext context,
-      TradeStrategyTemplate template, BacktestingProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Strategy?'),
-        content: Text(
-            'Are you sure you want to delete "${template.name}"? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              provider.deleteTemplate(template.id);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Deleted "${template.name}"')),
-              );
-            },
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
@@ -3221,218 +2944,38 @@ class _AgenticTradingSettingsWidgetState
       icon: Icons.show_chart,
       initiallyExpanded: initiallyExpanded,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton.icon(
-              icon: Icon(
-                Icons.info_outline,
-                size: 18,
-                color: colorScheme.primary,
-              ),
-              label: const Text('Indicator Documentation'),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Row(
-                      children: [
-                        Icon(
-                          Icons.analytics,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Technical Indicators'),
-                      ],
-                    ),
-                    content: SizedBox(
-                      width: double.maxFinite,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildDocSection('priceMovement'),
-                            _buildDocSection('momentum'),
-                            _buildDocSection('marketDirection'),
-                            _buildDocSection('volume'),
-                            _buildDocSection('macd'),
-                            _buildDocSection('bollingerBands'),
-                            _buildDocSection('stochastic'),
-                            _buildDocSection('atr'),
-                            _buildDocSection('obv'),
-                            _buildDocSection('vwap'),
-                            _buildDocSection('adx'),
-                            _buildDocSection('williamsR'),
-                            _buildDocSection('ichimoku'),
-                          ],
-                        ),
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: colorScheme.outline.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
-            children: [
-              _buildSwitchListTile(
-                'requireAllIndicatorsGreen',
-                'Strict Entry Mode',
-                'Require ALL enabled indicators to be green',
-                agenticTradingProvider,
-              ),
-              if (agenticTradingProvider.config['requireAllIndicatorsGreen'] ==
-                  false)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: TextFormField(
-                    controller: _minSignalStrengthController,
-                    decoration: InputDecoration(
-                      labelText: 'Min Signal Strength',
-                      helperText: 'Minimum confidence score required',
-                      suffixText: '%',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => _saveSettings(),
-                    validator: (value) {
-                      final v = double.tryParse(value ?? '');
-                      if (v == null || v < 0 || v > 100) {
-                        return 'Enter a value between 0 and 100';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var key in _enabledIndicators.keys) {
-                    _enabledIndicators[key] = true;
-                  }
-                });
-                _saveSettings();
-              },
-              child: const Text('Select All'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var key in _enabledIndicators.keys) {
-                    _enabledIndicators[key] = false;
-                  }
-                });
-                _saveSettings();
-              },
-              child: const Text('Deselect All'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildIndicatorToggle(
-          'priceMovement',
-          'Price Movement',
-          'Chart patterns and trend analysis',
-          icon: Icons.show_chart,
-        ),
-        _buildIndicatorToggle(
-          'momentum',
-          'Momentum (RSI)',
-          'Relative Strength Index - overbought/oversold conditions',
-          icon: Icons.speed,
-        ),
-        _buildIndicatorToggle(
-          'marketDirection',
-          'Market Direction',
-          'Moving averages on market index (SPY)', // (SPY/QQQ)
-          icon: Icons.trending_up,
-        ),
-        _buildIndicatorToggle(
-          'volume',
-          'Volume',
-          'Volume confirmation with price movement',
-          icon: Icons.bar_chart,
-        ),
-        _buildIndicatorToggle(
-          'macd',
-          'MACD',
-          'Moving Average Convergence Divergence',
-          icon: Icons.compare_arrows,
-        ),
-        _buildIndicatorToggle(
-          'bollingerBands',
-          'Bollinger Bands',
-          'Volatility and price level analysis',
-          icon: Icons.waves,
-        ),
-        _buildIndicatorToggle(
-          'stochastic',
-          'Stochastic Oscillator',
-          'Momentum indicator comparing closing price to price range',
-          icon: Icons.swap_vert,
-        ),
-        _buildIndicatorToggle(
-          'atr',
-          'ATR',
-          'Average True Range - volatility measurement',
-          icon: Icons.height,
-        ),
-        _buildIndicatorToggle(
-          'obv',
-          'OBV',
-          'On-Balance Volume - volume flow indicator',
-          icon: Icons.waterfall_chart,
-        ),
-        _buildIndicatorToggle(
-          'vwap',
-          'VWAP',
-          'Volume Weighted Average Price - institutional price level',
-          icon: Icons.money,
-        ),
-        _buildIndicatorToggle(
-          'adx',
-          'ADX',
-          'Average Directional Index - trend strength measurement',
-          icon: Icons.directions,
-        ),
-        _buildIndicatorToggle(
-          'williamsR',
-          'Williams %R',
-          'Momentum oscillator - overbought/oversold conditions',
-          icon: Icons.percent,
-        ),
-        _buildIndicatorToggle(
-          'ichimoku',
-          'Ichimoku Cloud',
-          'Trend, support/resistance, and momentum (Tenkan/Kijun/Kumo)',
-          icon: Icons.cloud,
+        EntryStrategiesWidget(
+          requireAllIndicatorsGreen:
+              agenticTradingProvider.config['requireAllIndicatorsGreen'] ??
+                  true,
+          onRequireStrictEntryChanged: (value) {
+            setState(() {
+              agenticTradingProvider.config['requireAllIndicatorsGreen'] =
+                  value;
+            });
+            _saveSettings();
+          },
+          minSignalStrengthController: _minSignalStrengthController,
+          enabledIndicators: _enabledIndicators,
+          onToggleIndicator: (key, value) {
+            setState(() {
+              _enabledIndicators[key] = value;
+            });
+            _saveSettings();
+          },
+          onToggleAllIndicators: () {
+            setState(() {
+              final allEnabled = _enabledIndicators.values.every((e) => e);
+              for (var key in _enabledIndicators.keys) {
+                _enabledIndicators[key] = !allEnabled;
+              }
+            });
+            _saveSettings();
+          },
+          rsiPeriodController: _rsiPeriodController,
+          smaFastController: _smaFastController,
+          smaSlowController: _smaSlowController,
+          marketIndexController: _marketIndexController,
         ),
         const SizedBox(height: 8),
         const Divider(),

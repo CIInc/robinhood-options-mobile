@@ -244,7 +244,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                             _isCancelling = true;
                           });
                           try {
-                            var response = await widget.service.cancelOrder(
+                            await widget.service.cancelOrder(
                                 widget.brokerageUser,
                                 widget.optionOrder.cancelUrl!);
                             if (mounted) {

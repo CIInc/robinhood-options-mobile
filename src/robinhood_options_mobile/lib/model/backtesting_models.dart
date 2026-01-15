@@ -66,21 +66,23 @@ class TradeStrategyConfig {
     this.atrMultiplier = 2.0,
     this.customIndicators = const [],
     this.symbolFilter = const [],
-  }) : enabledIndicators = enabledIndicators ??
-            {
-              'priceMovement': true,
-              'momentum': true,
-              'marketDirection': true,
-              'volume': true,
-              'macd': true,
-              'bollingerBands': true,
-              'stochastic': true,
-              'atr': true,
-              'obv': true,
-              'vwap': true,
-              'adx': true,
-              'williamsR': true,
-            };
+  }) : enabledIndicators = {
+          'priceMovement': true,
+          'momentum': true,
+          'marketDirection': true,
+          'volume': true,
+          'macd': true,
+          'bollingerBands': true,
+          'stochastic': true,
+          'atr': true,
+          'obv': true,
+          'vwap': true,
+          'adx': true,
+          'williamsR': true,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
+        }..addAll(enabledIndicators ?? {});
 
   Map<String, dynamic> toJson() => {
         'startDate': startDate.toIso8601String(),

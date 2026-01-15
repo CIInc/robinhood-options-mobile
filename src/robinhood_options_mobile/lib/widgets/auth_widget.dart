@@ -275,8 +275,9 @@ class _AuthGateState extends State<AuthGate> {
                                           AutofillHints.email
                                         ],
                                         validator: (value) {
-                                          if (mode == AuthMode.phone)
+                                          if (mode == AuthMode.phone) {
                                             return null;
+                                          }
                                           if (value == null || value.isEmpty) {
                                             return 'Email is required';
                                           }
@@ -314,8 +315,9 @@ class _AuthGateState extends State<AuthGate> {
                                           ),
                                         ),
                                         validator: (value) {
-                                          if (mode == AuthMode.phone)
+                                          if (mode == AuthMode.phone) {
                                             return null;
+                                          }
                                           if (value == null || value.isEmpty) {
                                             return 'Password is required';
                                           }
@@ -357,8 +359,9 @@ class _AuthGateState extends State<AuthGate> {
                                           AutofillHints.telephoneNumberDevice
                                         ],
                                         validator: (value) {
-                                          if (mode != AuthMode.phone)
+                                          if (mode != AuthMode.phone) {
                                             return null;
+                                          }
                                           if (value == null || value.isEmpty) {
                                             return 'Phone number is required';
                                           }

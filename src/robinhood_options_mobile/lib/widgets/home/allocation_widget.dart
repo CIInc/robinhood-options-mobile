@@ -382,7 +382,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     for (var entry in groupedEntries.take(maxItems)) {
       // final percent = totalAssets > 0 ? entry.value / totalAssets : 0.0;
       data.add(PieChartData(
-          '${entry.key}', //  ${formatPercentageInteger.format(percent)}
+          entry.key, //  ${formatPercentageInteger.format(percent)}
           entry.value));
     }
 

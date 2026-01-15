@@ -205,12 +205,12 @@ class _ChatWidgetState extends State<ChatWidget> {
                       if (_isTyping && index == 0) {
                         return _buildTypingIndicator();
                       }
-                      
+
                       // Calculate actual index for reversed list
-                      final listIndex = _isTyping 
+                      final listIndex = _isTyping
                           ? provider.chatMessages.length - index
                           : provider.chatMessages.length - 1 - index;
-                          
+
                       final message = provider.chatMessages[listIndex];
                       return _buildMessageBubble(context, message);
                     },
@@ -415,13 +415,16 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   IconData _getIconForTitle(String title) {
-    if (title.toLowerCase().contains('portfolio'))
+    if (title.toLowerCase().contains('portfolio')) {
       return Icons.summarize_outlined;
-    if (title.toLowerCase().contains('recommend'))
+    }
+    if (title.toLowerCase().contains('recommend')) {
       return Icons.recommend_outlined;
+    }
     if (title.toLowerCase().contains('market')) return Icons.public;
-    if (title.toLowerCase().contains('predict'))
+    if (title.toLowerCase().contains('predict')) {
       return Icons.batch_prediction_outlined;
+    }
     if (title.toLowerCase().contains('risk')) return Icons.security;
     if (title.toLowerCase().contains('performance')) return Icons.trending_up;
     if (title.toLowerCase().contains('greeks')) return Icons.functions;

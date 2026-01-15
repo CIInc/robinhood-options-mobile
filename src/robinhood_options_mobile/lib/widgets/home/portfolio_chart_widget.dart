@@ -15,7 +15,6 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart'
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/full_screen_portfolio_chart_widget.dart';
-import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 
 class PortfolioChartWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
@@ -351,7 +350,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                           accent: changeColor,
                           minWidth: 180,
                           value: Text(
-                            returnText ?? '--',
+                            returnText,
                             style: TextStyle(
                               fontSize: portfolioValueFontSize,
                               fontWeight: FontWeight.w700,
@@ -369,7 +368,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                           accent: changePercentColor,
                           minWidth: 170,
                           value: Text(
-                            returnPercentText ?? '--',
+                            returnPercentText,
                             style: TextStyle(
                               fontSize: portfolioValueFontSize,
                               fontWeight: FontWeight.w700,
@@ -484,7 +483,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
   }) {
     final background = [
       accent.withValues(alpha: 0.22),
-      Theme.of(context).colorScheme.surfaceVariant,
+      Theme.of(context).colorScheme.surfaceContainerHighest,
     ];
 
     return Container(

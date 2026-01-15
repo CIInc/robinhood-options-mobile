@@ -11,9 +11,9 @@ Comprehensive backtesting interface for testing trading strategies on historical
 - Market index data for correlation analysis (SPY/QQQ)
 
 ### Strategy Builder
-- Configure all 12 technical indicators independently (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R)
+- Configure all 15 technical indicators independently (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR)
 - Match live trading configuration exactly
-- **Default Templates**: Access a library of pre-configured strategies (e.g., "Conservative Growth", "Aggressive Momentum") to get started quickly.
+- **Default Templates**: Access a library of pre-configured strategies (e.g., "Momentum Master", "Trend Follower") to get started quickly.
 - Advanced parameter tuning:
   - RSI period
   - Fast/Slow SMA periods
@@ -34,6 +34,10 @@ Comprehensive backtesting interface for testing trading strategies on historical
   - Largest win/loss
   - Average hold time
 - **Equity Curve**: Track capital over time
+
+### Enhanced Pattern Detection
+- **Candlestick Patterns**: The backtesting engine now recognizes Bullish/Bearish Engulfing, Hammer, and Shooting Star patterns.
+- **Weighted Scoring**: Signals are evaluated using the live Weighted Signal Strength system (Price Action weighted 1.5x) for realistic simulation.
 
 ### Visual Results
 - Trade-by-trade breakdown

@@ -309,6 +309,49 @@ class TradeSignalsProvider with ChangeNotifier {
               '\n'
               '_Comprehensive system for identifying trend and potential reversals._'
         };
+      case 'cci':
+        return {
+          'title': 'CCI (Commodity Channel Index)',
+          'description':
+              'CCI measures the current price level relative to an average price level over a given period. '
+                  'High positive values indicate that prices are unusually high compared to average (overbought), '
+                  'while low negative values indicate prices are unusually low (oversold). CCI is also used to '
+                  'spot new trends.',
+          'technicalDetails': '**Formula**: `(Typical Price - SMA) / (0.015 * Mean Deviation)`\n'
+              '\n'
+              '**Parameters**:\n'
+              '- Period: `20 bars`\n'
+              '- Constant: `0.015` to ensure 70-80% of values fall within ±100\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Oversold**: `CCI < -100` → BUY (potential bounce)\n'
+              '- **Overbought**: `CCI > 100` → SELL (potential pullback)\n'
+              '- **Bullish Breakout**: Crossing above `+100` → BUY (trend continuation)\n'
+              '- **Bearish Breakdown**: Crossing below `-100` → SELL (trend continuation)\n'
+              '- **Neutral**: `-100 ≤ CCI ≤ 100` → HOLD\n'
+              '\n'
+              '_Versatile indicator for both cyclical range trading and trend following._'
+        };
+      case 'parabolicSar':
+        return {
+          'title': 'Parabolic SAR',
+          'description':
+              'Parabolic SAR (Stop and Reverse) is a trend-following indicator that highlights direction '
+                  'and potential reversals. Dots below price indicate an uptrend (BUY), while dots above '
+                  'price indicate a downtrend (SELL). The dots also serve as trailing stop levels.',
+          'technicalDetails': '**Formulas**:\n'
+              '- **Uptrend**: `SAR(new) = SAR(curr) + AF * (EP - SAR(curr))`\n'
+              '- **Downtrend**: `SAR(new) = SAR(curr) - AF * (SAR(curr) - EP)`\n'
+              '- **AF (Acceleration Factor)**: Starts at `0.02`, increases by `0.02` each new extreme, max `0.20`\n'
+              '- **EP (Extreme Point)**: Highest high (uptrend) or lowest low (downtrend)\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Buy**: Price crosses above SAR dots (dots move below price)\n'
+              '- **Sell**: Price crosses below SAR dots (dots move above price)\n'
+              '\n'
+              '**Usage**: Excellent for setting trailing stops in strong trends. '
+              'Prone to whipsaws in ranging/sideways markets.'
+        };
       default:
         return {
           'title': 'Technical Indicator',
@@ -740,18 +783,6 @@ class TradeSignalsProvider with ChangeNotifier {
 
       final status = data['status'] as String? ?? 'error';
       final reason = data['reason']?.toString();
-      final intervalLabel = effectiveInterval == '1d'
-          ? 'Daily'
-          : effectiveInterval == '1h'
-              ? 'Hourly'
-              : effectiveInterval == '30m'
-                  ? '30-min'
-                  : effectiveInterval == '15m'
-                      ? '15-min'
-                      : effectiveInterval;
-
-      final proposal =
-          Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
 
       if (status == 'approved') {
         _analytics.logEvent(

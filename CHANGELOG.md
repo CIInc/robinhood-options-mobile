@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-01-14
+
+### Added
+- **Trading Strategies Page:** A new dedicated page to manage, search, and load trading strategy templates.
+- **Entry Strategies UI:** New widget to visualize and configure entry strategies.
+- **Indicators:** Expanded technical indicator system from 12 to 15 indicators (Added Ichimoku Cloud, CCI, Parabolic SAR).
+- **Custom Indicators:** Added default period for Williams %R indicator.
+
 ## [0.28.0] - 2026-01-13
 
 ### Added

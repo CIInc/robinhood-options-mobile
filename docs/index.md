@@ -18,7 +18,7 @@
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
 - **Instrument Charting:** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges.
-- Multi-indicator correlated trade signals (12 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) with confidence-scored pattern detection and signal strength visualization.
+- Multi-indicator correlated trade signals (15 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR) with confidence-scored pattern detection (Classic & Candlestick) and weighted signal strength visualization (Price > Momentum > Trend).
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
 - **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
@@ -66,7 +66,7 @@ This feature adds investment profile configuration to user settings, allowing us
 The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
 
 ### Key Components
-- **Multi-Indicator Correlation:** Analyzes 12 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R) to generate high-confidence trade signals
+- **Multi-Indicator Correlation:** Analyzes 15 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR) to generate high-confidence trade signals
 - **Signal Strength Visualization:** Color-coded signal strength scores (0-100) with filtering by minimum strength threshold
 - **Indicator Documentation Widget:** In-app technical reference for all 12 indicators with detailed explanations of signals, configuration, and technical details
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
@@ -115,7 +115,7 @@ The Backtesting feature allows users to validate trading strategies on historica
 
 ### Key Capabilities
 - **Historical Simulation:** Test strategies against past market data to gauge potential performance.
-- **Strategy Configuration:** Configure all 12 technical indicators, risk parameters (TP/SL), and capital allocation.
+- **Strategy Configuration:** Configure all 15 technical indicators, risk parameters (TP/SL), and capital allocation.
 - **Comprehensive Metrics:** Analyze results with Sharpe ratio, max drawdown, profit factor, and win rates.
 - **Visual Analysis:** View trade-by-trade breakdowns and interactive equity curves.
 - **Template Management:** Save and load successful strategy configurations.

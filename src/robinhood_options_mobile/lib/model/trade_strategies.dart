@@ -8,7 +8,8 @@ class TradeStrategyDefaults {
     TradeStrategyTemplate(
       id: 'default_momentum_master',
       name: 'Momentum Master',
-      description: 'Captures strong price moves using RSI, MACD, and Volume.',
+      description:
+          'Captures strong price moves by combining RSI and CCI momentum with MACD confirmation and Volume validation. Best for trending markets.',
       config: TradeStrategyConfig(
         // symbolFilter: ['SPY'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -27,6 +28,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Added momentum indicator
+          'parabolicSar': false,
         },
         takeProfitPercent: 15.0,
         stopLossPercent: 5.0,
@@ -40,7 +44,7 @@ class TradeStrategyDefaults {
       id: 'default_mean_reversion',
       name: 'Mean Reversion',
       description:
-          'Trades reversals from overbought/oversold conditions using Bollinger Bands and RSI.',
+          'Identifies overbought/oversold reversals using Bollinger Bands, CCI, and RSI extremes. Targets "snap-back" moves in changing markets.',
       config: TradeStrategyConfig(
         // symbolFilter: ['QQQ'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -59,6 +63,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': false,
           'williamsR': true,
+          'ichimoku': false,
+          'cci': true, // Added for mean reversion
+          'parabolicSar': false,
         },
         takeProfitPercent: 8.0,
         stopLossPercent: 4.0,
@@ -70,7 +77,8 @@ class TradeStrategyDefaults {
     TradeStrategyTemplate(
       id: 'default_trend_follower',
       name: 'Trend Follower',
-      description: 'Rides established trends using Moving Averages and ADX.',
+      description:
+          'Rides established trends using Moving Averages, Ichimoku Cloud, ADX trend strength, and OBV flow. Uses Parabolic SAR for stops. Ideal for long-term swinging.',
       config: TradeStrategyConfig(
         // symbolFilter: ['IWM'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -89,6 +97,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true,
           'williamsR': false,
+          'ichimoku': true, // Added for trend following
+          'cci': false,
+          'parabolicSar': true, // Added for trailing stops
         },
         takeProfitPercent: 20.0,
         stopLossPercent: 8.0,
@@ -101,7 +112,8 @@ class TradeStrategyDefaults {
     TradeStrategyTemplate(
       id: 'default_volatility_breakout',
       name: 'Volatility Breakout (1h)',
-      description: 'Captures explosive moves using Bollinger Bands and ATR.',
+      description:
+          'Exploits explosive moves from squeeze conditions using Bollinger Bands, CCI, ATR, and VWAP. High-risk, high-reward intraday strategy.',
       config: TradeStrategyConfig(
         // symbolFilter: ['NVDA'],
         startDate: DateTime.now().subtract(const Duration(days: 90)),
@@ -120,6 +132,9 @@ class TradeStrategyDefaults {
           'vwap': true,
           'adx': true,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Added for breakout validation
+          'parabolicSar': false,
         },
         takeProfitPercent: 12.0,
         stopLossPercent: 3.0,
@@ -133,7 +148,7 @@ class TradeStrategyDefaults {
       id: 'default_scalper_15m',
       name: 'Intraday Scalper (15m)',
       description:
-          'Short-term strategy with partial exits and time-based hard stops.',
+          'Short-term scalping via CCI/Stochastic with strict risk management: partial exits at 1.5%, Parabolic SAR stops, and market-close liquidation.',
       config: TradeStrategyConfig(
         // symbolFilter: ['TSLA'],
         startDate: DateTime.now().subtract(const Duration(days: 30)),
@@ -152,6 +167,9 @@ class TradeStrategyDefaults {
           'vwap': true, // Key for intraday
           'adx': false,
           'williamsR': true,
+          'ichimoku': false,
+          'cci': true, // Added for scalping
+          'parabolicSar': true, // Tight stops
         },
         initialCapital: 25000,
         takeProfitPercent: 3.0,
@@ -173,7 +191,8 @@ class TradeStrategyDefaults {
     TradeStrategyTemplate(
       id: 'default_custom_ema_trend',
       name: 'Custom EMA Trend',
-      description: 'Demonstrates Custom Indicators: Buys when Price > 21 EMA.',
+      description:
+          'Advanced strategy using Custom Indicators: Automatically engages when Price crosses above the 21-period EMA.',
       config: TradeStrategyConfig(
         // symbolFilter: ['AMZN'],
         startDate: DateTime.now().subtract(const Duration(days: 180)),
@@ -192,6 +211,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': false,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -215,7 +237,7 @@ class TradeStrategyDefaults {
       id: 'default_crypto_proxy_momentum',
       name: 'Crypto Proxy Momentum',
       description:
-          'High-volatility momentum strategy designed for crypto-correlated stocks.',
+          'High-volatility momentum strategy (CCI, RSI) designed for crypto-correlated stocks with Parabolic SAR trailing stops.',
       config: TradeStrategyConfig(
         symbolFilter: ['COIN'],
         startDate: DateTime.now().subtract(const Duration(days: 90)),
@@ -234,6 +256,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Volatility sensitive
+          'parabolicSar': true, // Trailing stop
         },
         takeProfitPercent: 15.0,
         riskPerTrade: 0.02,
@@ -266,6 +291,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': false,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
         },
         smaPeriodFast: 50,
         smaPeriodSlow: 200,
@@ -292,7 +320,7 @@ class TradeStrategyDefaults {
       id: 'default_iron_condor_income',
       name: 'Range Bound Income',
       description:
-          'Ideal for sideways markets. Profitable when Price Movement and Momentum are low.',
+          'Ideal for sideways markets. Profitable when Price Movement and CCI Impulse are low.',
       config: TradeStrategyConfig(
         // symbolFilter: ['KO'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -311,6 +339,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true, // Low ADX = No Trend
           'williamsR': true,
+          'ichimoku': false,
+          'cci': true, // Range confirmation
+          'parabolicSar': false,
         },
         // Low ADX logic is handled by backend if 'adx' is enabled and we want range?
         // Actually, core logic usually looks for trend.
@@ -371,6 +402,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true, // Ensure trend strength
           'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -427,6 +461,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
         },
         riskPerTrade: 0.02,
         requireAllIndicatorsGreen: true,
@@ -439,7 +476,7 @@ class TradeStrategyDefaults {
       id: 'default_risk_managed_growth',
       name: 'Risk-Managed Growth',
       description:
-          'Uses dynamic position sizing to risk exactly 1% of account equity per trade.',
+          'Uses dynamic position sizing to risk exactly 1% of account equity per trade, managed by Parabolic SAR.',
       config: TradeStrategyConfig(
         // symbolFilter: ['AMD'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -459,6 +496,9 @@ class TradeStrategyDefaults {
           'vwap': true,
           'adx': false,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': true, // Trailing stop support
         },
         enableDynamicPositionSizing: true,
         riskPerTrade: 0.01, // 1% risk
@@ -474,7 +514,7 @@ class TradeStrategyDefaults {
       id: 'default_macd_reversal',
       name: 'MACD Histogram Reversal',
       description:
-          'Trades when MACD histogram flips positive while RSI is oversold (< 40).',
+          'Trades when MACD histogram flips positive while RSI is oversold (< 40), confirmed by CCI.',
       config: TradeStrategyConfig(
         // symbolFilter: ['AMD'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -493,6 +533,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': false,
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Confirm reversal
+          'parabolicSar': false,
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -515,7 +558,7 @@ class TradeStrategyDefaults {
       id: 'default_bollinger_squeeze',
       name: 'Bollinger Band Squeeze',
       description:
-          'Breakout strategy. Low volatility period (ATR) followed by price piercing Upper Band.',
+          'Breakout strategy. Low volatility period (ATR) followed by price piercing Upper Band with CCI momentum.',
       config: TradeStrategyConfig(
         // symbolFilter: ['MSFT'],
         startDate: DateTime.now().subtract(const Duration(days: 180)),
@@ -534,6 +577,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true, // Confirm trend strength on breakout
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Breakout strength
+          'parabolicSar': false,
         },
         riskPerTrade: 0.015,
         takeProfitPercent: 8.0,
@@ -566,6 +612,9 @@ class TradeStrategyDefaults {
           'vwap': true, // The primary signal generator here
           'adx': false,
           'williamsR': true, // Timing entry
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -590,7 +639,7 @@ class TradeStrategyDefaults {
       id: 'default_0dte_scalper',
       name: '0DTE Scalper (5m)',
       description:
-          'High-frequency style: SPY 5m chart, riding rapid momentum bursts with tight risk.',
+          'High-frequency style: SPY 5m chart, riding rapid momentum (CCI/RSI) bursts with tight risk using Parabolic SAR.',
       config: TradeStrategyConfig(
         symbolFilter: ['SPY'],
         startDate: DateTime.now().subtract(const Duration(days: 7)),
@@ -609,6 +658,9 @@ class TradeStrategyDefaults {
           'vwap': true, // Intraday anchor
           'adx': true, // Trend strength
           'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Speed
+          'parabolicSar': true, // Trailing
         },
         tradeQuantity: 10,
         takeProfitPercent: 1.0, // Quick scalp
@@ -631,7 +683,7 @@ class TradeStrategyDefaults {
       id: 'default_tech_sector_swing',
       name: 'Tech Sector Swing',
       description:
-          'Trend following on XLK (Tech Sector). Captures multi-day moves.',
+          'Trend following on XLK (Tech Sector). Captures multi-day moves confirmed by Ichimoku Cloud.',
       config: TradeStrategyConfig(
         symbolFilter: ['XLK'],
         startDate: DateTime.now().subtract(const Duration(days: 365)),
@@ -650,6 +702,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': true, // Strong trend only
           'williamsR': false,
+          'ichimoku': true, // Trend confirm
+          'cci': false,
+          'parabolicSar': true, // Trailing
         },
         riskPerTrade: 0.015,
         takeProfitPercent: 10.0,
@@ -663,7 +718,7 @@ class TradeStrategyDefaults {
       id: 'default_defensive_dividend',
       name: 'Defensive Value',
       description:
-          'Low-beta strategy on SCHD. Buys dips (RSI < 30) in uptrends.',
+          'Low-beta strategy on SCHD. Buys dips (RSI < 30) in uptrends with CCI oversold confirmation.',
       config: TradeStrategyConfig(
         symbolFilter: ['SCHD'],
         startDate: DateTime.now().subtract(const Duration(days: 730)),
@@ -682,6 +737,9 @@ class TradeStrategyDefaults {
           'vwap': false,
           'adx': false,
           'williamsR': true,
+          'ichimoku': false,
+          'cci': true, // Oversold
+          'parabolicSar': false,
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -697,6 +755,196 @@ class TradeStrategyDefaults {
         riskPerTrade: 0.01,
         takeProfitPercent: 6.0,
         stopLossPercent: 4.0, // Wider stop for value
+        trailingStopEnabled: false,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_cloud_breakout',
+      name: 'Ichimoku Cloud Breakout',
+      description:
+          'Trend-following strategy utilizing the Ichimoku Cloud for support/resistance, Parabolic SAR for stops, and CCI for momentum validation.',
+      config: TradeStrategyConfig(
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'priceMovement': true,
+          'momentum': false,
+          'marketDirection': true,
+          'volume': false,
+          'macd': false,
+          'bollingerBands': false,
+          'stochastic': false,
+          'atr': true,
+          'obv': false,
+          'vwap': false,
+          'adx': true,
+          'williamsR': false,
+          'ichimoku': true,
+          'cci': true,
+          'parabolicSar': true,
+        },
+        takeProfitPercent: 18.0,
+        stopLossPercent: 7.0,
+        trailingStopEnabled: true,
+        trailingStopPercent: 4.0,
+        riskPerTrade: 0.02,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_triple_screen_sim',
+      name: 'Triple Screen Simulation',
+      description:
+          'Simulates Elder\'s Triple Screen: Trend (MACD/SMA) + Oscillator (Stochastic/Williams) + Breakout (Price).',
+      config: TradeStrategyConfig(
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'priceMovement': true, // Screen 3: Execution
+          'momentum': false,
+          'marketDirection': true, // Screen 1: Trend (SMA)
+          'volume': false,
+          'macd': true, // Screen 1: Trend (Momentum)
+          'bollingerBands': false,
+          'stochastic': true, // Screen 2: Value
+          'atr': true,
+          'obv': false,
+          'vwap': false,
+          'adx': true, // Trend strength
+          'williamsR': true, // Screen 2: Value alternative
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': true, // Risk management
+        },
+        riskPerTrade: 0.015,
+        takeProfitPercent: 12.0,
+        stopLossPercent: 4.0,
+        trailingStopEnabled: true,
+        trailingStopPercent: 2.5,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_opening_range_breakout',
+      name: 'Opening Range Breakout',
+      description:
+          'Exploits early market volatility (9:30-10:30 AM). Uses VWAP as anchor and Volume/CCI for confirmation.',
+      config: TradeStrategyConfig(
+        startDate: DateTime.now().subtract(const Duration(days: 90)),
+        endDate: DateTime.now(),
+        interval: '5m',
+        enabledIndicators: {
+          'priceMovement': true, // Break high/low
+          'momentum': true, // RSI
+          'marketDirection': false,
+          'volume': true, // Critical for ORB
+          'macd': false,
+          'bollingerBands': false,
+          'stochastic': false,
+          'atr': true, // Volatility check
+          'obv': false,
+          'vwap': true, // Anchor
+          'adx': false,
+          'williamsR': false,
+          'ichimoku': false,
+          'cci': true, // Momentum burst
+          'parabolicSar': false,
+        },
+        riskPerTrade: 0.015,
+        takeProfitPercent: 2.5,
+        stopLossPercent: 1.0,
+        trailingStopEnabled: true,
+        trailingStopPercent: 0.8,
+        timeBasedExitEnabled: true,
+        timeBasedExitMinutes: 60, // Exit by 10:30/11:00 usually
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 5,
+        enablePartialExits: true,
+        exitStages: [
+          ExitStage(profitTargetPercent: 1.0, quantityPercent: 0.5),
+        ],
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_turtle_trend',
+      name: 'Turtle Trend Follower',
+      description:
+          'Long-term breakout strategy inspired by Turtle Traders. Buys new highs with meaningful ATR-based volatility stops.',
+      config: TradeStrategyConfig(
+        startDate: DateTime.now().subtract(const Duration(days: 1095)), // 3 years
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'priceMovement': true, // Breakout detection
+          'momentum': false,
+          'marketDirection': true, // SMA Trend
+          'volume': false,
+          'macd': false,
+          'bollingerBands': false,
+          'stochastic': false,
+          'atr': true, // Volatility stops
+          'obv': false,
+          'vwap': false,
+          'adx': true, // Trend strength
+          'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': true, // Trailing stop
+        },
+        riskPerTrade: 0.02,
+        takeProfitPercent: 30.0,
+        stopLossPercent: 10.0,
+        trailingStopEnabled: true,
+        trailingStopPercent: 5.0,
+        enableDynamicPositionSizing: true,
+        atrMultiplier: 2.5,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_rsi_fade',
+      name: 'RSI Fade (Contrarian)',
+      description:
+          'Fades overextended moves. Sells when RSI > 75 and price hits upper Bollinger Band while ADX suggests weak trend.',
+      config: TradeStrategyConfig(
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1h',
+        enabledIndicators: {
+          'priceMovement': true,
+          'momentum': true, // RSI
+          'marketDirection': false,
+          'volume': false,
+          'macd': false,
+          'bollingerBands': true, // Reversal zone
+          'stochastic': true, // Confirmation
+          'atr': true,
+          'obv': false,
+          'vwap': false,
+          'adx': true, // Ensure no strong trend (implied inverse logic if checked?)
+          'williamsR': true,
+          'ichimoku': false,
+          'cci': true,
+          'parabolicSar': false,
+        },
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'rsi_extreme',
+            name: 'RSI > 75',
+            type: IndicatorType.RSI,
+            parameters: {'period': 14},
+            condition: SignalCondition.GreaterThan,
+            threshold: 75.0,
+            compareToPrice: false,
+          ),
+        ],
+        riskPerTrade: 0.01,
+        takeProfitPercent: 5.0,
+        stopLossPercent: 3.0,
         trailingStopEnabled: false,
       ),
       createdAt: DateTime.now(),

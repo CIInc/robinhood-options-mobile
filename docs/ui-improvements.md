@@ -65,6 +65,12 @@
   - **Stats Grid**: Organized 3-column layout showing Market Value, Avg Price, Total Cost, Break Even, Expiration (with red warning < 5 days), and Collateral (for short positions).
   - **Position Greeks**: (Note: Capability added but optionally disabled) Aggregate Greeks calculation for the entire position.
 
+### UI Consistency & Performance Chart (v0.28.1)
+- **Component**: `HomeWidget` and various list views.
+- **Features**:
+  - **Performance Chart**: Reintroduced `PerformanceChartWidget` on the home screen with optimized layout and padding.
+  - **Visual Consistency**: Standardized section headers across the app (Crypto, Futures, Allocation, Performance, Income) by removing inconsistent bold styling for a cleaner look.
+
 ## Future UI Improvement Ideas
 
 ### Typography

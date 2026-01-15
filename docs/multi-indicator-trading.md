@@ -2,9 +2,9 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates **12 technical indicators** to generate trade signals. **All 12 indicators must be "green" (BUY signal) to trigger an automatic trade.**
+The multi-indicator automatic trading system correlates **15 technical indicators** to generate trade signals.
 
-This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. The system also calculates a **Signal Strength score (0-100)** that quantifies the overall alignment of indicators.
+This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. It uses a **Weighted Signal Strength system** where indicators are weighted by importance (Price Movement > Momentum/Trend > Others) to calculate a final **Signal Strength score (0-100)**.
 
 ## Signal Discovery & Filtering
 
@@ -16,24 +16,46 @@ Users can explore trade signals in the **Search** tab using advanced filtering o
 
 *Note: Signal Strength and Indicator filters are exclusive. Selecting one type clears the other to ensure clear, non-conflicting results.*
 
-## The 12 Technical Indicators
+## Signal Strength Calculation
+
+The system uses a weighted scoring model to determine the overall strength of a trade signal. Not all indicators are created equal; some provide earlier or more reliable signals than others.
+
+**Weight Distribution:**
+
+1.  **High Impact (Weight 1.5):**
+    *   **Price Movement**: Patterns and candlestick formations are the most direct reflection of market sentiment and often precede other indicators.
+
+2.  **Medium Impact (Weight 1.2):**
+    *   **Momentum**: RSI, Stochastic (Leading indicators).
+    *   **Trend**: MACD, ADX, Market Direction (Trend confirmation).
+
+3.  **Standard Impact (Weight 1.0):**
+    *   **Volume/Volatility**: Volume, Bollinger Bands, ATR, OBV, VWAP, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR.
+
+The final score (0-100) reflects the net positive influence of all indicators. A score > 75 is considered a **Strong BUY**, while a score < 25 is a **Strong SELL**.
+
+## The 15 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 
-**Purpose:** Identifies and scores multiple bullish and bearish chart patterns from recent price action to produce a directional signal with confidence.
+**Purpose:** Identifies and scores multiple bullish and bearish chart patterns (classic and candlestick) from recent price action to produce a directional signal with confidence.
 
 **Implementation:** `detectChartPattern()` in `technical-indicators.ts`
 
 **Supported Patterns:**
-- Bullish: Breakout, Double Bottom, Ascending Triangle, Cup & Handle, Bull Flag
-- Bearish: Breakdown, Double Top, Head & Shoulders, Descending Triangle, Bear Flag
+- **Classic:**
+  - Bullish: Breakout, Double Bottom, Ascending Triangle, Cup & Handle, Bull Flag
+  - Bearish: Breakdown, Double Top, Head & Shoulders, Descending Triangle, Bear Flag
+- **Candlestick (New):**
+  - Bullish: Bullish Engulfing, Hammer
+  - Bearish: Bearish Engulfing, Shooting Star
 
 **Signals:**
 - **BUY**: Highest-confidence bullish pattern reaches action threshold (≥ 0.60)
 - **SELL**: Highest-confidence bearish pattern reaches action threshold (≥ 0.60)
 - **HOLD**: No qualifying pattern or only emerging (confidence < 0.60)
 
-**Confidence Scoring:** Each detected pattern is assigned a `confidence` (0–1) based on structure completeness and volume confirmation (e.g., breakout with volume > 130% avg adds a boost). The system selects the strongest non-neutral pattern to drive the signal.
+**Confidence Scoring:** Each detected pattern is assigned a `confidence` (0–1). Candlestick patterns like Engulfing and Hammer/Shooting Star are assigned high confidence (0.60-0.65) as they often signal immediate reversals.
 
 **Key Heuristics:**
 - Moving averages (5/10/20 SMA) establish trend context
@@ -212,6 +234,40 @@ Users can explore trade signals in the **Search** tab using advanced filtering o
 - **SELL**: %R > -20 (Overbought)
 - **HOLD**: %R between -20 and -80
 
+### 13. Ichimoku Cloud
+
+**Purpose:** Comprehensive indicator that defines support and resistance, identifies trend direction, gauges momentum, and provides trading signals.
+
+**Implementation:** `evaluateIchimokuCloud()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price > Cloud AND Conversion Line > Base Line (TK Cross Bullish) AND Cloud is Green (Span A > Span B).
+- **SELL**: Price < Cloud AND Conversion Line < Base Line (TK Cross Bearish) AND Cloud is Red (Span A < Span B).
+- **HOLD**: Price inside Cloud or mixed signals.
+
+### 14. CCI (Commodity Channel Index)
+
+**Purpose:** Momentum-based oscillator used to identify cyclical trends and overbought/oversold levels.
+
+**Implementation:** `evaluateCCI()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: CCI < -100 (Oversold rebound) or crosses above 100 (Trend strength).
+- **SELL**: CCI > 100 (Overbought reversal) or crosses below -100 (Trend weakness).
+- **HOLD**: CCI between -100 and 100 (Neutral).
+
+### 15. Parabolic SAR (Stop and Reverse)
+
+**Purpose:** Trend-following indicator that highlights potential reversals and sets trailing stop levels.
+
+**Implementation:** `evaluateParabolicSAR()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price crosses above the SAR dots (Bullish reversal).
+- **SELL**: Price crosses below the SAR dots (Bearish reversal).
+- **HOLD**: Trend continuation (dots remain on same side).
+
+
 ## Signal Strength Score
 
 **Purpose:** Quantifies overall indicator alignment on a 0-100 scale.
@@ -222,11 +278,11 @@ signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicato
 ```
 
 **Interpretation:**
-- **100**: All 12 indicators are BUY (perfect bullish alignment)
+- **100**: All 15 indicators are BUY (perfect bullish alignment)
 - **75-99**: Strong bullish bias, most indicators aligned
 - **50**: Neutral (equal BUY and SELL signals, or all HOLD)
 - **25-49**: Strong bearish bias
-- **0**: All 12 indicators are SELL (perfect bearish alignment)
+- **0**: All 15 indicators are SELL (perfect bearish alignment)
 
 **Use Cases:**
 - Filter signals by strength threshold (e.g., only act on strength > 75)
@@ -243,13 +299,13 @@ signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicato
    - Minimum 30-60 periods of data required
 
 2. **Indicator Evaluation**
-   - Each of the 12 indicators is evaluated independently
+   - Each of the 15 indicators is evaluated independently
    - Each returns: `{ signal: "BUY"|"SELL"|"HOLD", reason: string, value: number }`
 
 3. **Multi-Indicator Correlation**
    - Function: `evaluateAllIndicators()` in `technical-indicators.ts`
-   - Checks if ALL 12 indicators signal BUY
-   - Returns `allGreen: true` only when all 12 are BUY
+   - Checks if ALL 15 indicators signal BUY
+   - Returns `allGreen: true` only when all 15 are BUY
 
 4. **Trade Decision**
    - Alpha agent (`alpha-agent.ts`) calls multi-indicator evaluation
@@ -983,9 +1039,9 @@ The technical indicators module has been improved for accuracy, robustness, and 
 - **Output**: Added `signalStrength` field to `MultiIndicatorResult`
 
 ### System Expansion
-- **Indicators**: Expanded from 9 to 12 indicators
+- **Indicators**: Expanded from 12 to 15 indicators (added Ichimoku Cloud, CCI, Parabolic SAR)
 - **Interface**: Updated `MultiIndicatorResult` with new indicator fields
-- **Logging**: Enhanced logging includes all 12 indicator signals
+- **Logging**: Enhanced logging includes all 15 indicator signals
 - **Backward Compatibility**: API remains compatible, existing integrations work unchanged
 
 ### Code Quality
