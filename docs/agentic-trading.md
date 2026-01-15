@@ -109,66 +109,48 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 *Note: When Paper Trading is enabled, NO real orders will be sent to your brokerage.*
 
-### Custom Indicators
+### Trading Strategy Management
 
-> **New in v0.21.0**
+> **New in v0.28.1**
 
-Users can now create and integrate their own technical indicators into the Agentic Trading system.
+The system now offers centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
 
-*   **Creation**: Define custom logic using a simple scripting interface or by combining existing indicators.
-*   **Integration**: Custom indicators are treated as first-class citizens, with full support for backtesting, signal generation, and filtering.
-*   **Sharing**: Share your custom indicators with the community or keep them private.
+**Strategies Page:**
+- **Access:** Navigate to the new "Trading Strategies" page from the Agentic Trading Settings.
+- **Library:** Browse a collection of pre-defined strategies (e.g., "Momentum Master", "Mean Reversion", "Conservative Income").
+- **Search:** Quickly find strategies by name or description.
+- **Activation:** Tap "Use Template" to instantly apply the strategy's configuration (indicators, intervals, risk settings) to your active trading agent.
 
-### ML Optimization
+**Entry Strategies:**
+- **Visual Configuration:** New dedicated UI for configuring entry conditions.
+- **Pattern Recognition:** Toggle specific chart patterns and entry triggers directly.
+- **Integration:** Seamlessly integrated with the main configuration flow.
 
-> **New in v0.21.0**
+**Default Strategies:**
+The system comes with a library of professionally designed templates to get you started:
 
-The system now leverages Machine Learning to optimize signal generation and parameter selection.
-
-*   **Signal Optimization**: ML models analyze historical performance to refine signal generation thresholds, reducing false positives.
-*   **Parameter Tuning**: Automatically suggests optimal settings for indicators based on current market conditions.
-*   **Continuous Learning**: The models adapt over time as new market data becomes available.
-
-### Advanced Exit Strategies
-
-> **New in v0.20.0**
-
-Beyond standard Take Profit and Stop Loss, the system now supports advanced exit strategies for precise trade management.
-
-*   **Partial Exits**: Scale out of positions by selling a percentage (e.g., 50%) at specific profit targets.
-*   **Time-Based Exits**: Automatically close positions after a set duration (e.g., 2 hours) if profit targets haven't been met, freeing up capital.
-*   **Market Close Exits**: Automatically close intraday positions before the market closes to avoid overnight risk.
-
-
-### Custom Indicators
-
-Users can now define their own technical indicators to be used alongside the standard 15-indicator system.
-
-- **Creation:** Define custom logic based on price action, volume, or other available data points.
-- **Integration:** Custom indicators are evaluated as part of the signal generation process.
-- **Weighting:** Assign specific weights to custom indicators to influence the overall signal strength.
-- **Flexibility:** Supports a wide range of mathematical functions and logic operators.
-
-### ML Optimization
-
-Machine Learning models are integrated to continuously optimize trade signals, leveraging Google's **Vertex AI Gemini 1.5 Flash** model for high-speed, cost-effective analysis.
-
-- **Signal Refinement:** ML algorithms analyze historical performance to adjust indicator weights and thresholds.
-- **Accuracy Improvement:** Reduces false positives by learning from past market conditions.
-- **Adaptive Logic:** The system adapts to changing market volatility and trends.
-- **Continuous Learning:** The models are retrained periodically with new market data to ensure relevance.
-- **Cost Efficiency:**
-  - **Signal Gating:** Intelligent filtering only invokes AI optimization for high-potential setups (Signal Strength > 25), significantly reducing API costs by skipping analysis of weak signals.
-  - **Optimized Prompts:** Utilizes minified and structured prompts to minimize token usage while maintaining analytical depth.
-  - **Model Selection:** Uses the `gemini-2.5-flash-lite` model, which offers a 10x cost reduction compared to Pro models without compromising on structured analysis capabilities.
-
-### Advanced Exit Strategies
-
-In addition to standard Stop Loss and Take Profit, the system supports sophisticated exit strategies:
-
-- **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%). This allows locking in profits while keeping a portion of the position open for potential further gains.
-- **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met. This helps free up capital from stagnant trades.
-- **Market Close Exits:** Automatically liquidate positions a set number of minutes before the market closes to avoid overnight risk (gap risk).
+1.  **Momentum Master** (Trend): Captures strong price moves by combining RSI and CCI momentum with MACD confirmation and Volume validation.
+2.  **Mean Reversion** (Reversal): Identifies overbought/oversold reversals using Bollinger Bands, CCI, and RSI extremes.
+3.  **Trend Follower** (Swing): Rides established trends using Moving Averages, Ichimoku Cloud, ADX trend strength, and OBV flow.
+4.  **Volatility Breakout (1h)** (Intraday): Exploits explosive moves from squeeze conditions using Bollinger Bands, CCI, ATR, and VWAP.
+5.  **Intraday Scalper (15m)** (Scalping): Short-term scalping via CCI/Stochastic with strict risk management (partial exits, tight stops).
+6.  **Custom EMA Trend** (Custom): Automatically engages when Price crosses above the 21-period EMA.
+7.  **Crypto Proxy Momentum** (Crypto): High-volatility momentum strategy (CCI, RSI) designed for crypto-correlated stocks.
+8.  **Golden Cross & RSI Filter** (Classic): Classic 50/200 SMA Cross combined with RSI < 70 to avoid buying tops.
+9.  **Range Bound Income** (Income): Ideal for sideways markets. Profitable when Price Movement and CCI Impulse are low.
+10. **Strict Confluence** (Conservative): High conviction entries requiring ALL enabled indicators (Momentum, Moving Avg, MACD) to agree.
+11. **Risk-Managed Growth** (Position Sizing): Uses dynamic position sizing to risk exactly 1% of account equity per trade.
+12. **MACD Histogram Reversal** (Reversal): Trades when MACD histogram flips positive while RSI is oversold (< 40).
+13. **Bollinger Band Squeeze** (Breakout): Breakout strategy. Low volatility period (ATR) followed by price piercing Upper Band.
+14. **VWAP Pullback Entry** (Intraday): Intraday trend is UP (Price > SMA), but entry is a pullback to VWAP.
+15. **0DTE Scalper (5m)** (High Frequency): SPY 5m chart, riding rapid momentum (CCI/RSI) bursts with tight risk.
+16. **Tech Sector Swing** (Sector): Trend following on XLK (Tech Sector). Captures multi-day moves.
+17. **Defensive Value** (Low Beta): Low-beta strategy on SCHD. Buys dips (RSI < 30) in uptrends with CCI oversold confirmation.
+18. **Ichimoku Cloud Breakout** (Trend): Trend-following strategy utilizing the Ichimoku Cloud for support/resistance.
+19. **Triple Screen Simulation** (System): Simulates Elder's Triple Screen: Trend (MACD/SMA) + Oscillator (Stochastic/Williams) + Breakout.
+20. **Opening Range Breakout** (Morning): Exploits early market volatility (9:30-10:30 AM). Uses VWAP as anchor.
+21. **Turtle Trend Follower** (Long Term): Long-term breakout strategy inspired by Turtle Traders. Buys new highs.
+22. **RSI Fade** (Contrarian): Fades overextended moves. Sells when RSI > 75 and price hits upper Bollinger Band.
 
 ### Automatic Execution
 
