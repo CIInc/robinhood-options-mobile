@@ -199,62 +199,36 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Bug Fixes** (Options Flow, Yahoo API, ESG logic, Automated Trading, Auth form autofocus, daily cron timezone handling, toast styling)
 
 ### v0.27.6 ✅ (Released Jan 10, 2026)
-**Portfolio Analytics Enhancements**
-- ✅ **Performance Overview Card**: Comprehensive metrics side-by-side (Total Return, Alpha, Tracking Error)
-- ✅ **Health Score Improvements**: Better calculation and visualization
+**Portfolio Analytics Enhancements & UI Polish**
+- ✅ **Performance Overview Card**: Comprehensive metrics side-by-side (Total Return, Alpha, Tracking Error) with benchmark-relative tracking.
+- ✅ **Health Score Improvements**: Refined calculation logic and visualization.
+- ✅ **Loading State Management**: Enhanced feedback during Robinhood & Schwab service data fetching.
+- ✅ **Allocation Widget**: Improved loading indicators and visual feedback.
+- ✅ **Tooltips & Help Dialogs**: Improved clarity and visual hierarchy across analytics.
 
 ### v0.27.7 ✅ (Released Jan 12, 2026)
 **Market Index Support & UI Refinement**
-- ✅ **Russell 2000 (IWM)**: Added support for benchmark comparisons
-- ✅ **Option Instrument Position UI**: Redesigned card with ITM/OTM badges, larger P&L, and better stats
-- ✅ **Account Handling Stability**: Refactored logic for better reliability
+- ✅ **Option Instrument Position UI**: Redesigned card with ITM/OTM badges, larger P&L, and comprehensive statistics grid.
+- ✅ **Russell 2000 (IWM)**: Added support for Russell 2000 index in performance charts and analytics.
+- ✅ **Account Handling Stability**: Refactored logic for improved reliability and stability.
 
 ### v0.28.0 ✅ (Released Jan 13, 2026)
 **AI Trading Coach 2.0 & Market Assistant**
-- ✅ **Hidden Risks UI**: Enhanced visibility and dark mode support
-- ✅ **Challenge Adherence**: Validation of previous coaching challenges
-- ✅ **Coaching Score Chart**: Historical trend visualization
-- ✅ **Session Journaling**: Personal notes for each coaching session
-- ✅ **Custom Personas**: Configurable AI personalities (Drill Sergeant, Zen Master)
-- ✅ **Streak Tracking**: Gamified discipline tracking
-- ✅ **Market Assistant**: Real-time Q&A widget for market insights
-- ✅ **Performance**: Optimized loading (30-day window for orders)
-
-### v0.28.1 ✅ (Released Jan 14, 2026)
-**Technical Analysis & Strategy Management**
-- ✅ **Expanded Indicators**: Added Ichimoku Cloud, CCI, Parabolic SAR (15 Total)
-- ✅ **Trading Strategies Page**: Dedicated management for strategy templates
-- ✅ **Entry Strategies UI**: New widget for strategy configuration
-
-
-### v0.27.6 ✅ (Released Jan 10, 2026)
-**Portfolio Analytics Enhancements & UI Polish**
-- ✅ **Performance Overview Card** (Benchmark-relative tracking metrics)
-- ✅ **Health Score Improvements** (Refined calculation logic)
-- ✅ **Loading State Management** (Robinhood & Schwab service improvements)
-- ✅ **Allocation Widget** (Enhanced loading indicator & visual feedback)
-- ✅ **Tooltips & Help Dialogs** (Improved clarity and visual hierarchy)
-
-### v0.27.7 ✅ (Released Jan 12, 2026)
-**Option Instrument Position UI & Market Indices**
-- ✅ **Option UI**: Redesigned position card with high data density (ITM/OTM badges, Enhanced P&L)
-- ✅ **Statistics Grid**: Comprehensive position stats (Break-even, Expiration, Collateral)
-- ✅ **Russell 2000 (IWM)**: Added support for Russell 2000 index in performance charts and analytics
-- ✅ **Account Handling**: Refactored account handling logic for improved stability
-
-### v0.28.0 ✅ (Released Jan 13, 2026)
-**AI Trading Coach & Market Assistant**
-- ✅ **Hidden Risks UI**: Enhanced Detection with Dark Mode support to identify correlated exposure and hidden leverage.
+- ✅ **Hidden Risks UI**: Enhanced visibility with Dark Mode support to identify correlated exposure.
 - ✅ **Challenge Adherence**: Automated verification of previous coaching challenges.
-- ✅ **Performance Optimization**: Efficient early-exit data fetching for faster analysis.
-- ✅ **Market Assistant**: Real-time market insights and query assistance.
+- ✅ **Coaching Score Chart**: Historical discipline score trend visualization.
+- ✅ **Session Journaling**: Personal reflection notes for each coaching session.
+- ✅ **Custom Personas**: Configurable AI personalities (Drill Sergeant, Zen Master, etc.).
+- ✅ **Streak Tracking**: Gamified discipline tracking with day streaks.
+- ✅ **Market Assistant**: Real-time Q&A widget for market insights and instrument queries.
+- ✅ **Performance**: Optimized early-exit data fetching (30-day window) for faster loading.
 
 ### v0.28.1 ✅ (Released Jan 14, 2026)
 **Strategy Engine, UI Refinement & Expanded Indicators**
-- ✅ **Trading Strategies**: Dedicated strategy management page and entry strategy configuration.
-- ✅ **Expanded Indicators**: Added Ichimoku Cloud, CCI, Parabolic SAR (15 Total).
+- ✅ **Trading Strategies**: Dedicated strategy management page and entry strategy configuration widgets.
+- ✅ **Expanded Indicators**: Added Ichimoku Cloud, CCI, and Parabolic SAR (Total: 15 indicators).
 - ✅ **UI Consistency**: Standardized visuals across Crypto, Futures, and Allocation sections.
-- ✅ **Home Screen**: Enhanced layout with reintroduced Performance Chart.
+- ✅ **Home Screen**: Enhanced layout with reintroduced and improved Performance Chart.
 - ✅ **Technical Improvements**: Consolidated strategy defaults and fixed Williams %R defaults.
 
 ### v0.28.2 (Q1 2026 - Late January)
