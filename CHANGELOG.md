@@ -12,6 +12,14 @@ All notable changes to this project will be documented in this file.
 - **Indicators:** Expanded technical indicator system from 12 to 15 indicators (Added Ichimoku Cloud, CCI, Parabolic SAR).
 - **Custom Indicators:** Added default period for Williams %R indicator.
 
+### Changed
+- **UI Consistency:** Improved visual consistency across the app by removing bold styling from section titles (Crypto, Futures, Allocation, Performance, Income).
+- **Home Widget:** Reintroduced `PerformanceChartWidget` with improved layout and padding adjustments.
+- **Refactoring:** Consolidated trade strategy defaults and templates into `TradeStrategyDefaults` logic.
+
+### Removed
+- **Validation:** Removed `maxDailyLossPercent` configuration as it is no longer used.
+
 ## [0.28.0] - 2026-01-13
 
 ### Added

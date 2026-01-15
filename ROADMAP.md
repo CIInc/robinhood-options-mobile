@@ -250,11 +250,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Market Assistant**: Real-time market insights and query assistance.
 
 ### v0.28.1 ✅ (Released Jan 14, 2026)
-**UI Refinement & Strategy Core**
+**Strategy Engine, UI Refinement & Expanded Indicators**
+- ✅ **Trading Strategies**: Dedicated strategy management page and entry strategy configuration.
+- ✅ **Expanded Indicators**: Added Ichimoku Cloud, CCI, Parabolic SAR (15 Total).
 - ✅ **UI Consistency**: Standardized visuals across Crypto, Futures, and Allocation sections.
 - ✅ **Home Screen**: Enhanced layout with reintroduced Performance Chart.
-- ✅ **Custom Indicators**: Added Williams %R configuration defaults.
-- ✅ **Strategy Engine**: Consolidated strategy defaults and templates for better maintainability.
+- ✅ **Technical Improvements**: Consolidated strategy defaults and fixed Williams %R defaults.
 
 ### v0.28.2 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
