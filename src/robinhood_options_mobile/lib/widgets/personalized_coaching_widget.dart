@@ -1517,8 +1517,15 @@ Your response MUST be valid JSON. No conversational text.
     int marketOrders = 0;
     for (var t in trades) {
       final type = t['order_type']?.toString().toLowerCase() ?? "";
+      final trigger = t['trigger']?.toString().toLowerCase() ?? "";
+      final trailingPeg = t['trailing_peg'];
+
+      // Don't count Stop/Trailing Stop as "Market Orders" (impatience)
+      // because they are valid protection strategies.
+      bool isProtected = trigger.contains('stop') || trailingPeg != null;
+
       if (type.contains('limit')) limitOrders++;
-      if (type.contains('market')) marketOrders++;
+      if (type.contains('market') && !isProtected) marketOrders++;
     }
     final totalMeasured = limitOrders + marketOrders;
     double limitPct =
@@ -3157,8 +3164,12 @@ class TradeExecutionStatsView extends StatelessWidget {
     int marketOrders = 0;
     for (var t in trades) {
       final type = t['order_type']?.toString().toLowerCase() ?? "";
+      final trigger = t['trigger']?.toString().toLowerCase() ?? "";
+      final trailingPeg = t['trailing_peg'];
+      bool isProtected = trigger.contains('stop') || trailingPeg != null;
+
       if (type.contains('limit')) limitOrders++;
-      if (type.contains('market')) marketOrders++;
+      if (type.contains('market') && !isProtected) marketOrders++;
     }
     final totalMeasured = limitOrders + marketOrders;
     double limitPct =
