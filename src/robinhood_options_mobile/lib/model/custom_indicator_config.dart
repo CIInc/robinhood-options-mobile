@@ -7,7 +7,14 @@ enum IndicatorType {
   Stochastic,
   ATR,
   OBV,
-  WilliamsR
+  WilliamsR,
+  VWAP,
+  CCI,
+  ADX,
+  MFI,
+  ROC,
+  BBW,
+  CMF
 }
 
 enum SignalCondition { GreaterThan, LessThan, CrossOverAbove, CrossOverBelow }

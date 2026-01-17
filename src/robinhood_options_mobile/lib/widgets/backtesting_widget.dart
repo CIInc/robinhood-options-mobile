@@ -239,7 +239,9 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       _enabledIndicators.addAll(template.config.enabledIndicators);
 
       _minSignalStrengthController.text =
-          template.config.minSignalStrength.toString();
+          template.config.requireAllIndicatorsGreen
+              ? '100'
+              : template.config.minSignalStrength.toString();
       _requireAllIndicatorsGreen = template.config.requireAllIndicatorsGreen;
       _timeBasedExitEnabled = template.config.timeBasedExitEnabled;
       _timeBasedExitController.text =
@@ -706,8 +708,14 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   children: [
                     EntryStrategiesWidget(
                       requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
-                      onRequireStrictEntryChanged: (val) =>
-                          setState(() => _requireAllIndicatorsGreen = val),
+                      onRequireStrictEntryChanged: (val) {
+                        setState(() {
+                          _requireAllIndicatorsGreen = val;
+                          if (val) {
+                            _minSignalStrengthController.text = '100';
+                          }
+                        });
+                      },
                       minSignalStrengthController: _minSignalStrengthController,
                       enabledIndicators: _enabledIndicators,
                       onToggleIndicator: (key, val) =>

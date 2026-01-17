@@ -42,9 +42,18 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
       case IndicatorType.EMA:
       case IndicatorType.RSI:
       case IndicatorType.ATR:
+      case IndicatorType.WilliamsR:
+      case IndicatorType.ADX:
+      case IndicatorType.MFI:
+      case IndicatorType.ROC:
+      case IndicatorType.CCI:
         _parameters['period'] = 14;
         break;
+      case IndicatorType.CMF:
+        _parameters['period'] = 20;
+        break;
       case IndicatorType.Bollinger:
+      case IndicatorType.BBW:
         _parameters['period'] = 20;
         _parameters['stdDev'] = 2.0;
         break;
@@ -58,9 +67,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
         _parameters['dPeriod'] = 3;
         break;
       case IndicatorType.OBV:
-        break;
-      case IndicatorType.WilliamsR:
-        _parameters['period'] = 14;
+      case IndicatorType.VWAP:
         break;
     }
   }

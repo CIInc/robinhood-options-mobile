@@ -41,7 +41,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';

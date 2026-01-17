@@ -29,6 +29,11 @@
   - **Comprehensive Statistics**: Grid layout showing Break-Even Price, Days to Expiration, Collateral, and Greeks (Delta, Theta, Gamma, Vega, Rho, Implied Volatility).
   - **Enhanced Layout**: Improved data density and readability using badges and organized metrics.
 
+### Visual Consistency (v0.28.1)
+- **Component**: Section Headers across the app (Crypto, Futures, Allocation, Performance, Income).
+- **Change**: Standardized typography by removing inconsistent bold styling.
+- **Benefit**: Cleaner, more unified visual language across different app modules.
+
 ### Navigation Bar Upgrade (v0.21.1)
 - **Component**: Replaced `BottomNavigationBar` (Material 2) with `NavigationBar` (Material 3).
 - **Benefits**:

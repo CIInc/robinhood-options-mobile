@@ -34,7 +34,7 @@ import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
@@ -3671,6 +3671,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 _buildDocSection('vwap'),
                                 _buildDocSection('adx'),
                                 _buildDocSection('williamsR'),
+                                _buildDocSection('ichimoku'),
+                                _buildDocSection('cci'),
+                                _buildDocSection('sar'),
                               ],
                             ),
                           ),
@@ -3749,6 +3752,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       'williamsR',
                       indicators['williamsR'] as Map<String, dynamic>?,
                       enabledIndicators['williamsR'] == true),
+                  _buildIndicatorRow(
+                      'Ichimoku Cloud',
+                      'ichimoku',
+                      indicators['ichimoku'] as Map<String, dynamic>?,
+                      enabledIndicators['ichimoku'] == true),
+                  _buildIndicatorRow(
+                      'CCI',
+                      'cci',
+                      indicators['cci'] as Map<String, dynamic>?,
+                      enabledIndicators['cci'] == true),
+                  _buildIndicatorRow(
+                      'Parabolic SAR',
+                      'sar',
+                      indicators['sar'] as Map<String, dynamic>?,
+                      enabledIndicators['sar'] == true),
                 ],
               ),
               const SizedBox(height: 12),
@@ -3955,7 +3973,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     return Opacity(
-      opacity: isEnabled ? 1.0 : 0.5,
+      opacity: isEnabled ? 1.0 : 0.75,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
@@ -3963,9 +3981,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           children: [
             Icon(
               signalIcon,
-              color: isEnabled
-                  ? signalColor
-                  : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+              color: signalColor,
               size: 20,
             ),
             const SizedBox(width: 8),
@@ -3982,11 +3998,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         '$name: $signal',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isEnabled
-                              ? signalColor
-                              : (isDark
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade600),
+                          color: signalColor,
                         ),
                       ),
                       if (!isEnabled)

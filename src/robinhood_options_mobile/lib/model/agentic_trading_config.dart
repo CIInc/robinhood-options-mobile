@@ -33,6 +33,7 @@ class AgenticTradingConfig {
   bool autoTradeEnabled;
   int dailyTradeLimit;
   int autoTradeCooldownMinutes;
+  int checkIntervalMinutes;
   double takeProfitPercent;
   double stopLossPercent;
   bool allowPreMarketTrading;
@@ -48,6 +49,7 @@ class AgenticTradingConfig {
   bool requireApproval;
   bool enablePartialExits;
   String? selectedTemplateId;
+  String interval;
   List<ExitStage> exitStages;
   List<CustomIndicatorConfig> customIndicators;
 
@@ -56,6 +58,12 @@ class AgenticTradingConfig {
   int timeBasedExitMinutes;
   bool marketCloseExitEnabled;
   int marketCloseExitMinutes;
+
+  // Technical Exits
+  bool rsiExitEnabled;
+  double rsiExitThreshold; // e.g. 80.0
+  bool signalStrengthExitEnabled;
+  double signalStrengthExitThreshold; // e.g. 40.0
 
   // Advanced Risk Controls
   bool enableSectorLimits;
@@ -92,6 +100,7 @@ class AgenticTradingConfig {
     this.autoTradeEnabled = false,
     this.dailyTradeLimit = 5,
     this.autoTradeCooldownMinutes = 60,
+    this.checkIntervalMinutes = 5,
     this.takeProfitPercent = 10.0,
     this.stopLossPercent = 5.0,
     this.allowPreMarketTrading = false,
@@ -107,12 +116,17 @@ class AgenticTradingConfig {
     this.requireApproval = false,
     this.enablePartialExits = false,
     this.selectedTemplateId,
+    this.interval = '1d',
     List<ExitStage>? exitStages,
     List<CustomIndicatorConfig>? customIndicators,
     this.timeBasedExitEnabled = false,
     this.timeBasedExitMinutes = 0,
     this.marketCloseExitEnabled = false,
     this.marketCloseExitMinutes = 15,
+    this.rsiExitEnabled = false,
+    this.rsiExitThreshold = 80.0,
+    this.signalStrengthExitEnabled = false,
+    this.signalStrengthExitThreshold = 40.0,
     this.enableSectorLimits = false,
     this.maxSectorExposure = 20.0,
     this.enableCorrelationChecks = false,
@@ -166,6 +180,7 @@ class AgenticTradingConfig {
         dailyTradeLimit = json['dailyTradeLimit'] as int? ?? 5,
         autoTradeCooldownMinutes =
             json['autoTradeCooldownMinutes'] as int? ?? 60,
+        checkIntervalMinutes = json['checkIntervalMinutes'] as int? ?? 5,
         takeProfitPercent =
             (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
         stopLossPercent = (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
@@ -184,6 +199,7 @@ class AgenticTradingConfig {
         requireApproval = json['requireApproval'] as bool? ?? false,
         enablePartialExits = json['enablePartialExits'] as bool? ?? false,
         selectedTemplateId = json['selectedTemplateId'] as String?,
+        interval = json['interval'] as String? ?? '1d',
         exitStages = (json['exitStages'] as List<dynamic>?)
                 ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
                 .toList() ??
@@ -198,6 +214,13 @@ class AgenticTradingConfig {
         marketCloseExitEnabled =
             json['marketCloseExitEnabled'] as bool? ?? false,
         marketCloseExitMinutes = json['marketCloseExitMinutes'] as int? ?? 15,
+        rsiExitEnabled = json['rsiExitEnabled'] as bool? ?? false,
+        rsiExitThreshold =
+            (json['rsiExitThreshold'] as num?)?.toDouble() ?? 80.0,
+        signalStrengthExitEnabled =
+            json['signalStrengthExitEnabled'] as bool? ?? false,
+        signalStrengthExitThreshold =
+            (json['signalStrengthExitThreshold'] as num?)?.toDouble() ?? 40.0,
         enableSectorLimits = json['enableSectorLimits'] as bool? ?? false,
         maxSectorExposure =
             (json['maxSectorExposure'] as num?)?.toDouble() ?? 20.0,
@@ -277,6 +300,7 @@ class AgenticTradingConfig {
       'trailingStopPercent': trailingStopPercent,
       'autoTradeEnabled': autoTradeEnabled,
       'dailyTradeLimit': dailyTradeLimit,
+      'checkIntervalMinutes': checkIntervalMinutes,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,
       'takeProfitPercent': takeProfitPercent,
       'stopLossPercent': stopLossPercent,
@@ -284,12 +308,17 @@ class AgenticTradingConfig {
       'timeBasedExitMinutes': timeBasedExitMinutes,
       'marketCloseExitEnabled': marketCloseExitEnabled,
       'marketCloseExitMinutes': marketCloseExitMinutes,
+      'rsiExitEnabled': rsiExitEnabled,
+      'rsiExitThreshold': rsiExitThreshold,
+      'signalStrengthExitEnabled': signalStrengthExitEnabled,
+      'signalStrengthExitThreshold': signalStrengthExitThreshold,
       'allowPreMarketTrading': allowPreMarketTrading,
       'allowAfterHoursTrading': allowAfterHoursTrading,
       'requireApproval': requireApproval,
       'paperTradingMode': paperTradingMode,
       'enablePartialExits': enablePartialExits,
       'selectedTemplateId': selectedTemplateId,
+      'interval': interval,
       'exitStages': exitStages.map((e) => e.toJson()).toList(),
       'customIndicators': customIndicators.map((e) => e.toJson()).toList(),
       'enableSectorLimits': enableSectorLimits,
@@ -329,6 +358,7 @@ class AgenticTradingConfig {
     bool? allowAfterHoursTrading,
     bool? enablePartialExits,
     String? selectedTemplateId,
+    String? interval,
     List<ExitStage>? exitStages,
     List<CustomIndicatorConfig>? customIndicators,
     List<String>? symbolFilter,
@@ -336,6 +366,10 @@ class AgenticTradingConfig {
     int? timeBasedExitMinutes,
     bool? marketCloseExitEnabled,
     int? marketCloseExitMinutes,
+    bool? rsiExitEnabled,
+    double? rsiExitThreshold,
+    bool? signalStrengthExitEnabled,
+    double? signalStrengthExitThreshold,
     bool? enableSectorLimits,
     double? maxSectorExposure,
     bool? enableCorrelationChecks,
@@ -379,8 +413,15 @@ class AgenticTradingConfig {
           marketCloseExitEnabled ?? this.marketCloseExitEnabled,
       marketCloseExitMinutes:
           marketCloseExitMinutes ?? this.marketCloseExitMinutes,
+      rsiExitEnabled: rsiExitEnabled ?? this.rsiExitEnabled,
+      rsiExitThreshold: rsiExitThreshold ?? this.rsiExitThreshold,
+      signalStrengthExitEnabled:
+          signalStrengthExitEnabled ?? this.signalStrengthExitEnabled,
+      signalStrengthExitThreshold:
+          signalStrengthExitThreshold ?? this.signalStrengthExitThreshold,
       enablePartialExits: enablePartialExits ?? this.enablePartialExits,
       selectedTemplateId: selectedTemplateId ?? this.selectedTemplateId,
+      interval: interval ?? this.interval,
       exitStages: exitStages ?? List.from(this.exitStages),
       customIndicators: customIndicators ?? List.from(this.customIndicators),
       enableSectorLimits: enableSectorLimits ?? this.enableSectorLimits,

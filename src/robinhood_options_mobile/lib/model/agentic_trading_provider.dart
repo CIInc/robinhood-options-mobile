@@ -88,6 +88,29 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? _lastSignalCheckTime;
   final Map<String, int> _processedSignalTimestamps = {};
 
+  // Activity Log
+  final List<String> _activityLog = [];
+  List<String> get activityLog => _activityLog;
+
+  void _log(String message) {
+    debugPrint(message);
+    final now = DateTime.now();
+    final timeStr =
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    _activityLog.insert(0, '[$timeStr] $message');
+    // Keep log manageable
+    if (_activityLog.length > 200) {
+      _activityLog.removeLast();
+    }
+    notifyListeners();
+  }
+
+  void clearLog() {
+    _activityLog.clear();
+    _processedSignalTimestamps.clear();
+    notifyListeners();
+  }
+
   Map<String, dynamic> get config => _config;
 
   // Auto-trade getters
@@ -109,8 +132,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
-    _nextAutoTradeTime = DateTime.now().add(const Duration(minutes: 5));
-    _autoTradeCountdownSeconds = 5 * 60;
+    final interval = _config['checkIntervalMinutes'] as int? ?? 5;
+    _nextAutoTradeTime = DateTime.now().add(Duration(minutes: interval));
+    _autoTradeCountdownSeconds = interval * 60;
     notifyListeners();
   }
 
@@ -136,8 +160,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Reset countdown for the next 5-minute cycle
   void resetAutoTradeCountdownForNextCycle() {
-    _nextAutoTradeTime = DateTime.now().add(const Duration(minutes: 5));
-    _autoTradeCountdownSeconds = 5 * 60;
+    final interval = _config['checkIntervalMinutes'] as int? ?? 5;
+    _nextAutoTradeTime = DateTime.now().add(Duration(minutes: interval));
+    _autoTradeCountdownSeconds = interval * 60;
     notifyListeners();
   }
 
@@ -159,7 +184,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    debugPrint('🧹 Disposing AgenticTradingProvider');
+    _log('🧹 Disposing AgenticTradingProvider');
     _autoTradingVisualTimer?.cancel();
     _autoTradeTimer?.cancel();
     super.dispose();
@@ -182,7 +207,7 @@ class AgenticTradingProvider with ChangeNotifier {
   }) {
     // Prevent duplicate timers
     if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
-      debugPrint('🤖 Auto-trade timer already running, skipping start');
+      // _log('🤖 Auto-trade timer already running, skipping start');
       return;
     }
 
@@ -202,8 +227,7 @@ class AgenticTradingProvider with ChangeNotifier {
       );
     });
 
-    debugPrint(
-        '🤖 Auto-trade timer started (provider-owned, 5-minute cadence)');
+    _log('🤖 Auto-trade timer started'); // (provider-owned, 5-minute cadence)
   }
 
   /// Manually triggers an auto-trade cycle
@@ -213,11 +237,12 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
   }) async {
     if (_isAutoTrading) {
-      debugPrint('⚠️ Auto-trade cycle already in progress');
+      _log('⚠️ Auto-trade cycle already in progress');
       return;
     }
 
     try {
+      _log('🤖 Starting auto-trade cycle...');
       // Gather required providers from context lazily
       final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
       final accountStore = Provider.of<AccountStore>(context, listen: false);
@@ -235,7 +260,7 @@ class AgenticTradingProvider with ChangeNotifier {
       // Check auto-trade enabled
       final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
       if (!autoTradeEnabled) {
-        debugPrint('🤖 Auto-trade check: disabled in config');
+        _log('🤖 Auto-trade check: disabled in config');
         return;
       }
 
@@ -246,7 +271,7 @@ class AgenticTradingProvider with ChangeNotifier {
           (userStore.items.isEmpty ||
               userStore.currentUser == null ||
               accountStore.items.isEmpty)) {
-        debugPrint('🤖 Auto-trade check: missing user or account data');
+        _log('❌ Auto-trade check: missing user or account data');
         return;
       }
 
@@ -254,7 +279,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final firstAccount =
           accountStore.items.isNotEmpty ? accountStore.items.first : null;
       if (!isPaperMode && currentUser == null) {
-        debugPrint('🤖 Auto-trade check: currentUser is null');
+        _log('❌ Auto-trade check: currentUser is null');
         return;
       }
 
@@ -304,8 +329,6 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      debugPrint('🤖 Auto-trade check: executing auto-trade...');
-
       // Capture start time for next cycle's reference
       final cycleStartTime = DateTime.now();
 
@@ -323,42 +346,62 @@ class AgenticTradingProvider with ChangeNotifier {
           (_config['minSignalStrength'] as num?)?.toInt() ?? 0;
 
       Map<String, String>? indicatorFilters;
-      int? minStrengthFilter;
+      int minStrengthFilter = minSignalStrength;
 
-      if (requireAllIndicatorsGreen && activeIndicators.isNotEmpty) {
+      if (activeIndicators.isNotEmpty) {
         indicatorFilters = {for (var i in activeIndicators) i: 'BUY'};
-      } else if (!requireAllIndicatorsGreen) {
-        minStrengthFilter = minSignalStrength;
       }
 
       // Determine start date for signal fetch (since last run or recent window)
       // Default to 60 minutes lookback on first run to avoid processing ancient signals
-      final startDate = _lastSignalCheckTime ??
-          DateTime.now().subtract(const Duration(minutes: 60));
+      // final startDate = _lastSignalCheckTime ??
+      //     DateTime.now().subtract(const Duration(minutes: 60));
+      final startDate = DateTime.now().subtract(const Duration(days: 5));
 
-      debugPrint(
-          '🤖 Auto-trade check: fetching signals since $startDate (Strategy: ${requireAllIndicatorsGreen ? "All Green" : "Min Strength >= $minStrengthFilter"})...');
-
-      var tradeSignals = await tradeSignalsProvider.fetchSignals(
-        indicatorFilters: indicatorFilters,
-        minSignalStrength: minStrengthFilter,
-        sortBy: 'timestamp',
-        startDate: startDate,
-      );
+      _log(
+          '📡 Fetching signals since ${startDate.month}/${startDate.day} ${startDate.hour}:${startDate.minute}');
 
       // Filter by symbol whitelist if configured
       final symbolFilter = _config['symbolFilter'];
+      List<String>? symbols;
       if (symbolFilter != null &&
           symbolFilter is List &&
           symbolFilter.isNotEmpty) {
-        final allowedSymbols =
-            symbolFilter.map((e) => e.toString().toUpperCase()).toSet();
-        debugPrint(
-            '🤖 Auto-trade check: filtering for allowed symbols: $allowedSymbols');
-        tradeSignals = tradeSignals.where((s) {
-          final symbol = s['symbol'] as String?;
-          return symbol != null && allowedSymbols.contains(symbol);
-        }).toList();
+        symbols = symbolFilter.map((e) => e.toString().toUpperCase()).toList();
+        // _log('🤖 Auto-trade check: filtering for allowed symbols: $symbols');
+        _log('🔍 Filtering for allowed symbols: ${symbols.length}');
+      }
+
+      List<Map<String, dynamic>> tradeSignals;
+
+      if (symbols != null && symbols.isNotEmpty) {
+        tradeSignals = await tradeSignalsProvider.fetchSignals(
+          sortBy: 'timestamp',
+          startDate: startDate,
+          symbols: symbols,
+          interval: _config['interval'],
+        );
+
+        // Apply strength of selected indicators
+        if (activeIndicators.isNotEmpty) {
+          tradeSignals = tradeSignals.where((s) {
+            final indicators = s['multiIndicatorResult']?['indicators'];
+            if (indicators is! Map) return false;
+            int buys = 0;
+            for (var ind in activeIndicators) {
+              if (indicators[ind]?['signal'] == 'BUY') buys++;
+            }
+            return (buys / activeIndicators.length) * 100 >= minStrengthFilter;
+          }).toList();
+        }
+      } else {
+        tradeSignals = await tradeSignalsProvider.fetchSignals(
+          indicatorFilters: indicatorFilters,
+          minSignalStrength: minStrengthFilter,
+          sortBy: 'timestamp',
+          // startDate: startDate,
+          interval: _config['interval'],
+        );
       }
 
       // Filter out already processed signals (deduplication)
@@ -373,12 +416,11 @@ class AgenticTradingProvider with ChangeNotifier {
       }).toList();
 
       if (originalCount != tradeSignals.length) {
-        debugPrint(
-            '🤖 Auto-trade check: filtered ${originalCount - tradeSignals.length} duplicate signals');
+        _log(
+            '🗑️ Filtered ${originalCount - tradeSignals.length} duplicate signals');
       }
 
-      debugPrint(
-          '🤖 Auto-trade check: processing ${tradeSignals.length} new signals');
+      _log('📥 Processing ${tradeSignals.length} new signals');
 
       // Mark signals as processed to prevent duplicates
       for (final signal in tradeSignals) {
@@ -416,8 +458,8 @@ class AgenticTradingProvider with ChangeNotifier {
       // final instrumentPositionStore =
       //    Provider.of<InstrumentPositionStore>(context, listen: false);
       if (instrumentPositionStore.items.isNotEmpty) {
-        debugPrint(
-            '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+        _log(
+            '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL');
         final tpSlResult = await monitorTakeProfitStopLoss(
           positions: instrumentPositionStore.items,
           brokerageUser: currentUser,
@@ -426,13 +468,17 @@ class AgenticTradingProvider with ChangeNotifier {
           instrumentStore: instrumentStore,
           userDocRef: userDocRef,
         );
-        debugPrint(
-            '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        // _log(
+        //     '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        if (tpSlResult['exitsExecuted'] > 0) {
+          _log('📊 TP/SL result: ${tpSlResult['message']}');
+        }
       } else {
-        debugPrint('📊 No positions to monitor for TP/SL');
+        _log('📊 No positions to monitor for TP/SL');
       }
+      _log('✅ Auto-trade cycle complete.');
     } catch (e) {
-      debugPrint('❌ Auto-trade timer error: $e');
+      _log('❌ Auto-trade error: $e');
     }
   }
 
@@ -453,6 +499,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'autoTradeEnabled': false,
         'dailyTradeLimit': 5,
         'autoTradeCooldownMinutes': 60,
+        'interval': '1d',
         'enabledIndicators': {
           'priceMovement': true,
           'momentum': true,
@@ -497,7 +544,7 @@ class AgenticTradingProvider with ChangeNotifier {
   Future<void> _saveAutomatedBuyTradesToFirestore(
       DocumentReference? userDocRef) async {
     if (userDocRef == null) {
-      debugPrint('⚠️ Cannot save automated buy trades: userDocRef is null');
+      _log('⚠️ Cannot save automated buy trades: userDocRef is null');
       return;
     }
 
@@ -516,14 +563,14 @@ class AgenticTradingProvider with ChangeNotifier {
         await tradesCollection.add(trade);
       }
 
-      debugPrint(
+      _log(
           '💾 Saved ${_automatedBuyTrades.length} automated buy trades to Firestore');
       _analytics.logEvent(
         name: 'agentic_trading_trades_saved',
         parameters: {'count': _automatedBuyTrades.length},
       );
     } catch (e) {
-      debugPrint('❌ Failed to save automated buy trades to Firestore: $e');
+      _log('❌ Failed to save automated buy trades to Firestore: $e');
       _analytics.logEvent(
         name: 'agentic_trading_trades_save_failed',
         parameters: {'error': e.toString()},
@@ -535,7 +582,7 @@ class AgenticTradingProvider with ChangeNotifier {
   Future<void> loadAutomatedBuyTradesFromFirestore(
       DocumentReference? userDocRef) async {
     if (userDocRef == null) {
-      debugPrint('⚠️ Cannot load automated buy trades: userDocRef is null');
+      _log('⚠️ Cannot load automated buy trades: userDocRef is null');
       return;
     }
 
@@ -556,13 +603,13 @@ class AgenticTradingProvider with ChangeNotifier {
             trade['timestamp'] is String;
       }).toList();
 
-      debugPrint(
-          '📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
+      // _log(
+      //     '📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
       if (_automatedBuyTrades.isNotEmpty) {
         final symbols = _automatedBuyTrades
             .map((t) => '${t['symbol']} x${t['quantity']}')
             .join(', ');
-        debugPrint('📝 Automated buy trades: $symbols');
+        // _log('📝 Automated buy trades: $symbols');
       }
 
       _analytics.logEvent(
@@ -572,7 +619,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ Failed to load automated buy trades from Firestore: $e');
+      _log('❌ Failed to load automated buy trades from Firestore: $e');
       _analytics.logEvent(
         name: 'agentic_trading_trades_load_failed',
         parameters: {'error': e.toString()},
@@ -599,9 +646,9 @@ class AgenticTradingProvider with ChangeNotifier {
       final docRef = await ordersCollection.add(orderToSave);
       order['firestoreId'] = docRef.id;
 
-      debugPrint('💾 Added pending order to Firestore: ${docRef.id}');
+      _log('💾 Added pending order to Firestore: ${docRef.id}');
     } catch (e) {
-      debugPrint('❌ Failed to add pending order to Firestore: $e');
+      _log('❌ Failed to add pending order to Firestore: $e');
     }
   }
 
@@ -611,7 +658,7 @@ class AgenticTradingProvider with ChangeNotifier {
     try {
       final firestoreId = order['firestoreId'] as String?;
       if (firestoreId == null) {
-        debugPrint('⚠️ Cannot remove pending order: missing firestoreId');
+        _log('⚠️ Cannot remove pending order: missing firestoreId');
         // Fallback: try to find by internal ID if available, or just return
         // For now, we assume firestoreId is present if loaded/saved correctly
         return;
@@ -620,9 +667,9 @@ class AgenticTradingProvider with ChangeNotifier {
       final ordersCollection = userDocRef.collection('pending_orders');
       await ordersCollection.doc(firestoreId).delete();
 
-      debugPrint('🗑️ Removed pending order from Firestore: $firestoreId');
+      _log('🗑️ Removed pending order from Firestore: $firestoreId');
     } catch (e) {
-      debugPrint('❌ Failed to remove pending order from Firestore: $e');
+      _log('❌ Failed to remove pending order from Firestore: $e');
     }
   }
 
@@ -630,7 +677,7 @@ class AgenticTradingProvider with ChangeNotifier {
   Future<void> loadPendingOrdersFromFirestore(
       DocumentReference? userDocRef) async {
     if (userDocRef == null) {
-      debugPrint('⚠️ Cannot load pending orders: userDocRef is null');
+      _log('⚠️ Cannot load pending orders: userDocRef is null');
       return;
     }
 
@@ -652,8 +699,7 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      debugPrint(
-          '📥 Loaded ${_pendingOrders.length} pending orders from Firestore');
+      // _log('📥 Loaded ${_pendingOrders.length} pending orders from Firestore');
 
       _analytics.logEvent(
         name: 'agentic_trading_pending_orders_loaded',
@@ -662,7 +708,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ Failed to load pending orders from Firestore: $e');
+      _log('❌ Failed to load pending orders from Firestore: $e');
       _analytics.logEvent(
         name: 'agentic_trading_pending_orders_load_failed',
         parameters: {'error': e.toString()},
@@ -758,7 +804,7 @@ class AgenticTradingProvider with ChangeNotifier {
         _dailyTradeCountResetDate!.isBefore(today)) {
       _dailyTradeCount = 0;
       _dailyTradeCountResetDate = today;
-      debugPrint('🔄 Reset daily trade counters for $today');
+      _log('🔄 Reset daily trade counters for $today');
     }
   }
 
@@ -771,13 +817,13 @@ class AgenticTradingProvider with ChangeNotifier {
     // Check if auto-trade is enabled
     final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
     if (!autoTradeEnabled) {
-      debugPrint('❌ Auto-trade not enabled in config');
+      _log('❌ Auto-trade not enabled in config');
       return 'Auto-trade disabled in settings';
     }
 
     // Check emergency stop
     if (_emergencyStopActivated) {
-      debugPrint('🛑 Emergency stop activated');
+      _log('🛑 Emergency stop activated');
       return 'Emergency stop is activated';
     }
 
@@ -787,15 +833,14 @@ class AgenticTradingProvider with ChangeNotifier {
     final includeExtended = allowPreMarket || allowAfterHours;
 
     if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
-      debugPrint(
-          '🏦 Market is closed (Extended hours enabled: $includeExtended)');
+      // _log('🏦 Market is closed (Extended hours enabled: $includeExtended)');
       return 'Market is closed';
     }
 
     // Check daily trade limit
     final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
     if (_dailyTradeCount >= dailyLimit) {
-      debugPrint('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
+      // _log('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
       return 'Daily trade limit reached ($_dailyTradeCount/$dailyLimit)';
     }
 
@@ -808,7 +853,7 @@ class AgenticTradingProvider with ChangeNotifier {
       if (timeSinceLastTrade < cooldownDuration) {
         final remainingMinutes =
             (cooldownDuration - timeSinceLastTrade).inMinutes;
-        debugPrint('⏰ Cooldown active: $remainingMinutes minutes remaining');
+        // _log('⏰ Cooldown active: $remainingMinutes minutes remaining');
         return 'Cooldown active ($remainingMinutes min remaining)';
       }
     }
@@ -831,7 +876,7 @@ class AgenticTradingProvider with ChangeNotifier {
         symbol,
       );
     } catch (e) {
-      debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+      _log('⚠️ Error fetching instrument for $symbol: $e');
       return null;
     }
   }
@@ -903,7 +948,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   account == null ||
                   brokerageService == null)) ||
           instrumentStore == null) {
-        debugPrint('❌ Missing required parameters for auto-trade');
+        _log('❌ Missing required parameters for auto-trade');
         _isAutoTrading = false;
         _scheduleVisualStateReset();
         notifyListeners();
@@ -922,6 +967,7 @@ class AgenticTradingProvider with ChangeNotifier {
       if (conditionCheck != null) {
         _isAutoTrading = false;
         _scheduleVisualStateReset();
+        _log('❌ Conditions not met: $conditionCheck');
         notifyListeners();
         return {
           'success': false,
@@ -945,10 +991,9 @@ class AgenticTradingProvider with ChangeNotifier {
       final minSignalStrength =
           (_config['minSignalStrength'] as num?)?.toDouble() ?? 70.0;
 
-      debugPrint(
-          '📊 Active indicators for auto-trade filtering: $activeIndicators');
-      debugPrint(
-          '📊 Strategy: ${requireAllIndicatorsGreen ? "All Indicators Green" : "Min Signal Strength ($minSignalStrength)"}');
+      // _log('📊 Active indicators for auto-trade filtering: $activeIndicators');
+      // _log(
+      //     '📊 Strategy: ${requireAllIndicatorsGreen ? "All Indicators Green" : "Min Signal Strength ($minSignalStrength)"}');
 
       // Get current signals - filter for BUY signals that pass enabled indicators
       // processedSignals is defined at the top of the method
@@ -1077,7 +1122,8 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       if (buySignals.isEmpty) {
-        debugPrint('📭 No BUY signals available matching enabled indicators');
+        // _log('📭 No BUY signals available matching enabled indicators');
+        _log('📭 No BUY signals matching criteria');
         _isAutoTrading = false;
         _scheduleVisualStateReset();
         notifyListeners();
@@ -1090,8 +1136,9 @@ class AgenticTradingProvider with ChangeNotifier {
         };
       }
 
-      debugPrint(
-          '🎯 Found ${buySignals.length} BUY signals matching enabled indicators for auto-trade');
+      // _log(
+      //     '🎯 Found ${buySignals.length} BUY signals matching enabled indicators for auto-trade');
+      _log('🎯 Found ${buySignals.length} qualified BUY signals');
 
       final executedTrades = <Map<String, dynamic>>[];
       final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
@@ -1100,7 +1147,8 @@ class AgenticTradingProvider with ChangeNotifier {
       for (final signal in buySignals) {
         // Check if we've hit the limit
         if (_dailyTradeCount >= dailyLimit) {
-          debugPrint('⚠️ Reached daily trade limit during execution');
+          _log(
+              '⚠️ Reached daily trade limit during execution ($_dailyTradeCount/$dailyLimit)');
           break;
         }
 
@@ -1111,11 +1159,11 @@ class AgenticTradingProvider with ChangeNotifier {
           // Get current price from signal
           final currentPrice = signal['currentPrice'] as double? ?? 0.0;
           if (currentPrice <= 0) {
-            debugPrint('⚠️ Invalid price for $symbol, skipping');
+            _log('⚠️ Invalid price for $symbol ($currentPrice), skipping');
             continue;
           }
 
-          debugPrint('🤖 Auto-trading $symbol at \$$currentPrice');
+          _log('🤖 Auto-trading $symbol at \$$currentPrice');
 
           // Initiate trade proposal via TradeSignalsProvider
           final proposalResult =
@@ -1142,7 +1190,8 @@ class AgenticTradingProvider with ChangeNotifier {
             final quantity = proposal['quantity'] as int?;
 
             if (action == null || quantity == null || quantity <= 0) {
-              debugPrint('⚠️ Invalid proposal for $symbol, skipping execution');
+              _log(
+                  '⚠️ Invalid proposal for $symbol: Action=$action, Quantity=$quantity');
               continue;
             }
 
@@ -1152,7 +1201,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
             if (instrument == null) {
               if (!isPaperMode) {
-                debugPrint(
+                _log(
                     '⚠️ Could not find instrument for $symbol (or service missing), skipping real trade');
                 continue;
               }
@@ -1165,7 +1214,7 @@ class AgenticTradingProvider with ChangeNotifier {
               // Validate action is BUY or SELL
               final normalizedAction = action.toUpperCase();
               if (normalizedAction != 'BUY' && normalizedAction != 'SELL') {
-                debugPrint('⚠️ Invalid action "$action" for $symbol, skipping');
+                _log('⚠️ Invalid action "$action" for $symbol, skipping');
                 continue;
               }
 
@@ -1203,11 +1252,11 @@ class AgenticTradingProvider with ChangeNotifier {
                   await _addPendingOrderToFirestore(userDocRef, pendingOrder);
                 }
                 notifyListeners();
-                debugPrint('📝 Order added to pending approval: $symbol');
+                _log('📝 Order added to pending approval: $symbol');
                 continue;
               }
 
-              debugPrint(
+              _log(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
 
               final orderResponse = await _executeOrder(
@@ -1270,7 +1319,7 @@ class AgenticTradingProvider with ChangeNotifier {
                           .map((e) => e.key),
                     ),
                   });
-                  debugPrint(
+                  _log(
                       '📝 Added automated BUY trade: $symbol x$quantity @ \$$currentPrice for TP/SL tracking');
 
                   // Save to Firestore
@@ -1298,10 +1347,10 @@ class AgenticTradingProvider with ChangeNotifier {
                   },
                 );
 
-                debugPrint(
+                _log(
                     '✅ Order executed for $symbol: $action $quantity shares at \$$currentPrice ($_dailyTradeCount/$dailyLimit today)');
               } else {
-                debugPrint(
+                _log(
                     '❌ Order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
                 _analytics.logEvent(
                   name: 'agentic_trading_order_failed',
@@ -1313,7 +1362,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 );
               }
             } catch (e) {
-              debugPrint('❌ Error placing order for $symbol: $e');
+              _log('❌ Error placing order for $symbol: $e');
               _analytics.logEvent(
                 name: 'agentic_trading_order_error',
                 parameters: {
@@ -1323,10 +1372,10 @@ class AgenticTradingProvider with ChangeNotifier {
               );
             }
           } else {
-            debugPrint('❌ Trade proposal rejected for $symbol');
+            String? assessmentReason;
             // Update processedSignals with the rejection reason from assessment
             if (assessment != null && assessment['approved'] == false) {
-              final assessmentReason = assessment['reason'] as String?;
+              assessmentReason = assessment['reason'] as String?;
               if (assessmentReason != null) {
                 final processedSignalIndex =
                     processedSignals.indexWhere((s) => s['symbol'] == symbol);
@@ -1338,12 +1387,15 @@ class AgenticTradingProvider with ChangeNotifier {
                 }
               }
             }
+            final reasonToLog =
+                assessmentReason ?? (proposalResult['message'] as String?);
+            _log('❌ Trade proposal rejected for $symbol: $reasonToLog');
           }
 
           // Delay between trades to avoid rate limiting
           await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
         } catch (e) {
-          debugPrint('❌ Error auto-trading $symbol: $e');
+          _log('❌ Error auto-trading $symbol: $e');
           _analytics.logEvent(
             name: 'agentic_trading_auto_error',
             parameters: {
@@ -1362,7 +1414,7 @@ class AgenticTradingProvider with ChangeNotifier {
           ? 'No trades executed'
           : 'Executed ${executedTrades.length} trade(s)';
 
-      debugPrint(
+      _log(
           '📊 Auto-trade summary: ${executedTrades.length} executed, ${processedSignals.length} processed');
 
       return {
@@ -1376,7 +1428,7 @@ class AgenticTradingProvider with ChangeNotifier {
       _isAutoTrading = false;
       _scheduleVisualStateReset();
       notifyListeners();
-      debugPrint('❌ Error in auto-trade execution: $e');
+      _log('❌ Error in auto-trade execution: $e');
       return {
         'success': false,
         'tradesExecuted': 0,
@@ -1396,7 +1448,7 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
   }) async {
     if (!_pendingOrders.contains(order)) {
-      debugPrint('❌ Order not found in pending list');
+      _log('❌ Order not found in pending list');
       return;
     }
 
@@ -1411,11 +1463,11 @@ class AgenticTradingProvider with ChangeNotifier {
       final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
 
       if (!isPaperMode && brokerageService == null) {
-        debugPrint('❌ Cannot approve real order without brokerage service');
+        _log('❌ Cannot approve real order without brokerage service');
         return;
       }
 
-      debugPrint(
+      _log(
           '${isPaperMode ? '📝 PAPER' : '📤'} Approving order: $action $quantity shares of $symbol at \$$price');
 
       // Execute order
@@ -1484,13 +1536,13 @@ class AgenticTradingProvider with ChangeNotifier {
         }
         notifyListeners();
 
-        debugPrint('✅ Approved order executed for $symbol');
+        _log('✅ Approved order executed for $symbol');
       } else {
-        debugPrint(
+        _log(
             '❌ Approved order failed for $symbol: ${orderResponse.statusCode}');
       }
     } catch (e) {
-      debugPrint('❌ Error executing approved order for $symbol: $e');
+      _log('❌ Error executing approved order for $symbol: $e');
     }
   }
 
@@ -1503,7 +1555,7 @@ class AgenticTradingProvider with ChangeNotifier {
         await _removePendingOrderFromFirestore(userDocRef, order);
       }
       notifyListeners();
-      debugPrint('🚫 Order rejected: ${order['symbol']}');
+      _log('🚫 Order manually rejected for ${order['symbol']}');
     }
   }
 
@@ -1534,7 +1586,7 @@ class AgenticTradingProvider with ChangeNotifier {
           account == null ||
           brokerageService == null ||
           instrumentStore == null) {
-        debugPrint(
+        _log(
             '❌ Missing required parameters for take profit/stop loss monitoring');
         return {
           'success': false,
@@ -1556,13 +1608,13 @@ class AgenticTradingProvider with ChangeNotifier {
               .toList() ??
           [];
 
-      debugPrint(
-          '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      // _log(
+      //     '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
       if (_automatedBuyTrades.isNotEmpty) {
         final symbols = _automatedBuyTrades
             .map((t) => '${t['symbol']} x${t['quantity']}')
             .join(', ');
-        debugPrint('📝 Automated buy trades: $symbols');
+        _log('📝 Automated buy trades: $symbols');
       }
 
       final executedExits = <Map<String, dynamic>>[];
@@ -1595,7 +1647,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
           if (position == null) {
             // Position no longer exists (might have been manually closed)
-            debugPrint(
+            _log(
                 '⚠️ Automated buy trade for $symbol not found in positions, removing from tracking');
             tradesToRemove.add(buyTrade);
             continue;
@@ -1606,7 +1658,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   position.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice;
 
           if (currentPrice == null) {
-            debugPrint(
+            _log(
                 '⚠️ No current price available for $symbol, skipping TP/SL check');
             continue;
           }
@@ -1615,7 +1667,7 @@ class AgenticTradingProvider with ChangeNotifier {
           final profitLossPercent =
               ((currentPrice - entryPrice) / entryPrice) * 100;
 
-          debugPrint(
+          _log(
               '📈 $symbol (automated): Entry=\$$entryPrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
 
           bool shouldExit = false;
@@ -1657,14 +1709,14 @@ class AgenticTradingProvider with ChangeNotifier {
             if (profitLossPercent >= takeProfitPercent) {
               shouldExit = true;
               exitReason = 'Take Profit ($takeProfitPercent%)';
-              debugPrint(
+              _log(
                   '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
             }
             // Check stop loss
             else if (profitLossPercent <= -stopLossPercent) {
               shouldExit = true;
               exitReason = 'Stop Loss ($stopLossPercent%)';
-              debugPrint(
+              _log(
                   '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
             }
           }
@@ -1680,15 +1732,14 @@ class AgenticTradingProvider with ChangeNotifier {
                 currentPrice > prevHighest ? currentPrice : prevHighest;
             if (newHighest != prevHighest) {
               buyTrade['highestPrice'] = newHighest;
-              debugPrint(
-                  '🔼 $symbol new highest price since entry: $newHighest');
+              _log('🔼 $symbol new highest price since entry: $newHighest');
             }
             final trailStopPrice = newHighest * (1 - trailPercent / 100.0);
             if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
               shouldExit = true;
               exitReason = 'Trailing Stop ($trailPercent%)';
               quantityToSell = buyQuantity; // Sell remaining
-              debugPrint(
+              _log(
                   '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
             }
           }
@@ -1707,7 +1758,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     shouldExit = true;
                     exitReason = 'Time-Based Exit ($exitMinutes min)';
                     quantityToSell = buyQuantity;
-                    debugPrint(
+                    _log(
                         '⏱️ $symbol time-based exit triggered: ${duration.inMinutes} min >= $exitMinutes min');
                   }
                 }
@@ -1727,8 +1778,80 @@ class AgenticTradingProvider with ChangeNotifier {
               exitReason =
                   'Market Close Exit ($minutesUntilClose min remaining)';
               quantityToSell = buyQuantity;
-              debugPrint(
+              _log(
                   '🌅 $symbol market close exit triggered: $minutesUntilClose min remaining <= $exitMinutes min');
+            }
+          }
+
+          // Technical Exits (RSI & Signal Strength)
+          if (!shouldExit &&
+              ((_config['rsiExitEnabled'] as bool? ?? false) ||
+                  (_config['signalStrengthExitEnabled'] as bool? ?? false))) {
+            try {
+              // Fetch latest signal based on current interval
+              final interval = _config['interval'] as String? ?? '1d';
+              final docId = interval == '1d'
+                  ? 'signals_$symbol'
+                  : 'signals_${symbol}_$interval';
+
+              final signalSnapshot = await FirebaseFirestore.instance
+                  .collection('agentic_trading')
+                  .doc(docId)
+                  .get();
+
+              if (signalSnapshot.exists && signalSnapshot.data() != null) {
+                final data = signalSnapshot.data()!;
+                final multiIndicatorResult =
+                    data['multiIndicatorResult'] as Map<String, dynamic>?;
+
+                // Check RSI Exit
+                if (!shouldExit &&
+                    (_config['rsiExitEnabled'] as bool? ?? false)) {
+                  final rsiThreshold =
+                      _config['rsiExitThreshold'] as double? ?? 80.0;
+                  if (multiIndicatorResult != null) {
+                    final indicators = multiIndicatorResult['indicators']
+                        as Map<String, dynamic>?;
+                    final rsi = indicators?['rsi'] as Map<String, dynamic>?;
+                    final rsiValue = rsi?['value'] as double?;
+
+                    if (rsiValue != null && rsiValue >= rsiThreshold) {
+                      shouldExit = true;
+                      exitReason =
+                          'RSI Overbought (RSI ${rsiValue.toStringAsFixed(1)} >= $rsiThreshold)';
+                      quantityToSell = buyQuantity *
+                          1; // Explicitly cast to int? No buyQuantity is int?
+                      quantityToSell = buyQuantity;
+                      _log('📈 $symbol RSI exit triggered: $exitReason');
+                    }
+                  }
+                }
+
+                // Check Signal Strength Exit
+                if (!shouldExit &&
+                    (_config['signalStrengthExitEnabled'] as bool? ?? false)) {
+                  final strengthThreshold =
+                      _config['signalStrengthExitThreshold'] as double? ?? 40.0;
+                  final optimization =
+                      data['optimization'] as Map<String, dynamic>?;
+
+                  if (optimization != null) {
+                    final confidence =
+                        (optimization['confidenceScore'] as num?)?.toDouble() ??
+                            0.0;
+                    if (confidence < strengthThreshold) {
+                      shouldExit = true;
+                      exitReason =
+                          'Weak Signal (Strength ${confidence.toStringAsFixed(1)} < $strengthThreshold)';
+                      quantityToSell = buyQuantity;
+                      _log(
+                          '📉 $symbol Signal Strength exit triggered: $exitReason');
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              _log('⚠️ Error checking technical exits for $symbol: $e');
             }
           }
 
@@ -1738,15 +1861,14 @@ class AgenticTradingProvider with ChangeNotifier {
                 brokerageService, brokerageUser, instrumentStore, symbol);
 
             if (instrument == null) {
-              debugPrint(
-                  '⚠️ Could not find instrument for $symbol, skipping exit');
+              _log('⚠️ Could not find instrument for $symbol, skipping exit');
               continue;
             }
 
             // Execute sell order for the automated buy quantity
             try {
               final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
-              debugPrint(
+              _log(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing exit order: SELL $quantityToSell shares of $symbol at \$$currentPrice ($exitReason)');
 
               final orderResponse = await _executeOrder(
@@ -1801,10 +1923,10 @@ class AgenticTradingProvider with ChangeNotifier {
 
                   if (buyTrade['quantity'] <= 0) {
                     tradesToRemove.add(buyTrade);
-                    debugPrint(
+                    _log(
                         '📝 Marked automated buy trade for removal: $symbol (all stages executed)');
                   } else {
-                    debugPrint(
+                    _log(
                         '📝 Updated automated buy trade: $symbol remaining ${buyTrade['quantity']}');
                     // Save updated list to Firestore immediately to persist partial state
                     if (userDocRef != null) {
@@ -1814,7 +1936,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 } else {
                   // Full exit (Stop Loss, Trailing Stop, or Legacy TP)
                   tradesToRemove.add(buyTrade);
-                  debugPrint(
+                  _log(
                       '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
                 }
 
@@ -1852,10 +1974,10 @@ class AgenticTradingProvider with ChangeNotifier {
                   },
                 );
 
-                debugPrint(
+                _log(
                     '✅ Exit order executed for $symbol: $exitReason, P/L: ${profitLossPercent.toStringAsFixed(2)}%');
               } else {
-                debugPrint(
+                _log(
                     '❌ Exit order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
                 _analytics.logEvent(
                   name: 'agentic_trading_exit_failed',
@@ -1867,7 +1989,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 );
               }
             } catch (e) {
-              debugPrint('❌ Error placing exit order for $symbol: $e');
+              _log('❌ Error placing exit order for $symbol: $e');
               _analytics.logEvent(
                 name: 'agentic_trading_exit_error',
                 parameters: {
@@ -1881,7 +2003,7 @@ class AgenticTradingProvider with ChangeNotifier {
             await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
           }
         } catch (e) {
-          debugPrint('❌ Error processing position: $e');
+          _log('❌ Error processing position: $e');
         }
       }
 
@@ -1889,7 +2011,7 @@ class AgenticTradingProvider with ChangeNotifier {
       if (tradesToRemove.isNotEmpty) {
         _automatedBuyTrades
             .removeWhere((trade) => tradesToRemove.contains(trade));
-        debugPrint(
+        _log(
             '📝 Removed ${tradesToRemove.length} automated buy trade(s) from tracking');
 
         // Save updated list to Firestore
@@ -1907,7 +2029,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'exits': executedExits,
       };
     } catch (e) {
-      debugPrint('❌ Take profit/stop loss monitoring failed: $e');
+      _log('❌ Take profit/stop loss monitoring failed: $e');
       _analytics.logEvent(
         name: 'agentic_trading_tp_sl_failed',
         parameters: {'error': e.toString()},
@@ -1952,9 +2074,9 @@ class AgenticTradingProvider with ChangeNotifier {
       };
 
       await callable.call(data);
-      debugPrint('📲 Notification sent: $type for $symbol');
+      _log('📲 Notification sent: $type for $symbol');
     } catch (e) {
-      debugPrint('❌ Failed to send notification: $e');
+      _log('❌ Failed to send notification: $e');
       // Don't throw - notifications are non-critical
     }
   }

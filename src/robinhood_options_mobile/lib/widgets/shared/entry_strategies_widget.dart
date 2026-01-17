@@ -61,6 +61,9 @@ class EntryStrategiesWidget extends StatelessWidget {
         'Price trends and reversals - stop and reverse', Icons.trending_up),
   };
 
+  static final TextEditingController _disabled100Controller =
+      TextEditingController(text: '100');
+
   const EntryStrategiesWidget({
     super.key,
     required this.requireAllIndicatorsGreen,
@@ -101,16 +104,17 @@ class EntryStrategiesWidget extends StatelessWidget {
           requireAllIndicatorsGreen,
           onRequireStrictEntryChanged,
         ),
-        if (!requireAllIndicatorsGreen) ...[
-          const SizedBox(height: 12),
-          _buildTextField(
-            context,
-            minSignalStrengthController,
-            'Min Signal Strength',
-            suffixText: '%',
-            helperText: 'Minimum confidence score required',
-          ),
-        ],
+        const SizedBox(height: 12),
+        _buildTextField(
+          context,
+          requireAllIndicatorsGreen
+              ? _disabled100Controller
+              : minSignalStrengthController,
+          'Min Signal Strength',
+          suffixText: '%',
+          helperText: 'Minimum confidence score required',
+          enabled: !requireAllIndicatorsGreen,
+        ),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -312,9 +316,11 @@ class EntryStrategiesWidget extends StatelessWidget {
     String? suffixText,
     IconData? prefixIcon,
     TextInputType keyboardType = TextInputType.number,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,

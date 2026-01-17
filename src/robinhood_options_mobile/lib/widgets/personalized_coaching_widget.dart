@@ -237,7 +237,7 @@ class _PersonalizedCoachingWidgetState
           completionPercentage =
               (result['completion_percentage'] as num?)?.toDouble();
           if (completionPercentage != null) {
-            _updateAdherenceScore(completionPercentage!);
+            _updateAdherenceScore(completionPercentage);
           }
           final pct = completionPercentage;
           reason += "\n\nCompletion Percentage: $pct%";
