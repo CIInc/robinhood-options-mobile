@@ -838,17 +838,16 @@ const detectFlags = (
     isUnusual = true;
   }
 
-  // Steamroller Detection (Deep ITM, High Volume)
+  // Steamroller Detection (Massive size, short term, aggressive OTM sweep)
   if (
-    ((isCall && spotPrice > strike * 1.1) ||
-      (!isCall && spotPrice < strike * 0.9)) &&
-    volume > 500 &&
-    volume > openInterest
+    premium > 500000 &&
+    daysToExpiration < 30 &&
+    flowType === "sweep" &&
+    isOTM
   ) {
     flags.push("Steamroller");
     reasons.push(
-      `Deep ITM position with heavy volume (${volume}) ` +
-      `exceeding OI (${openInterest})`
+      "Massive size (>$500k), short term (<30 days), aggressive OTM sweep"
     );
     isUnusual = true;
   }
@@ -865,16 +864,15 @@ const detectFlags = (
 
   // Gamma Squeeze Potential
   if (
-    daysToExpiration <= 2 &&
+    daysToExpiration < 7 &&
     isCall &&
     isOTM &&
-    volume > openInterest &&
-    changePercent > 1.0
+    volume > 5000 &&
+    openInterest > 1000
   ) {
     flags.push("Gamma Squeeze");
     reasons.push(
-      "Short-dated OTM calls with high volume and rising price " +
-      `(+${changePercent.toFixed(2)}%)`
+      "Short-dated (<7 days), OTM calls with high volume (>5k) and OI (>1k)"
     );
     isUnusual = true;
   }
@@ -882,14 +880,14 @@ const detectFlags = (
   // Panic Protection / Hedging
   if (
     !isCall &&
-    changePercent < -2.0 &&
+    daysToExpiration < 7 &&
     isOTM &&
-    details === CONFIG.DETAILS.ABOVE_ASK
+    volume > 5000 &&
+    openInterest > 1000
   ) {
     flags.push("Panic Hedge");
     reasons.push(
-      "Aggressive OTM puts bought while stock is down " +
-      `${changePercent.toFixed(2)}%`
+      "Short-dated (<7 days), OTM puts with high volume (>5k) and OI (>1k)"
     );
     isUnusual = true;
   }
