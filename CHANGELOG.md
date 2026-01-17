@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-01-17
+
+### Added
+- **Sentiment Analysis:** Introduced a Market Sentiment Card and a dedicated Dashboard to visualize real-time market mood (Bullish/Bearish/Neutral) based on AI and quantitative data.
+- **Technical Indicators:** Added calculations for new indicators and integrated them into the instrument chart widget for enhanced technical analysis.
+- **Price Targets:** Implemented AI-driven price target analysis and integrated it into the UI.
+- **Trade Signal Notifications:** Enabled trade signal notifications with Firestore integration for reliable real-time alerts.
+- **Strategy Management:** Enhanced strategy management and UI components.
+
 ## [0.28.1] - 2026-01-14
 
 ### Added
