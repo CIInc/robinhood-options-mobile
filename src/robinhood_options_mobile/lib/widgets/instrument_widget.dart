@@ -35,6 +35,9 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
+import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
+import 'package:robinhood_options_mobile/widgets/institutional_ownership_widget.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
@@ -104,6 +107,8 @@ class InstrumentWidget extends StatefulWidget {
 class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<ESGScore>? _esgFuture;
   final ESGService _esgService = ESGService();
+  Future<InstitutionalOwnership?>? _institutionalOwnershipFuture;
+  final YahooService _yahooService = YahooService();
 
   // ... existing state variables ...
   final FirestoreService _firestoreService = FirestoreService();
@@ -174,6 +179,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var user = widget.brokerageUser;
 
     _esgFuture = _esgService.getESGScore(instrument.symbol);
+    _institutionalOwnershipFuture =
+        _yahooService.getInstitutionalOwnership(instrument.symbol);
 
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
@@ -1067,6 +1074,30 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               generativeService: widget.generativeService,
             ),
           )),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: FutureBuilder<InstitutionalOwnership?>(
+                future: _institutionalOwnershipFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 100,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
+                  return InstitutionalOwnershipWidget(
+                    ownership: snapshot.data,
+                    currentPrice: instrument.quoteObj?.lastTradePrice,
+                  );
+                },
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
               child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),

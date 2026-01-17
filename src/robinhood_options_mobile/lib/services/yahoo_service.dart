@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
+import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 
 // Yahoo Finance screener ID with display name
 class ScreenerId {
@@ -921,6 +922,82 @@ class YahooService {
     if (rawCookie != null) {
       _cookie = rawCookie;
     }
+  }
+
+  /// Fetch institutional ownership for a given symbol
+  Future<InstitutionalOwnership?> getInstitutionalOwnership(
+      String symbol) async {
+    try {
+      final url =
+          "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
+      final jsonResponse = await getJson(url);
+
+      if (jsonResponse['quoteSummary'] != null &&
+          jsonResponse['quoteSummary']['result'] != null) {
+        final result = (jsonResponse['quoteSummary']['result'] as List);
+        if (result.isNotEmpty) {
+          final data = result[0];
+          final holdersList = data['institutionOwnership']?['ownershipList'];
+          final breakdown = data['majorHoldersBreakdown'];
+
+          double? percentageHeld;
+          double? floatPercentageHeld;
+          double? insidersPercentageHeld;
+          int? institutionCount;
+
+          if (breakdown != null) {
+            if (breakdown['institutionsPercentHeld'] != null) {
+              percentageHeld =
+                  (breakdown['institutionsPercentHeld']['raw'] as num?)
+                      ?.toDouble();
+            }
+            if (breakdown['institutionsFloatPercentHeld'] != null) {
+              floatPercentageHeld =
+                  (breakdown['institutionsFloatPercentHeld']['raw'] as num?)
+                      ?.toDouble();
+            }
+            if (breakdown['insidersPercentHeld'] != null) {
+              insidersPercentageHeld =
+                  (breakdown['insidersPercentHeld']['raw'] as num?)?.toDouble();
+            }
+            if (breakdown['institutionsCount'] != null) {
+              institutionCount =
+                  (breakdown['institutionsCount']['raw'] as num?)?.toInt();
+            }
+          }
+
+          List<InstitutionalHolder> topHolders = [];
+          if (holdersList != null) {
+            topHolders = (holdersList as List).map((h) {
+              return InstitutionalHolder(
+                name: h['organization'] ?? 'Unknown',
+                sharesHeld: (h['position']?['raw'] as num?)?.toDouble() ?? 0,
+                change: null, // Change not provided in this module
+                percentageChange: (h['pctHeld']?['raw'] as num?)?.toDouble(),
+                dateReported: h['reportDate']?['fmt'] != null
+                    ? DateTime.tryParse(h['reportDate']['fmt'])
+                    : (h['reportDate']?['raw'] != null
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            h['reportDate']['raw'] * 1000)
+                        : null),
+              );
+            }).toList();
+          }
+
+          return InstitutionalOwnership(
+            symbol: symbol,
+            percentageHeld: percentageHeld,
+            floatPercentageHeld: floatPercentageHeld,
+            insidersPercentageHeld: insidersPercentageHeld,
+            institutionCount: institutionCount,
+            topHolders: topHolders,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching institutional ownership: $e');
+    }
+    return null;
   }
 
   /// Fetch insider transactions for a given symbol
