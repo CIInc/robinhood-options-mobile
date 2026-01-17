@@ -90,6 +90,45 @@ class OptionsFlowStore extends ChangeNotifier {
         'Large block trade, possibly executed off-exchange (Dark Pool). Institutional accumulation or distribution.',
   };
 
+  static const Map<String, List<String>> flagCategories = {
+    'Volume & Institutional': [
+      'WHALE',
+      'Golden Sweep',
+      'Steamroller',
+      'Mega Vol',
+      'Vol Explosion',
+      'High Vol/OI',
+      'New Position',
+      'Aggressive',
+      'High Premium',
+      'Tight Spread',
+      'Wide Spread',
+    ],
+    'Strategy & Sentiment': [
+      'Bullish Divergence',
+      'Bearish Divergence',
+      'Panic Hedge',
+      'Gamma Squeeze',
+      'Contrarian',
+      'Earnings Play',
+    ],
+    'Volatility': [
+      'Extreme IV',
+      'High IV',
+      'Low IV',
+      'Cheap Vol',
+    ],
+    'Moneyness & Time': [
+      '0DTE',
+      'Weekly OTM',
+      'LEAPS',
+      'Lotto',
+      'ATM Flow',
+      'Deep ITM',
+      'Deep OTM',
+    ],
+  };
+
   List<OptionFlowItem> _allItems = [];
   List<OptionFlowItem> _items = [];
   List<Map<String, dynamic>> _alerts = [];
@@ -1245,6 +1284,15 @@ class OptionsFlowStore extends ChangeNotifier {
 
   void _applyFilters() {
     _items = List.from(_allItems);
+
+    // Filter out expired options (keep 0DTE)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    _items = _items.where((i) {
+      final exp = DateTime(
+          i.expirationDate.year, i.expirationDate.month, i.expirationDate.day);
+      return !exp.isBefore(today);
+    }).toList();
 
     if (_filterSymbol != null && _filterSymbol!.isNotEmpty) {
       _items = _items

@@ -64,21 +64,29 @@ class _OptionFlowDetailWidgetState extends State<OptionFlowDetailWidget> {
       final generativeService = widget.generativeService ?? GenerativeService();
 
       final item = widget.item;
-      final prompt = '''
-Analyze this option flow for ${item.symbol}:
-Type: ${item.type}
-Strike: \$${item.strike}
-Expiration: ${item.expirationDate}
-Premium: \$${item.premium}
-Spot Price: \$${item.spotPrice}
-Flags: ${item.flags.join(', ')}
-Score: ${item.score}/100
 
-Provide a concise analysis (under 150 words) covering:
-1. **Sentiment**: Bullish/Bearish/Neutral and why.
-2. **Likely Intent**: Speculation, Hedge, or Stock Replacement?
-3. **Key Levels**: Break-even and price targets.
-4. **Risk**: High/Medium/Low based on DTE and moneyness.
+      // Enrich prompt with flag interpretations
+      final flagContext = item.flags.map((f) {
+        final doc = OptionsFlowStore.flagDocumentation[f];
+        return doc != null ? "$f: $doc" : f;
+      }).join('\n');
+
+      final prompt = '''
+Analyze this ${item.isUnusual ? "unusual " : ""}option flow for ${item.symbol}:
+- Contract: ${item.symbol} \$${item.strike} ${item.type} Expiring ${item.expirationDate}
+- Trade: \$${item.premium} Premium (${item.flowType.name.toUpperCase()})
+- Market Context: Spot at \$${item.spotPrice}, Implied Volatility: ${(item.impliedVolatility * 100).toStringAsFixed(1)}%
+- Volume/OI: ${item.volume} / ${item.openInterest} (${(item.volume / (item.openInterest == 0 ? 1 : item.openInterest)).toStringAsFixed(1)}x)
+- Score: ${item.score}/100 (Conviction Rating)
+
+Smart Flags Detected:
+$flagContext
+
+Based on this specific trade data and the flags, provide a professional trading analysis (concise, bullet points):
+1. **Institutional Intent**: What is the "Smart Money" likely doing? (e.g., directional bet, hedge, stock replacement, volatility play).
+2. **Sentiment & Urgency**: How aggressive is this trade based on premium, sweep type, and moneyness?
+3. **Risk Profile**: Assess the risk (Gamma/Theta/Vega) given the DTE and moneyness.
+4. **Actionable Insight**: Key levels to watch or potential setup.
 ''';
 
       final content = [Content.text(prompt)];
@@ -281,6 +289,12 @@ Provide a concise analysis (under 150 words) covering:
                         fontSize: 11,
                         color: isDark ? Colors.purple.shade200 : Colors.purple,
                         icon: Icons.bolt),
+                  if (item.daysToExpiration == 0)
+                    OptionFlowBadge(
+                        label: '0DTE',
+                        fontSize: 11,
+                        color: Colors.red,
+                        icon: Icons.timer_off),
                   if (item.flowType == FlowType.sweep)
                     OptionFlowBadge(
                         label: 'SWEEP',
@@ -305,18 +319,89 @@ Provide a concise analysis (under 150 words) covering:
                         fontSize: 11,
                         color: Theme.of(context).colorScheme.secondary,
                         icon: null),
-                  ...item.flags.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final flag = entry.value;
-                    final reason = index < item.reasons.length
-                        ? item.reasons[index]
-                        : null;
-                    return OptionFlowFlagBadge(flag: flag, reason: reason);
-                  }),
                 ],
               ),
-              const SizedBox(height: 16),
+              if (item.flags.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ...OptionsFlowStore.flagCategories.entries.map((entry) {
+                  final categoryFlags =
+                      item.flags.where((f) => entry.value.contains(f)).toList();
+                  if (categoryFlags.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.key,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: categoryFlags.map((flag) {
+                          final index = item.flags.indexOf(flag);
+                          final reason =
+                              index != -1 && index < item.reasons.length
+                                  ? item.reasons[index]
+                                  : null;
+                          return OptionFlowFlagBadge(
+                              flag: flag, reason: reason);
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                }),
+                // Display any flags not in categories
+                Builder(builder: (context) {
+                  final allCategorized = OptionsFlowStore.flagCategories.values
+                      .expand((e) => e)
+                      .toSet();
+                  final uncategorized = item.flags
+                      .where((f) => !allCategorized.contains(f))
+                      .toList();
+
+                  if (uncategorized.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Other Signals',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: uncategorized.map((flag) {
+                          final index = item.flags.indexOf(flag);
+                          final reason =
+                              index != -1 && index < item.reasons.length
+                                  ? item.reasons[index]
+                                  : null;
+                          return OptionFlowFlagBadge(
+                              flag: flag, reason: reason);
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                }),
+              ],
               if (item.score > 0) ...[
+                const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
@@ -558,63 +643,63 @@ Provide a concise analysis (under 150 words) covering:
                       ],
                       _buildDetailRow('Implied Volatility',
                           '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
-                      // if (item.marketCap != null) ...[
-                      //   const Divider(height: 16),
-                      //   _buildDetailRow('Market Cap',
-                      //       _compactFormat.format(item.marketCap)),
-                      // ],
-                      // if (item.sector != null) ...[
-                      //   const Divider(height: 16),
-                      //   InkWell(
-                      //     onTap: () {
-                      //       Navigator.pop(context);
-                      //       Provider.of<OptionsFlowStore>(context,
-                      //               listen: false)
-                      //           .setFilterSector(item.sector);
-                      //     },
-                      //     child: Padding(
-                      //       padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      //       child: Row(
-                      //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //         children: [
-                      //           Text(
-                      //             'Sector',
-                      //             style: Theme.of(context)
-                      //                 .textTheme
-                      //                 .bodyMedium
-                      //                 ?.copyWith(
-                      //                   color: Theme.of(context)
-                      //                       .colorScheme
-                      //                       .onSurfaceVariant,
-                      //                 ),
-                      //           ),
-                      //           Row(
-                      //             children: [
-                      //               Text(
-                      //                 item.sector!,
-                      //                 style: Theme.of(context)
-                      //                     .textTheme
-                      //                     .bodyLarge
-                      //                     ?.copyWith(
-                      //                       fontWeight: FontWeight.w500,
-                      //                       color: Theme.of(context)
-                      //                           .colorScheme
-                      //                           .primary,
-                      //                     ),
-                      //               ),
-                      //               const SizedBox(width: 4),
-                      //               Icon(Icons.filter_list,
-                      //                   size: 14,
-                      //                   color: Theme.of(context)
-                      //                       .colorScheme
-                      //                       .primary),
-                      //             ],
-                      //           ),
-                      //         ],
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ],
+                      if (item.marketCap != null) ...[
+                        const Divider(height: 16),
+                        _buildDetailRow('Market Cap',
+                            _compactFormat.format(item.marketCap)),
+                      ],
+                      if (item.sector != null) ...[
+                        const Divider(height: 16),
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(context);
+                            Provider.of<OptionsFlowStore>(context,
+                                    listen: false)
+                                .setFilterSector(item.sector);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Sector',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      item.sector!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.filter_list,
+                                        size: 14,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       Builder(builder: (context) {
                         final pricePerShare = item.volume > 0
                             ? item.premium / (item.volume * 100)

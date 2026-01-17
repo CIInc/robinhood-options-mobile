@@ -76,18 +76,40 @@ class OptionFlowListItem extends StatelessWidget {
     }
     final moneynessLabel =
         '${(moneynessPct.abs() * 100).toStringAsFixed(1)}% ${isItm ? "ITM" : "OTM"}';
-    final moneynessColor = isItm
-        ? (isDark ? Colors.amber : Colors.amber.shade900)
-        : Theme.of(context).colorScheme.onSurfaceVariant;
+    final moneynessColor =
+        isItm ? sentimentColor : Theme.of(context).colorScheme.onSurfaceVariant;
+    final isGoldenSweep =
+        item.flags.any((f) => f.toUpperCase().contains('GOLDEN SWEEP'));
+    final isWhale = item.premium >= 1000000 ||
+        item.flags.any((f) => f.toUpperCase().contains('WHALE'));
+    final isHighConviction = item.score >= 80;
+
+    Color borderColor = Theme.of(context).colorScheme.outlineVariant;
+    double borderWidth = 1;
+    Color? backgroundColor;
+
+    if (isGoldenSweep) {
+      borderColor = Colors.amber;
+      borderWidth = 2;
+      backgroundColor = Colors.amber.withValues(alpha: 0.05);
+    } else if (isWhale) {
+      borderColor = isDark ? Colors.blue.shade300 : Colors.blue;
+      borderWidth = 2;
+      backgroundColor = Colors.blue.withValues(alpha: 0.05);
+    } else if (isHighConviction) {
+      borderColor = isDark ? Colors.purple.shade300 : Colors.purple;
+      borderWidth = 1.5;
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 0,
+      color: backgroundColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 1,
+          color: borderColor,
+          width: borderWidth,
         ),
       ),
       child: InkWell(
@@ -146,12 +168,32 @@ class OptionFlowListItem extends StatelessWidget {
                                 ),
                               ),
                             const Spacer(),
-                            Text(
-                              _currencyFormat.format(item.premium),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isWhale) ...[
+                                  Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: isDark
+                                        ? Colors.amber.shade300
+                                        : Colors.amber.shade800,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  _currencyFormat.format(item.premium),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: isWhale
+                                        ? (isDark
+                                            ? Colors.amber.shade300
+                                            : Colors.amber.shade800)
+                                        : null,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -193,6 +235,12 @@ class OptionFlowListItem extends StatelessWidget {
                             : Colors.purple.shade700,
                         icon: Icons.bolt,
                         showTooltip: false),
+                  if (item.daysToExpiration == 0)
+                    OptionFlowBadge(
+                        label: '0DTE',
+                        color: Colors.red,
+                        icon: Icons.timer_off,
+                        showTooltip: true),
                   if (item.flowType == FlowType.sweep)
                     OptionFlowBadge(
                         label: 'SWEEP',
@@ -212,7 +260,7 @@ class OptionFlowListItem extends StatelessWidget {
                         label: 'DARK POOL',
                         color: Colors.grey.shade800,
                         icon: Icons.visibility_off,
-                        showTooltip: false),
+                        showTooltip: true),
                   if (item.details.isNotEmpty)
                     OptionFlowBadge(
                         label: item.details,
@@ -226,7 +274,7 @@ class OptionFlowListItem extends StatelessWidget {
                         ? item.reasons[index]
                         : null;
                     return OptionFlowFlagBadge(
-                        flag: flag, showTooltip: false, reason: reason);
+                        flag: flag, showTooltip: true, reason: reason);
                   }),
                 ],
               ),

@@ -256,6 +256,23 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                             icon: const Icon(Icons.refresh),
                             label: const Text('Refresh Data'),
                           ),
+                          if (store.filterSymbol != null ||
+                              store.filterSector != null ||
+                              store.filterSentiment != null ||
+                              store.filterUnusual ||
+                              store.filterFlowType != null ||
+                              store.filterMoneyness != null ||
+                              store.filterExpiration != null ||
+                              store.filterMinCap != null ||
+                              store.filterFlags != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: TextButton.icon(
+                                onPressed: () => store.setFilters(),
+                                icon: const Icon(Icons.filter_list_off),
+                                label: const Text('Clear All Filters'),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -363,6 +380,64 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 backgroundColor:
                     (isDark ? Colors.purple.shade200 : Colors.purple)
                         .withValues(alpha: 0.1),
+                side: BorderSide.none,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Score 70+'),
+                selected: store.filterHighConviction,
+                onSelected: (val) => store.setFilterHighConviction(val),
+                avatar: Icon(
+                  Icons.star,
+                  size: 16,
+                  color: store.filterHighConviction
+                      ? Colors.white
+                      : (isDark
+                          ? Colors.amber.shade300
+                          : Colors.amber.shade800),
+                ),
+                selectedColor:
+                    isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+                labelStyle: TextStyle(
+                  color: store.filterHighConviction
+                      ? Colors.white
+                      : (isDark
+                          ? Colors.amber.shade300
+                          : Colors.amber.shade800),
+                  fontWeight: FontWeight.bold,
+                ),
+                backgroundColor:
+                    (isDark ? Colors.amber.shade300 : Colors.amber.shade800)
+                        .withValues(alpha: 0.1),
+                side: BorderSide.none,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Sweeps'),
+                selected: store.filterFlowType == FlowType.sweep,
+                onSelected: (val) =>
+                    store.setFilterFlowType(val ? FlowType.sweep : null),
+                avatar: Icon(
+                  Icons.waves,
+                  size: 16,
+                  color: store.filterFlowType == FlowType.sweep
+                      ? Colors.white
+                      : Colors.orange,
+                ),
+                selectedColor: Colors.orange,
+                labelStyle: TextStyle(
+                  color: store.filterFlowType == FlowType.sweep
+                      ? Colors.white
+                      : Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+                backgroundColor: Colors.orange.withValues(alpha: 0.1),
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -731,7 +806,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     }
     final sortedSymbols = symbolPremiums.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final topSymbols = sortedSymbols.take(3).toList();
+    final topSymbols = sortedSymbols.take(5).toList();
 
     // Calculate Top Flags
     final flagCounts = <String, int>{};
@@ -742,7 +817,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     }
     final sortedFlags = flagCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final topFlags = sortedFlags.take(3).toList();
+    final topFlags = sortedFlags.take(5).toList();
 
     // Calculate Top Sectors
     final sectorPremiums = <String, double>{};
@@ -756,7 +831,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     }
     final sortedSectors = sectorPremiums.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final topSectors = sortedSectors.take(3).toList();
+    final topSectors = sortedSectors.take(5).toList();
 
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
@@ -1479,97 +1554,28 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      Text('Volume & Institutional',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
-                      const SizedBox(height: 8),
-                      _buildHelpItem('WHALE',
-                          'Massive institutional order >\$5M premium. Represents highest conviction from major players.'),
-                      _buildHelpItem('Golden Sweep',
-                          'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.'),
-                      _buildHelpItem('Steamroller',
-                          'Deep ITM call with massive volume (>500 & >OI). Often replaces stock ownership with leverage.'),
-                      _buildHelpItem('Mega Vol',
-                          'Volume is >10x Open Interest. Extreme unusual activity indicating major new positioning.'),
-                      _buildHelpItem('Vol Explosion',
-                          'Volume is >5x Open Interest. Significant unusual activity.'),
-                      _buildHelpItem('High Vol/OI',
-                          'Volume is >1.5x Open Interest. Indicates unusual interest.'),
-                      _buildHelpItem('New Position',
-                          'Volume exceeds Open Interest, confirming new contracts are being opened.'),
-                      _buildHelpItem('Aggressive',
-                          'Order executed at or above the ask price, showing urgency to enter the position.'),
-                      _buildHelpItem('Tight Spread',
-                          'Bid-Ask spread < 1%. Indicates high liquidity and potential institutional algo execution.'),
-                      _buildHelpItem('Wide Spread',
-                          'Bid-Ask spread > 10%. Warning: Low liquidity or poor execution prices.'),
-                      const SizedBox(height: 16),
-                      Text('Strategy & Sentiment',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
-                      const SizedBox(height: 8),
-                      _buildHelpItem('Bullish Divergence',
-                          'Call buying while stock is down. Smart money betting on a reversal.'),
-                      _buildHelpItem('Bearish Divergence',
-                          'Put buying while stock is up. Smart money betting on a reversal.'),
-                      _buildHelpItem('Panic Hedge',
-                          'Aggressive put buying on dropping stock. Fear/hedging against crash.'),
-                      _buildHelpItem('Gamma Squeeze',
-                          'Short-dated OTM calls with high volume. Can force dealer buying.'),
-                      _buildHelpItem('Contrarian',
-                          'Trade direction opposes current stock trend. Betting on reversal.'),
-                      _buildHelpItem('Earnings Play',
-                          'Options expiring shortly after earnings. Betting on volatility event.'),
-                      const SizedBox(height: 16),
-                      Text('Volatility',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
-                      const SizedBox(height: 8),
-                      _buildHelpItem('Extreme IV',
-                          'Implied Volatility > 250%. Extreme fear/greed or binary event.'),
-                      _buildHelpItem('High IV',
-                          'Implied Volatility > 100%. Market pricing in a massive move.'),
-                      _buildHelpItem('Low IV',
-                          'Implied Volatility < 20%. Options are cheap. Good for buying.'),
-                      const SizedBox(height: 16),
-                      Text('Moneyness & Time',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
-                      const SizedBox(height: 8),
-                      _buildHelpItem('0DTE',
-                          'Expires today. Maximum gamma risk/reward. Pure speculation.'),
-                      _buildHelpItem('Weekly OTM',
-                          'Expires < 1 week and Out-of-the-Money. Short-term speculative bet.'),
-                      _buildHelpItem('LEAPS',
-                          'Expires > 12 months. Long-term investment substitute for stock.'),
-                      _buildHelpItem('Lotto',
-                          'Cheap OTM options (< \$1.00). High risk, potential 10x+ return.'),
-                      _buildHelpItem('ATM Flow',
-                          'At-The-Money options (strike within 1% of spot). High Gamma potential, often used by market makers.'),
-                      _buildHelpItem('Deep ITM',
-                          'Deep In-The-Money contracts. Often used as a stock replacement strategy.'),
-                      _buildHelpItem('Deep OTM',
-                          'Deep Out-Of-The-Money contracts. Aggressive speculative bets.'),
+                      ...OptionsFlowStore.flagCategories.entries.map((entry) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(entry.key,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)),
+                            const SizedBox(height: 8),
+                            ...entry.value.map((flag) => _buildHelpItem(
+                                flag,
+                                OptionsFlowStore.flagDocumentation[flag] ??
+                                    'Multi-factor institutional signal.')),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 24),
                       Text(
                         'Conviction Score',
@@ -1954,79 +1960,31 @@ class _FilterDialogState extends State<_FilterDialog> {
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Volume & Institutional',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant)),
-                          const SizedBox(height: 4),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            buildChip('WHALE', 'WHALE'),
-                            buildChip('Golden Sweep', 'Golden Sweep'),
-                            buildChip('Steamroller', 'Steamroller'),
-                            buildChip('Mega Vol', 'Mega Vol'),
-                            buildChip('Vol Explosion', 'Vol Explosion'),
-                            buildChip('High Vol/OI', 'High Vol/OI'),
-                            buildChip('New Position', 'New Position'),
-                            buildChip('Aggressive', 'Aggressive'),
-                            buildChip('High Premium', 'High Premium'),
-                            buildChip('Tight Spread', 'Tight Spread'),
-                            buildChip('Wide Spread', 'Wide Spread'),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text('Strategy & Sentiment',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant)),
-                          const SizedBox(height: 4),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            buildChip('Bullish Div', 'Bullish Divergence'),
-                            buildChip('Bearish Div', 'Bearish Divergence'),
-                            buildChip('Panic Hedge', 'Panic Hedge'),
-                            buildChip('Gamma Squeeze', 'Gamma Squeeze'),
-                            buildChip('Contrarian', 'Contrarian'),
-                            buildChip('Earnings Play', 'Earnings Play'),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text('Volatility',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant)),
-                          const SizedBox(height: 4),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            buildChip('Extreme IV', 'Extreme IV'),
-                            buildChip('High IV', 'High IV'),
-                            buildChip('Low IV', 'Low IV'),
-                            buildChip('Cheap Vol', 'Cheap Vol'),
-                          ]),
-                          const SizedBox(height: 12),
-                          Text('Moneyness & Time',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant)),
-                          const SizedBox(height: 4),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            buildChip('0DTE', '0DTE'),
-                            buildChip('Weekly OTM', 'Weekly OTM'),
-                            buildChip('LEAPS', 'LEAPS'),
-                            buildChip('Lotto', 'Lotto'),
-                            buildChip('ATM Flow', 'ATM Flow'),
-                            buildChip('Deep ITM', 'Deep ITM'),
-                            buildChip('Deep OTM', 'Deep OTM'),
-                          ]),
-                        ],
+                        children: OptionsFlowStore.flagCategories.entries
+                            .map((entry) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(entry.key,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: entry.value
+                                    .map((flag) => buildChip(
+                                        flag, flag)) // Use flag as label
+                                    .toList(),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          );
+                        }).toList(),
                       );
                     }),
                     const SizedBox(height: 24),

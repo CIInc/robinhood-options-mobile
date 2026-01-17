@@ -1586,6 +1586,10 @@ Your response MUST be valid JSON. No conversational text.
       _isLoading = true;
       _statusMessage = "Gathering trading history...";
       _structuredResult = null;
+      _isChallengeCompleted = false;
+      _completionPercentage = null;
+      _currentNotes = null;
+      _currentSessionDoc = null;
     });
 
     try {
@@ -1641,7 +1645,17 @@ Your response MUST be valid JSON. No conversational text.
             'trades':
                 tradesToSave, // Save the sanitized trades list for history recall
           });
-          _loadHistory();
+          await _loadHistory();
+          if (mounted && _history.isNotEmpty) {
+            setState(() {
+              _currentSessionDoc = _history.first;
+              // Ensure consistent state with the new document
+              if (_currentSessionDoc != null) {
+                _isChallengeCompleted =
+                    _challengeCompletionStatus[_currentSessionDoc!.id] ?? false;
+              }
+            });
+          }
         } catch (e) {
           debugPrint("Error saving coaching session: $e");
         }
