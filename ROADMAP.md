@@ -20,12 +20,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
   - [AI & Insights](#ai--insights)
   - [Infrastructure & Security](#infrastructure--security)
 - [Planned Enhancements 🚀](#planned-enhancements-)
-  - [Priority 1: Core Trading & Brokerage Expansion](#priority-1-core-trading--brokerage-expansion-q1-q2-2026)
-  - [Priority 2: Portfolio & Analysis](#priority-2-portfolio--analysis-q2-q3-2026---apr-sep-2026)
-  - [Priority 3: Investor Groups & Social](#priority-3-investor-groups--social-q3-2026---jul-sep-2026)
-  - [Priority 3.5: Futures & Advanced Strategy](#priority-35-futures--advanced-strategy-q2-2026---apr-jun-2026)
-  - [Priority 4: Mobile Experience & Infrastructure](#priority-4-mobile-experience--infrastructure-q3-q4-2026---jul-dec-2026)
-  - [Priority 5: Future Vision & Frontier Tech](#priority-5-future-vision--frontier-tech-2027)
+  - [Priority 1: Portfolio & Analysis](#priority-1-portfolio--analysis-q1-q2-2026)
+  - [Priority 2: Investor Groups & Social](#priority-2-investor-groups--social-q2-q3-2026)
+  - [Operational Backlog](#operational-backlog-ongoing)
+  - [Priority 3: Futures & Advanced Strategy](#priority-3-futures--advanced-strategy-q3-2026)
+  - [Priority 4: Strategic Brokerage Expansion](#priority-4-strategic-brokerage-expansion-q4-2026)
+  - [Priority 5: Mobile Experience & Infrastructure](#priority-5-mobile-experience--infrastructure-q4-2026)
+  - [Priority 6: Future Vision & Frontier Tech](#priority-6-future-vision-2027)
 - [Feedback & Contribution](#feedback--contribution)
 
 ## Summary
@@ -783,34 +784,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ## Planned Enhancements 🚀
 
-### Priority 1: Core Trading & Brokerage Expansion (Q1-Q2 2026)
 
-**Target:** Enhance autonomous trading with futures and expand to multiple brokerages
-
-**Why This Priority Matters:**
-Q1-Q2 2026 focuses on deepening the trading capability and expanding market reach. Futures trading expands the asset class coverage, attracting sophisticated traders. Brokerage integration (Schwab, Fidelity, etc.) unlocks the enterprise market and reduces platform dependency. This dual focus ensures we capture both depth (advanced features) and breadth (market access). Strategic importance: **Market Expansion & Differentiation**
-
-**Business Impact:**
-- Futures Trading attracts high-value users
-- Brokerage Integration expands TAM by 300%
-- Combined: Expected 60% increase in user base
-
-**Technical Complexity:** Very High (API integrations, complex calculations)
-**User Impact:** Very High (core trading experience & access)
-**Revenue Impact:** High (unlocks enterprise partnerships)
-
-#### Brokerage Expansion
-- [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
-- [ ] **Fidelity API Integration**: Native Fidelity brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
-- [ ] **Interactive Brokers Integration**: Native Interactive Brokers API support ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)) - **Large** (4-6 weeks)
-- [ ] **Multi-Brokerage**: Trade across multiple brokerage accounts - **Large** (3-4 weeks)
-- [ ] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): - **Large** (4-5 weeks)
-    - [ ] Implement `getForexQuote` and `getForexHistoricals`
-    - [ ] Implement `getForexPositions`
-    - [ ] Add Forex trading UI and order placement
-- [ ] **Smart Order Routing (SOR)**: Intelligent execution across multiple venues to optimize fill quality - **Large** (6-8 weeks)
-
-### Priority 2: Portfolio & Analysis (Q2-Q3 2026 - Apr-Sep 2026)
+### Priority 1: Portfolio & Analysis (Q1-Q2 2026)
 
 **Target:** Advanced analytics, AI insights, and comprehensive alert system
 
@@ -873,7 +848,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **Dark Pool Activity Alerts**: Monitor off-exchange trading anomalies - **Medium** (3-4 weeks)
 - [ ] **Insider Trading Pattern Recognition**: Detect significant insider buying/selling - **Medium** (3-4 weeks)
 
-### Priority 3: Investor Groups & Social (Q3 2026 - Jul-Sep 2026)
+### Priority 2: Investor Groups & Social (Q2-Q3 2026)
 
 **Target:** Community features with chat, leaderboards, and social engagement
 
@@ -923,7 +898,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 - [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Comprehensive social features - **Large** (4-5 weeks)
 - [ ] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance - **Small** (1 week)
 
-### Priority 4: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
+### Operational Backlog (Ongoing)
 
 **Target:** Polish UI/UX, enhance security, and prepare for app store releases
 
@@ -1059,7 +1034,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Developer Guide**: Onboarding guide for new contributors ([#95](https://github.com/CIInc/robinhood-options-mobile/issues/95)) - **Medium** (2-3 weeks)
 - [ ] **ADRs**: Architecture Decision Records ([#96](https://github.com/CIInc/robinhood-options-mobile/issues/96)) - **Small** (1-2 weeks)
 
-### Priority 3.5: Futures & Advanced Strategy (Q2 2026 - Apr-Jun 2026)
+### Priority 3: Futures & Advanced Strategy (Q3 2026 - Jul-Sep 2026)
 
 **Target:** Complete the futures trading experience and enhance strategy validation with professional-grade tools.
 
@@ -1096,7 +1071,34 @@ Futures trading requires distinct risk management tools compared to equities. Pr
 - [ ] **Custom Screener Builder**: 50+ fundamental & technical filters with saved presets - **Large** (4-6 weeks)
 - [ ] **Statistical Arbitrage Scanner**: Detect mean-reversion opportunities across pairs/baskets - **Large** (6-8 weeks)
 
-### Priority 4: Mobile Experience & Infrastructure (Q3-Q4 2026 - Jul-Dec 2026)
+### Priority 4: Strategic Brokerage Expansion (Q4 2026)
+
+**Target:** Expand to multiple brokerages and enhance market access
+
+**Why This Priority Matters:**
+Brokerage integration reduces platform dependency and attracts users with existing accounts at major brokerages. Strategic importance: **Market Expansion & Differentiation**
+
+**Business Impact:**
+- Brokerage Integration expands TAM by 300%
+- Combined: Expected 60% increase in user base
+
+**Technical Complexity:** Very High (API integrations)
+**User Impact:** Very High (access)
+**Revenue Impact:** High
+
+#### Brokerage Expansion
+- [ ] **Alpaca Integration**: Commission-free API trading - **Large** (4-6 weeks)
+- [ ] **Tradier Integration**: Brokerage API integration - **Large** (4-6 weeks)
+- [ ] **Tastytrade Integration**: Options-focused brokerage API - **Large** (4-6 weeks)
+- [ ] **Plaid Integration**: Connect bank accounts for cash transfers ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)) - **Large** (3-4 weeks)
+- [ ] **Fidelity API Integration**: Native Fidelity brokerage support ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) - **Large** (4-6 weeks)
+- [ ] **Interactive Brokers Integration**: Native Interactive Brokers API support ([#30](https://github.com/CIInc/robinhood-options-mobile/issues/30)) - **Large** (4-6 weeks)
+- [ ] **Multi-Brokerage**: Trade across multiple brokerage accounts - **Large** (3-4 weeks)
+- [ ] **Forex Trading** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): - **Large** (4-5 weeks)
+    - [ ] **Forex Trading UI**: Order placement and visuals
+- [ ] **Smart Order Routing (SOR)**: Intelligent execution across multiple venues - **Large** (6-8 weeks)
+
+### Priority 5: Mobile Experience & Infrastructure (Q4 2026 - Q1 2027)
 
 **Target:** Polish UI/UX, enhance security, and prepare for app store releases
 
@@ -1160,7 +1162,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Community Q&A**: Stack Overflow-style Q&A for investing questions - **Medium** (3-4 weeks)
 - [ ] **Certification Program**: Earn trading certifications with verified badges - **Large** (6-8 weeks)
 
-### Priority 5: Future Vision & Frontier Tech (2027+)
+### Priority 6: Future Vision & Frontier Tech (2027+)
 
 **Target:** Next-generation trading technologies and decentralized finance
 
