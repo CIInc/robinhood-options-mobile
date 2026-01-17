@@ -29,6 +29,7 @@ import * as signalDiagnosticsFuncs from "./signal-diagnostics";
 import * as backtesting from "./backtesting";
 import * as optionsFlow from "./options-flow";
 import * as optionsFlowCron from "./options-flow-cron";
+import * as sentimentAnalysis from "./sentiment-analysis";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -48,6 +49,7 @@ export const getInvestmentsTransactions =
   plaidfunc.getInvestmentsTransactions;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
+export const getSentimentAnalysis = sentimentAnalysis.getSentimentAnalysis;
 // export const generateContent = gemini.generateContent;
 // export const generateContent2 = gemini.generateContent2;
 export const generateContent25 = gemini.generateContent25;

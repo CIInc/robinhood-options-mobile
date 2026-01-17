@@ -74,7 +74,7 @@ class _ForexOrdersWidgetState extends State<ForexOrdersWidget> {
           child: ListTile(
             title: const Text(
               "Orders",
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.0),
             ),
             subtitle: Text(
                 "${formatCompactNumber.format(orders.length)} orders - balance: ${ordersBalance > 0 ? "+" : ordersBalance < 0 ? "-" : ""}${formatCurrency.format(ordersBalance.abs())}"),

@@ -93,7 +93,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
               child: ListTile(
                 title: const Text(
                   "Option Orders",
-                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20.0),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),

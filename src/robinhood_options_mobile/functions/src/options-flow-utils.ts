@@ -385,7 +385,8 @@ export const fetchOptionsFlowForSymbols = async (
         items.push(...result.value);
       } else if (result.status === "rejected") {
         console.error("Error fetching batch item:", result.reason);
-        throw result.reason;
+        // Do not throw, just log and continue
+        // throw result.reason;
       }
     });
   }
@@ -588,41 +589,44 @@ const processOptionChains = (
 
   for (const result of results) {
     const spotPrice = result.quote?.regularMarketPrice || 0;
-    const options = result.options?.[0];
-    if (!options) continue;
 
-    const calls = (options.calls || []) as YahooOption[];
-    const puts = (options.puts || []) as YahooOption[];
+    // Iterate over all option chains (expirations) in the result
+    const allOptions = result.options || [];
 
-    calls.forEach((opt) => {
-      const analyzed = analyzeOption(
-        symbol,
-        opt,
-        "Call",
-        spotPrice,
-        quoteInfo.changePercent,
-        quoteInfo.earningsTimestamp,
-        quoteInfo.marketCap,
-        quoteInfo.sector,
-        now
-      );
-      if (analyzed) symbolItems.push(analyzed);
-    });
+    for (const options of allOptions) {
+      const calls = (options.calls || []) as YahooOption[];
+      const puts = (options.puts || []) as YahooOption[];
 
-    puts.forEach((opt) => {
-      const analyzed = analyzeOption(
-        symbol,
-        opt,
-        "Put",
-        spotPrice,
-        quoteInfo.changePercent,
-        quoteInfo.earningsTimestamp,
-        quoteInfo.marketCap,
-        quoteInfo.sector,
-        now
-      );
-      if (analyzed) symbolItems.push(analyzed);
-    });
+      calls.forEach((opt) => {
+        const analyzed = analyzeOption(
+          symbol,
+          opt,
+          "Call",
+          spotPrice,
+          quoteInfo.changePercent,
+          quoteInfo.earningsTimestamp,
+          quoteInfo.marketCap,
+          quoteInfo.sector,
+          now
+        );
+        if (analyzed) symbolItems.push(analyzed);
+      });
+
+      puts.forEach((opt) => {
+        const analyzed = analyzeOption(
+          symbol,
+          opt,
+          "Put",
+          spotPrice,
+          quoteInfo.changePercent,
+          quoteInfo.earningsTimestamp,
+          quoteInfo.marketCap,
+          quoteInfo.sector,
+          now
+        );
+        if (analyzed) symbolItems.push(analyzed);
+      });
+    }
   }
   return symbolItems;
 };

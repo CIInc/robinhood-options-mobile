@@ -273,7 +273,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
           title: const Text("Position",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 20)),
           subtitle: Text(
               '${formatNumber.format(holding.quantity!)} ${holding.currencyCode}'),
           trailing: Text(formatCurrency.format(holding.marketValue),
@@ -424,7 +424,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       ListTile(
         title: const Text(
           "Quote",
-          style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20.0),
         ),
         trailing: Text(
           holding.quoteObj!.markPrice! < 0.001

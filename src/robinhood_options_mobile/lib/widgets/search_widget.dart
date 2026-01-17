@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/market_sentiment_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
@@ -84,7 +85,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
   InstrumentStore? instrumentStore;
 
-  // Trade Signal Strength category (per docs): STRONG (75-100), MODERATE (50-74), WEAK (0-49)
+  // Trade Signal Strength category (per docs): STRONG (70-100), MODERATE (40-69), WEAK (0-39)
   String? signalStrengthCategory; // 'STRONG' | 'MODERATE' | 'WEAK' | null
 
   // Trade Signal Filters
@@ -239,6 +240,17 @@ class _SearchWidgetState extends State<SearchWidget>
                             userDocRef: widget.userDocRef,
                             service: widget.service,
                           ),
+                        // IconButton(
+                        //   icon: const Icon(Icons.sentiment_satisfied_alt),
+                        //   tooltip: 'Sentiment Analysis',
+                        //   onPressed: () {
+                        //     Navigator.push(
+                        //         context,
+                        //         MaterialPageRoute(
+                        //             builder: (context) =>
+                        //                 const SentimentAnalysisDashboardWidget()));
+                        //   },
+                        // ),
                         IconButton(
                             icon: auth.currentUser != null
                                 ? (auth.currentUser!.photoURL == null
@@ -485,6 +497,9 @@ class _SearchWidgetState extends State<SearchWidget>
                   //     height: 25.0,
                   //   )),
                   // ],
+                  const SliverToBoxAdapter(
+                    child: MarketSentimentCardWidget(),
+                  ),
                   SliverToBoxAdapter(
                     child: OptionsFlowCardWidget(
                       brokerageUser: widget.brokerageUser,
@@ -503,15 +518,6 @@ class _SearchWidgetState extends State<SearchWidget>
                       final isMarketOpen = MarketHours.isMarketOpen();
                       final selectedInterval =
                           tradeSignalsProvider.selectedInterval;
-                      final intervalLabel = selectedInterval == '1d'
-                          ? 'Daily'
-                          : selectedInterval == '1h'
-                              ? 'Hourly'
-                              : selectedInterval == '30m'
-                                  ? '30-min'
-                                  : selectedInterval == '15m'
-                                      ? '15-min'
-                                      : selectedInterval;
 
                       return SliverStickyHeader(
                           header: Material(
@@ -544,7 +550,6 @@ class _SearchWidgetState extends State<SearchWidget>
                                           "Trade Signals",
                                           style: TextStyle(
                                             fontSize: 20.0,
-                                            fontWeight: FontWeight.bold,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface,
@@ -552,175 +557,122 @@ class _SearchWidgetState extends State<SearchWidget>
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            PopupMenuButton<String>(
-                                              icon: const Icon(Icons.settings,
-                                                  size: 20),
-                                              tooltip: 'Settings',
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              itemBuilder:
-                                                  (BuildContext context) =>
-                                                      <PopupMenuEntry<String>>[
-                                                const PopupMenuItem<String>(
-                                                  value: 'notifications',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(Icons
-                                                          .notifications_outlined),
-                                                      SizedBox(width: 8),
-                                                      Text('Notifications'),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const PopupMenuItem<String>(
-                                                  value: 'agentic_settings',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(Icons.tune),
-                                                      SizedBox(width: 8),
-                                                      Text('Configuration'),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                              onSelected: (String value) async {
-                                                if (!mounted ||
-                                                    widget.user == null ||
-                                                    widget.userDocRef == null) {
-                                                  return;
-                                                }
-                                                if (value == 'notifications') {
-                                                  Navigator.of(context).push(
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          TradeSignalNotificationSettingsWidget(
-                                                        user: widget.user!,
-                                                        userDocRef:
-                                                            widget.userDocRef!,
-                                                      ),
-                                                    ),
-                                                  );
-                                                } else if (value ==
-                                                    'agentic_settings') {
-                                                  final result =
-                                                      await Navigator.of(
-                                                              context)
-                                                          .push(
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          AgenticTradingSettingsWidget(
-                                                        user: widget.user!,
-                                                        userDocRef:
-                                                            widget.userDocRef!,
-                                                        service: widget.service,
-                                                        initialSection:
-                                                            'entryStrategies',
-                                                      ),
-                                                    ),
-                                                  );
-                                                  if (result == true &&
-                                                      mounted) {
-                                                    _fetchTradeSignalsWithFilters();
-                                                  }
-                                                }
-                                              },
+                                        trailing: PopupMenuButton<String>(
+                                          icon: const Icon(Icons.more_vert),
+                                          tooltip: 'Options',
+                                          itemBuilder: (BuildContext context) =>
+                                              <PopupMenuEntry<String>>[
+                                            // Configuration Section
+                                            const PopupMenuItem<String>(
+                                              enabled: false,
+                                              child: Text('CONFIGURATION',
+                                                  style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w500)),
                                             ),
-                                            const SizedBox(width: 4),
-                                            PopupMenuButton<String>(
-                                              icon: Icon(
-                                                Icons.sort,
-                                                size: 20,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface,
+                                            const PopupMenuItem<String>(
+                                              value: 'config:notifications',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons
+                                                      .notifications_outlined),
+                                                  SizedBox(width: 8),
+                                                  Text('Notifications'),
+                                                ],
                                               ),
-                                              tooltip: 'Sort by',
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              itemBuilder:
-                                                  (BuildContext context) {
-                                                return [
-                                                  PopupMenuItem<String>(
-                                                    value: 'signalStrength',
-                                                    child: Row(
-                                                      children: [
-                                                        const Text(
-                                                            'Signal Strength'),
-                                                        if (tradeSignalsProvider
-                                                                .sortBy ==
-                                                            'signalStrength') ...[
-                                                          const SizedBox(
-                                                              width: 8),
-                                                          Icon(Icons.check,
-                                                              size: 18,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem<String>(
-                                                    value: 'timestamp',
-                                                    child: Row(
-                                                      children: [
-                                                        const Text('Recent'),
-                                                        if (tradeSignalsProvider
-                                                                .sortBy ==
-                                                            'timestamp') ...[
-                                                          const SizedBox(
-                                                              width: 8),
-                                                          Icon(Icons.check,
-                                                              size: 18,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700),
-                                                        ],
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ];
-                                              },
-                                              onSelected: (String value) {
-                                                tradeSignalsProvider.sortBy =
-                                                    value;
-                                                _fetchTradeSignalsWithFilters();
-                                              },
                                             ),
-                                            const SizedBox(width: 4),
-                                            PopupMenuButton<String>(
-                                              icon: Icon(
-                                                isMarketOpen
-                                                    ? Icons.access_time
-                                                    : Icons.calendar_today,
-                                                color: isMarketOpen
-                                                    ? Colors.green.shade700
-                                                    : Colors.blue.shade700,
+                                            const PopupMenuItem<String>(
+                                              value: 'config:agentic_settings',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.tune),
+                                                  SizedBox(width: 8),
+                                                  Text('Settings'),
+                                                ],
                                               ),
-                                              tooltip:
-                                                  '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
-                                              itemBuilder:
-                                                  (BuildContext context) {
-                                                return [
-                                                  PopupMenuItem<String>(
-                                                    enabled: false,
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              bottom: 8.0),
-                                                      child: Text(
+                                            ),
+                                            const PopupMenuDivider(),
+                                            // Sort Section
+                                            const PopupMenuItem<String>(
+                                              enabled: false,
+                                              child: Text('SORT BY',
+                                                  style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w500)),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'sort:signalStrength',
+                                              child: Row(
+                                                children: [
+                                                  if (tradeSignalsProvider
+                                                          .sortBy ==
+                                                      'signalStrength')
+                                                    Icon(Icons.check,
+                                                        size: 18,
+                                                        color: Colors
+                                                            .green.shade700)
+                                                  else
+                                                    const SizedBox(width: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Signal Strength'),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'sort:timestamp',
+                                              child: Row(
+                                                children: [
+                                                  if (tradeSignalsProvider
+                                                          .sortBy ==
+                                                      'timestamp')
+                                                    Icon(Icons.check,
+                                                        size: 18,
+                                                        color: Colors
+                                                            .green.shade700)
+                                                  else
+                                                    const SizedBox(width: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Recent'),
+                                                ],
+                                              ),
+                                            ),
+                                            const PopupMenuDivider(),
+                                            // Interval Section
+                                            PopupMenuItem<String>(
+                                              enabled: false,
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('INTERVAL',
+                                                      style: TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w500)),
+                                                  const SizedBox(height: 4),
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        isMarketOpen
+                                                            ? Icons.access_time
+                                                            : Icons
+                                                                .calendar_today,
+                                                        size: 14,
+                                                        color: isMarketOpen
+                                                            ? Colors
+                                                                .green.shade700
+                                                            : Colors
+                                                                .blue.shade700,
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
                                                         isMarketOpen
                                                             ? 'Market Open'
                                                             : 'After Hours',
                                                         style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w600,
+                                                          fontSize: 11,
                                                           color: isMarketOpen
                                                               ? Colors.green
                                                                   .shade700
@@ -728,85 +680,117 @@ class _SearchWidgetState extends State<SearchWidget>
                                                                   .shade700,
                                                         ),
                                                       ),
-                                                    ),
+                                                    ],
                                                   ),
-                                                  PopupMenuDivider(),
-                                                  PopupMenuItem<String>(
-                                                    value: '15m',
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text('15-min'),
-                                                        if (selectedInterval ==
-                                                            '15m')
-                                                          const SizedBox(
-                                                              width: 8),
-                                                        if (selectedInterval ==
-                                                            '15m')
-                                                          Icon(Icons.check,
-                                                              size: 18,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem<String>(
-                                                    value: '1h',
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text('Hourly'),
-                                                        if (selectedInterval ==
-                                                            '1h')
-                                                          const SizedBox(
-                                                              width: 8),
-                                                        if (selectedInterval ==
-                                                            '1h')
-                                                          Icon(Icons.check,
-                                                              size: 18,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem<String>(
-                                                    value: '1d',
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text('Daily'),
-                                                        if (selectedInterval ==
-                                                            '1d')
-                                                          const SizedBox(
-                                                              width: 8),
-                                                        if (selectedInterval ==
-                                                            '1d')
-                                                          Icon(Icons.check,
-                                                              size: 18,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ];
-                                              },
-                                              onSelected: (String interval) {
-                                                tradeSignalsProvider
-                                                    .setSelectedInterval(
-                                                        interval);
-                                                _fetchTradeSignalsWithFilters();
-                                              },
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'interval:15m',
+                                              child: Row(
+                                                children: [
+                                                  if (selectedInterval == '15m')
+                                                    Icon(Icons.check,
+                                                        size: 18,
+                                                        color: Colors
+                                                            .green.shade700)
+                                                  else
+                                                    const SizedBox(width: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('15-min'),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'interval:1h',
+                                              child: Row(
+                                                children: [
+                                                  if (selectedInterval == '1h')
+                                                    Icon(Icons.check,
+                                                        size: 18,
+                                                        color: Colors
+                                                            .green.shade700)
+                                                  else
+                                                    const SizedBox(width: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Hourly'),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'interval:1d',
+                                              child: Row(
+                                                children: [
+                                                  if (selectedInterval == '1d')
+                                                    Icon(Icons.check,
+                                                        size: 18,
+                                                        color: Colors
+                                                            .green.shade700)
+                                                  else
+                                                    const SizedBox(width: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Daily'),
+                                                ],
+                                              ),
                                             ),
                                           ],
+                                          onSelected: (String value) async {
+                                            if (value.startsWith('config:')) {
+                                              if (!mounted ||
+                                                  widget.user == null ||
+                                                  widget.userDocRef == null) {
+                                                return;
+                                              }
+                                              if (value ==
+                                                  'config:notifications') {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        TradeSignalNotificationSettingsWidget(
+                                                      user: widget.user!,
+                                                      userDocRef:
+                                                          widget.userDocRef!,
+                                                    ),
+                                                  ),
+                                                );
+                                              } else if (value ==
+                                                  'config:agentic_settings') {
+                                                final result =
+                                                    await Navigator.of(context)
+                                                        .push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        AgenticTradingSettingsWidget(
+                                                      user: widget.user!,
+                                                      userDocRef:
+                                                          widget.userDocRef!,
+                                                      service: widget.service,
+                                                      initialSection:
+                                                          'entryStrategies',
+                                                    ),
+                                                  ),
+                                                );
+                                                if (result == true && mounted) {
+                                                  _fetchTradeSignalsWithFilters();
+                                                }
+                                              }
+                                            } else if (value
+                                                .startsWith('sort:')) {
+                                              final sortValue =
+                                                  value.split(':')[1];
+                                              tradeSignalsProvider.sortBy =
+                                                  sortValue;
+                                              _fetchTradeSignalsWithFilters();
+                                            } else if (value
+                                                .startsWith('interval:')) {
+                                              final intervalValue =
+                                                  value.split(':')[1];
+                                              tradeSignalsProvider
+                                                  .setSelectedInterval(
+                                                      intervalValue);
+                                              _fetchTradeSignalsWithFilters();
+                                            }
+                                          },
                                         ),
                                       ),
                                       Consumer<AgenticTradingProvider>(
@@ -933,7 +917,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                               maxCrossAxisExtent: 220.0,
                                               mainAxisSpacing: 10.0,
                                               crossAxisSpacing: 10.0,
-                                              childAspectRatio: 1.25,
+                                              childAspectRatio: 1.17,
                                             ),
                                             delegate:
                                                 SliverChildBuilderDelegate(
@@ -973,7 +957,6 @@ class _SearchWidgetState extends State<SearchWidget>
                                     "S&P Gainers",
                                     style: TextStyle(
                                       fontSize: 20.0,
-                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -1024,7 +1007,6 @@ class _SearchWidgetState extends State<SearchWidget>
                                     "S&P Decliners",
                                     style: TextStyle(
                                       fontSize: 20.0,
-                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -1081,7 +1063,6 @@ class _SearchWidgetState extends State<SearchWidget>
                                     "Top Movers",
                                     style: TextStyle(
                                       fontSize: 20.0,
-                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -1140,7 +1121,6 @@ class _SearchWidgetState extends State<SearchWidget>
                                     "100 Most Popular",
                                     style: TextStyle(
                                       fontSize: 20.0,
-                                      fontWeight: FontWeight.bold,
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface,
@@ -1526,6 +1506,9 @@ class _SearchWidgetState extends State<SearchWidget>
         'vwap',
         'adx',
         'williamsR',
+        'ichimoku',
+        'cci',
+        'parabolicSAR',
       ];
 
       for (final indicator in indicatorNames) {
@@ -1731,6 +1714,15 @@ class _SearchWidgetState extends State<SearchWidget>
                                 break;
                               case 'momentum':
                                 displayName = 'RSI';
+                                break;
+                              case 'ichimoku':
+                                displayName = 'Ichimoku';
+                                break;
+                              case 'cci':
+                                displayName = 'CCI';
+                                break;
+                              case 'parabolicSAR':
+                                displayName = 'SAR';
                                 break;
                               default:
                                 displayName = indicatorName
@@ -1956,11 +1948,11 @@ class _SearchWidgetState extends State<SearchWidget>
     final tradeSignalsProvider =
         Provider.of<TradeSignalsProvider>(context, listen: false);
     // Map category to minimum strength for server-side prefiltering.
-    // Strong: >=75, Moderate: >=50, Weak: >=0 (we'll further filter client-side to <50)
+    // Strong: >=70, Moderate: 40-69, Weak: 0-39
     final int? serverMinStrength = signalStrengthCategory == 'STRONG'
-        ? 75
+        ? 70
         : signalStrengthCategory == 'MODERATE'
-            ? 50
+            ? 40
             : signalStrengthCategory == 'WEAK'
                 ? 0
                 : minSignalStrength; // fallback to any explicit slider/legacy state
@@ -1968,9 +1960,9 @@ class _SearchWidgetState extends State<SearchWidget>
     final int? serverMaxStrength = signalStrengthCategory == 'STRONG'
         ? null
         : signalStrengthCategory == 'MODERATE'
-            ? 74
+            ? 69
             : signalStrengthCategory == 'WEAK'
-                ? 49
+                ? 39
                 : null;
 
     tradeSignalsProvider.streamTradeSignals(
@@ -1999,6 +1991,9 @@ class _SearchWidgetState extends State<SearchWidget>
       'vwap',
       'adx',
       'williamsR',
+      'ichimoku',
+      'cci',
+      'parabolicSAR',
     ];
 
     // Label mapping for indicators
@@ -2018,6 +2013,12 @@ class _SearchWidgetState extends State<SearchWidget>
           return 'W%R';
         case 'volume':
           return 'Volume';
+        case 'ichimoku':
+          return 'Ichimoku';
+        case 'cci':
+          return 'CCI';
+        case 'parabolicSAR':
+          return 'SAR';
         default:
           return indicator.toUpperCase();
       }
@@ -2028,7 +2029,7 @@ class _SearchWidgetState extends State<SearchWidget>
       child: Row(
         children: [
           // Signal Strength Category Filters FIRST (Strong, Moderate, Weak)
-          // Strong (75-100)
+          // Strong (70-100)
           FilterChip(
             label: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2046,7 +2047,7 @@ class _SearchWidgetState extends State<SearchWidget>
             onSelected: (selected) {
               setState(() {
                 signalStrengthCategory = selected ? 'STRONG' : null;
-                minSignalStrength = selected ? 75 : null;
+                minSignalStrength = selected ? 70 : null;
                 if (selected) {
                   selectedIndicators.clear();
                 }
@@ -2072,7 +2073,7 @@ class _SearchWidgetState extends State<SearchWidget>
             ),
           ),
           const SizedBox(width: 8),
-          // Moderate (50-74)
+          // Moderate (40-69)
           FilterChip(
             label: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2090,7 +2091,7 @@ class _SearchWidgetState extends State<SearchWidget>
             onSelected: (selected) {
               setState(() {
                 signalStrengthCategory = selected ? 'MODERATE' : null;
-                minSignalStrength = selected ? 50 : null;
+                minSignalStrength = selected ? 40 : null;
                 if (selected) {
                   selectedIndicators.clear();
                 }
@@ -2116,7 +2117,7 @@ class _SearchWidgetState extends State<SearchWidget>
             ),
           ),
           const SizedBox(width: 8),
-          // Weak (0-49)
+          // Weak (0-39)
           FilterChip(
             label: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2135,7 +2136,7 @@ class _SearchWidgetState extends State<SearchWidget>
               setState(() {
                 signalStrengthCategory = selected ? 'WEAK' : null;
                 minSignalStrength = selected ? 0 : null;
-                maxSignalStrength = selected ? 49 : null;
+                maxSignalStrength = selected ? 39 : null;
                 if (selected) {
                   selectedIndicators.clear();
                 }
@@ -2159,6 +2160,108 @@ class _SearchWidgetState extends State<SearchWidget>
                   : FontWeight.w500,
               fontSize: 12,
             ),
+          ),
+          const SizedBox(width: 8),
+          Text('•',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
+          const SizedBox(width: 8),
+          // Interval Selection Chip
+          Consumer<TradeSignalsProvider>(
+            builder: (context, tradeSignalsProvider, _) {
+              final selectedInterval = tradeSignalsProvider.selectedInterval;
+              final intervalLabel = selectedInterval == '1d'
+                  ? 'Daily'
+                  : selectedInterval == '1h'
+                      ? 'Hourly'
+                      : selectedInterval == '15m'
+                          ? '15-min'
+                          : selectedInterval;
+              return PopupMenuButton<String>(
+                tooltip: 'Select Interval',
+                offset: const Offset(0, 40),
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: '15m',
+                    child: Row(
+                      children: [
+                        if (selectedInterval == '15m')
+                          Icon(Icons.check,
+                              size: 18, color: Colors.green.shade700)
+                        else
+                          const SizedBox(width: 18),
+                        const SizedBox(width: 8),
+                        const Text('15-min'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: '1h',
+                    child: Row(
+                      children: [
+                        if (selectedInterval == '1h')
+                          Icon(Icons.check,
+                              size: 18, color: Colors.green.shade700)
+                        else
+                          const SizedBox(width: 18),
+                        const SizedBox(width: 8),
+                        const Text('Hourly'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: '1d',
+                    child: Row(
+                      children: [
+                        if (selectedInterval == '1d')
+                          Icon(Icons.check,
+                              size: 18, color: Colors.green.shade700)
+                        else
+                          const SizedBox(width: 18),
+                        const SizedBox(width: 8),
+                        const Text('Daily'),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (String value) {
+                  tradeSignalsProvider.setSelectedInterval(value);
+                  _fetchTradeSignalsWithFilters();
+                },
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                  decoration: BoxDecoration(
+                    // color: Colors.transparent,
+                    border: Border.all(
+                      color: Colors.grey.shade300,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(20), // Stadium-like
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.onSurface),
+                      const SizedBox(width: 4),
+                      Text(
+                        intervalLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.arrow_drop_down,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurface),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
           Text('•',
@@ -2258,13 +2361,13 @@ class _SearchWidgetState extends State<SearchWidget>
 
   /// Returns color based on signal strength value (0-100).
   /// Matches filter categories:
-  /// Strong (75-100): Green
-  /// Moderate (50-74): Orange
-  /// Weak (0-49): Red
+  /// Strong (70-100): Green
+  /// Moderate (40-69): Orange
+  /// Weak (0-39): Red
   Color _getSignalStrengthColor(int strength) {
-    if (strength >= 75) {
+    if (strength >= 70) {
       return Colors.green;
-    } else if (strength >= 50) {
+    } else if (strength >= 40) {
       return Colors.orange;
     } else {
       return Colors.red;

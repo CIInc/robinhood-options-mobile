@@ -2762,7 +2762,7 @@ export function evaluateAllIndicators(
       `BUY: ${buyCount}, SELL: ${sellCount}, HOLD: ${holdCount}.`;
   } else {
     overallSignal = "HOLD";
-    reason = `Mixed signals - BUY: ${buyCount}, ` +
+    reason = `BUY: ${buyCount}, ` + // Removed 'Mixed signals' it was redundant
       `SELL: ${sellCount}, HOLD: ${holdCount}. ` +
       `Signal strength: ${signalStrength}/100.`;
   }

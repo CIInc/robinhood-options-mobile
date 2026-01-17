@@ -879,9 +879,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
               ListTile(
-                  title: Text("Position",
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: Text("Position", style: TextStyle(fontSize: 20)),
                   subtitle:
                       Text('${formatNumber.format(position.quantity!)} shares'),
                   trailing: Text(formatCurrency.format(position.marketValue),
@@ -1520,7 +1518,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ListTile(
             title: const Text(
               "Quote",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
             subtitle: instrument.quoteObj!.lastExtendedHoursTradePrice != null
                 ? const Text('Extended hours')
@@ -1547,7 +1545,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           const ListTile(
             title: Text(
               "Fundamentals",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
           ),
           Card(
@@ -1981,7 +1979,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           const ListTile(
             title: Text(
               "Analyst Ratings",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
           ),
           GridView.count(
@@ -2088,7 +2086,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           const ListTile(
             title: Text(
               "Research",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
           ),
           Card(
@@ -2222,7 +2220,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           const ListTile(
             title: Text(
               "Earnings",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
           ),
           Card(
@@ -2401,7 +2399,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ListTile(
               title: Text(
                 "Splits",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20),
               ),
             )
           ])),
@@ -2508,7 +2506,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           title: Text(
             "Similar",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20),
           ),
         )
       ])),
@@ -2808,7 +2806,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ListTile(
         title: const Text(
           "Lists",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20),
         ),
         trailing: IconButton(
           icon: const Icon(Icons.playlist_add),
@@ -2929,7 +2927,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           const ListTile(
             title: Text(
               "News",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20),
             ),
           ),
           ListView.builder(
@@ -3019,7 +3017,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
             title: const Text(
               "Position Orders",
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.0),
             ),
             subtitle: Text(
                 "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
@@ -3636,6 +3634,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.analytics_outlined,
@@ -3699,7 +3698,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ),
                 ],
               ),
-              // const SizedBox(height: 12),
+              const SizedBox(height: 12),
               Column(
                 children: [
                   _buildIndicatorRow(
@@ -4090,7 +4089,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               return ListTile(
                 title: const Text(
                   "Trade Signal",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20),
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,

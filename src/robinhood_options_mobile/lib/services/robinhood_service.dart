@@ -387,6 +387,7 @@ Response: {
       DocumentReference? userDoc}) async {
     var results =
         await RobinhoodService.pagedGet(brokerageUser, "$endpoint/accounts/");
+    // TODO: For multiple accounts, use `?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&is_default=false`
     //debugPrint(results);
     // https://phoenix.robinhood.com/accounts/unified
     // Remove old acccounts to get current ones
@@ -591,12 +592,15 @@ Response: {
   // TODO: https://bonfire.robinhood.com/screeners/presets/
   // TODO: https://bonfire.robinhood.com/screeners?include_filters=false
 
+  // TODO: https://bonfire.robinhood.com/portfolio/account/[account]/live
+
+  // TODO: https://api.robinhood.com/portfolios/5QR24141/
+
   /*
   PORTFOLIOS
   */
   // Unified Amounts
   //https://bonfire.robinhood.com/phoenix/accounts/unified
-
   @override
   Future<List<Portfolio>> getPortfolios(
       BrokerageUser user, PortfolioStore store) async {
@@ -3705,21 +3709,40 @@ WATCHLIST
         }
       }
 
-      List<String> optionStrategies = List<String>.from(entry.value
-          .where((e) => e['object_type'] == "option_strategy")
-          .map((e) => e['object_id'].toString()));
-      if (optionStrategies.isNotEmpty) {
-        /*
-        var optionInstruments =
-            await getOptionInstrumentByIds(user, optionStrategies);
-        for (var optionInstrument in optionInstruments) {
-          var watchlistItem =
-              WatchlistItem(optionInstrument.id, DateTime.now(), entry.key, "");
-          watchlistItem.optionInstrumentObj = optionInstrument;
-          wl.items.add(watchlistItem);
-          yield list;
+      var strategies =
+          entry.value.where((e) => e['object_type'] == "option_strategy");
+      if (strategies.isNotEmpty) {
+        List<WatchlistItem> items = await getListItems(entry.key, user);
+        var strategyItems =
+            items.where((e) => e.objectType == 'option_strategy').toList();
+        wl.items.addAll(strategyItems);
+        yield list;
+
+        var strategyIds = strategyItems
+            .where((e) =>
+                e.objectType == 'option_strategy' && e.strategyCode != null)
+            .map((e) =>
+                e.strategyCode!.substring(0, e.strategyCode!.indexOf('_')))
+            .toList();
+        if (strategyIds.isNotEmpty) {
+          var optionInstruments =
+              await getOptionInstrumentByIds(user, strategyIds);
+          for (var optionInstrument in optionInstruments) {
+            var watchlistItem = strategyItems.firstWhere(
+                (e) => e.strategyCode!.contains(optionInstrument.id));
+            watchlistItem.optionInstrumentObj = optionInstrument;
+            yield list;
+          }
+
+          var optionMarketData =
+              await getOptionMarketDataByIds(user, strategyIds);
+          for (var optionMarketDatum in optionMarketData) {
+            var watchlistItem = items.firstWhere((element) =>
+                element.strategyCode!.contains(optionMarketDatum.instrumentId));
+            watchlistItem.optionInstrumentObj!.optionMarketData =
+                optionMarketDatum;
+          }
         }
-        */
       }
     }
   }
@@ -3732,9 +3755,11 @@ WATCHLIST
 
     List<WatchlistItem> items = await getListItems(key, user);
     //wl.items.addAll(items);
-    yield wl;
 
-    var instrumentIds = items.map((e) => e.objectId).toList();
+    var instrumentIds = items
+        .where((e) => e.objectType == 'instrument')
+        .map((e) => e.objectId)
+        .toList();
 
     int chunkSize = 25;
     for (var i = 0; i < instrumentIds.length; i += chunkSize) {
@@ -3761,6 +3786,41 @@ WATCHLIST
         instrument.quoteObj = quoteObj;
       }
       yield wl;
+    }
+
+    wl.items.addAll(items.where((e) => e.objectType == 'option_strategy'));
+    yield wl;
+
+    var optionIds = items
+        .where(
+            (e) => e.objectType == 'option_strategy' && e.strategyCode != null)
+        .map((e) => e.strategyCode!.substring(0, e.strategyCode!.indexOf('_')))
+        .toList();
+
+    int optionChunkSize = 25;
+    for (var i = 0; i < optionIds.length; i += optionChunkSize) {
+      var end = (i + optionChunkSize < optionIds.length)
+          ? i + optionChunkSize
+          : optionIds.length;
+      var chunkIds = optionIds.sublist(i, end);
+
+      var optionInstruments = await getOptionInstrumentByIds(user, chunkIds);
+      for (var optionInstrument in optionInstruments) {
+        var watchlistItem = items.firstWhere(
+            (element) => element.strategyCode!.contains(optionInstrument.id));
+        watchlistItem.optionInstrumentObj = optionInstrument;
+        // if (watchlistItem.objectType == 'option_strategy') {
+        wl.items.add(watchlistItem);
+        // }
+      }
+      yield wl;
+
+      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+      for (var optionMarketDatum in optionMarketData) {
+        var watchlistItem = items.firstWhere((element) =>
+            element.strategyCode!.contains(optionMarketDatum.instrumentId));
+        watchlistItem.optionInstrumentObj!.optionMarketData = optionMarketDatum;
+      }
     }
 
     /*
@@ -3896,10 +3956,44 @@ WATCHLIST
     debugPrint(response.body);
   }
 
+  /*
+  For options lists, this is the format:
+{
+  "results": [
+    {
+      "created_at": "2024-12-04T16:33:35.765798Z",
+      "id": "5988981b-7c0a-408b-af97-3643f36bf7c6",
+      "list_id": "7a803fc0-bd97-4623-b141-748f3afa56a4",
+      "object_id": "6537065b-0da1-47d3-b2b9-7f00905ef296",
+      "object_type": "option_strategy",
+      "owner_type": "custom",
+      "updated_at": "2024-12-04T16:33:35.765813Z",
+      "weight": "1.00000",
+      "open_price": {
+        "amount": "1905.0000",
+        "currency_code": "USD",
+        "currency_id": "1072fc76-1862-41ab-82c2-485837590762"
+      },
+      "open_price_direction": "debit",
+      "name": "BA $180 Call",
+      "strategy": "long_call",
+      "chain_symbol": "BA",
+      "strategy_code": "418e794d-198c-451a-8f2d-c7345e4a1571_L1",
+      "open_price_without_tvm": {
+        "amount": "19.0500",
+        "currency_code": "USD",
+        "currency_id": "1072fc76-1862-41ab-82c2-485837590762"
+      }
+    }
+  ],
+  "has_futures_contracts": false
+}
+  */
   Future<List<WatchlistItem>> getListItems(
       String key, BrokerageUser user) async {
     //https://api.robinhood.com/midlands/lists/items/?list_id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&local_midnight=2021-12-30T06%3A00%3A00.000Z
-    var watchlistUrl = "$endpoint/midlands/lists/items/?list_id=$key";
+    var watchlistUrl =
+        "$endpoint/midlands/lists/items/?list_id=$key&load_all_attributes=False";
     var entryJson = await getJson(user, watchlistUrl);
     List<WatchlistItem> list = [];
     for (var i = 0; i < entryJson['results'].length; i++) {

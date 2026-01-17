@@ -5,7 +5,6 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/main.dart';
-import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -17,7 +16,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/watchlist_grid_item_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 enum SortType { alphabetical, change }
@@ -465,8 +464,15 @@ class _ListWidgetState extends State<ListWidget>
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildWatchlistGridItem(
-                  watchLists, index, widget.brokerageUser);
+              return WatchlistGridItemWidget(
+                  watchLists[index],
+                  widget.brokerageUser,
+                  widget.service,
+                  widget.analytics,
+                  widget.observer,
+                  widget.generativeService,
+                  widget.user,
+                  widget.userDocRef);
               /*
           return Container(
             alignment: Alignment.center,
@@ -496,192 +502,5 @@ class _ListWidgetState extends State<ListWidget>
       ),
     );
     */
-  }
-
-  Widget _buildWatchlistGridItem(
-      List<WatchlistItem> watchLists, int index, BrokerageUser ru) {
-    var instrumentObj = watchLists[index].instrumentObj;
-    var forexObj = watchLists[index].forexObj;
-    var changePercentToday = 0.0;
-    if (forexObj != null) {
-      changePercentToday =
-          (forexObj.markPrice! - forexObj.openPrice!) / forexObj.openPrice!;
-    }
-
-    final isPositive = instrumentObj != null && instrumentObj.quoteObj != null
-        ? instrumentObj.quoteObj!.changeToday > 0
-        : changePercentToday > 0;
-    final isNegative = instrumentObj != null && instrumentObj.quoteObj != null
-        ? instrumentObj.quoteObj!.changeToday < 0
-        : changePercentToday < 0;
-
-    return Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: isPositive
-                ? Colors.green.withOpacity(0.3)
-                : (isNegative
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2)),
-            width: 1.5,
-          ),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12.0),
-          child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (instrumentObj != null)
-                          Expanded(
-                            child: Text(instrumentObj.symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                        if (forexObj != null)
-                          Expanded(
-                            child: Text(forexObj.symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isPositive
-                                ? Colors.green.withOpacity(0.15)
-                                : (isNegative
-                                    ? Colors.red.withOpacity(0.15)
-                                    : Colors.grey.withOpacity(0.15)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (instrumentObj != null &&
-                                  instrumentObj.quoteObj != null) ...[
-                                Icon(
-                                    instrumentObj.quoteObj!.changeToday > 0
-                                        ? Icons.trending_up
-                                        : (instrumentObj.quoteObj!.changeToday <
-                                                0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color:
-                                        (instrumentObj.quoteObj!.changeToday > 0
-                                            ? Colors.green
-                                            : (instrumentObj
-                                                        .quoteObj!.changeToday <
-                                                    0
-                                                ? Colors.red
-                                                : Colors.grey)),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                    formatPercentage.format(instrumentObj
-                                        .quoteObj!.changePercentToday
-                                        .abs()),
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          (instrumentObj.quoteObj!.changeToday >
-                                                  0
-                                              ? Colors.green
-                                              : (instrumentObj.quoteObj!
-                                                          .changeToday <
-                                                      0
-                                                  ? Colors.red
-                                                  : Colors.grey)),
-                                    )),
-                              ],
-                              if (forexObj != null) ...[
-                                Icon(
-                                    changePercentToday > 0
-                                        ? Icons.trending_up
-                                        : (changePercentToday < 0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: (changePercentToday > 0
-                                        ? Colors.green
-                                        : (changePercentToday < 0
-                                            ? Colors.red
-                                            : Colors.grey)),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                    formatPercentage
-                                        .format(changePercentToday.abs()),
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: (changePercentToday > 0
-                                          ? Colors.green
-                                          : (changePercentToday < 0
-                                              ? Colors.red
-                                              : Colors.grey)),
-                                    )),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(children: [
-                      if (watchLists[index].instrumentObj != null) ...[
-                        Text(
-                            watchLists[index].instrumentObj!.simpleName ??
-                                watchLists[index].instrumentObj!.name,
-                            style: TextStyle(
-                                fontSize: 12.0,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis)
-                      ],
-                    ]),
-                  ])),
-          onTap: () {
-            /* For navigation within this tab, uncomment
-              widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(ru, widget.account,
-                      watchLists[index].instrumentObj as Instrument)));
-                      */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(
-                          widget.brokerageUser,
-                          widget.service,
-                          watchLists[index].instrumentObj as Instrument,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                          user: widget.user,
-                          userDocRef: widget.userDocRef,
-                        )));
-          },
-        ));
   }
 }

@@ -168,9 +168,6 @@ export const sendAgenticTradeNotification = onCall(async (request) => {
 });
 
 /**
- * Check if notifications are enabled for this event type
- */
-/**
  * Check if notifications are enabled for a given event type.
  *
  * @param {AgenticTradingConfigPrefs} config - User notification preferences.
@@ -208,9 +205,6 @@ interface AgenticTradingConfigPrefs {
   notifyDailySummary?: boolean;
 }
 
-/**
- * Build notification title and body based on event type
- */
 /**
  * Build notification title and body based on event type.
  *
@@ -331,9 +325,6 @@ function buildNotificationContent(data: NotificationRequest): {
   }
 }
 
-/**
- * Get notification color based on event type (Android only)
- */
 /**
  * Get notification color based on event type (Android only).
  *

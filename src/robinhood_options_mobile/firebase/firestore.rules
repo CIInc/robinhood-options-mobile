@@ -118,10 +118,12 @@ service cloud.firestore {
       allow create: if request.auth.uid != null;
       // Only group admins or creator can update (for invitations and member management)
       // Users with pending invitations can update to accept/decline
+      // Public groups allow joining (updating members list only)
       allow update: if request.auth.uid != null && (
         request.auth.uid == resource.data.createdBy ||
         request.auth.uid in resource.data.get('admins', []) ||
-        request.auth.uid in resource.data.get('pendingInvitations', [])
+        request.auth.uid in resource.data.get('pendingInvitations', []) ||
+        (resource.data.isPrivate == false && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'dateUpdated']))
       );
       allow delete: if request.auth.uid != null && (
         request.auth.uid == resource.data.createdBy ||

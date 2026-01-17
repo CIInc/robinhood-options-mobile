@@ -28,8 +28,10 @@ class OptionFlowItem {
   final double? lastPrice;
 
   int get daysToExpiration {
-    final now = DateTime.now();
-    return expirationDate.difference(now).inDays;
+    final now = DateTime.now().toUtc();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    final days = expirationDate.difference(today).inDays;
+    return days;
   }
 
   OptionFlowItem({

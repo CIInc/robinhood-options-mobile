@@ -617,7 +617,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         var positionOrders = widget.instrumentOrderStore.items.where((o) =>
             o.instrumentId == instrument!.id &&
             o.state != 'cancelled' &&
-            o.state != 'unconfirmed');
+            o.state != 'unconfirmed' &&
+            o.state != 'confirmed');
         var buys =
             positionOrders.where((o) => o.side == 'buy' && o.state != 'queued');
         countBuys = buys.length;

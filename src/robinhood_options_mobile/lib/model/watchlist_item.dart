@@ -11,21 +11,49 @@ class WatchlistItem {
   final String watchlist;
   final String url;
 
+  final String? name;
+  final String? strategy;
+  final String? chainSymbol;
+  final String? strategyCode;
+  final double? openPrice;
+  final String? openPriceDirection;
+  final double? weight;
+
   Instrument? instrumentObj;
   ForexQuote? forexObj;
   OptionInstrument? optionInstrumentObj;
 
   WatchlistItem(this.id, this.objectType, this.objectId, this.instrument,
-      this.createdAt, this.watchlist, this.url);
+      this.createdAt, this.watchlist, this.url,
+      {this.name,
+      this.strategy,
+      this.chainSymbol,
+      this.strategyCode,
+      this.openPrice,
+      this.openPriceDirection,
+      this.weight});
 
-  WatchlistItem.fromJson(dynamic json)
+  WatchlistItem.fromJson(dynamic json, {String? watchlistId})
       : id = json['id'],
         objectType = json['object_type'],
         objectId = json['object_id'],
         instrument = json['instrument'] ?? '',
-        createdAt = DateTime.tryParse(json['created_at']),
-        watchlist = json['watchlist'] ?? '',
-        url = json['url'] ?? '';
+        createdAt = json['created_at'] != null
+            ? DateTime.tryParse(json['created_at'])
+            : null,
+        watchlist = watchlistId ?? json['watchlist'] ?? json['list_id'] ?? '',
+        url = json['url'] ?? '',
+        name = json['name'],
+        strategy = json['strategy'],
+        chainSymbol = json['chain_symbol'],
+        strategyCode = json['strategy_code'],
+        openPrice =
+            json['open_price'] != null && json['open_price']['amount'] != null
+                ? double.tryParse(json['open_price']['amount'])
+                : null,
+        openPriceDirection = json['open_price_direction'],
+        weight =
+            json['weight'] != null ? double.tryParse(json['weight']) : null;
 }
 /*
 0:"created_at" -> "2021-12-30T10:00:53.039890Z"

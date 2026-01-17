@@ -105,7 +105,7 @@ class OptionsFlowStore extends ChangeNotifier {
   String? _filterSector;
   double? _filterMinCap; // in billions
   List<String>? _filterFlags;
-  FlowSortOption _sortOption = FlowSortOption.time;
+  FlowSortOption _sortOption = FlowSortOption.score;
 
   List<OptionFlowItem> get items => _items;
   List<OptionFlowItem> get allItems => _allItems;
@@ -457,15 +457,25 @@ class OptionsFlowStore extends ChangeNotifier {
 
       if (missingDates.isNotEmpty) {
         // Fetch missing dates (limit to 4)
-        final datesToFetch = missingDates.take(1).toList();
+        final datesToFetch = missingDates.take(4).toList();
 
         if (datesToFetch.isNotEmpty) {
           // final yahooService = YahooService();
-          final futures = datesToFetch.map((date) =>
-              yahooService.getOptionChain(symbol,
-                  date: date.millisecondsSinceEpoch ~/ 1000));
+          // final futures = datesToFetch.map((date) =>
+          //     yahooService.getOptionChain(symbol,
+          //         date: date.millisecondsSinceEpoch ~/ 1000));
 
-          final results = await Future.wait(futures);
+          // final results = await Future.wait(futures);
+
+          final results = [];
+          for (var date in datesToFetch) {
+            if (results.isNotEmpty) {
+              await Future.delayed(const Duration(milliseconds: 1500));
+            }
+            final result = await yahooService.getOptionChain(symbol,
+                date: date.millisecondsSinceEpoch ~/ 1000);
+            results.add(result);
+          }
 
           final newOptions = results.expand((data) {
             if (data.isEmpty) {
