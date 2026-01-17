@@ -962,7 +962,7 @@ Q3-Q4 transitions from feature development to polish and compliance. Security is
 - [ ] **Performance Optimization**: App size and speed improvements - **Medium** (2-3 weeks)
 - [ ] **Mock Brokerage Service** ([#5](https://github.com/CIInc/robinhood-options-mobile/issues/5)): Demo and testing service - **Medium** (2-3 weeks)
 - [ ] **AI Summaries** ([#21](https://github.com/CIInc/robinhood-options-mobile/issues/21)): AI-driven portfolio summaries - **Medium** (2-3 weeks)
-- [ ] AI-powered price targets
+- [x] AI-powered price targets
 - [x] Fair value calculations
 - [ ] Technical analysis tools
 - [ ] Sentiment analysis dashboard

@@ -41,6 +41,7 @@ import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
+import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
@@ -1058,6 +1059,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             fundamentalsWidget(instrument)
           ],
           SliverToBoxAdapter(child: _buildESGCard()),
+          SliverToBoxAdapter(
+              child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: PriceTargetsWidget(
+              symbol: instrument.symbol,
+              generativeService: widget.generativeService,
+            ),
+          )),
           if (instrument.ratingsObj != null &&
               instrument.ratingsObj["summary"] != null) ...[
             const SliverToBoxAdapter(

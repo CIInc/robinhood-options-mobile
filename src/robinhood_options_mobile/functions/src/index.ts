@@ -51,6 +51,7 @@ export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
 // export const generateContent = gemini.generateContent;
 // export const generateContent2 = gemini.generateContent2;
 export const generateContent25 = gemini.generateContent25;
+export const analyzePriceTargets = gemini.analyzePriceTargets;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;
 export const getAgenticTradingConfig =

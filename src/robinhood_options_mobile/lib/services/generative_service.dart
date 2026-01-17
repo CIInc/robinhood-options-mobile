@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
 // import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:firebase_ai/firebase_ai.dart';
@@ -9,6 +10,7 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
 class Prompt {
@@ -141,6 +143,43 @@ Volume - Volume bar or other volume indicators
     // }
     // response = resp.data["response"]["text"];
     return response ?? '';
+  }
+
+  Future<PriceTargetAnalysis?> analyzePriceTargets(String symbol) async {
+    try {
+      HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable('analyzePriceTargets');
+      final resp = await callable.call(<String, dynamic>{
+        'symbol': symbol,
+      });
+
+      String? responseText;
+      if (resp.data != null) {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          responseText =
+              (resp.data["candidates"][0]["content"]["parts"] as List)
+                  .map((e) => e["text"])
+                  .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          responseText = (resp.data["response"]["candidates"][0]["content"]
+                  ["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      }
+
+      if (responseText != null) {
+        // Strip Markdown code blocks if present
+        responseText = responseText
+            .replaceAll(RegExp(r'^```json\s*'), '')
+            .replaceAll(RegExp(r'\s*```$'), '');
+        final json = jsonDecode(responseText);
+        return PriceTargetAnalysis.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint("Error analyzing price targets: $e");
+    }
+    return null;
   }
 
   Future<String> sendChatMessage(
@@ -453,15 +492,22 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
               : "";
 
       // Greeks & Risk
-      var iv = item.optionInstrument?.optionMarketData?.impliedVolatility != null
-          ? formatPercentage
-              .format(item.optionInstrument!.optionMarketData!.impliedVolatility)
-          : "-";
-      var delta = item.optionInstrument?.optionMarketData?.delta?.toString() ?? "-";
-      var theta = item.optionInstrument?.optionMarketData?.theta?.toString() ?? "-";
-      var gamma = item.optionInstrument?.optionMarketData?.gamma?.toString() ?? "-";
-      var vega = item.optionInstrument?.optionMarketData?.vega?.toString() ?? "-";
-      var chanceProfit = item.optionInstrument?.optionMarketData?.chanceOfProfitLong != null
+      var iv =
+          item.optionInstrument?.optionMarketData?.impliedVolatility != null
+              ? formatPercentage.format(
+                  item.optionInstrument!.optionMarketData!.impliedVolatility)
+              : "-";
+      var delta =
+          item.optionInstrument?.optionMarketData?.delta?.toString() ?? "-";
+      var theta =
+          item.optionInstrument?.optionMarketData?.theta?.toString() ?? "-";
+      var gamma =
+          item.optionInstrument?.optionMarketData?.gamma?.toString() ?? "-";
+      var vega =
+          item.optionInstrument?.optionMarketData?.vega?.toString() ?? "-";
+      var chanceProfit = item
+                  .optionInstrument?.optionMarketData?.chanceOfProfitLong !=
+              null
           ? (side == 'Long'
               ? formatPercentage.format(
                   item.optionInstrument!.optionMarketData!.chanceOfProfitLong)
