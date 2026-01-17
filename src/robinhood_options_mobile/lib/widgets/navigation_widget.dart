@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
@@ -350,6 +351,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
           // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Set User ID for TradeSignalNotificationsStore
+            Provider.of<TradeSignalNotificationsStore>(context, listen: false)
+                .setUserId(auth.currentUser?.uid);
+
             final agenticProvider =
                 Provider.of<AgenticTradingProvider>(context, listen: false);
             agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);

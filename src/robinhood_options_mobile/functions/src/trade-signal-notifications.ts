@@ -11,7 +11,7 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
 const db = getFirestore();
@@ -241,17 +241,16 @@ async function sendTradeSignalNotification(
       signal.indicators;
 
     if (indicatorsObj) {
-      if (rsi === undefined && indicatorsObj.momentum) {
+      if (rsi === undefined && indicatorsObj?.momentum) {
         rsi = indicatorsObj.momentum.value ?? undefined;
       }
-      if (macd === undefined && indicatorsObj.macd) {
+      if (macd === undefined && indicatorsObj?.macd) {
         macd = indicatorsObj.macd.value ?? undefined;
       }
 
       // Extract SMAs from priceMovement metadata if available
       if (smaFast === undefined && smaSlow === undefined &&
-        indicatorsObj.priceMovement &&
-        indicatorsObj.priceMovement.metadata) {
+        indicatorsObj?.priceMovement?.metadata) {
         const meta = indicatorsObj.priceMovement.metadata;
         if (meta.ma10 !== undefined) smaFast = meta.ma10;
         if (meta.ma20 !== undefined) smaSlow = meta.ma20;
@@ -321,7 +320,37 @@ async function sendTradeSignalNotification(
       },
     });
 
-    logger.info("Trade signal notification sent", {
+    // Store notification in Firestore history if successfully sent
+    // (or at least attempted). We store it even if push fails so user can
+    // see it in app.
+    await db.collection("user")
+      .doc(userId)
+      .collection("signal_notifications")
+      .add({
+        symbol: signal.symbol,
+        signal: signal.signal,
+        interval: signal.interval || "1d",
+        price: price || null,
+        confidence: confidence || null,
+        timestamp: FieldValue.serverTimestamp(),
+        title: title,
+        body: bodyWithConfidence,
+        read: false,
+        indicators: {
+          rsi: rsi || null,
+          macd: macd || null,
+          smaFast: smaFast || null,
+          smaSlow: smaSlow || null,
+        },
+        data: {
+          type: "trade_signal",
+          symbol: signal.symbol,
+          signal: signal.signal,
+          interval: signal.interval || "1d",
+        },
+      });
+
+    logger.info("Trade signal notification sent and stored", {
       userId,
       symbol: signal.symbol,
       signal: signal.signal,

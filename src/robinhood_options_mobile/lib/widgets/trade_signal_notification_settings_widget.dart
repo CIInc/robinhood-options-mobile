@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notifications_page.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -84,6 +87,31 @@ class _TradeSignalNotificationSettingsWidgetState
       appBar: AppBar(
         title: const Text('Trade Signal Notifications'),
         actions: [
+          Consumer<TradeSignalNotificationsStore>(
+            builder: (context, store, child) {
+              return IconButton(
+                icon: Badge(
+                  label: Text(store.unreadCount > 99
+                      ? '99+'
+                      : store.unreadCount.toString()),
+                  isLabelVisible: store.unreadCount > 0,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                tooltip: 'Notification History',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TradeSignalNotificationsPage(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Revert Changes',

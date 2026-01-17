@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
@@ -179,6 +180,9 @@ class MyApp extends StatelessWidget {
       );
       return MultiProvider(
           providers: [
+            ChangeNotifierProvider(
+              create: (context) => TradeSignalNotificationsStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => TradeSignalsProvider(),
             ),
