@@ -33,6 +33,7 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
@@ -1065,6 +1066,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               symbol: instrument.symbol,
               generativeService: widget.generativeService,
             ),
+          )),
+          SliverToBoxAdapter(
+              child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: InsiderActivityWidget(symbol: instrument.symbol),
           )),
           if (instrument.ratingsObj != null &&
               instrument.ratingsObj["summary"] != null) ...[

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:robinhood_options_mobile/model/insider_transaction.dart';
 
 // Yahoo Finance screener ID with display name
 class ScreenerId {
@@ -920,6 +921,32 @@ class YahooService {
     if (rawCookie != null) {
       _cookie = rawCookie;
     }
+  }
+
+  /// Fetch insider transactions for a given symbol
+  Future<List<InsiderTransaction>> getInsiderTransactions(String symbol) async {
+    try {
+      final url =
+          "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
+      final jsonResponse = await getJson(url);
+
+      if (jsonResponse['quoteSummary'] != null &&
+          jsonResponse['quoteSummary']['result'] != null) {
+        final result = jsonResponse['quoteSummary']['result'];
+        if ((result as List).isNotEmpty) {
+          final insiderTransactions =
+              result[0]['insiderTransactions']['transactions'];
+          if (insiderTransactions != null) {
+            return (insiderTransactions as List)
+                .map((e) => InsiderTransaction.fromJson(e))
+                .toList();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching insider transactions: $e');
+    }
+    return [];
   }
 }
 

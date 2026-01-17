@@ -239,7 +239,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Trade Signal Notifications**: Real-time alerts with Firestore integration.
 - ✅ **Strategy Management**: Enhanced strategy management UI.
 
-### v0.28.2 (Q1 2026 - Late January)
+### v0.29.1 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
@@ -247,7 +247,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Advanced Backtesting Filters (4-way indicator support)
 - Smart Order Routing (Intelligent execution across venues)
 
-### v0.28.5 (Q1 2026 - Mid February)
+### v0.29.5 (Q1 2026 - Mid February)
 **AI Portfolio Architect**
 - Natural Language Portfolio Construction ("Build me a growth portfolio with 10% tech exposure")
 - AI-Driven Asset Allocation with risk profiling
@@ -255,7 +255,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Voice-activated portfolio queries
 - Holistic portfolio health monitoring with predictive alerts
 
-### v0.29.0 (Q1 2026 - Late February)
+### v0.30.0 (Q1 2026 - Late February)
 **Schwab API Integration - Phase 2 & Futures Execution**
 - Options order placement on Schwab
 - Futures trading UI & order placement
@@ -264,7 +264,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-brokerage order management
 - Schwab market data quality improvements
 
-### v0.29.5 (Q1 2026 - Mid March)
+### v0.30.5 (Q1 2026 - Mid March)
 **Smart Alerts & Market Intelligence**
 - Multi-condition alert builder (price + volume + technical indicators)
 - Earnings surprise prediction alerts
@@ -273,7 +273,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Dark pool activity analyzer
 - Insider trading pattern recognition
 
-### v0.30.0 (Q2 2026 - Late April)
+### v0.31.0 (Q2 2026 - Late April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration
 - Fidelity Multi-leg options execution
@@ -282,7 +282,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.30.5 (Q2 2026 - Mid May)
+### v0.31.5 (Q2 2026 - Mid May)
 **Quantitative Research Workbench**
 - Alpha factor discovery engine (test custom signals against historical data)
 - Correlation matrix visualizer (multi-asset, multi-timeframe)
@@ -291,7 +291,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Custom screener builder with 50+ fundamental & technical filters
 - Statistical arbitrage opportunity scanner
 
-### v0.31.0 (Q2-Q3 2026 - Late May)
+### v0.32.0 (Q2-Q3 2026 - Late May)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs)
 - Forex charting & analysis
@@ -301,7 +301,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Cross-asset correlation trading strategies
 - Carry trade optimizer
 
-### v0.31.5 (Q2 2026 - Early June)
+### v0.32.5 (Q2 2026 - Early June)
 **Risk Management Suite 2.0**
 - Portfolio stress testing (simulate market crashes, rate changes)
 - Scenario analysis with custom economic conditions
@@ -311,7 +311,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Concentration risk alerts with dynamic thresholds
 - Value-at-Risk (VaR) by time horizon (1-day, 1-week, 1-month)
 
-### v0.32.0 (Q3 2026 - Mid June)
+### v0.33.0 (Q3 2026 - Mid June)
 **AI Trading Coach & Behavioral Finance**
 - Personalized trading pattern analysis (identify biases from trade history)
 - Behavioral coaching (detect overtrading, revenge trading, confirmation bias)
@@ -322,7 +322,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Gamified improvement challenges
 
 
-### v0.32.5 (Q3 2026 - Late July)
+### v0.33.5 (Q3 2026 - Late July)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging)
 - Activity feeds (member trade tracking)
@@ -334,7 +334,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Collaborative portfolio analysis boards
 - Group challenges & competitions
 
-### v0.33.0 (Q3 2026 - Late August)
+### v0.34.0 (Q3 2026 - Late August)
 **Real-Time Alerts & Monitoring**
 - Custom price/volume/volatility alerts
 - Alert history & management
@@ -343,7 +343,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Options expiration alerts
 - Unusual activity detection
 
-### v0.33.5 (Q3 2026 - Early September)
+### v0.34.5 (Q3 2026 - Early September)
 **News & Sentiment Intelligence**
 - Real-time news aggregation with AI summarization
 - Sentiment scoring from social media (Twitter, Reddit, StockTwits)
@@ -353,7 +353,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Fake news detector with credibility scores
 - News-driven trade signal generator
 
-### v0.34.0 (Q3 2026 - Late September)
+### v0.35.0 (Q3 2026 - Late September)
 **Social Platform Foundation**
 - Follow portfolios
 - Portfolio comparison tools
@@ -367,7 +367,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Expert verification badges
 - Live streaming for top traders
 
-### v0.35.0 (Q4 2026 - Late October)
+### v0.36.0 (Q4 2026 - Late October)
 **Security & Compliance**
 - Biometric authentication (FaceID/TouchID)
 - Two-factor authentication (2FA)
@@ -377,7 +377,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Security audit implementation
 - Regulatory documentation
 
-### v0.35.5 (Q4 2026 - Early November)
+### v0.36.5 (Q4 2026 - Early November)
 **Tax Optimization & Reporting Suite**
 - Comprehensive tax center with multi-year tracking
 - Capital gains optimizer (FIFO, LIFO, specific ID)
@@ -388,7 +388,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - IRS Form 8949 generator
 - Tax document vault with secure storage
 
-### v0.36.0 (Q4 2026 - Late November)
+### v0.37.0 (Q4 2026 - Late November)
 **Mobile Experience & Polish**
 - Home screen widgets (portfolio summary, top gainers/losers, watchlist)
 - Offline mode with intelligent caching
@@ -400,7 +400,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Lock screen widgets (iOS 16+)
 - Interactive notifications with quick actions
 
-### v0.37.0 (Q4 2026 - Late December)
+### v0.38.0 (Q4 2026 - Late December)
 **Advanced Social & Community**
 - Group analytics & insights
 - Advanced search & filtering
@@ -412,7 +412,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Crypto-based reputation tokens
 - Decentralized portfolio verification (on-chain proofs)
 
-### v0.38.0 (2027 Q1 - Late January)
+### v0.39.0 (2027 Q1 - Late January)
 **Compliance & Regulatory**
 - Full SEC/FINRA compliance
 - Regulatory reporting (Form 3, etc.)
@@ -424,7 +424,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Margin requirement calculator
 - Position limit monitoring
 
-### v0.38.5 (2027 Q1 - Mid February)
+### v0.39.5 (2027 Q1 - Mid February)
 **Options Analytics Pro**
 - Implied volatility surface 3D visualizer
 - Options flow anomaly detector (unusual IV skew)
@@ -435,7 +435,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Delta-neutral portfolio builder
 - Gamma scalping optimizer
 
-### v0.39.0 (2027 Q1 - Late March)
+### v0.40.0 (2027 Q1 - Late March)
 **Algorithmic Strategy Marketplace**
 - Community strategy sharing with performance proofs
 - Strategy rental/subscription model (pay successful creators)
@@ -445,7 +445,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Strategy analytics dashboard for creators
 - Automated royalty distribution
 
-### v0.40.0 (2027 Q2 - Late April)
+### v0.41.0 (2027 Q2 - Late April)
 **Retirement Planning & Long-Term Investing**
 - Goal-based portfolio construction (retirement, college, house)
 - Monte Carlo retirement simulator
@@ -455,7 +455,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Life event modeling (marriage, children, career changes)
 - Longevity risk analysis
 
-### v0.41.0 (2027 Q2 - Late May)
+### v0.42.0 (2027 Q2 - Late May)
 **Credit & Lending Integration**
 - Portfolio-backed lending integration (Plaid/M1 Finance)
 - Margin optimization calculator
@@ -464,7 +464,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Leveraged portfolio strategies with risk warnings
 - Interest rate shopping & comparison
 
-### v0.42.0 (2027 Q3)
+### v0.43.0 (2027 Q3)
 **Real Estate & Alternative Assets**
 - REIT analysis & tracking
 - Private equity investment tracking (for accredited investors)
@@ -473,7 +473,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Art & collectibles portfolio tracking
 - Alternative asset correlation analyzer
 
-### v0.43.0+ (2027 Q4+)
+### v0.44.0+ (2027 Q4+)
 **Future Vision & Frontier Tech**
 - **Multi-Agent Collaboration Systems**: Specialized AI agents (Macro, Technical, Sentiment) that debate and vote
 - **Zero-Knowledge Proof Portfolio Verification**: Prove returns without revealing trades
