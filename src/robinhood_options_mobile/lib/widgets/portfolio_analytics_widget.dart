@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
+import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 
 class PortfolioAnalyticsWidget extends StatefulWidget {
@@ -1875,6 +1876,38 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
             ),
             const SizedBox(height: 20),
             _buildStatsGrid(stats),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.grid_on),
+                label: const Text('View Correlation Matrix'),
+                onPressed: () {
+                  var symbols = Provider.of<InstrumentPositionStore>(context,
+                          listen: false)
+                      .items
+                      .map((p) => p.instrumentObj?.symbol ?? '')
+                      .where((s) => s.isNotEmpty)
+                      .toSet()
+                      .toList();
+                  if (symbols.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('No positions found for correlation.')));
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CorrelationMatrixWidget(
+                        user: widget.user,
+                        service: widget.service,
+                        symbols: symbols,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
