@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-01-17
+
+### Added
+- **Correlation Matrix:** Added a robust Correlation Matrix feature within Portfolio Analytics to analyze asset relationships.
+- **Correlation Filtering:** Implemented advanced filtering to select specific assets and benchmark indices (SPY, QQQ, DIA, IWM, GLD, TLT) for custom correlation analysis.
+- **Correlation Legend:** Enhanced the correlation matrix legend with a gradient visualizer and explanatory tooltips.
+- **Sample Size Tracking:** Added "Overlapping Days" count to correlation detail dialogs to provide context on data quality.
+- **Insider Activity:** New widget to visualize insider transactions (Buy/Sell) with detailed breakdown of officer/director trading activity.
+- **Institutional Ownership:** Added visualization for top institutional holders and position changes.
+- **Options Flow Enhancements:** Refined flag detection logic with better categorization for "Whale", "Golden Sweep", and "Steamroller" flags.
+- **Institutional Benchmarks:** Added VWAP-based institutional flow analysis to Trade Signals.
+
+### Fixed
+- **Correlation Calculation:** Fixed a bug where time-of-day differences in historical data caused daily overlaps to be missed, resulting in false 0.00 correlations.
+- **Data Caching:** Optimized the correlation matrix to cache historical data locally, preventing unnecessary network requests when changing filters.
+- **Trade Stats:** Fixed a bug where protected orders were incorrectly included in market order execution statistics.
+
 ## [0.29.0] - 2026-01-17
 
 ### Added

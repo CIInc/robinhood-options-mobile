@@ -188,6 +188,16 @@ The dashboard includes the **[Risk Heatmap](risk-heatmap.md)**, allowing you to 
 ### 11. Tax Optimization
 - **[Tax Loss Harvesting](tax-loss-harvesting.md)**: An integrated tool that identifies opportunities to realize losses to offset gains. It features seasonality awareness (highlighting urgency near year-end) and smart visibility to keep your dashboard focused.
 
+### 12. Correlation Matrix
+A powerful tool to visualize how your assets move in relation to each other.
+- **Interactive Heatmap**: See the Pearson correlation coefficient between any two assets in a grid.
+  - **+1.0 (Red)**: Assets move together (High Correlation). Diversification benefit is low.
+  - **0.0 (White)**: Assets are uncorrelated. Good for diversification.
+  - **-1.0 (Blue)**: Assets move in opposite directions (Inverse Correlation). Excellent for hedging.
+- **Benchmark Comparisons**: Filter to include major indices like **SPY**, **QQQ**, **TLT** (Bonds), and **GLD** (Gold) to see how your portfolio holdings react to broader market moves.
+- **Custom Filtering**: Select up to 15 specific assets to analyze tailored sub-sets of your portfolio.
+- **Data Integrity**: Detail views show the exact number of overlapping trading days used to calculate the correlation, ensuring statistical relevance.
+
 ## Using the Help System
 
 ### Quick Start

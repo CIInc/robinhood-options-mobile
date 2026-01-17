@@ -40,7 +40,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (15+)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Correlation Matrix**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (15+)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -239,7 +239,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Trade Signal Notifications**: Real-time alerts with Firestore integration.
 - ✅ **Strategy Management**: Enhanced strategy management UI.
 
-### v0.29.1 (Q1 2026 - Late January)
+### v0.29.1 ✅ (Released Jan 17, 2026)
+**Correlation Matrix, Market Intelligence & Flow Analysis**
+- ✅ **Correlation Matrix**: Interactive heatmap visualizing asset relationships (Pearson coefficient).
+- ✅ **Advanced Filtering**: Selection of specific assets and benchmark indices (SPY, QQQ, TLT, GLD, etc.).
+- ✅ **Market Intelligence**: Added **Insider Activity** and **Institutional Ownership** widgets for deeper fundamental analysis.
+- ✅ **Options Flow 2.0**: Refined flag detection logic ("Whale", "Sweep", "Steamroller") and categorization.
+- ✅ **Visual Enhancements**: Gradient legend and statistical sample size tracking.
+- ✅ **Data Accuracy**: Improved date alignment logic for reliable correlation calculations.
+
+### v0.29.5 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**
 - Futures Margin & Risk Metrics
 - Futures Realized & Day P&L Tracking
