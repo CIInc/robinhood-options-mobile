@@ -224,13 +224,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Market Assistant**: Real-time Q&A widget for market insights and instrument queries.
 - ✅ **Performance**: Optimized early-exit data fetching (30-day window) for faster loading.
 
-### v0.29.0 ✅ (Released Jan 17, 2026)
-**Sentiment Analysis, Price Targets & Enhanced Signals**
-- ✅ **Sentiment Analysis**: Market sentiment card and dedicated dashboard (Bullish/Bearish/Neutral).
-- ✅ **Price Targets**: AI-driven price target analysis.
-- ✅ **Trade Signal Notifications**: Real-time alerts with Firestore integration.
-- ✅ **Strategy Management**: Enhanced strategy management UI.
-
 ### v0.28.1 ✅ (Released Jan 14, 2026)
 **Strategy Engine, UI Refinement & Expanded Indicators**
 - ✅ **Trading Strategies**: Dedicated strategy management page and entry strategy configuration widgets.
@@ -238,6 +231,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **UI Consistency**: Standardized visuals across Crypto, Futures, and Allocation sections.
 - ✅ **Home Screen**: Enhanced layout with reintroduced and improved Performance Chart.
 - ✅ **Technical Improvements**: Consolidated strategy defaults and fixed Williams %R defaults.
+
+### v0.29.0 ✅ (Released Jan 17, 2026)
+**Sentiment Analysis, Price Targets & Enhanced Signals**
+- ✅ **Sentiment Analysis**: Market sentiment card and dedicated dashboard (Bullish/Bearish/Neutral).
+- ✅ **Price Targets**: AI-driven price target analysis.
+- ✅ **Trade Signal Notifications**: Real-time alerts with Firestore integration.
+- ✅ **Strategy Management**: Enhanced strategy management UI.
 
 ### v0.28.2 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

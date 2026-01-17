@@ -28,3 +28,16 @@ Use the Market Sentiment Analysis to:
 - **Confirm Trends:** Look for alignment between your trade ideas and the broad market sentiment.
 - **Risk Management:** tightening stops or reducing size when sentiment opposes your position.
 - **Contrarian Trading:** Identify potential reversals when sentiment reaches extreme levels.
+
+## Monitored Assets
+
+The system tracks sentiment for major indices and a curated list of high-volume stocks.
+
+**Indices:**
+- SPY (S&P 500)
+- QQQ (Nasdaq-100)
+- IWM (Russell 2000)
+- DIA (Dow Jones Industrial Average)
+
+**Popular Symbols:**
+NVDA, TSLA, AAPL, AMD, MSFT, AMZN, GOOGL, META, NFLX, COIN, MSTR, GME, AMC, PLTR, SOFI, HOOD, SMCI, ARM, AVGO, PANW.

@@ -3,7 +3,7 @@
 ## Use Cases
 - A better options UI view for Robinhood users.
 - Ability to make better trades.
-- Price target recommendations.
+- **[Price Targets](price-targets.md):** AI-driven price target recommendations with confidence scoring and rationale.
 - Enhanced portfolio management with advanced analytics.
 - Simplified trading for beginners with guided workflows.
 - Centralized view for stocks, options, and crypto assets.
@@ -24,6 +24,7 @@
 - **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
 - **[Trading Strategies](agentic-trading.md#trading-strategy-management):** Switch between pre-defined trading styles (e.g., Momentum, Mean Reversion) instantly.
 - **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
+- **[Stock Universe](agentic-trading.md#stock-universe--seeding):** Monitoring of S&P 500 and popular high-volume stocks with automated database seeding.
 - **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
 - **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
 - **[Approval Workflow](copy-trading.md#3-approval-workflow):** Review and approve auto-generated copy trade requests.

@@ -29,10 +29,11 @@ interface SentimentFeedItem {
 }
 
 const MARKET_INDICES = ["SPY", "QQQ", "IWM", "DIA"];
-const POPULAR_SYMBOLS = [
+export const POPULAR_SYMBOLS = [
   "NVDA", "TSLA", "AAPL", "AMD", "MSFT",
   "AMZN", "GOOGL", "META", "NFLX", "COIN",
   "MSTR", "GME", "AMC", "PLTR", "SOFI",
+  "HOOD", "SMCI", "ARM", "AVGO", "PANW",
 ];
 
 export const getSentimentAnalysis = onCall(async (request) => {

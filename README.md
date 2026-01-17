@@ -232,6 +232,27 @@ _You can do this automatically in VS Code by installing the eslint plugin._
     node firebase-admin.js
     ```
 
+### Seed Agentic Trading Data
+To seed initial data for the Agentic Trading feature, run the following command in the `functions` directory:
+
+```bash
+firebase functions:call seedAgenticTrading
+```
+or
+```bash
+firebase functions:shell
+> seedAgenticTrading({data:{full:true}})
+```
+
+#### Invoke Agentic Trading Cron Job Manually
+To manually invoke the Agentic Trading cron job, run the following command in the `functions` directory:
+
+```bash
+# firebase functions:call agenticTradingCronInvoke
+firebase functions:shell
+> agenticTradingCronInvoke({data:null})
+```
+
 ## Publish
 
 ### Firebase Hosting

@@ -46,11 +46,47 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - `riskguardTask`: Advanced risk assessment and validation engine (powers both Agentic and [Manual Trading](risk-guard.md) protection)
    - `RiskGuardAgent`: Implements sector limits, correlation checks, and volatility filters
    - Trade signal generation cron jobs (daily, hourly, 15-min)
+   - `seedAgenticTrading` function: Initializes monitored stocks (supports batch processing)
+   - `stock-list.ts`: Source of S&P 500 symbols
 
 7. **Search & Discovery Widgets** (`lib/widgets/search_widget.dart`, `screener_widget.dart`, `presets_widget.dart`) *[NEW]*
    - **SearchWidget**: Main entry point for trade signal discovery. Features advanced filtering for signal strength and individual indicators.
    - **ScreenerWidget**: Dedicated stock screener interface for fundamental analysis (Market Cap, P/E, Dividend, etc.).
    - **PresetsWidget**: Quick access to pre-defined Yahoo Finance screeners (e.g., "Undervalued Growth", "Day Gainers").
+
+## Stock Universe & Seeding
+
+The system monitoring is driven by a seeded list of documents in the `agentic_trading` collection.
+
+### Seeding the Database
+To initialize or expand the list of monitored stocks, use the `seedAgenticTrading` Firebase Cloud Function.
+
+**Usage:**
+Call the function with a JSON body to seed the `agentic_trading` collection.
+
+**Options:**
+- **Default (Popular Only):**
+  ```json
+  {}
+  ```
+  Seeds only the default popular symbols (Indices + High Volume: SPY, QQQ, NVDA, TSLA, AAPL, etc.).
+
+- **Full S&P 500:**
+  ```json
+  {
+    "full": true
+  }
+  ```
+  Seeds the full S&P 500 list plus popular symbols (approx. 500+ stocks).
+  *Note: The function processes writes in batches of 50 to respect Firestore limits.*
+
+- **Custom List:**
+  ```json
+  {
+    "symbols": ["AAPL", "MSFT", "GOOGL"]
+  }
+  ```
+  Seeds only the specified symbols.
 
 ## Features
 

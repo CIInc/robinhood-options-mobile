@@ -1,8 +1,10 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as alphaagent from "./alpha-agent";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import fetch from "node-fetch";
+import { POPULAR_SYMBOLS } from "./sentiment-analysis";
+import { ALL_STOCKS } from "./stock-list";
 
 const db = getFirestore();
 
@@ -292,4 +294,73 @@ export const setAgenticTradingConfig = onCall(async (request) => {
     logger.error("Failed to save config to Firestore", err);
     return { status: "error", message: (err as Error).message || String(err) };
   }
+});
+
+/**
+ * Seeds the agentic_trading collection with chart documents for popular
+ * symbols. This can be run manually to ensure all popular symbols are
+ * monitored.
+ */
+export const seedAgenticTrading = onCall(async (request) => {
+  const inputSymbols = request.data.symbols;
+  const useFullList = request.data.full === true;
+
+  let targetSymbols: string[] = [];
+
+  if (inputSymbols && Array.isArray(inputSymbols)) {
+    targetSymbols = inputSymbols;
+  } else if (useFullList) {
+    targetSymbols = Array.from(new Set([...POPULAR_SYMBOLS, ...ALL_STOCKS]));
+  } else {
+    // Default to strict popular list unless full requested
+    targetSymbols = POPULAR_SYMBOLS;
+  }
+
+  let addedCount = 0;
+  const errors: any[] = [];
+  let processedCount = 0;
+
+  logger.info("Seeding agentic trading for " + targetSymbols.length +
+    " symbols");
+
+  // Process in chunks of 50 to avoid limits
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < targetSymbols.length; i += CHUNK_SIZE) {
+    const chunk = targetSymbols.slice(i, i + CHUNK_SIZE);
+    const promises = chunk.map(async (symbol) => {
+      const docRef = db.doc(`agentic_trading/chart_${symbol}`);
+      try {
+        const doc = await docRef.get();
+        if (!doc.exists) {
+          // Create an empty placeholder
+          // the cron job or getMarketData will populate it
+          await docRef.set({
+            symbol,
+            created: FieldValue.serverTimestamp(),
+            seeded: true,
+            chart: null, // Explicitly null to force cache miss
+          });
+          logger.info(`Created chart document for ${symbol}`);
+          return 1;
+        }
+        return 0;
+      } catch (e) {
+        logger.error(`Error checking/creating ${symbol}`, e);
+        errors.push({ symbol, error: String(e) });
+        return 0;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    addedCount += results.reduce<number>((a, b) => a + b, 0);
+    processedCount += chunk.length;
+    logger.info(`Processed ${processedCount}/${targetSymbols.length}`);
+  }
+
+  return {
+    status: "success",
+    addedCount,
+    totalProcessed: targetSymbols.length,
+    errors,
+  };
 });

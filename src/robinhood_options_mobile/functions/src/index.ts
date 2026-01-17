@@ -60,6 +60,7 @@ export const getAgenticTradingConfig =
   agenticTradingfunc.getAgenticTradingConfig;
 export const setAgenticTradingConfig =
   agenticTradingfunc.setAgenticTradingConfig;
+export const seedAgenticTrading = agenticTradingfunc.seedAgenticTrading;
 export const agenticTradingCronJob = agenticTradingCron.agenticTradingCron;
 export const agenticTradingCronInvoke =
   agenticTradingCron.agenticTradingCronInvoke;

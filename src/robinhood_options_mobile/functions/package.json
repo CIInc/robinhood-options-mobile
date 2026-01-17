@@ -7,9 +7,6 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -24,7 +21,7 @@
     "@google-cloud/vertexai": "^1.9.3",
     "@google/generative-ai": "^0.24.0",
     "firebase-admin": "^13.2.0",
-    "firebase-functions": "^7.0.2",
+    "firebase-functions": "^7.0.3",
     "node-fetch": "^2.7.0",
     "plaid": "^31.1.0"
   },
