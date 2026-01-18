@@ -62,12 +62,35 @@ class _PersonalizedCoachingWidgetState
   Map<String, bool> _challengeCompletionStatus = {};
   bool _isChallengeCompleted = false;
   double? _completionPercentage;
+  int _challengeStreak = 0;
   String? _currentNotes;
-  int _lookbackDays = 30;
+  // int _lookbackDays = 30; // Deprecated, use _analysisWindow
+  String _analysisWindow =
+      'this_week'; // '30d', 'this_week', 'last_week', 'this_month', 'last_month'
   String _tradeTypeFilter = 'all'; // 'all', 'stock', 'option'
   String _coachingStyle = 'balanced'; // 'balanced', 'drill_sergeant', 'zen'
   String _focusArea =
       'overall'; // 'overall', 'risk', 'consistency', 'profitability', 'psychology', 'technical'
+
+  String get _challengeLabel {
+    switch (_analysisWindow) {
+      case 'this_month':
+      case 'last_month':
+      case '30d':
+      case '60d':
+        return 'Monthly Challenge';
+      case 'this_year':
+      case 'last_year':
+      case '90d':
+      case '180d':
+        return 'Strategic Challenge';
+      case 'this_week':
+      case 'last_week':
+      case '7d':
+      default:
+        return 'Weekly Challenge';
+    }
+  }
 
   bool _canStartNewAnalysis() {
     if (_history.isEmpty) return true;
@@ -77,23 +100,50 @@ class _PersonalizedCoachingWidgetState
     final lastDate = (lastDoc.data()['date'] as Timestamp?)?.toDate();
     if (lastDate == null) return true;
 
+    final lastConfig = lastDoc.data()['config'] as Map<String, dynamic>?;
+    final lastWindow = lastConfig?['analysis_window'] ?? 'this_week';
+
     final now = DateTime.now();
+    DateTime end;
 
-    // Determine Market Week Window (Mon 9:30 - Fri 16:00) of the *last session*
-    DateTime targetMonday;
-    if (lastDate.weekday >= 6) {
-      // Weekend: Target next week
-      targetMonday = lastDate.add(Duration(days: 8 - lastDate.weekday));
+    if (lastWindow == 'this_month' ||
+        lastWindow == 'last_month' ||
+        lastWindow.contains('30d') ||
+        lastWindow.contains('60d')) {
+      // Monthly Challenge: Expires at end of the month of the session
+      // Assuming sessionDate represents the start/during of the challenge period
+      final nextMonth = DateTime(lastDate.year, lastDate.month + 1, 1);
+      end = nextMonth.subtract(const Duration(seconds: 1));
+    } else if (lastWindow == 'this_year' ||
+        lastWindow == 'last_year' ||
+        lastWindow.contains('90d') ||
+        lastWindow.contains('180d')) {
+      // Strategic Challenge: Expires at end of the year? Or 90 days?
+      // Let's stick to 90 days for strategic if custom, or End of Year
+      if (lastWindow.contains('d')) {
+        final days = int.tryParse(lastWindow.replaceAll('d', '')) ?? 90;
+        end = lastDate.add(Duration(days: days));
+      } else {
+        final nextYear = DateTime(lastDate.year + 1, 1, 1);
+        end = nextYear.subtract(const Duration(seconds: 1));
+      }
     } else {
-      // Weekday: Target current week
-      targetMonday = lastDate.subtract(Duration(days: lastDate.weekday - 1));
-    }
+      // Weekly: Market Week Window (Mon 9:30 - Fri 16:00)
+      DateTime targetMonday;
+      if (lastDate.weekday >= 6) {
+        // Weekend: Target next week
+        targetMonday = lastDate.add(Duration(days: 8 - lastDate.weekday));
+      } else {
+        // Weekday: Target current week
+        targetMonday = lastDate.subtract(Duration(days: lastDate.weekday - 1));
+      }
 
-    final start = DateTime(
-        targetMonday.year, targetMonday.month, targetMonday.day, 9, 30);
-    // Friday of that week
-    final friday = start.add(const Duration(days: 4));
-    final end = DateTime(friday.year, friday.month, friday.day, 16, 0);
+      final start = DateTime(
+          targetMonday.year, targetMonday.month, targetMonday.day, 9, 30);
+      // Friday of that week
+      final friday = start.add(const Duration(days: 4));
+      end = DateTime(friday.year, friday.month, friday.day, 16, 0);
+    }
 
     // Allowed if we are past the end time
     return now.isAfter(end);
@@ -111,18 +161,53 @@ class _PersonalizedCoachingWidgetState
       final querySnapshot = await widget.userDoc!
           .collection('coaching_sessions')
           .orderBy('date', descending: true)
-          .limit(20)
+          .limit(50)
           .get();
 
       if (mounted) {
         setState(() {
-          _history = querySnapshot.docs;
+          final allDocs = querySnapshot.docs;
+          _history = allDocs.where((doc) {
+            final data = doc.data();
+            final type = data['type'];
+            return type == 'challenge' || type == null;
+          }).toList();
+
           _challengeCompletionStatus = {
-            for (var doc in _history)
+            for (var doc in allDocs)
               doc.id: doc.data()['challenge_completed'] == true
           };
-          if (_history.isNotEmpty && _structuredResult == null) {
+
+          // Calculate Streak
+          int streak = 0;
+          for (int i = 0; i < _history.length; i++) {
+            final doc = _history[i];
+            final data = doc.data();
+            final isCompleted = data['challenge_completed'] == true;
+
+            // If it's the most recent session and it is NOT completed, check if it's active (recent).
+            // If it's recent (e.g. < 8 days), we treat it as "in progress" and don't break the streak yet.
+            // If it's old and incomplete, it breaks the streak.
+            if (i == 0 && !isCompleted) {
+              final date = (data['date'] as Timestamp?)?.toDate();
+              if (date != null && DateTime.now().difference(date).inDays < 8) {
+                continue;
+              }
+            }
+
+            if (isCompleted) {
+              streak++;
+            } else {
+              break;
+            }
+          }
+          _challengeStreak = streak;
+
+          if (_currentSessionDoc == null && _history.isNotEmpty) {
             _loadSession(_history.first);
+          } else if (_currentSessionDoc != null) {
+            // Check if current doc was deleted or refreshed
+            // No-op for now, assuming references hold or are updated by user actions
           }
         });
       }
@@ -150,6 +235,24 @@ class _PersonalizedCoachingWidgetState
       } else {
         _analyzedTrades = [];
       }
+
+      // Load configuration if available
+      if (data['config'] != null) {
+        final config = data['config'] as Map<String, dynamic>;
+        // Backwards compatibility for lookback_days
+        if (config.containsKey('analysis_window')) {
+          _analysisWindow = config['analysis_window'] ?? '30d';
+        } else if (config.containsKey('lookback_days')) {
+          final db = (config['lookback_days'] as num?)?.toInt() ?? 30;
+          _analysisWindow = '${db}d';
+        } else {
+          _analysisWindow = '30d';
+        }
+
+        _tradeTypeFilter = config['trade_type_filter'] as String? ?? 'all';
+        _focusArea = config['focus_area'] as String? ?? 'overall';
+        _coachingStyle = config['coaching_style'] as String? ?? 'balanced';
+      }
     });
   }
 
@@ -166,6 +269,121 @@ class _PersonalizedCoachingWidgetState
       debugPrint("Error saving notes: $e");
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error saving notes: $e")));
+    }
+  }
+
+  Future<void> _checkAdherenceOnly() async {
+    if (_currentSessionDoc == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text("Checking Progress...",
+              style: TextStyle(
+                  color: Colors.white,
+                  decoration: TextDecoration.none,
+                  fontSize: 14)),
+        ],
+      )),
+    );
+
+    String reason = "";
+    double? completionPercentage;
+    bool passed = false;
+
+    try {
+      final sessionTimestamp = _currentSessionDoc!.data()['date'] as Timestamp?;
+      final sessionDate = sessionTimestamp?.toDate() ?? DateTime.now();
+      final startOfWeek =
+          sessionDate.subtract(Duration(days: sessionDate.weekday - 1));
+      final startOfWeekMidnight =
+          DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+
+      final relevantTrades = await _fetchRecentTrades(
+          since: startOfWeekMidnight, limitToType: 'all', silent: true);
+
+      final challenge = _structuredResult?['challenge'] as String? ?? "";
+
+      if (challenge.isNotEmpty) {
+        final result = await _verifyAdherenceWithAI(challenge, relevantTrades);
+        passed = result['passed'] == true;
+        reason = result['reason']?.toString() ?? "Check complete.";
+
+        if (result.containsKey('completion_percentage')) {
+          completionPercentage =
+              (result['completion_percentage'] as num?)?.toDouble();
+          if (completionPercentage != null) {
+            _updateAdherenceScore(completionPercentage);
+          }
+        }
+      } else {
+        reason = "No active challenge to check.";
+      }
+    } catch (e) {
+      reason = "Error checking progress: $e";
+    }
+
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(passed ? "On Track!" : "Progress Update"),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (completionPercentage != null) ...[
+                  LinearProgressIndicator(
+                    value: (completionPercentage / 100).clamp(0.0, 1.0),
+                    backgroundColor: Colors.grey.withOpacity(0.2),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        passed ? Colors.green : Colors.orange),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                      "Current Completion: ${completionPercentage.toStringAsFixed(0)}%",
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                ],
+                const Text("AI Coach Assessment:",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(reason),
+                const SizedBox(height: 20),
+                if (!passed)
+                  const Text("Keep going! You can verify again later."),
+                if (passed)
+                  const Text(
+                      "You've met the criteria! You can mark this as completed now or wait until the week ends."),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Close")),
+            if (passed)
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _applyCompletion(true,
+                        completionPercentage: completionPercentage);
+                  },
+                  child: const Text("Mark Completed")),
+          ],
+        ),
+      );
     }
   }
 
@@ -397,7 +615,7 @@ INSTRUCTIONS:
 6. Estimate a completion percentage (0-100). If fully failed, 0. If fully passed, 100. If 3 out of 4 trades complied, 75.
 
 RESPONSE JSON:
-Your response MUST be valid JSON. No conversational text.
+Your response MUST be valid JSON. No conversational text. Do not use unescaped double quotes inside string values.
 {
   "passed": boolean,
   "reason": "string",
@@ -454,14 +672,17 @@ Your response MUST be valid JSON. No conversational text.
           _history.removeWhere((element) => element.id == doc.id);
 
           // If we deleted the currently viewed session, load the most recent one or clear
-          final data = doc.data();
-          final date = (data['date'] as Timestamp?)?.toDate();
-          if (date == _currentSessionDate) {
+          if (_currentSessionDoc?.id == doc.id) {
             if (_history.isNotEmpty) {
               _loadSession(_history.first);
             } else {
               _structuredResult = null;
+              _currentSessionDoc = null;
               _currentSessionDate = null;
+              _analyzedTrades = [];
+              _isChallengeCompleted = false;
+              _completionPercentage = null;
+              _currentNotes = null;
             }
           }
         });
@@ -506,7 +727,7 @@ Your response MUST be valid JSON. No conversational text.
 
     if (challenge != null && challenge.isNotEmpty) {
       final typeStr = challengeType != null ? " [$challengeType]" : "";
-      text += "My Weekly Challenge$typeStr: $challenge\n";
+      text += "My $_challengeLabel$typeStr: $challenge\n";
     }
 
     if (strengths.isNotEmpty) {
@@ -531,592 +752,309 @@ Your response MUST be valid JSON. No conversational text.
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return StatefulBuilder(
-            builder: (BuildContext context, StateSetter sheetSetState) {
-          int completed = _history
-              .where((d) => d.data()['challenge_completed'] == true)
-              .length;
-          int totalWithChallenge = _history
-              .where((d) =>
-                  (d.data()['result']?['challenge'] as String?)?.isNotEmpty ==
-                  true)
-              .length;
-
-          // Calculate average score
-          double avgScore = 0;
-          if (_history.isNotEmpty) {
-            final totalScore = _history.fold<int>(
-                0,
-                (sum, doc) =>
-                    sum + (doc.data()['result']?['score'] ?? 0) as int);
-            avgScore = totalScore / _history.length;
-          }
-
-          return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.7,
-              minChildSize: 0.4,
-              maxChildSize: 0.9,
-              builder: (context, scrollController) {
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        return DefaultTabController(
+          length: 2,
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.8,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) {
+              return Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                          Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Analysis History",
-                              style: TextStyle(
-                                  fontSize: 22, fontWeight: FontWeight.bold)),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.history,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text("Analysis History",
+                                  style: TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                           IconButton(
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(Icons.close, size: 28),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ],
                       ),
                     ),
-                    if (_history.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primaryContainer
-                                      .withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Avg Score",
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      avgScore.toStringAsFixed(1),
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.green.withOpacity(0.3),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Goals Met",
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.green.shade800)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "$completed / $totalWithChallenge",
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade800),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: _history.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.history_edu,
-                                      size: 64, color: Colors.grey.shade400),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    "No coaching sessions yet.",
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Start your first analysis to see history here.",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade500),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              controller: scrollController,
-                              itemCount: _history.length,
-                              itemBuilder: (context, index) {
-                                final doc = _history[index];
-                                final data = doc.data();
-                                final result =
-                                    data['result'] as Map<String, dynamic>;
-                                final date =
-                                    (data['date'] as Timestamp?)?.toDate() ??
-                                        DateTime.now();
-                                final score = result['score'] ?? 0;
-                                final archetype =
-                                    result['archetype'] ?? 'Unknown';
-                                final challenge =
-                                    result['challenge'] as String?;
-                                final isCompleted =
-                                    data['challenge_completed'] == true;
-
-                                // Calculate Score Delta
-                                int? scoreDelta;
-                                if (index < _history.length - 1) {
-                                  final prevDoc = _history[index + 1];
-                                  final prevResult = prevDoc.data()['result']
-                                      as Map<String, dynamic>?;
-                                  if (prevResult != null &&
-                                      prevResult['score'] != null) {
-                                    scoreDelta = (score as num).toInt() -
-                                        (prevResult['score'] as num).toInt();
-                                  }
-                                }
-
-                                final notes = data['notes'] as String?;
-
-                                return Dismissible(
-                                  key: Key(doc.id),
-                                  direction: DismissDirection.endToStart,
-                                  background: Container(
-                                    alignment: Alignment.centerRight,
-                                    padding: const EdgeInsets.only(right: 20),
-                                    color: Colors.red,
-                                    child: const Icon(Icons.delete,
-                                        color: Colors.white),
-                                  ),
-                                  confirmDismiss: (direction) async {
-                                    return await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text("Delete Session"),
-                                        content: const Text(
-                                            "Are you sure you want to delete this coaching session?"),
-                                        actions: [
-                                          TextButton(
-                                            child: const Text("Cancel"),
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                          ),
-                                          TextButton(
-                                            child: const Text("Delete"),
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                  onDismissed: (direction) {
-                                    _deleteSession(doc);
-                                    sheetSetState(() {});
-                                  },
-                                  child: Card(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16)),
-                                    child: InkWell(
-                                      onTap: () {
-                                        _loadSession(doc);
-                                        Navigator.pop(context);
-                                      },
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Column(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 22,
-                                                  backgroundColor:
-                                                      _getScoreColor(score),
-                                                  child: Text("$score",
-                                                      style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.bold)),
-                                                ),
-                                                if (scoreDelta != null &&
-                                                    scoreDelta != 0) ...[
-                                                  const SizedBox(height: 4),
-                                                  Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: (scoreDelta > 0
-                                                              ? Colors.green
-                                                              : Colors.red)
-                                                          .withOpacity(0.1),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          scoreDelta > 0
-                                                              ? Icons
-                                                                  .arrow_upward
-                                                              : Icons
-                                                                  .arrow_downward,
-                                                          size: 10,
-                                                          color: scoreDelta > 0
-                                                              ? Colors.green
-                                                              : Colors.red,
-                                                        ),
-                                                        Text(
-                                                          "${scoreDelta.abs()}",
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: scoreDelta >
-                                                                    0
-                                                                ? Colors.green
-                                                                : Colors.red,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Expanded(
-                                                        child: Text(archetype,
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                fontSize: 16)),
-                                                      ),
-                                                      Text(
-                                                          DateFormat.MMMd()
-                                                              .format(date),
-                                                          style:
-                                                              const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Colors
-                                                                      .grey)),
-                                                    ],
-                                                  ),
-                                                  if (notes != null &&
-                                                      notes.isNotEmpty) ...[
-                                                    const SizedBox(height: 4),
-                                                    Row(
-                                                      children: [
-                                                        const Icon(
-                                                            Icons.note_alt,
-                                                            size: 12,
-                                                            color: Colors.grey),
-                                                        const SizedBox(
-                                                            width: 4),
-                                                        Expanded(
-                                                          child: Text(
-                                                            notes,
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: const TextStyle(
-                                                                fontSize: 11,
-                                                                fontStyle:
-                                                                    FontStyle
-                                                                        .italic,
-                                                                color: Colors
-                                                                    .grey),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                  const SizedBox(height: 4),
-                                                  if (challenge != null &&
-                                                      challenge.isNotEmpty)
-                                                    Container(
-                                                      margin:
-                                                          const EdgeInsets.only(
-                                                              top: 8),
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              10),
-                                                      decoration: BoxDecoration(
-                                                        color: isCompleted
-                                                            ? Colors.green
-                                                                .withOpacity(
-                                                                    0.05)
-                                                            : Theme.of(context)
-                                                                .colorScheme
-                                                                .surfaceContainerHighest
-                                                                .withOpacity(
-                                                                    0.5),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                        border: Border.all(
-                                                            color: isCompleted
-                                                                ? Colors.green
-                                                                    .withOpacity(
-                                                                        0.2)
-                                                                : Colors
-                                                                    .transparent),
-                                                      ),
-                                                      child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Icon(
-                                                              isCompleted
-                                                                  ? Icons
-                                                                      .check_circle
-                                                                  : Icons
-                                                                      .emoji_events_outlined,
-                                                              size: 16,
-                                                              color: isCompleted
-                                                                  ? Colors.green
-                                                                  : Colors
-                                                                      .grey),
-                                                          const SizedBox(
-                                                              width: 8),
-                                                          Expanded(
-                                                            child: Text(
-                                                              challenge,
-                                                              maxLines: 2,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style: TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: isCompleted
-                                                                      ? Colors
-                                                                          .green
-                                                                          .shade800
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .textTheme
-                                                                          .bodyMedium
-                                                                          ?.color),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                );
-              });
-        });
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _buildHistoryList(_history, scrollController),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
       },
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    int streak = 0;
-    for (int i = 0; i < _history.length; i++) {
-      final docId = _history[i].id;
-      final isCompleted = _challengeCompletionStatus[docId] ?? false;
-
-      if (isCompleted) {
-        streak++;
-      } else {
-        // If the most recent one (index 0) is pending, we don't count it but don't break
-        // effectively showing the streak of *completed* past sessions.
-        // If a past session (index > 0) is incomplete, the streak is broken.
-        if (i == 0) continue;
-        break;
-      }
+  Widget _buildHistoryList(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> list,
+      ScrollController controller) {
+    if (list.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.history_toggle_off,
+                  size: 64, color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "No Analysis History",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Start your first AI analysis to see your history here.",
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Trading Coach'),
-        actions: [
-          if (streak > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: Chip(
-                avatar:
-                    const Icon(Icons.whatshot, color: Colors.orange, size: 16),
-                label: Text("$streak Week Streak",
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: Colors.orange.withOpacity(0.1),
-                side: BorderSide.none,
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-          if (_structuredResult != null)
-            Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: () {
-                    final box = context.findRenderObject() as RenderBox?;
-                    _shareAnalysis(box != null
-                        ? box.localToGlobal(Offset.zero) & box.size
-                        : null);
-                  },
-                  tooltip: "Share",
-                );
-              },
-            ),
-          if (_history.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.history),
-              onPressed: _showHistoryModal,
-              tooltip: "History",
-            )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_structuredResult != null)
-              CoachingResultView(
-                result: _structuredResult!,
-                sessionDate: _currentSessionDate,
-                history: _history,
-                isChallengeCompleted: _isChallengeCompleted,
-                completionPercentage: _completionPercentage,
-                notes: _currentNotes,
-                onChallengeToggle: _toggleChallengeCompletion,
-                onSaveNotes: _saveNotes,
-              ),
-            if (_structuredResult == null && !_isLoading) ...[
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Icon(Icons.psychology,
-                          size: 48, color: Colors.purpleAccent),
-                      SizedBox(height: 16),
-                      Text(
-                        "Identify Your Trading Biases",
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "The AI Coach analyzes your recent execution patterns to detect psychological pitfalls like overtrading, revenge trading, or lack of discipline.",
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-            if (_isLoading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 20),
-                      Text(
-                        _statusMessage.isEmpty
-                            ? "Contacting AI Coach..."
-                            : _statusMessage,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Column(
+    return ListView.builder(
+      controller: controller,
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final doc = list[index];
+        final data = doc.data();
+        final date = (data['date'] as Timestamp?)?.toDate();
+        final result = data['result'] as Map<String, dynamic>?;
+        final score = result?['score'] ?? 0;
+        final archetype = result?['archetype'] ?? 'Unknown';
+        final challenge = result?['challenge'] as String?;
+        final isCompleted = data['challenge_completed'] == true;
+
+        bool isSelected = _currentSessionDoc?.id == doc.id;
+
+        return Card(
+          elevation: isSelected ? 6 : 2,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shadowColor: isSelected 
+              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+              : Colors.black.withOpacity(0.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isSelected
+                ? BorderSide(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                  )
+                : BorderSide.none,
+          ),
+          color: isSelected
+              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+              : null,
+          child: InkWell(
+            onTap: () {
+              _loadSession(doc);
+              Navigator.pop(context);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  if (_statusMessage.isNotEmpty &&
-                      _statusMessage.startsWith("Error:"))
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      color: Colors.red.withOpacity(0.1),
-                      child: Text(_statusMessage,
-                          style: const TextStyle(color: Colors.red)),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              _getScoreColor(score).withOpacity(0.2),
+                              _getScoreColor(score).withOpacity(0.1),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: _getScoreColor(score).withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text("$score",
+                              style: TextStyle(
+                                  color: _getScoreColor(score),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18)),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(archetype,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              date != null
+                                  ? DateFormat.yMMMd().add_jm().format(date)
+                                  : "Unknown Date",
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.grey),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Delete Session?"),
+                              content: const Text(
+                                  "This cannot be undone. The analysis and journal notes will be lost."),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text("Cancel")),
+                                TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _deleteSession(doc);
+                                      Navigator.pop(context); // Close modal too
+                                    },
+                                    child: const Text("Delete",
+                                        style: TextStyle(color: Colors.red))),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    ],
+                  ),
+                  if (challenge != null && challenge.isNotEmpty) ...[
+                    const Divider(height: 24),
+                    Row(
+                      children: [
+                        Icon(
+                            isCompleted
+                                ? Icons.check_circle
+                                : Icons.flag_outlined,
+                            size: 16,
+                            color: isCompleted ? Colors.green : Colors.grey),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            challenge,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: isCompleted
+                                    ? Colors.green
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
+                          ),
+                        ),
+                      ],
+                    )
+                  ]
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFilterOptions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.tune,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text("Analysis Settings",
+                          style:
+                              TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text("Trade Type",
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
+                  const SizedBox(height: 12),
                   SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'all', label: Text('All')),
@@ -1128,21 +1066,45 @@ Your response MUST be valid JSON. No conversational text.
                       setState(() {
                         _tradeTypeFilter = newSelection.first;
                       });
+                      setModalState(() {});
                     },
                   ),
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Analyze Last: "),
-                      DropdownButton<int>(
-                        value: _lookbackDays,
-                        items: [30, 60, 90, 180]
-                            .map((e) => DropdownMenuItem(
-                                value: e, child: Text("$e Days")))
-                            .toList(),
+                      const Text("Time Period: "),
+                      DropdownButton<String>(
+                        value: _analysisWindow,
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'this_week', child: Text("This Week")),
+                          DropdownMenuItem(
+                              value: 'last_week', child: Text("Last Week")),
+                          DropdownMenuItem(
+                              value: 'this_month', child: Text("This Month")),
+                          DropdownMenuItem(
+                              value: 'last_month', child: Text("Last Month")),
+                          DropdownMenuItem(
+                              value: 'this_year', child: Text("This Year")),
+                          DropdownMenuItem(
+                              value: 'last_year', child: Text("Last Year")),
+                          DropdownMenuItem(
+                              value: '7d', child: Text("Last 7 Days")),
+                          DropdownMenuItem(
+                              value: '30d', child: Text("Last 30 Days")),
+                          DropdownMenuItem(
+                              value: '60d', child: Text("Last 60 Days")),
+                          DropdownMenuItem(
+                              value: '90d', child: Text("Last 90 Days")),
+                          DropdownMenuItem(
+                              value: '180d', child: Text("Last 180 Days")),
+                        ],
                         onChanged: (val) {
-                          if (val != null) setState(() => _lookbackDays = val);
+                          if (val != null) {
+                            setState(() => _analysisWindow = val);
+                            setModalState(() {});
+                          }
                         },
                       ),
                     ],
@@ -1192,6 +1154,7 @@ Your response MUST be valid JSON. No conversational text.
                               onChanged: (val) {
                                 if (val != null) {
                                   setState(() => _focusArea = val);
+                                  setModalState(() {});
                                 }
                               },
                             ),
@@ -1234,6 +1197,7 @@ Your response MUST be valid JSON. No conversational text.
                               onChanged: (val) {
                                 if (val != null) {
                                   setState(() => _coachingStyle = val);
+                                  setModalState(() {});
                                 }
                               },
                             ),
@@ -1242,31 +1206,207 @@ Your response MUST be valid JSON. No conversational text.
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: _canStartNewAnalysis() ? _analyzeTrading : null,
-                    icon: const Icon(Icons.auto_awesome),
-                    label: Text(_canStartNewAnalysis()
-                        ? (_structuredResult == null
-                            ? 'Start AI Analysis'
-                            : 'Update Analysis')
-                        : 'Weekly Challenge Active'),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
                     ),
+                    child: const Text("Done",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5)),
                   ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int streak = 0;
+    for (int i = 0; i < _history.length; i++) {
+      final docId = _history[i].id;
+      final isCompleted = _challengeCompletionStatus[docId] ?? false;
+
+      if (isCompleted) {
+        streak++;
+      } else {
+        // If the most recent one (index 0) is pending, we don't count it but don't break
+        // effectively showing the streak of *completed* past sessions.
+        // If a past session (index > 0) is incomplete, the streak is broken.
+        if (i == 0) continue;
+        break;
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI Trading Coach'),
+        actions: [
+          if (streak > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: Chip(
+                avatar:
+                    const Icon(Icons.whatshot, color: Colors.orange, size: 16),
+                label: Text("$streak Challenge Streak",
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor: Colors.orange.withOpacity(0.1),
+                side: BorderSide.none,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          if (_structuredResult != null)
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.share),
+                  onPressed: () {
+                    final box = context.findRenderObject() as RenderBox?;
+                    _shareAnalysis(box != null
+                        ? box.localToGlobal(Offset.zero) & box.size
+                        : null);
+                  },
+                  tooltip: "Share",
+                );
+              },
+            ),
+          IconButton(
+            icon: const Icon(Icons.tune),
+            onPressed: _showFilterOptions,
+            tooltip: "Settings",
+          ),
+          if (_history.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.history),
+              onPressed: _showHistoryModal,
+              tooltip: "History",
+            )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_structuredResult != null) ...[
+              CoachingResultView(
+                result: _structuredResult!,
+                sessionDate: _currentSessionDate,
+                history: _history,
+                isChallengeCompleted: _isChallengeCompleted,
+                completionPercentage: _completionPercentage,
+                notes: _currentNotes,
+                onChallengeToggle: _toggleChallengeCompletion,
+                onSaveNotes: _saveNotes,
+                onAnalyze: _canStartNewAnalysis() ? _analyzeTrading : null,
+                analyzeButtonLabel: _canStartNewAnalysis()
+                    ? (_structuredResult == null
+                        ? 'Start AI Analysis'
+                        : 'Update Analysis')
+                    : '$_challengeLabel Active',
+                focusArea: _focusArea,
+                analysisWindow: _analysisWindow,
+                tradeType: _tradeTypeFilter,
+                coachingStyle: _coachingStyle,
+                streak: _challengeStreak,
+                onCheckProgress: _checkAdherenceOnly,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (_structuredResult == null && !_isLoading) ...[
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Icon(Icons.psychology,
+                          size: 48, color: Colors.purpleAccent),
+                      SizedBox(height: 16),
+                      Text(
+                        "Identify Your Trading Biases",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "The AI Coach analyzes your recent execution patterns to detect psychological pitfalls like overtrading, revenge trading, or lack of discipline.",
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            if (_isLoading)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _LoadingSkeleton(status: _statusMessage),
+              )
+            else
+              Column(
+                children: [
+                  const SizedBox(height: 20),
+                  if (_statusMessage.isNotEmpty &&
+                      _statusMessage.startsWith("Error:"))
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      color: Colors.red.withOpacity(0.1),
+                      child: Text(_statusMessage,
+                          style: const TextStyle(color: Colors.red)),
+                    ),
+                  if (_structuredResult == null) ...[
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed:
+                          _canStartNewAnalysis() ? _analyzeTrading : null,
+                      icon: const Icon(Icons.auto_awesome),
+                      label: Text(_canStartNewAnalysis()
+                          ? 'Start AI Analysis'
+                          : '$_challengeLabel Active'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             const SizedBox(height: 20),
             if (_analyzedTrades.isNotEmpty && !_isLoading) ...[
               TradeExecutionStatsView(trades: _analyzedTrades),
               const SizedBox(height: 20),
-              ExpansionTile(
-                title: Text(
-                    "Analyzed Activity (${_analyzedTrades.length} Trades)"),
-                subtitle: const Text("The data sent to the AI Coach",
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  childrenPadding: const EdgeInsets.all(0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  title: Text(
+                      "Analyzed Activity (${_analyzedTrades.length} Trades)",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      )),
+                  subtitle: const Text("Tap to view the data sent to the AI Coach",
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
                 children: [
                   ListView.separated(
                     shrinkWrap: true,
@@ -1464,9 +1604,10 @@ Your response MUST be valid JSON. No conversational text.
                   ),
                 ],
               ),
-            ]
-          ],
-        ),
+            ),
+          ]
+        ],
+      ),
       ),
     );
   }
@@ -1600,7 +1741,47 @@ Your response MUST be valid JSON. No conversational text.
     });
 
     try {
-      final recentTrades = await _fetchRecentTrades();
+      // Determine start and end date based on _analysisWindow
+      DateTime startDate;
+      DateTime? endDate;
+      final now = DateTime.now();
+
+      if (_analysisWindow.endsWith('d')) {
+        final days = int.tryParse(_analysisWindow.replaceAll('d', '')) ?? 30;
+        startDate = now.subtract(Duration(days: days));
+      } else if (_analysisWindow == 'this_week') {
+        // Monday of this week
+        startDate = now.subtract(Duration(days: now.weekday - 1));
+        startDate =
+            DateTime(startDate.year, startDate.month, startDate.day); // 00:00
+      } else if (_analysisWindow == 'last_week') {
+        // Monday of last week to Sunday of last week
+        final lastMonday = now.subtract(Duration(days: now.weekday - 1 + 7));
+        startDate = DateTime(
+            lastMonday.year, lastMonday.month, lastMonday.day); // 00:00
+        final lastSunday = lastMonday.add(const Duration(days: 6));
+        endDate = DateTime(lastSunday.year, lastSunday.month, lastSunday.day,
+            23, 59, 59); // End of day
+      } else if (_analysisWindow == 'this_month') {
+        startDate = DateTime(now.year, now.month, 1);
+      } else if (_analysisWindow == 'last_month') {
+        final firstOfThis = DateTime(now.year, now.month, 1);
+        final lastOfPrev = firstOfThis.subtract(const Duration(days: 1));
+        startDate = DateTime(lastOfPrev.year, lastOfPrev.month, 1);
+        endDate = DateTime(
+            lastOfPrev.year, lastOfPrev.month, lastOfPrev.day, 23, 59, 59);
+      } else if (_analysisWindow == 'this_year') {
+        startDate = DateTime(now.year, 1, 1);
+      } else if (_analysisWindow == 'last_year') {
+        startDate = DateTime(now.year - 1, 1, 1);
+        endDate = DateTime(now.year - 1, 12, 31, 23, 59, 59);
+      } else {
+        startDate = now.subtract(const Duration(days: 30));
+      }
+
+      final recentTrades =
+          await _fetchRecentTrades(since: startDate, until: endDate);
+
       if (!mounted) return;
 
       if (recentTrades.isEmpty) {
@@ -1647,15 +1828,29 @@ Your response MUST be valid JSON. No conversational text.
 
           await widget.userDoc!.collection('coaching_sessions').add({
             'date': FieldValue.serverTimestamp(),
+            'type': 'challenge',
             'result': parsedJson,
-            'trades_count': _analyzedTrades.length,
             'trades':
                 tradesToSave, // Save the sanitized trades list for history recall
+            'config': {
+              'analysis_window': _analysisWindow,
+              // Keep lookback_days for older app version compatibility if possible, though string breaks it
+              // We'll write it if it's a simple day count, else maybe omit or verify type safety elsewhere
+              // 'lookback_days': ...
+              'trade_type_filter': _tradeTypeFilter,
+              'focus_area': _focusArea,
+              'coaching_style': _coachingStyle,
+              'start_date': startDate,
+              'end_date': endDate,
+            }
           });
           await _loadHistory();
-          if (mounted && _history.isNotEmpty) {
+          if (mounted) {
             setState(() {
-              _currentSessionDoc = _history.first;
+              if (_history.isNotEmpty) {
+                _currentSessionDoc = _history.first;
+              }
+
               // Ensure consistent state with the new document
               if (_currentSessionDoc != null) {
                 _isChallengeCompleted =
@@ -1678,7 +1873,10 @@ Your response MUST be valid JSON. No conversational text.
   }
 
   Future<List<Map<String, dynamic>>> _fetchRecentTrades(
-      {DateTime? since, String? limitToType, bool silent = false}) async {
+      {DateTime? since,
+      DateTime? until,
+      String? limitToType,
+      bool silent = false}) async {
     final instrumentOrderStore =
         Provider.of<InstrumentOrderStore>(context, listen: false);
     final optionOrderStore =
@@ -1686,9 +1884,11 @@ Your response MUST be valid JSON. No conversational text.
     final instrumentStore =
         Provider.of<InstrumentStore>(context, listen: false);
 
-    final cutoffDate =
-        since ?? DateTime.now().subtract(Duration(days: _lookbackDays));
+    // Default to 30 days if nothing specified
+    final startDate =
+        since ?? DateTime.now().subtract(const Duration(days: 30));
     final filterType = limitToType ?? _tradeTypeFilter;
+    final endDate = until; // Can be null (means up to now)
 
     // Fetch latest orders to ensure we have history
     if (widget.service is RobinhoodService) {
@@ -1710,7 +1910,7 @@ Your response MUST be valid JSON. No conversational text.
                 last['updated_at'] as String? ?? last['created_at'] as String?;
             if (dateStr == null) return false;
             final date = DateTime.tryParse(dateStr);
-            return date != null && date.isBefore(cutoffDate);
+            return date != null && date.isBefore(startDate);
           });
 
           if (!mounted) return [];
@@ -1721,7 +1921,12 @@ Your response MUST be valid JSON. No conversational text.
           for (var i = 0; i < stockResults.length; i++) {
             var op = InstrumentOrder.fromJson(stockResults[i]);
             // Optimization: Skip instrument fetch for very old orders
-            if (op.updatedAt != null && op.updatedAt!.isBefore(cutoffDate)) {
+            if (op.updatedAt != null && op.updatedAt!.isBefore(startDate)) {
+              continue;
+            }
+            if (endDate != null &&
+                op.updatedAt != null &&
+                op.updatedAt!.isAfter(endDate)) {
               continue;
             }
 
@@ -1773,13 +1978,21 @@ Your response MUST be valid JSON. No conversational text.
                 last['updated_at'] as String? ?? last['created_at'] as String?;
             if (dateStr == null) return false;
             final date = DateTime.tryParse(dateStr);
-            return date != null && date.isBefore(cutoffDate);
+            return date != null && date.isBefore(startDate);
           });
 
           if (!mounted) return [];
 
           for (var i = 0; i < optionResults.length; i++) {
             var op = OptionOrder.fromJson(optionResults[i]);
+            if (endDate != null &&
+                op.updatedAt != null &&
+                op.updatedAt!.isAfter(endDate)) {
+              continue;
+            }
+            if (op.updatedAt != null && op.updatedAt!.isBefore(startDate)) {
+              continue;
+            }
             optionOrderStore.addOrUpdate(op);
           }
         }
@@ -1817,7 +2030,8 @@ Your response MUST be valid JSON. No conversational text.
     if (filterType == 'all' || filterType == 'stock') {
       for (var order in relevantInstrumentOrders) {
         if (order.updatedAt != null) {
-          if (order.updatedAt!.isBefore(cutoffDate)) continue;
+          if (order.updatedAt!.isBefore(startDate)) continue;
+          if (endDate != null && order.updatedAt!.isAfter(endDate)) continue;
           allTrades.add({
             'original': order,
             'type': 'stock',
@@ -1841,7 +2055,8 @@ Your response MUST be valid JSON. No conversational text.
     if (filterType == 'all' || filterType == 'option') {
       for (var order in relevantOptionOrders) {
         if (order.updatedAt != null) {
-          if (order.updatedAt!.isBefore(cutoffDate)) continue;
+          if (order.updatedAt!.isBefore(startDate)) continue;
+          if (endDate != null && order.updatedAt!.isAfter(endDate)) continue;
           allTrades.add({
             'original': order,
             'type': 'option',
@@ -1890,6 +2105,28 @@ Your response MUST be valid JSON. No conversational text.
 
     // Limit to recent 300 trades to fit in context window and focus on recent behavior
     return allTrades.take(300).toList();
+  }
+
+  String _getAnalysisWindowLabel(String window) {
+    switch (window) {
+      case 'this_week':
+        return 'This Week';
+      case 'last_week':
+        return 'Last Week';
+      case 'this_month':
+        return 'This Month';
+      case 'last_month':
+        return 'Last Month';
+      case 'this_year':
+        return 'This Year';
+      case 'last_year':
+        return 'Last Year';
+      default:
+        if (window.endsWith('d')) {
+          return 'Last ${window.replaceAll('d', '')} days';
+        }
+        return window;
+    }
   }
 
   Future<Map<String, dynamic>> _generateCoachingInsight(
@@ -1990,59 +2227,56 @@ Your response MUST be valid JSON. No conversational text.
     }
 
     final prompt = '''
-You are an AI Trading Coach analyzing a user's recent trading history.
-Your goal is to provide actionable, high-quality feedback to multiple the user's trading performance.
+You are an Elite AI Trading Performance Coach (Pattern Recognition Expert).
+Your objective is to audit the user's trading logs, identify profitability leaks, and prescribe corrective protocols.
 
 CONTEXT:
 - Asset Class: $filterText
-- Analysis Window: Last $_lookbackDays days
+- Analysis Window: ${_getAnalysisWindowLabel(_analysisWindow)}
 - User Focus Request: $focusInstruction
 - Coaching Persona: $styleInstruction
 
-DERIVED STATISTICS (Use these facts):
+DERIVED METRICS (Ground Truth):
 $statsJson
 
+PREVIOUS SESSION CONTEXT:
 $previousContext
-If a previous session is provided above, explicitly comment on whether the trader has improved or regressed in the "analysis" section.
+(MANDATORY: Compare current performance against the previous session if data exists. Did they regress? Be direct.)
 
-TRADING DATA (Sorted Newest First):
+TRADE LOGS (Newest First):
 $tradesJson
 
-INSTRUCTIONS:
-1. Analyze the trades for patterns, biases, and mistakes.
-2. For Options, pay close attention to Expiration Dates (0DTE/short-term vs long-term) and Strikes (OTM gambling).
-3. CITE SPECIFIC TRADES (Symbol, Date) as evidence for your claims in the analysis.
-4. If a previous challenge exists, rigorous check if the new trades adhere to it.
-5. Use Markdown tables where appropriate to summarize findings.
-6. Look for:
-   - Overtrading (too many trades in short window? See 'max_trades_single_day')
-   - Revenge trading (re-entering immediately after closes, chasing)
-   - Execution Quality: Excessive Market orders (impatience) vs Limit orders (discipline) - See 'limit_order_pct'
-   - Risk Management: Use of Stops/Triggers vs raw entry/exit - See 'protected_order_pct'
-   - Directional biases (only buying calls/puts/longs)
-   - Size inconsistency
-   - Time of day patterns (e.g. losing money at open/close)
-   - 0DTE / Lotto Ticket mentality (buying short-dated OTM options)
+DEEP DIVE INSTRUCTIONS:
+1. **Pattern Recognition**: Identify distinct archetypes in the data (e.g., "The Morning Scalper", "The OTM Gambler", "The Revenge Trader").
+2. **Options Specifics**: Scrutinize 'option_type', 'expiration', and 'strike'. Flag 0DTE or deep OTM plays as high risk unless part of a clear hedge.
+3. **Behavioral Analysis**:
+   - *Tilt/Revenge*: Successive trades on the same symbol after a loss?
+   - *Impatience*: High % of Market Orders?
+   - *Over-Leverage*: Inconsistent selection of quantities?
+   - *Bag Holding*: Lack of stops or exits on declining positions?
+4. **Evidence-Based**: You MUST cite specific trade examples (Symbol, Date/Time) to back up every claim.
+5. **Challenge Adherence**: If a previous challenge is listed above, you must issue a Pass/Fail verdict in the 'challenge_adherence_analysis' field.
+6. **Focus Area**: $focusInstruction
 
-RESPONSE FORMAT (JSON Only):
+OUTPUT SCHEMA (JSON Only, No Markdown formatting outside the strings. IMPORTANT: Do not use unescaped double quotes inside string values. Use single quotes for emphasis or quoted text within strings.):
 {
-  "archetype": "string (e.g. The Impulse Trader, The Sniper, The Gambler, The Consummate Professional, The Hesitant)",
-  "score": number (0-100, where 100 is disciplined/perfect),
+  "archetype": "string (Creative persona name describing their recent behavior)",
+  "score": number (0-100, strict scoring based on discipline, not just P&L),
   "sub_scores": {
     "discipline": number (0-100),
     "risk_management": number (0-100),
     "consistency": number (0-100)
   },
-  "strengths": ["string", "string"],
-  "weaknesses": ["string", "string"],
-  "hidden_risks": ["string", "string (Potential dangers the user might not realize, e.g. Black Swan exposure, Gamma risk)"],
-  "challenge_adherence_analysis": "string (Review of previous challenge adherence. Did they follow it? Start with 'ADHERENCE CHECK:')",
-  "tips": ["string", "string", "string"],
-  "challenge": "string (A specific, single sentence actionable trading goal for the next week)",
-  "challenge_type": "string (e.g. Risk, Discipline, Execution, Psychology)",
+  "strengths": ["string (Specific positive habit)", "string"],
+  "weaknesses": ["string (Specific negative habit)", "string"],
+  "hidden_risks": ["string (e.g., 'Concentration risk in Tech', 'Gamma exposure in 0DTE')", "string"],
+  "challenge_adherence_analysis": "string (Start with 'ADHERENCE VERDICT: [PASS/FAIL]'. Detailed explanation citing trades.)",
+  "tips": ["string (Actionable advice 1)", "string", "string"],
+  "challenge": "string (One clear, measurable goal for the next cycle)",
+  "challenge_type": "string (Risk, Discipline, Execution, Psychology, Strategy)",
   "challenge_difficulty": "string (Easy, Medium, Hard)",
-  "challenge_reason": "string (Why this challenge was assigned)",
-  "analysis": "markdown string with detailed analysis. Use bullet points and bold text to make it readable. Address the requested Focus Area specifically. Include a 'Key Stat' table if relevant."
+  "challenge_reason": "string (Why this specific challenge addresses the biggest weakness)",
+  "analysis": "markdown string. Structure with '### 🔍 Diagnosis', '### 📉 Critical Errors', '### 📈 Improvements'. Use bolding for emphasis. Be concise but deep."
 }
 ''';
 
@@ -2089,6 +2323,14 @@ class CoachingResultView extends StatelessWidget {
   final String? notes;
   final Function(bool?) onChallengeToggle;
   final Function(String) onSaveNotes;
+  final VoidCallback? onAnalyze;
+  final String? analyzeButtonLabel;
+  final String? focusArea;
+  final String? analysisWindow; // Changed from int lookbackDays
+  final String? tradeType;
+  final String? coachingStyle;
+  final int streak;
+  final VoidCallback onCheckProgress;
 
   const CoachingResultView({
     super.key,
@@ -2100,10 +2342,31 @@ class CoachingResultView extends StatelessWidget {
     this.completionPercentage,
     this.notes,
     required this.onSaveNotes,
+    this.onAnalyze,
+    this.analyzeButtonLabel,
+    this.focusArea,
+    this.analysisWindow,
+    this.tradeType,
+    this.coachingStyle,
+    this.streak = 0,
+    required this.onCheckProgress,
   });
 
   @override
   Widget build(BuildContext context) {
+    String challengeTitle = "WEEKLY CHALLENGE";
+    if (analysisWindow != null) {
+      if (analysisWindow!.contains('month') ||
+          analysisWindow!.contains('30d') ||
+          analysisWindow!.contains('60d')) {
+        challengeTitle = "MONTHLY CHALLENGE";
+      } else if (analysisWindow!.contains('year') ||
+          analysisWindow!.contains('90d') ||
+          analysisWindow!.contains('180d')) {
+        challengeTitle = "STRATEGIC CHALLENGE";
+      }
+    }
+
     // 1. Determine Previous Result for Deltas
     Map<String, dynamic>? previousResult;
     // We treat the "previous" session as the first session in history
@@ -2145,6 +2408,7 @@ class CoachingResultView extends StatelessWidget {
     final subScores = result['sub_scores'] as Map<String, dynamic>?;
     final prevSubScores =
         previousResult?['sub_scores'] as Map<String, dynamic>?;
+    final previousChallenge = previousResult?['challenge'] as String?;
 
     final combinedWeaknesses = {...biases, ...weaknesses}.toList();
 
@@ -2187,13 +2451,60 @@ class CoachingResultView extends StatelessWidget {
                 "Analyzed on: ${DateFormat.yMMMd().add_jm().format(sessionDate!)}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12)),
           )),
+        if (focusArea != null ||
+            analysisWindow != null ||
+            (tradeType != 'all' && tradeType != null) ||
+            coachingStyle != null)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (analysisWindow != null)
+                    _buildConfigChip(
+                        context, _getAnalysisWindowLabel(analysisWindow!)),
+                  if (tradeType != null && tradeType != 'all')
+                    _buildConfigChip(
+                        context,
+                        "${tradeType![0].toUpperCase()}${tradeType!.substring(1)}s",
+                        Colors.blue),
+                  if (focusArea != null && focusArea != 'overall')
+                    _buildConfigChip(
+                        context,
+                        "Focus: ${focusArea![0].toUpperCase()}${focusArea!.substring(1)}",
+                        Colors.purple),
+                  if (coachingStyle != null && coachingStyle != 'balanced')
+                    _buildConfigChip(
+                        context,
+                        "Style: ${coachingStyle![0].toUpperCase()}${coachingStyle!.substring(1)}",
+                        Colors.orange),
+                ],
+              ),
+            ),
+          ),
         // Score and Archetype Header
         Card(
-          elevation: 4,
+          elevation: 6,
+          shadowColor: scoreColor.withOpacity(0.3),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).cardColor,
+                  Theme.of(context).cardColor.withOpacity(0.95),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
                 Row(
@@ -2314,7 +2625,44 @@ class CoachingResultView extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 20),
+
+        if (analyzeButtonLabel != null) ...[
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: onAnalyze,
+              icon: const Icon(Icons.auto_awesome, size: 22),
+              label: Text(
+                analyzeButtonLabel!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                minimumSize: const Size(double.infinity, 56),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
 
         // Challenge Card
         if (challenge != null && challenge.isNotEmpty) ...[
@@ -2324,12 +2672,15 @@ class CoachingResultView extends StatelessWidget {
                     ? Colors.green.withOpacity(0.15)
                     : Colors.green.shade50)
                 : Theme.of(context).colorScheme.tertiaryContainer,
-            elevation: 2,
+            elevation: 4,
+            shadowColor: isChallengeCompleted
+                ? Colors.green.withOpacity(0.3)
+                : Theme.of(context).colorScheme.primary.withOpacity(0.2),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: InkWell(
               onTap: () => onChallengeToggle(!isChallengeCompleted),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -2348,20 +2699,55 @@ class CoachingResultView extends StatelessWidget {
                                     .onTertiaryContainer),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            isChallengeCompleted
-                                ? "CHALLENGE COMPLETED!"
-                                : "WEEKLY CHALLENGE",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isChallengeCompleted
-                                    ? (Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.green.shade300
-                                        : Colors.green.shade900)
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onTertiaryContainer),
+                          child: Row(
+                            children: [
+                              Text(
+                                isChallengeCompleted
+                                    ? "CHALLENGE COMPLETED!"
+                                    : challengeTitle,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isChallengeCompleted
+                                        ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.green.shade300
+                                            : Colors.green.shade900)
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onTertiaryContainer),
+                              ),
+                              if (streak > 0) ...[
+                                const SizedBox(width: 8),
+                                Tooltip(
+                                  message: "$streak challenge streak!",
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color:
+                                              Colors.orange.withOpacity(0.5)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.local_fire_department,
+                                            size: 14, color: Colors.deepOrange),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          "$streak",
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.deepOrange),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         Switch(
@@ -2476,12 +2862,20 @@ class CoachingResultView extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 12),
+                    Divider(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onTertiaryContainer
+                            .withOpacity(0.1)),
+                    const SizedBox(height: 8),
                     Builder(builder: (context) {
                       double progressValue = 0.0;
                       String labelDetails = "";
+                      String timeLabel = "Time Elapsed";
                       if (isChallengeCompleted) {
                         progressValue = 1.0;
-                        labelDetails = "Completed";
+                        labelDetails = "Goal Achieved";
+                        timeLabel = "Status";
                       } else if (sessionDate != null) {
                         final now = DateTime.now();
 
@@ -2516,7 +2910,7 @@ class CoachingResultView extends StatelessWidget {
                           }
                         } else if (now.isAfter(end)) {
                           progressValue = 1.0;
-                          labelDetails = "Expired";
+                          labelDetails = "Expired (Review Adherence)";
                         } else {
                           if (totalMs > 0) {
                             progressValue =
@@ -2525,66 +2919,125 @@ class CoachingResultView extends StatelessWidget {
 
                           final remaining = end.difference(now);
                           if (remaining.inDays > 0) {
-                            labelDetails = "${remaining.inDays} days left";
+                            labelDetails = "${remaining.inDays} Days Left";
                           } else {
-                            labelDetails = "${remaining.inHours} hours left";
+                            labelDetails = "${remaining.inHours} Hours Left";
                           }
                         }
                       }
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      return Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                isChallengeCompleted
-                                    ? "Goal Achieved"
-                                    : "Time Elapsed",
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: isChallengeCompleted
-                                        ? (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.green.shade300
-                                            : Colors.green.shade700)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      timeLabel,
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onTertiaryContainer
+                                              .withOpacity(0.5)),
+                                    ),
+                                    Text(
+                                      labelDetails.toUpperCase(),
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          letterSpacing: 0.5,
+                                          color: isChallengeCompleted
+                                              ? (Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.green.shade300
+                                                  : Colors.green.shade800)
+                                              : Theme.of(context)
+                                                  .colorScheme
+                                                  .onTertiaryContainer
+                                                  .withOpacity(0.9),
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    minHeight: 6,
+                                    value: progressValue,
+                                    backgroundColor: isChallengeCompleted
+                                        ? Colors.green.withOpacity(0.2)
                                         : Theme.of(context)
                                             .colorScheme
                                             .onTertiaryContainer
-                                            .withOpacity(0.6)),
-                              ),
-                              Text(
-                                labelDetails,
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: isChallengeCompleted
-                                        ? (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.green.shade300
-                                            : Colors.green.shade700)
-                                        : Theme.of(context)
+                                            .withOpacity(0.1),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        isChallengeCompleted
+                                            ? Colors.green
+                                            : Theme.of(context).primaryColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isChallengeCompleted) ...[
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              height: 40,
+                              child: OutlinedButton(
+                                onPressed: onCheckProgress,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  side: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text("Check",
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
                                             .colorScheme
-                                            .onTertiaryContainer
-                                            .withOpacity(0.8),
-                                    fontWeight: FontWeight.bold),
+                                            .primary)),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: progressValue,
-                            backgroundColor: isChallengeCompleted
-                                ? Colors.green.withOpacity(0.2)
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onTertiaryContainer
-                                    .withOpacity(0.1),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                isChallengeCompleted
-                                    ? Colors.green
-                                    : Theme.of(context).primaryColor),
-                          ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.check, size: 18),
+                                label: const Text("Done",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    )),
+                                onPressed: () => onChallengeToggle(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  elevation: 2,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ]
                         ],
                       );
                     }),
@@ -2597,62 +3050,32 @@ class CoachingResultView extends StatelessWidget {
         ],
 
         // Challenge Adherence (Previous)
-        if (challengeAdherence != null && challengeAdherence.isNotEmpty) ...[
-          Builder(builder: (context) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return Card(
-              color:
-                  isDark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                      color: Colors.blue.withOpacity(isDark ? 0.5 : 0.2))),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.rule,
-                            color: isDark
-                                ? Colors.blue.shade200
-                                : Colors.blue.shade800),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            "PREVIOUS CHALLENGE REVIEW",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.blue.shade100
-                                    : Colors.blue.shade900),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      challengeAdherence,
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? Colors.blue.shade100
-                              : Colors.blue.shade900,
-                          height: 1.4),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-          const SizedBox(height: 16),
+        if (challengeAdherence != null &&
+            challengeAdherence.isNotEmpty &&
+            previousChallenge != null &&
+            previousChallenge.isNotEmpty) ...[
+          const Text("PREVIOUS CHALLENGE REVIEW",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          _InsightItem(
+            text: challengeAdherence,
+            icon: Icons.rule,
+            color: Colors.blue,
+            isPositive: false,
+          ),
+          const SizedBox(height: 20),
         ],
 
         // History Chart
-        if (history.length >= 2) CoachingScoreChart(history: history),
-        if (history.length >= 2) const SizedBox(height: 16),
+        if (history.length >= 2) ...[
+          const Text("PERFORMANCE TREND",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          CoachingScoreChart(history: history),
+          const SizedBox(height: 20),
+        ],
 
         // Strengths
         if (strengths.isNotEmpty) ...[
@@ -2660,21 +3083,11 @@ class CoachingResultView extends StatelessWidget {
               style:
                   TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...strengths.map((s) => Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.primaryContainer,
-                margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: Icon(Icons.verified,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer),
-                  title: Text(s,
-                      style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w500)),
-                ),
+          ...strengths.map((s) => _InsightItem(
+                text: s,
+                icon: Icons.verified,
+                color: Colors.green,
+                isPositive: true,
               )),
           const SizedBox(height: 20),
         ],
@@ -2685,20 +3098,10 @@ class CoachingResultView extends StatelessWidget {
               style:
                   TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...combinedWeaknesses.map((b) => Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.errorContainer,
-                margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: Icon(Icons.warning_amber,
-                      color: Theme.of(context).colorScheme.onErrorContainer),
-                  title: Text(b,
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                          fontWeight: FontWeight.w500)),
-                ),
+          ...combinedWeaknesses.map((b) => _InsightItem(
+                text: b,
+                icon: Icons.warning_amber_rounded,
+                color: Colors.orange, // Use orange for warnings
               )),
           const SizedBox(height: 20),
         ],
@@ -2709,33 +3112,23 @@ class CoachingResultView extends StatelessWidget {
               style:
                   TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...hiddenRisks.map((r) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return Card(
-              elevation: 0,
-              color: isDark
-                  ? Colors.deepPurple.withOpacity(0.15)
-                  : Colors.deepPurple.shade50,
-              margin: const EdgeInsets.only(bottom: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                      color:
-                          Colors.deepPurple.withOpacity(isDark ? 0.5 : 0.2))),
-              child: ListTile(
-                leading: Icon(Icons.visibility_off,
-                    color: isDark
-                        ? Colors.deepPurple.shade200
-                        : Colors.deepPurple),
-                title: Text(r,
-                    style: TextStyle(
-                        color: isDark
-                            ? Colors.deepPurple.shade100
-                            : Colors.deepPurple,
-                        fontWeight: FontWeight.w500)),
-              ),
-            );
-          }),
+          ...hiddenRisks.map((r) => _InsightItem(
+                text: r,
+                icon: Icons.visibility_off_outlined,
+                color: Colors.deepPurple,
+              )),
+          const SizedBox(height: 20),
+        ] else if (score > 0) ...[
+          const Text("HIDDEN RISKS",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          const _InsightItem(
+            text: "No significant hidden risks detected.",
+            icon: Icons.shield_outlined,
+            color: Colors.green,
+            isPositive: true,
+          ),
           const SizedBox(height: 20),
         ],
 
@@ -2745,24 +3138,10 @@ class CoachingResultView extends StatelessWidget {
               style:
                   TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          ...tips.map((tip) => Card(
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withOpacity(0.3),
-                margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outline
-                            .withOpacity(0.2))),
-                child: ListTile(
-                  leading: const Icon(Icons.check_circle_outline),
-                  title: Text(tip),
-                ),
+          ...tips.map((tip) => _InsightItem(
+                text: tip,
+                icon: Icons.check_circle_outline,
+                color: Colors.blue,
               )),
           const SizedBox(height: 20),
         ],
@@ -2810,15 +3189,15 @@ class CoachingResultView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Card(
-          elevation: 0,
+          elevation: 2,
           color: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.withOpacity(0.2))),
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             onTap: () {
               final controller = TextEditingController(text: notes);
               showDialog(
@@ -2889,11 +3268,15 @@ class CoachingResultView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Card(
           elevation: 2,
+          color: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: MarkdownBody(
               data: analysis,
               styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
@@ -2915,6 +3298,44 @@ class CoachingResultView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  String _getAnalysisWindowLabel(String window) {
+    switch (window) {
+      case 'this_week':
+        return 'This Week';
+      case 'last_week':
+        return 'Last Week';
+      case 'this_month':
+        return 'This Month';
+      case 'last_month':
+        return 'Last Month';
+      case 'this_year':
+        return 'This Year';
+      case 'last_year':
+        return 'Last Year';
+      default:
+        if (window.endsWith('d')) {
+          return 'Last ${window.replaceAll('d', '')} days';
+        }
+        return window;
+    }
+  }
+
+  Widget _buildConfigChip(BuildContext context, String label,
+      [Color? colorOverride]) {
+    final color = colorOverride ?? Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.bold, color: color)),
     );
   }
 
@@ -3012,23 +3433,34 @@ class CoachingResultView extends StatelessWidget {
   }
 }
 
-class CoachingScoreChart extends StatelessWidget {
+class CoachingScoreChart extends StatefulWidget {
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> history;
 
   const CoachingScoreChart({super.key, required this.history});
 
   @override
+  State<CoachingScoreChart> createState() => _CoachingScoreChartState();
+}
+
+class _CoachingScoreChartState extends State<CoachingScoreChart> {
+  DateTime? _selectedDate;
+  num? _selectedScore;
+  int? _selectedTradeCount;
+  Map<String, dynamic>? _selectedSubScores;
+
+  @override
   Widget build(BuildContext context) {
-    if (history.length < 2) return const SizedBox.shrink();
+    if (widget.history.length < 2) return const SizedBox.shrink();
 
     // Parse data
-    final dataPoints = history.map((doc) {
+    final dataPoints = widget.history.map((doc) {
       final docData = doc.data();
       final date = (docData['date'] as Timestamp?)?.toDate() ?? DateTime.now();
       final result = docData['result'] as Map<String, dynamic>;
       final score = result['score'] ?? 0;
       final subScores = result['sub_scores'] as Map<String, dynamic>?;
-      return _HistoryPoint(date, score, subScores);
+      final trades = docData['trades'] as List<dynamic>? ?? [];
+      return _HistoryPoint(date, score, trades.length, subScores);
     }).toList();
 
     // Sort by date ascending
@@ -3039,6 +3471,18 @@ class CoachingScoreChart extends StatelessWidget {
         dataPoints.any((p) => p.subScores != null && p.subScores!.isNotEmpty);
 
     List<charts.Series<_HistoryPoint, DateTime>> seriesList = [];
+
+    // Volume Series (Bar Chart) - Secondary Axis
+    seriesList.add(charts.Series<_HistoryPoint, DateTime>(
+      id: 'Volume',
+      colorFn: (_, __) =>
+          charts.ColorUtil.fromDartColor(Colors.grey.withOpacity(0.3)),
+      domainFn: (p, _) => p.date,
+      measureFn: (p, _) => p.tradeCount,
+      data: dataPoints,
+    )
+      ..setAttribute(charts.rendererIdKey, 'customBar')
+      ..setAttribute(charts.measureAxisIdKey, 'secondaryMeasureAxisId'));
 
     // Main Score Series
     seriesList.add(charts.Series<_HistoryPoint, DateTime>(
@@ -3086,25 +3530,95 @@ class CoachingScoreChart extends StatelessWidget {
     }
 
     return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: Theme.of(context).cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("Trading Performance Trend",
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          if (hasSubScores)
-            const Text(
-              "Solid Line: Overall | Dashed: Sub-metrics",
-              style: TextStyle(fontSize: 10, color: Colors.grey),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Performance vs Volume Trend",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              if (_selectedDate != null)
+                Text(
+                  DateFormat.MMMd().format(_selectedDate!),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary),
+                ),
+            ],
+          ),
+          if (_selectedDate != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _miniStat("Score", "$_selectedScore", Colors.purple),
+                  _miniStat("Trades", "$_selectedTradeCount", Colors.grey),
+                  if (_selectedSubScores != null) ...[
+                    _miniStat("Disc.", _selectedSubScores?['discipline'],
+                        Colors.blue),
+                    _miniStat("Risk", _selectedSubScores?['risk_management'],
+                        Colors.red),
+                    _miniStat("Cons.", _selectedSubScores?['consistency'],
+                        Colors.green),
+                  ]
+                ],
+              ),
+            ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.only(top: 4.0),
+              child: Text(
+                "Tap points for details. Bars: Volume | Lines: Score",
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
             ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 200,
+            height: 220,
             child: charts.TimeSeriesChart(
               seriesList,
               animate: true,
               defaultRenderer: charts.LineRendererConfig(includePoints: true),
+              customSeriesRenderers: [
+                charts.BarRendererConfig(
+                  customRendererId: 'customBar',
+                  // cornerRadius: 2,
+                )
+              ],
               dateTimeFactory: const charts.LocalDateTimeFactory(),
+              selectionModels: [
+                charts.SelectionModelConfig(
+                  type: charts.SelectionModelType.info,
+                  changedListener: (charts.SelectionModel model) {
+                    if (model.hasDatumSelection) {
+                      final selectedDatum = model.selectedDatum.first;
+                      final point = selectedDatum.datum as _HistoryPoint;
+                      setState(() {
+                        _selectedDate = point.date;
+                        _selectedScore = point.score;
+                        _selectedSubScores = point.subScores;
+                        _selectedTradeCount = point.tradeCount;
+                      });
+                    }
+                  },
+                )
+              ],
               behaviors: [
+                charts.SelectNearest(
+                    eventTrigger: charts.SelectionTrigger.tapAndDrag),
+                charts.LinePointHighlighter(
+                    symbolRenderer: charts.CircleSymbolRenderer()),
                 charts.SeriesLegend(
                   position: charts.BehaviorPosition.bottom,
                   horizontalFirst: false,
@@ -3135,10 +3649,30 @@ class CoachingScoreChart extends StatelessWidget {
                               Theme.of(context).colorScheme.onSurface)),
                       lineStyle: charts.LineStyleSpec(
                           color: charts.MaterialPalette.gray.shade200))),
+              secondaryMeasureAxis: charts.NumericAxisSpec(
+                  tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                      desiredTickCount: 5),
+                  renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(
+                          fontSize: 10,
+                          color: charts.ColorUtil.fromDartColor(Colors.grey)),
+                      lineStyle: charts.LineStyleSpec(
+                          dashPattern: [4, 4],
+                          color: charts.MaterialPalette.gray.shade200))),
             ),
           ),
         ]),
       ),
+    );
+  }
+
+  Widget _miniStat(String label, dynamic value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: color)),
+        Text("${value ?? '-'}",
+            style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+      ],
     );
   }
 }
@@ -3146,8 +3680,9 @@ class CoachingScoreChart extends StatelessWidget {
 class _HistoryPoint {
   final DateTime date;
   final num score;
+  final int tradeCount;
   final Map<String, dynamic>? subScores;
-  _HistoryPoint(this.date, this.score, [this.subScores]);
+  _HistoryPoint(this.date, this.score, this.tradeCount, [this.subScores]);
 }
 
 class TradeExecutionStatsView extends StatelessWidget {
@@ -3247,10 +3782,19 @@ class TradeExecutionStatsView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("EXECUTION STATISTICS",
-            style: TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text("EXECUTION STATISTICS",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 12, 
+                  letterSpacing: 1.2)),
+        ),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -3309,20 +3853,44 @@ class TradeExecutionStatsView extends StatelessWidget {
                     const Text("No data",
                         style: TextStyle(fontSize: 10, color: Colors.grey))
                   else
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+                    Column(
                       children: top5Symbols.map((e) {
-                        final pct =
-                            (e.value / trades.length * 100).toStringAsFixed(0);
-                        return Chip(
-                          labelPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                          visualDensity: VisualDensity.compact,
-                          label: Text("${e.key} ($pct%)",
-                              style: const TextStyle(fontSize: 10)),
-                          backgroundColor:
-                              Theme.of(context).cardColor.withOpacity(0.5),
+                        final pctVal = e.value / trades.length;
+                        final pctStr = (pctVal * 100).toStringAsFixed(0);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                  width: 55,
+                                  child: Text(e.key,
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold))),
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: pctVal,
+                                    minHeight: 6,
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white10
+                                            : Colors.grey.shade200,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Theme.of(context).colorScheme.primary),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                  width: 30,
+                                  child: Text("$pctStr%",
+                                      textAlign: TextAlign.end,
+                                      style: const TextStyle(
+                                          fontSize: 10, color: Colors.grey))),
+                            ],
+                          ),
                         );
                       }).toList(),
                     ),
@@ -3333,65 +3901,55 @@ class TradeExecutionStatsView extends StatelessWidget {
             Expanded(
               flex: 2,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text("DIRECTIONAL BIAS",
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                           color: Colors.grey)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   if (totalDir == 0)
                     const Text("No data",
                         style: TextStyle(fontSize: 10, color: Colors.grey))
                   else
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    Column(
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Text("${longPct.toStringAsFixed(0)}% BULL",
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green)),
-                            Text("${(100 - longPct).toStringAsFixed(0)}% BEAR",
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red)),
+                            SizedBox(
+                              width: 70,
+                              height: 70,
+                              child: CircularProgressIndicator(
+                                value: longPct / 100,
+                                strokeWidth: 10,
+                                backgroundColor: Colors.red.withOpacity(0.8),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Colors.green),
+                              ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text("${longPct.toStringAsFixed(0)}%",
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green)),
+                                const Text("BULL",
+                                    style: TextStyle(
+                                        fontSize: 8, color: Colors.green)),
+                              ],
+                            )
                           ],
                         ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          height: 40,
-                          width: 8,
-                          child: Column(
-                            children: [
-                              Expanded(
-                                flex: longPct.toInt(),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.green,
-                                    borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(2)),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: (100 - longPct).toInt(),
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.vertical(
-                                        bottom: Radius.circular(2)),
-                                  ),
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
+                        const SizedBox(height: 8),
+                        Text("${(100 - longPct).toStringAsFixed(0)}% BEAR",
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red)),
                       ],
                     ),
                 ],
@@ -3405,7 +3963,7 @@ class TradeExecutionStatsView extends StatelessWidget {
                 fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 8),
         SizedBox(
-          height: 80,
+          height: 90,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3415,32 +3973,54 @@ class TradeExecutionStatsView extends StatelessWidget {
               final count = hourCounts[hour] ?? 0;
               final pct = count / maxHourCount;
               final isActive = count > 0;
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (isActive)
-                    Text("$count", style: const TextStyle(fontSize: 8)),
-                  const SizedBox(height: 2),
-                  Container(
-                    width: 12,
-                    height: 50 * pct + 2, // Min height of 2
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('j').format(DateTime(2022, 1, 1, hour)),
-                    style: TextStyle(
-                        fontSize: 8,
+              return Tooltip(
+                message:
+                    "$count trades at ${hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}",
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (isActive)
+                      Text("$count",
+                          style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary)),
+                    const SizedBox(height: 2),
+                    Container(
+                      width: 14,
+                      height: 50 * pct + 4, // Min height of 4
+                      decoration: BoxDecoration(
+                        gradient: isActive
+                            ? LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.7),
+                                    Theme.of(context).colorScheme.primary
+                                  ])
+                            : null,
                         color: isActive
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Colors.grey),
-                  ),
-                ],
+                            ? null
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white10
+                                : Colors.grey.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('j').format(DateTime(2022, 1, 1, hour)),
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: isActive
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Colors.grey),
+                    ),
+                  ],
+                ),
               );
             }),
           ),
@@ -3467,28 +4047,259 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2))
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 2,
+              offset: const Offset(0, 1))
         ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          const SizedBox(height: 2),
-          Text(value,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(label, 
               style: TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                  fontSize: 10, 
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(value,
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          ),
           Text(subtext, style: const TextStyle(fontSize: 10)),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightItem extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  final Color color;
+  final bool isPositive;
+
+  const _InsightItem({
+    Key? key,
+    required this.text,
+    required this.icon,
+    required this.color,
+    this.isPositive = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isPositive
+        ? (isDark ? Colors.green.withOpacity(0.1) : Colors.green.shade50)
+        : (isDark ? color.withOpacity(0.1) : color.withOpacity(0.05));
+
+    Color iconColor;
+    Color textColor;
+
+    if (isPositive) {
+      iconColor = isDark ? Colors.green.shade300 : Colors.green;
+      textColor = isDark ? Colors.green.shade100 : Colors.green.shade900;
+    } else {
+      // Dynamic handling for MaterialColors to ensure contrast
+      if (color is MaterialColor) {
+        final mc = color as MaterialColor;
+        iconColor = isDark ? mc.shade200 : mc;
+        textColor = isDark ? mc.shade100 : mc.shade900;
+      } else {
+        iconColor = isDark ? color.withOpacity(0.8) : color;
+        textColor =
+            isDark ? Colors.white.withOpacity(0.9) : color.withOpacity(0.9);
+      }
+    }
+
+    final borderColor = isPositive
+        ? (isDark
+            ? Colors.green.withOpacity(0.3)
+            : Colors.green.withOpacity(0.2))
+        : (isDark ? color.withOpacity(0.3) : color.withOpacity(0.2));
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingSkeleton extends StatefulWidget {
+  final String status;
+  const _LoadingSkeleton({Key? key, required this.status}) : super(key: key);
+
+  @override
+  State<_LoadingSkeleton> createState() => _LoadingSkeletonState();
+}
+
+class _LoadingSkeletonState extends State<_LoadingSkeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildBox(double height, [double? width]) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 20),
+          Center(
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 4,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      widget.status.isEmpty ? "Analyzing trades..." : widget.status,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        height: 1.4,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              _buildBox(32, 180),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildBox(120),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _buildBox(80)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildBox(80)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildBox(60),
+          const SizedBox(height: 12),
+          _buildBox(60),
         ],
       ),
     );

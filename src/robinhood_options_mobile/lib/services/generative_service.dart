@@ -37,7 +37,7 @@ class GenerativeService {
     Prompt(
         key: 'portfolio-recommendations',
         title: 'Portfolio Recommendations',
-        prompt: 'Recommend improvements for my portfolio',
+        prompt: 'Investment recommendations for my portfolio',
         // prompt: 'Provide recommendations for my portfolio, including risk '
         //     'management, diversification, and potential trades to consider.',
         appendPortfolioToPrompt: true),

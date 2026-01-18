@@ -274,7 +274,10 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               changePercentInPeriod = (close / open) - 1;
             }
             return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
-          }, marginBottom: 16),
+          },
+              marginBottom: 16,
+              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+              textColor: Theme.of(context).colorScheme.onInverseSurface),
         );
 
         return Column(children: [
@@ -294,6 +297,259 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             String? returnPercentText = widget.brokerageUser.getDisplayText(
                 changePercentInPeriod,
                 displayValue: DisplayValue.totalReturnPercent);
+
+            if (widget.isFullScreen) {
+              // Compact single-line header for full screen with some styling
+              final primary = Theme.of(context).colorScheme.primary;
+              final positive = Colors.green;
+              final negative = Colors.red;
+              final neutralColor =
+                  Theme.of(context).colorScheme.onSurfaceVariant;
+
+              final changeColor = changeInPeriod > 0
+                  ? positive
+                  : (changeInPeriod < 0 ? negative : neutralColor);
+              final changePercentColor = changePercentInPeriod > 0
+                  ? positive
+                  : (changePercentInPeriod < 0 ? negative : neutralColor);
+
+              return SizedBox(
+                height: 52,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Portfolio Value Badge
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                primary.withValues(alpha: 0.12),
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: primary.withValues(alpha: 0.3)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primary.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(7),
+                                  border: Border.all(
+                                      color: primary.withValues(alpha: 0.3)),
+                                ),
+                                child: Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 14,
+                                    color: primary),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'PORTFOLIO',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.3,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                    ),
+                                    AnimatedPriceText(
+                                      price: selection != null
+                                          ? selection.adjustedCloseEquity!
+                                          : close,
+                                      format: formatCurrency,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Change Badge
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                changeColor.withValues(alpha: 0.12),
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: changeColor.withValues(alpha: 0.3)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: changeColor.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CHANGE',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    changeInPeriod >= 0
+                                        ? Icons.trending_up_rounded
+                                        : Icons.trending_down_rounded,
+                                    size: 12,
+                                    color: changeColor,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      returnText,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: changeColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Change % Badge
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                changePercentColor.withValues(alpha: 0.12),
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color:
+                                    changePercentColor.withValues(alpha: 0.3)),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    changePercentColor.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CHANGE %',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    changePercentInPeriod >= 0
+                                        ? Icons.percent_rounded
+                                        : Icons.percent_outlined,
+                                    size: 12,
+                                    color: changePercentColor,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      returnPercentText,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: changePercentColor,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
 
             return SizedBox(
                 child: Column(

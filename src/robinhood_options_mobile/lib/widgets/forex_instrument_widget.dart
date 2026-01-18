@@ -272,8 +272,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     slivers.add(SliverToBoxAdapter(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
-          title: const Text("Position",
-              style: TextStyle(fontSize: 20)),
+          title: const Text("Position", style: TextStyle(fontSize: 20)),
           subtitle: Text(
               '${formatNumber.format(holding.quantity!)} ${holding.currencyCode}'),
           trailing: Text(formatCurrency.format(holding.marketValue),
@@ -889,7 +888,10 @@ class _ForexChartWidgetState extends State<ForexChartWidget> {
                         .beginsAt!
                         .toLocal())
                 : '0';
-          }, marginBottom: 16),
+          },
+              marginBottom: 16,
+              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+              textColor: Theme.of(context).colorScheme.onInverseSurface),
           zeroBound: false,
           viewport: extents);
 

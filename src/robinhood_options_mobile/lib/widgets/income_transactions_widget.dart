@@ -627,7 +627,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             : buys
                 .map((o) => o.quantity! * o.averagePrice!)
                 .reduce((a, b) => a + b);
-        var sells = positionOrders.where((o) => o.side == 'sell');
+        var sells = positionOrders
+            .where((o) => o.side == 'sell' && o.state != 'queued');
         countSells = sells.length;
         double sellTotal = sells.isEmpty
             ? 0
@@ -878,7 +879,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       .format(widget.chartSelectionStore.selection!.key)
                   // \n${formatCurrency.format(widget.chartSelectionStore.selection!.value)}'
                   : '',
-              placeAbovePoint: false),
+              placeAbovePoint: false,
+              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+              textColor: Theme.of(context).colorScheme.onInverseSurface),
           // chartSelectionStore.selection
           //     ?.map((s) => s.value.round().toString())
           //     .join(' ') ??

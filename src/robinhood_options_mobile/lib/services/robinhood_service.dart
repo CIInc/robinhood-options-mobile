@@ -2249,6 +2249,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     }
     var result = await RobinhoodService.getJson(
         user,
+        // TODO: To support "all" display_span
+        // https://bonfire.robinhood.com/instruments/cf1d849d-06f7-4374-9e84-13129713d0c7/historical-chart/?display_span=all&hide_extended_hours=false
+
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day

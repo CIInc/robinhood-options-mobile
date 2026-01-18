@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:community_charts_common/community_charts_common.dart' as common;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:flutter/material.dart';
@@ -254,6 +255,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               ],
               animate: animateChart,
               zeroBound: false,
+              selectionMode: common.SelectionMode.selectOverlapping,
               primaryMeasureAxis: charts.PercentAxisSpec(
                   viewport: extents,
                   renderSpec: charts.GridlineRendererSpec(
@@ -293,7 +295,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                             .key
                             .toLocal())
                     : '';
-              }, marginBottom: 16),
+              },
+                  marginBottom: 16,
+                  backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+                  textColor: Theme.of(context).colorScheme.onInverseSurface),
             );
             return Column(
               children: [

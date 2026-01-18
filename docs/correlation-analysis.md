@@ -12,7 +12,7 @@ A correlation matrix displays the correlation coefficients between pairs of asse
 ## Features
 
 - **Correlation Matrix Heatmap**: Visual grid showing correlation between your top 15 holdings.
-- **Interactive Details**: Tap on any cell to see the precise correlation value and a descriptive interpretation (e.g., "Strong positive correlation").
+- **Interactive Details**: Tap on any cell to see the precise correlation value, proper descriptive interpretation (e.g., "Strong positive correlation"), and the "Overlapping Days" count to judge data quality.
 - **Legend & Education**: Built-in legend explaining the color scale and an information dialog explaining how to interpret correlation coefficients.
 - **Color Coding**:
   - **Red**: High positive correlation (Low diversification benefit).

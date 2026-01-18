@@ -1059,7 +1059,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 ? formatCompactDateTimeWithHour
                     .format(provider.selection!.beginsAt!.toLocal())
                 : '0';
-          }, marginBottom: 16),
+          },
+              marginBottom: 16,
+              backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+              textColor: Theme.of(context).colorScheme.onInverseSurface),
         );
 
         return SliverToBoxAdapter(
