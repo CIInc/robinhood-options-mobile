@@ -17,7 +17,7 @@
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
-- **Instrument Charting:** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges.
+- **Instrument Charting:** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges and **interactive technical overlays** (SMA, EMA, VWAP, Bollinger Bands).
 - Multi-indicator correlated trade signals (15 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR) with confidence-scored pattern detection (Classic & Candlestick) and weighted signal strength visualization (Price > Momentum > Trend).
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.

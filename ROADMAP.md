@@ -240,13 +240,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Strategy Management**: Enhanced strategy management UI.
 
 ### v0.29.1 ✅ (Released Jan 17, 2026)
-**Correlation Matrix, Market Intelligence & Flow Analysis**
+**Correlation Matrix, Market Intelligence, Instrument Chart Indicators & Flow Analysis**
 - ✅ **Correlation Matrix**: Interactive heatmap visualizing asset relationships (Pearson coefficient).
 - ✅ **Advanced Filtering**: Selection of specific assets and benchmark indices (SPY, QQQ, TLT, GLD, etc.).
 - ✅ **Market Intelligence**: Added **Insider Activity** and **Institutional Ownership** widgets for deeper fundamental analysis.
 - ✅ **Options Flow 2.0**: Refined flag detection logic ("Whale", "Sweep", "Steamroller") and categorization.
 - ✅ **Visual Enhancements**: Gradient legend and statistical sample size tracking.
 - ✅ **Data Accuracy**: Improved date alignment logic for reliable correlation calculations.
+- ✅ **Instrument Chart Indicators**: Interactive overlays (SMA, EMA, VWAP, Bollinger Bands) on instrument charts with distinct styling and persistent settings.
 
 ### v0.29.5 (Q1 2026 - Late January)
 **Futures Analytics & Backtesting Refinement**

@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - **Institutional Ownership:** Added visualization for top institutional holders and position changes.
 - **Options Flow Enhancements:** Refined flag detection logic with better categorization for "Whale", "Golden Sweep", and "Steamroller" flags.
 - **Institutional Benchmarks:** Added VWAP-based institutional flow analysis to Trade Signals.
+- **Instrument Chart Indicators:** Added interactive technical overlays to the instrument chart, including SMA (10, 20, 50, 200), EMA (12, 26), VWAP, and Bollinger Bands with persistent user preferences.
 
 ### Fixed
 - **Correlation Calculation:** Fixed a bug where time-of-day differences in historical data caused daily overlaps to be missed, resulting in false 0.00 correlations.
