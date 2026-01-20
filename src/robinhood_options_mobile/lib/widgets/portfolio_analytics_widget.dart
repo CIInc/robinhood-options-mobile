@@ -367,8 +367,17 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     double benchmarkVolatility =
         AnalyticsUtils.calculateVolatility(benchmarkReturns);
 
-    double portfolioCumulative =
-        AnalyticsUtils.calculateCumulativeReturn(alignedPortfolioPrices);
+    // Calculate unaligned cumulative return to match the Performance Chart
+    // The chart uses full history, while analytics uses aligned data (intersection with benchmark).
+    // Failing to use the full history causes the "Cumulative Return" tile to disagree with the chart.
+    List<double> fullPortfolioPrices = portfolioHistoricals.equityHistoricals
+        .where((h) => (h.adjustedCloseEquity ?? h.closeEquity ?? 0.0) != 0)
+        .map((h) => (h.adjustedCloseEquity ?? h.closeEquity ?? 0.0))
+        .toList();
+
+    double portfolioCumulative = fullPortfolioPrices.length >= 2
+        ? AnalyticsUtils.calculateCumulativeReturn(fullPortfolioPrices)
+        : AnalyticsUtils.calculateCumulativeReturn(alignedPortfolioPrices);
     double benchmarkCumulative =
         AnalyticsUtils.calculateCumulativeReturn(alignedBenchmarkPrices);
     double excessReturn = portfolioCumulative - benchmarkCumulative;
@@ -390,7 +399,19 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     // Derive period length from aligned dates to match selected timeline
     int periodDays = 0;
     double periodYears = 1.0;
-    if (alignedDates.isNotEmpty) {
+
+    // Use full history for period if available, otherwise fall back to aligned dates
+    var validHistory = portfolioHistoricals.equityHistoricals
+        .where((h) => h.beginsAt != null)
+        .toList();
+
+    if (validHistory.isNotEmpty && fullPortfolioPrices.length >= 2) {
+      final start = validHistory.first.beginsAt!;
+      final end = validHistory.last.beginsAt!;
+      final days = end.difference(start).inDays.abs();
+      periodDays = days > 0 ? days : 1;
+      periodYears = periodDays / 365.0;
+    } else if (alignedDates.isNotEmpty) {
       final start = alignedDates.first;
       final end = alignedDates.last;
       final days = end.difference(start).inDays.abs();
