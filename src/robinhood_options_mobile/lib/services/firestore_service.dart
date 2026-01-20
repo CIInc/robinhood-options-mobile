@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/group_message.dart';
+import 'package:robinhood_options_mobile/model/instrument_note.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -1023,6 +1024,44 @@ class FirestoreService {
       debugPrint("Message deleted from group $groupId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to delete message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Instrument Notes Methods
+
+  CollectionReference<InstrumentNote> getNotesCollection(String userId) {
+    return userCollection
+        .doc(userId)
+        .collection('notes')
+        .withConverter<InstrumentNote>(
+          fromFirestore: (snapshots, _) =>
+              InstrumentNote.fromJson(snapshots.data()!),
+          toFirestore: (obj, _) => obj.toJson(),
+        );
+  }
+
+  Stream<DocumentSnapshot<InstrumentNote>> getInstrumentNoteStream(
+      String userId, String symbol) {
+    return getNotesCollection(userId).doc(symbol).snapshots();
+  }
+
+  Future<void> saveInstrumentNote(String userId, InstrumentNote note) async {
+    try {
+      await getNotesCollection(userId).doc(note.symbol).set(note);
+      debugPrint("Note saved for ${note.symbol}");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to save note: ${e.message}');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteInstrumentNote(String userId, String symbol) async {
+    try {
+      await getNotesCollection(userId).doc(symbol).delete();
+      debugPrint("Note deleted for $symbol");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete note: ${e.message}');
       rethrow;
     }
   }

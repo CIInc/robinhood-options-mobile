@@ -1194,10 +1194,19 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       double volume =
           chunk.map((e) => e.volume.toDouble()).reduce((a, b) => a + b);
 
+      if (volume < 1) volume = 1;
+
       // Ensure values are positive to avoid log10(0) errors in candlesticks package
       const double minPrice = 0.01;
       if (high < minPrice) high = minPrice;
       if (low < minPrice) low = minPrice;
+      if (volume < 1) volume = 1;
+
+      // Ensure high > low to prevent log10(0) error when range is zero
+      if (high <= low) {
+        high = low + 0.0001;
+      }
+
       if (open < minPrice) open = minPrice;
       if (close < minPrice) close = minPrice;
 
@@ -1226,7 +1235,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       final close = (h.closePrice ?? h.openPrice ?? minPrice)
           .clamp(minPrice, double.infinity)
           .toDouble();
-      final high = math
+      var high = math
           .max(h.highPrice ?? open, math.max(open, close))
           .clamp(minPrice, double.infinity)
           .toDouble();
@@ -1234,6 +1243,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           .min(h.lowPrice ?? open, math.min(open, close))
           .clamp(minPrice, double.infinity)
           .toDouble();
+      
+      if (high <= low) high = low + 0.0001;
+
 
       return Candle(
         date: h.beginsAt ?? DateTime.now(),
@@ -1241,7 +1253,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         low: low,
         open: open,
         close: close,
-        volume: h.volume.toDouble(),
+        volume: math.max(1.0, h.volume.toDouble()),
       );
     }).toList();
   }

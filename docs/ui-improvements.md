@@ -2,6 +2,13 @@
 
 ## Completed Improvements
 
+### Instrument Notes & AI Drafting (v0.29.1)
+- **Component**: New `InstrumentNoteWidget` integrated into Instrument Details.
+- **Features**:
+  - **Rich Text**: Full Markdown support (Bold, Lists, Links).
+  - **Generative AI**: One-tap drafting of trading notes using backend AI services.
+  - **UX Polish**: Expandable/Collapsible long notes, quick copy-to-clipboard, and intuitive edit/delete workflows.
+
 ### Navigation Bar Upgrade (v0.27.0)
 - **Component**: Updated `BottomNavigationBar` to Material 3 `NavigationBar`.
 - **Benefits**:

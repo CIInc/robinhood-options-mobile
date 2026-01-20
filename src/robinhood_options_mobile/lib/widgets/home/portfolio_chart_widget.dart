@@ -885,6 +885,12 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       if (open < minPrice) open = minPrice;
       if (close < minPrice) close = minPrice;
 
+      // Ensure high > low to prevent log10(0) error when range is zero
+      if (high <= low) {
+        high = low + 0.0001;
+      }
+
+
       // Volume is not available in EquityHistorical, set to 1 to avoid log10(0) error
       double volume = 1;
 

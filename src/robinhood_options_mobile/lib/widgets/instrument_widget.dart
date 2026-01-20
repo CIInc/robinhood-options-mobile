@@ -42,6 +42,7 @@ import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_note_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
@@ -971,6 +972,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ]
                 ]));
           }),
+          // Instrument Notes
+          if (auth.currentUser != null) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: InstrumentNoteWidget(
+                  instrument: instrument,
+                  userId: auth.currentUser?.uid,
+                  firestoreService: _firestoreService,
+                  generativeService: widget.generativeService,
+                ),
+              ),
+            ),
+          ],
           if (instrument.tradeable) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
