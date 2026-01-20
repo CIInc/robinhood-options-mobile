@@ -1,5 +1,3 @@
-import * as logger from "firebase-functions/logger";
-
 /**
  * Technical Indicators Module
  * Implements various technical analysis indicators for automated trading
@@ -16,7 +14,8 @@ export interface CustomIndicatorConfig {
   id: string;
   name: string;
   type: "SMA" | "EMA" | "RSI" | "MACD" |
-  "Bollinger" | "Stochastic" | "ATR" | "OBV";
+  "Bollinger" | "Stochastic" | "ATR" | "OBV" |
+  "WilliamsR" | "CCI" | "ROC" | "VWAP" | "ADX";
   parameters: Record<string, number | string | boolean>;
   condition: "GreaterThan" | "LessThan" | "CrossOverAbove" | "CrossOverBelow";
   threshold?: number;
@@ -996,10 +995,17 @@ export function evaluateMomentum(
     const recentPrices = prices.slice(-5);
     const olderPrices = prices.slice(-10, -5);
     const recentPriceSum = recentPrices.reduce((a, b) => a + b, 0);
-    const recentPriceAvg = recentPriceSum / recentPrices.length;
+    const recentPriceAvg = recentPrices.length > 0 ?
+      recentPriceSum / recentPrices.length : 0;
     const olderPriceSum = olderPrices.reduce((a, b) => a + b, 0);
-    const olderPriceAvg = olderPriceSum / olderPrices.length;
-    priceTrend = ((recentPriceAvg - olderPriceAvg) / olderPriceAvg) * 100;
+    const olderPriceAvg = olderPrices.length > 0 ?
+      olderPriceSum / olderPrices.length : 0;
+
+    if (olderPriceAvg !== 0) {
+      priceTrend = ((recentPriceAvg - olderPriceAvg) / olderPriceAvg) * 100;
+    } else {
+      priceTrend = 0;
+    }
 
     // Bullish divergence: Price making lower lows, RSI making higher lows
     if (priceTrend < -1 && rsiTrend > 3 && rsi < 50) {
@@ -1646,8 +1652,9 @@ export function evaluateATR(
     };
   }
 
-  const avgATR = atrValues.reduce((a, b) => a + b, 0) / atrValues.length;
-  const atrRatio = atr / avgATR;
+  const avgATR = atrValues.length > 0 ?
+    atrValues.reduce((a, b) => a + b, 0) / atrValues.length : 0;
+  const atrRatio = avgATR > 0 ? atr / avgATR : 1.0;
 
   // High volatility (expanding ranges) - caution
   if (atrRatio > 1.5) {
@@ -1824,11 +1831,11 @@ export function evaluateVWAP(
   }
 
   const vwap = computeVWAP(highs, lows, closes, volumes);
-  if (vwap === null) {
+  if (vwap === null || vwap === 0) {
     return {
       value: null,
       signal: "HOLD",
-      reason: "Unable to compute VWAP",
+      reason: "Unable to compute VWAP (or VWAP is 0)",
     };
   }
 
@@ -2539,119 +2546,120 @@ export function evaluateAllIndicators(
     marketFastPeriod?: number;
     marketSlowPeriod?: number;
     customIndicators?: CustomIndicatorConfig[];
+    enabledIndicators?: string[];
   } = {}
 ): MultiIndicatorResult {
-  logger.info("Evaluating all technical indicators", {
-    symbolDataLength: symbolData.closes.length,
-    marketDataLength: marketData.closes.length,
-    config,
-  });
+  // Optimization: Reduce logging spam in loops
+  // logger.info("Evaluating all technical indicators", { ... });
+
+  const isEnabled = (key: string) => {
+    if (!config.enabledIndicators || config.enabledIndicators.length === 0) {
+      return true;
+    }
+    return config.enabledIndicators.includes(key);
+  };
+
+  const disabledResult: IndicatorResult = {
+    value: null,
+    signal: "HOLD",
+    reason: "Disabled",
+  };
 
   const highs = symbolData.highs || symbolData.closes;
   const lows = symbolData.lows || symbolData.closes;
   const volumes = symbolData.volumes || [];
 
   // 1. Price Movement (chart patterns)
-  const priceMovement = detectChartPattern(
-    symbolData.closes,
-    volumes,
-    symbolData.opens,
-    highs,
-    lows
-  );
+  const priceMovement = isEnabled("priceMovement") ?
+    detectChartPattern(
+      symbolData.closes,
+      volumes,
+      symbolData.opens,
+      highs,
+      lows
+    ) :
+    disabledResult;
 
   // 2. Momentum (RSI)
-  const momentum = evaluateMomentum(
-    symbolData.closes,
-    config.rsiPeriod || 14
-  );
+  const momentum = isEnabled("momentum") ?
+    evaluateMomentum(symbolData.closes, config.rsiPeriod || 14) :
+    disabledResult;
 
   // 3. Market Direction (SPY/QQQ moving averages)
-  const marketDirection = evaluateMarketDirection(
-    marketData.closes,
-    config.marketFastPeriod || 10,
-    config.marketSlowPeriod || 30
-  );
+  const marketDirection = isEnabled("marketDirection") ?
+    evaluateMarketDirection(
+      marketData.closes,
+      config.marketFastPeriod || 10,
+      config.marketSlowPeriod || 30
+    ) :
+    disabledResult;
 
   // 4. Volume
-  const volume = evaluateVolume(
-    volumes,
-    symbolData.closes
-  );
+  const volume = isEnabled("volume") ?
+    evaluateVolume(volumes, symbolData.closes) :
+    disabledResult;
 
   // 5. MACD
-  const macd = evaluateMACD(symbolData.closes);
+  const macd = isEnabled("macd") ?
+    evaluateMACD(symbolData.closes) :
+    disabledResult;
 
   // 6. Bollinger Bands
-  const bollingerBands = evaluateBollingerBands(symbolData.closes);
+  const bollingerBands = isEnabled("bollingerBands") ?
+    evaluateBollingerBands(symbolData.closes) :
+    disabledResult;
 
   // 7. Stochastic
-  const stochastic = evaluateStochastic(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const stochastic = isEnabled("stochastic") ?
+    evaluateStochastic(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 8. ATR (volatility)
-  const atr = evaluateATR(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const atr = isEnabled("atr") ?
+    evaluateATR(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 9. OBV
-  const obv = evaluateOBV(
-    symbolData.closes,
-    volumes
-  );
+  const obv = isEnabled("obv") ?
+    evaluateOBV(symbolData.closes, volumes) :
+    disabledResult;
 
   // 10. VWAP (Volume Weighted Average Price)
-  const vwap = evaluateVWAP(
-    highs,
-    lows,
-    symbolData.closes,
-    volumes
-  );
+  const vwap = isEnabled("vwap") ?
+    evaluateVWAP(highs, lows, symbolData.closes, volumes) :
+    disabledResult;
 
   // 11. ADX (Average Directional Index)
-  const adx = evaluateADX(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const adx = isEnabled("adx") ?
+    evaluateADX(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 12. Williams %R
-  const williamsR = evaluateWilliamsR(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const williamsR = isEnabled("williamsR") ?
+    evaluateWilliamsR(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 13. Ichimoku Cloud
-  const ichimoku = evaluateIchimokuCloud(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const ichimoku = isEnabled("ichimoku") ?
+    evaluateIchimokuCloud(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 14. CCI
-  const cci = evaluateCCI(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const cci = isEnabled("cci") ?
+    evaluateCCI(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // 15. Parabolic SAR
-  const parabolicSar = evaluateParabolicSAR(
-    highs,
-    lows,
-    symbolData.closes
-  );
+  const parabolicSar = isEnabled("parabolicSar") ?
+    evaluateParabolicSAR(highs, lows, symbolData.closes) :
+    disabledResult;
 
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
     for (const customConfig of config.customIndicators) {
+      // Assuming custom indicators are always enabled if present in this list
+      // Or we can filter them out before passing
       customResults[customConfig.id] = evaluateCustomIndicator(
         customConfig,
         symbolData.closes,
@@ -2697,7 +2705,11 @@ export function evaluateAllIndicators(
 
   let totalWeight = 0;
   let weightedScore = 0;
-  const standardVals = Object.values(indicators);
+  // Filter active valid values for calculation
+  const standardVals = Object.entries(indicators)
+    .filter(([k]) => isEnabled(k))
+    .map(([, v]) => v);
+
   const customVals = Object.values(customResults);
   const allVals = [...standardVals, ...customVals];
 
@@ -2708,6 +2720,8 @@ export function evaluateAllIndicators(
 
   // Process standard indicators
   for (const [key, indicator] of Object.entries(indicators)) {
+    if (!isEnabled(key)) continue;
+
     const weight = weights[key] || 1.0;
     totalWeight += weight;
     if (indicator.signal === "BUY") {
@@ -2732,14 +2746,17 @@ export function evaluateAllIndicators(
   // Range of weightedScore is [-totalWeight, +totalWeight]
   // Shift to [0, 2*totalWeight] then divide by 2*totalWeight
   const normalizedScore = totalWeight > 0 ?
-    (weightedScore + totalWeight) / (2 * totalWeight) : 0.5;
+    (weightedScore + totalWeight) / (2 * totalWeight) :
+    0.5;
   const signalStrength = Math.round(normalizedScore * 100);
 
   // Check if all indicators are "green" (BUY signal)
-  const allGreen = allVals.every((ind) => ind.signal === "BUY");
+  const allGreen = allVals.length > 0 &&
+    allVals.every((ind) => ind.signal === "BUY");
 
   // Check if all indicators are "red" (SELL signal)
-  const allRed = allVals.every((ind) => ind.signal === "SELL");
+  const allRed = allVals.length > 0 &&
+    allVals.every((ind) => ind.signal === "SELL");
 
   let overallSignal: "BUY" | "SELL" | "HOLD";
   let reason: string;
@@ -2767,32 +2784,15 @@ export function evaluateAllIndicators(
       `Signal strength: ${signalStrength}/100.`;
   }
 
+  // Optimized: Removed dense logging per evaluation
+  /*
   logger.info("Multi-indicator evaluation complete", {
     allGreen,
     overallSignal,
     signalStrength,
-    indicators: {
-      priceMovement: priceMovement.signal,
-      momentum: momentum.signal,
-      marketDirection: marketDirection.signal,
-      volume: volume.signal,
-      macd: macd.signal,
-      bollingerBands: bollingerBands.signal,
-      stochastic: stochastic.signal,
-      atr: atr.signal,
-      obv: obv.signal,
-      vwap: vwap.signal,
-      adx: adx.signal,
-      williamsR: williamsR.signal,
-      ichimoku: ichimoku.signal,
-      cci: cci.signal,
-      parabolicSar: parabolicSar.signal,
-    },
-    customIndicators: Object.keys(customResults).reduce((acc, key) => {
-      acc[key] = customResults[key].signal;
-      return acc;
-    }, {} as Record<string, string>),
+    ...
   });
+  */
 
   return {
     allGreen,
@@ -2801,6 +2801,67 @@ export function evaluateAllIndicators(
     overallSignal,
     reason,
     signalStrength,
+  };
+}
+
+
+/**
+ * Compute Rate of Change (ROC)
+ * @param {number[]} prices - Array of prices.
+ * @param {number} period - The lookback calculation period.
+ * @return {number|null} The computed ROC or null.
+ */
+export function computeROC(prices: number[], period = 9): number | null {
+  if (!prices || prices.length < period + 1) return null;
+  const currentPrice = prices[prices.length - 1];
+  const prevPrice = prices[prices.length - 1 - period];
+
+  if (prevPrice === 0) return 0;
+  return ((currentPrice - prevPrice) / prevPrice) * 100;
+}
+
+/**
+ * Evaluate ROC (Rate of Change)
+ * @param {number[]} prices - Array of close prices.
+ * @param {number} period - ROC period (default 9).
+ * @return {IndicatorResult} The ROC evaluation result.
+ */
+export function evaluateROC(
+  prices: number[],
+  period = 9
+): IndicatorResult {
+  const roc = computeROC(prices, period);
+  if (roc === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for ROC (need ${period + 1})`,
+    };
+  }
+
+  // Basic interpretation: > 0 implies upward momentum, < 0 implies downward
+  // Strong moves might be > 10 or < -10 depending on asset/timeframe
+
+  if (roc > 5) {
+    return {
+      value: roc,
+      signal: "BUY",
+      reason: `ROC bullish momentum (+${roc.toFixed(2)}%)`,
+    };
+  }
+
+  if (roc < -5) {
+    return {
+      value: roc,
+      signal: "SELL",
+      reason: `ROC bearish momentum (${roc.toFixed(2)}%)`,
+    };
+  }
+
+  return {
+    value: roc,
+    signal: "HOLD",
+    reason: `ROC neutral (${roc.toFixed(2)}%)`,
   };
 }
 
@@ -2890,6 +2951,50 @@ export function evaluateCustomIndicator(
       const obvRes = computeOBV(prices, volumes);
       value = obvRes && obvRes.length > 0 ?
         obvRes[obvRes.length - 1] : null;
+      break;
+    }
+    case "WilliamsR": {
+      value = computeWilliamsR(
+        highs,
+        lows,
+        prices,
+        toPeriod(config.parameters.period, 14)
+      );
+      break;
+    }
+    case "CCI": {
+      // CCI requires Typical Prices: (High + Low + Close) / 3
+      const period = toPeriod(config.parameters.period, 20);
+      if (
+        highs.length >= period &&
+        lows.length >= period &&
+        prices.length >= period
+      ) {
+        const typicalPrices: number[] = [];
+        const len = Math.min(highs.length, lows.length, prices.length);
+        for (let i = 0; i < len; i++) {
+          typicalPrices.push((highs[i] + lows[i] + prices[i]) / 3);
+        }
+        value = computeCCI(typicalPrices, period);
+      }
+      break;
+    }
+    case "ROC": {
+      value = computeROC(prices, toPeriod(config.parameters.period, 9));
+      break;
+    }
+    case "VWAP": {
+      value = computeVWAP(highs, lows, prices, volumes);
+      break;
+    }
+    case "ADX": {
+      const adxRes = computeADX(
+        highs,
+        lows,
+        prices,
+        toPeriod(config.parameters.period, 14)
+      );
+      value = adxRes ? adxRes.adx : null;
       break;
     }
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 
 class IndicatorMetadata {
@@ -19,6 +20,10 @@ class EntryStrategiesWidget extends StatelessWidget {
   final TextEditingController smaFastController;
   final TextEditingController smaSlowController;
   final TextEditingController marketIndexController;
+  final List<CustomIndicatorConfig> customIndicators;
+  final VoidCallback onAddCustomIndicator;
+  final Function(CustomIndicatorConfig) onEditCustomIndicator;
+  final Function(CustomIndicatorConfig) onRemoveCustomIndicator;
 
   static const Map<String, IndicatorMetadata> indicatorMetadata = {
     'priceMovement': IndicatorMetadata('Price Movement',
@@ -76,6 +81,10 @@ class EntryStrategiesWidget extends StatelessWidget {
     required this.smaFastController,
     required this.smaSlowController,
     required this.marketIndexController,
+    this.customIndicators = const [],
+    required this.onAddCustomIndicator,
+    required this.onEditCustomIndicator,
+    required this.onRemoveCustomIndicator,
   });
 
   @override
@@ -162,6 +171,92 @@ class EntryStrategiesWidget extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 8),
+        const Divider(),
+        const SizedBox(height: 8),
+        _buildCustomIndicatorsSection(context),
+      ],
+    );
+  }
+
+  Widget _buildCustomIndicatorsSection(BuildContext context) {
+    var colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.build,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Custom Indicators',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: onAddCustomIndicator,
+              tooltip: 'Add Custom Indicator',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (customIndicators.isEmpty)
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: colorScheme.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(
+                child: Text('No custom indicators defined'),
+              ),
+            ),
+          )
+        else
+          ...customIndicators.map((indicator) {
+            return Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: colorScheme.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: ListTile(
+                title: Text(indicator.name),
+                subtitle: Text(
+                    '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => onEditCustomIndicator(indicator)),
+                    IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => onRemoveCustomIndicator(indicator)),
+                  ],
+                ),
+              ),
+            );
+          }),
       ],
     );
   }
@@ -218,8 +313,8 @@ class EntryStrategiesWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isEnabled
-              ? colorScheme.primary.withOpacity(0.3)
-              : colorScheme.outline.withOpacity(0.2),
+              ? colorScheme.primary.withValues(alpha: 0.3)
+              : colorScheme.outline.withValues(alpha: 0.2),
           width: isEnabled ? 1.5 : 1,
         ),
       ),
@@ -228,8 +323,8 @@ class EntryStrategiesWidget extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isEnabled
-                ? colorScheme.primary.withOpacity(0.1)
-                : colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                ? colorScheme.primary.withValues(alpha: 0.1)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -245,7 +340,7 @@ class EntryStrategiesWidget extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: isEnabled
                 ? colorScheme.onSurface
-                : colorScheme.onSurface.withOpacity(0.6),
+                : colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         subtitle: Column(
@@ -260,7 +355,7 @@ class EntryStrategiesWidget extends StatelessWidget {
         activeThumbColor: colorScheme.primary,
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: isEnabled ? colorScheme.primary.withOpacity(0.05) : null,
+        tileColor: isEnabled ? colorScheme.primary.withValues(alpha: 0.05) : null,
       ),
     );
   }
@@ -330,7 +425,7 @@ class EntryStrategiesWidget extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
           ),
         ),
         filled: true,

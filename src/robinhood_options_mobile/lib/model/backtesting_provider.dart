@@ -48,7 +48,8 @@ class BacktestingProvider with ChangeNotifier {
   }
 
   /// Run a backtest with the given configuration
-  Future<BacktestResult?> runBacktest(TradeStrategyConfig config) async {
+  Future<BacktestResult?> runBacktest(TradeStrategyConfig config,
+      {String? templateId, String? templateName}) async {
     if (_isRunning) {
       debugPrint('⚠️ Backtest already in progress');
       return null;
@@ -69,6 +70,8 @@ class BacktestingProvider with ChangeNotifier {
           'start_date': config.startDate.toIso8601String(),
           'end_date': config.endDate.toIso8601String(),
           'interval': config.interval,
+          if (templateId != null) 'template_id': templateId,
+          if (templateName != null) 'template_name': templateName,
         },
       );
 
@@ -81,7 +84,15 @@ class BacktestingProvider with ChangeNotifier {
       }
 
       final resultData = Map<String, dynamic>.from(response.data as Map);
-      final result = BacktestResult.fromJson(resultData);
+      var result = BacktestResult.fromJson(resultData);
+
+      // Attach template info
+      if (templateId != null || templateName != null) {
+        result = result.copyWith(
+          templateId: templateId,
+          templateName: templateName,
+        );
+      }
 
       _currentResult = result;
       _progress = 1.0;
@@ -102,7 +113,8 @@ class BacktestingProvider with ChangeNotifier {
 
       _isRunning = false;
       notifyListeners();
-      return result;
+      // Return the version with ID if available (stored in _currentResult)
+      return _currentResult ?? result;
     } catch (e) {
       debugPrint('❌ Backtest error: $e');
       _errorMessage = e.toString();
@@ -127,7 +139,7 @@ class BacktestingProvider with ChangeNotifier {
     if (_userDocRef == null) return;
 
     try {
-      await _firestore
+      final docRef = await _firestore
           .collection('user')
           .doc(_userDocRef!.id)
           .collection('backtest_history')
@@ -136,7 +148,15 @@ class BacktestingProvider with ChangeNotifier {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      _backtestHistory.insert(0, result);
+      // Update result with ID
+      final resultWithId = result.copyWith(id: docRef.id);
+
+      // Update current result if it matches
+      if (_currentResult == result) {
+        _currentResult = resultWithId;
+      }
+
+      _backtestHistory.insert(0, resultWithId);
       if (_backtestHistory.length > 50) {
         // Keep only last 50
         _backtestHistory = _backtestHistory.take(50).toList();
@@ -162,7 +182,10 @@ class BacktestingProvider with ChangeNotifier {
 
       _backtestHistory = snapshot.docs.map((doc) {
         final data = doc.data();
-        return BacktestResult.fromJson(data['result'] as Map<String, dynamic>);
+        return BacktestResult.fromJson(
+          data['result'] as Map<String, dynamic>,
+          id: doc.id,
+        );
       }).toList();
 
       notifyListeners();
@@ -337,12 +360,16 @@ class BacktestingProvider with ChangeNotifier {
     try {
       final result = _backtestHistory[index];
 
-      // Find and delete from Firestore
-      // Use query based on available fields. If symbolFilter is present in object, query it.
-      // If object is old and has no symbolFilter, this query might fail to find it if we rely on symbolFilter.
-      // But we can try to delete by ID if we had it, but we don't store ID in result object.
-      // Best effort: query for symbolFilter containing first symbol if available.
-      if (result.config.symbolFilter.isNotEmpty) {
+      if (result.id != null) {
+        // Delete directly by ID if available
+        await _firestore
+            .collection('user')
+            .doc(_userDocRef!.id)
+            .collection('backtest_history')
+            .doc(result.id)
+            .delete();
+      } else if (result.config.symbolFilter.isNotEmpty) {
+        // Fallback: query based on available fields.
         final snapshot = await _firestore
             .collection('user')
             .doc(_userDocRef!.id)
@@ -358,13 +385,8 @@ class BacktestingProvider with ChangeNotifier {
           await doc.reference.delete();
         }
       } else {
-        // Fallback for old records without symbolFilter (if we can infer they are old)
-        // But we removed `symbol` field from local object so we can't query by it easily
-        // unless we kept it around. Since we didn't, we can try to query by date only?
-        // That might be too broad.
-        // For now, let's just log warning.
         debugPrint(
-            '⚠️ Cannot delete backtest with empty symbolFilter (legacy record)');
+            '⚠️ Cannot delete backtest: missing ID and symbols (legacy record)');
       }
 
       _backtestHistory.removeAt(index);

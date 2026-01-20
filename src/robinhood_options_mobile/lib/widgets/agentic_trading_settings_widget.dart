@@ -1673,6 +1673,8 @@ class _AgenticTradingSettingsWidgetState
                           }
                         }
 
+                        if (!context.mounted) return;
+
                         // Confirm before stopping
                         if (!value && isEnabled) {
                           final confirm = await showDialog<bool>(
@@ -3378,7 +3380,6 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildEntryStrategies(
       BuildContext context, AgenticTradingProvider agenticTradingProvider,
       {bool initiallyExpanded = false, Key? key}) {
-    final colorScheme = Theme.of(context).colorScheme;
     return _buildSection(
       key: key,
       context: context,
@@ -3423,86 +3424,11 @@ class _AgenticTradingSettingsWidgetState
           smaFastController: _smaFastController,
           smaSlowController: _smaSlowController,
           marketIndexController: _marketIndexController,
+          customIndicators: _customIndicators,
+          onAddCustomIndicator: _addCustomIndicator,
+          onEditCustomIndicator: _editCustomIndicator,
+          onRemoveCustomIndicator: _removeCustomIndicator,
         ),
-        const SizedBox(height: 8),
-        const Divider(),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.build,
-                  size: 20,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Custom Indicators',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _addCustomIndicator,
-              tooltip: 'Add Custom Indicator',
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_customIndicators.isEmpty)
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(
-                child: Text('No custom indicators defined'),
-              ),
-            ),
-          )
-        else
-          ..._customIndicators.map((indicator) {
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              ),
-              child: ListTile(
-                title: Text(indicator.name),
-                subtitle: Text(
-                    '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () => _editCustomIndicator(indicator),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () => _removeCustomIndicator(indicator),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
       ],
     );
   }

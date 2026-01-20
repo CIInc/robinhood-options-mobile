@@ -55,6 +55,7 @@ interface BacktestParams {
 interface Trade {
   timestamp: string;
   action: string;
+  symbol: string;
   price: number;
   quantity: number;
   commission: number;
@@ -103,10 +104,15 @@ export const runBacktest = onCall(async (request) => {
   } = config;
 
   try {
+    const symbols = request.data.symbolFilter &&
+      request.data.symbolFilter.length > 0 ?
+      request.data.symbolFilter :
+      (symbol ? [symbol] : []);
+
     // Validate inputs
-    if (!symbol || !startDate || !endDate) {
+    if (symbols.length === 0 || !startDate || !endDate) {
       throw new Error(
-        "Missing required parameters: symbol, startDate, endDate"
+        "Missing required params: symbol/symbolFilter, startDate, endDate"
       );
     }
 
@@ -135,20 +141,11 @@ export const runBacktest = onCall(async (request) => {
     else range = "10y";
 
     logger.info("Fetching historical data", {
-      symbol,
+      symbols,
       range,
       interval,
       daysDiff,
     });
-
-    // Fetch historical data for the symbol
-    const symbolData = await agenticTrading.getMarketData(
-      symbol,
-      smaPeriodFast,
-      smaPeriodSlow,
-      interval,
-      range
-    );
 
     // Fetch market index data (SPY/QQQ)
     const marketData = await agenticTrading.getMarketData(
@@ -159,42 +156,263 @@ export const runBacktest = onCall(async (request) => {
       range
     );
 
-    // Run backtest simulation
-    const result = await runBacktestSimulation({
-      symbol,
-      symbolData,
-      marketData,
-      startDate: start,
-      endDate: end,
-      initialCapital: initialCapital || 10000,
-      enabledIndicators: enabledIndicators || {},
-      tradeQuantity: tradeQuantity || 1,
-      takeProfitPercent: takeProfitPercent || 10,
-      stopLossPercent: stopLossPercent || 5,
-      trailingStopEnabled: trailingStopEnabled || false,
-      trailingStopPercent: trailingStopPercent || 5,
-      rsiPeriod: rsiPeriod || 14,
-      smaPeriodFast: smaPeriodFast || 10,
-      smaPeriodSlow: smaPeriodSlow || 30,
-      config,
-      minSignalStrength: request.data.minSignalStrength || 50,
-      requireAllIndicatorsGreen:
-        request.data.requireAllIndicatorsGreen || false,
-      timeBasedExitEnabled: request.data.timeBasedExitEnabled || false,
-      timeBasedExitMinutes: request.data.timeBasedExitMinutes || 120,
-      marketCloseExitEnabled: request.data.marketCloseExitEnabled || false,
-      marketCloseExitMinutes: request.data.marketCloseExitMinutes || 15,
-      enablePartialExits: request.data.enablePartialExits || false,
-      exitStages: request.data.exitStages || [],
-      enableDynamicPositionSizing:
-        request.data.enableDynamicPositionSizing || false,
-      riskPerTrade: request.data.riskPerTrade || 0.01,
-      atrMultiplier: request.data.atrMultiplier || 2.0,
-      customIndicators: request.data.customIndicators || [],
+    const symbolCapital = symbols.length > 0 ?
+      (initialCapital || 10000) / symbols.length :
+      (initialCapital || 10000);
+
+    const results = await Promise.all(symbols.map(async (sym: string) => {
+      // Fetch historical data for the symbol
+      const symbolData = await agenticTrading.getMarketData(
+        sym,
+        smaPeriodFast,
+        smaPeriodSlow,
+        interval,
+        range
+      );
+
+      return runBacktestSimulation({
+        symbol: sym,
+        symbolData,
+        marketData,
+        startDate: start,
+        endDate: end,
+        initialCapital: symbolCapital,
+        enabledIndicators: enabledIndicators || {},
+        tradeQuantity: tradeQuantity || 1,
+        takeProfitPercent: takeProfitPercent || 10,
+        stopLossPercent: stopLossPercent || 5,
+        trailingStopEnabled: trailingStopEnabled || false,
+        trailingStopPercent: trailingStopPercent || 5,
+        rsiPeriod: rsiPeriod || 14,
+        smaPeriodFast: smaPeriodFast || 10,
+        smaPeriodSlow: smaPeriodSlow || 30,
+        config: config,
+        minSignalStrength: request.data.minSignalStrength || 50,
+        requireAllIndicatorsGreen:
+          request.data.requireAllIndicatorsGreen || false,
+        timeBasedExitEnabled: request.data.timeBasedExitEnabled || false,
+        timeBasedExitMinutes: request.data.timeBasedExitMinutes || 120,
+        marketCloseExitEnabled: request.data.marketCloseExitEnabled || false,
+        marketCloseExitMinutes: request.data.marketCloseExitMinutes || 15,
+        enablePartialExits: request.data.enablePartialExits || false,
+        exitStages: request.data.exitStages || [],
+        enableDynamicPositionSizing:
+          request.data.enableDynamicPositionSizing || false,
+        riskPerTrade: request.data.riskPerTrade || 0.01,
+        atrMultiplier: request.data.atrMultiplier || 2.0,
+        customIndicators: request.data.customIndicators || [],
+      });
+    }));
+
+    // If single result, return it (but ensure type compatibility)
+    if (results.length === 1) {
+      return results[0];
+    }
+
+    // Aggregate Results for Portfolio
+    let totalInitialCapital = 0;
+    let totalFinalCapital = 0;
+    let totalBuyAndHoldReturn = 0;
+    let totalTradesCount = 0;
+    let totalWinningTrades = 0;
+    let totalLosingTrades = 0;
+    let totalWins = 0;
+    let totalLosses = 0;
+    let maxWin = 0;
+    let maxLoss = 0;
+    // weighted by trades count? No, just sum(avg * count)
+    let totalHoldTimePts = 0;
+    const totalDurationSeconds = results[0].totalDurationSeconds; // Use first
+
+    const allTrades: Trade[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const aggSignals: Record<string, any> = {};
+
+    // Combine stats
+    for (const res of results) {
+      totalInitialCapital += symbolCapital; // Approx, effectively user input
+      totalFinalCapital += res.finalCapital;
+      totalBuyAndHoldReturn += res.buyAndHoldReturn;
+      totalTradesCount += res.totalTrades;
+      totalWinningTrades += res.winningTrades;
+      totalLosingTrades += res.losingTrades;
+
+      // Re-derive totals from averages
+      const resTotalWins = res.averageWin * res.winningTrades;
+      // averageLoss is usually positive magnitude
+      const resTotalLosses = res.averageLoss * res.losingTrades;
+
+      totalWins += resTotalWins;
+      totalLosses += resTotalLosses;
+
+      if (res.largestWin > maxWin) maxWin = res.largestWin;
+      if (res.largestLoss > maxLoss) maxLoss = res.largestLoss;
+
+      totalHoldTimePts += res.averageHoldTimeSeconds * res.totalTrades;
+
+      allTrades.push(...res.trades);
+
+      // Aggregate signals
+      if (res.indicatorSignalCounts) {
+        for (const k of Object.keys(res.indicatorSignalCounts)) {
+          if (!aggSignals[k]) {
+            aggSignals[k] = { ...res.indicatorSignalCounts[k] };
+          } else {
+            aggSignals[k].buy += res.indicatorSignalCounts[k].buy;
+            aggSignals[k].sell += res.indicatorSignalCounts[k].sell;
+            aggSignals[k].hold += res.indicatorSignalCounts[k].hold;
+            aggSignals[k].winContribution +=
+              res.indicatorSignalCounts[k].winContribution;
+          }
+        }
+      }
+    }
+
+    const totalReturn = totalFinalCapital - totalInitialCapital;
+    const totalReturnPercent = totalInitialCapital > 0 ?
+      (totalReturn / totalInitialCapital) * 100 : 0;
+    const totalBuyAndHoldReturnPercent = totalInitialCapital > 0 ?
+      (totalBuyAndHoldReturn / totalInitialCapital) * 100 : 0;
+
+    // Sort trades
+    allTrades.sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    // Aggregate Equity Curve
+    // Collect all timestamps
+    const timeSet = new Set<string>();
+    results.forEach((r) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      r.equityCurve.forEach((p: any) => timeSet.add(p.timestamp))
+    );
+    const sortedTimes = Array.from(timeSet).sort((a, b) =>
+      new Date(a).getTime() - new Date(b).getTime()
+    );
+
+    const combinedEquityCurve: EquityPoint[] = sortedTimes.map((t) => {
+      let sumEquity = 0;
+      let sumBuyAndHold = 0;
+      results.forEach((r) => {
+        // Find equity at t or last known
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pt = r.equityCurve.find((ep: any) => ep.timestamp === t);
+        const bhPt = r.buyAndHoldEquityCurve.find(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (ep: any) => ep.timestamp === t
+        );
+
+        if (pt) {
+          sumEquity += pt.equity;
+        } else {
+          // Find last point before T
+          const prev = [...r.equityCurve]
+            .reverse()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .find((ep: any) => new Date(ep.timestamp) < new Date(t));
+          sumEquity += prev ? prev.equity : symbolCapital;
+        }
+
+        if (bhPt) {
+          sumBuyAndHold += bhPt.equity;
+        } else {
+          const prevBh = [...r.buyAndHoldEquityCurve]
+            .reverse()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .find((ep: any) => new Date(ep.timestamp) < new Date(t));
+          sumBuyAndHold += prevBh ? prevBh.equity : symbolCapital;
+        }
+      });
+      return {
+        timestamp: t,
+        equity: sumEquity,
+        buyAndHoldEquity: sumBuyAndHold,
+      };
     });
 
-    logger.info("Backtest completed", {
-      symbol,
+    const buyAndHoldEquityCurve = combinedEquityCurve.map((p) => ({
+      timestamp: p.timestamp,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      equity: (p as any).buyAndHoldEquity,
+    }));
+
+    // Calculate Portfolio Max Drawdown from combined curve
+    let peak = -Infinity;
+    let maxDrawdown = 0;
+    for (const pt of combinedEquityCurve) {
+      if (pt.equity > peak) peak = pt.equity;
+      const dd = peak - pt.equity;
+      if (dd > maxDrawdown) maxDrawdown = dd;
+    }
+    const maxDrawdownPercent = peak > 0 ? (maxDrawdown / peak) * 100 : 0;
+
+    // Recalculate Portfolio Sharpe (Simplified: Daily Returns)
+    // We need daily returns of the *portfolio equity*.
+    // Note: timestamps might be intraday.
+    const returns = [];
+    for (let i = 1; i < combinedEquityCurve.length; i++) {
+      const val = combinedEquityCurve[i].equity;
+      const prev = combinedEquityCurve[i - 1].equity;
+      returns.push((val - prev) / prev);
+    }
+    const avgRet = returns.length > 0 ?
+      returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+    const diffSq = returns.length > 0 ?
+      returns.reduce((a, b) => a + Math.pow(b - avgRet, 2), 0) : 0;
+    const variance = returns.length > 0 ? diffSq / returns.length : 0;
+    const stdDev = Math.sqrt(variance);
+    // Annualize (assuming daily bars roughly)
+    const sharpeRatio = stdDev > 0 ? (avgRet / stdDev) * Math.sqrt(252) : 0;
+
+    // Rebuild Performance By Indicator
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const performanceByIndicator: Record<string, any> = {};
+    for (const k of Object.keys(aggSignals)) {
+      const counts = aggSignals[k];
+      const wr = counts.buy > 0 ? counts.winContribution / counts.buy : 0;
+      const wrP = Math.round(wr * 100);
+      performanceByIndicator[k] = {
+        buySignals: counts.buy,
+        sellSignals: counts.sell,
+        holdSignals: counts.hold,
+        winRate: wrP,
+        winRateDisplay: `${wrP}%`,
+        summary:
+          `${counts.buy} BUY, ${counts.sell} SELL, ` +
+          `${counts.hold} HOLD - ${wrP}% wins`,
+      };
+    }
+
+    const result = {
+      config,
+      trades: allTrades,
+      finalCapital: totalFinalCapital,
+      totalReturn,
+      totalReturnPercent,
+      buyAndHoldReturn: totalBuyAndHoldReturn,
+      buyAndHoldReturnPercent: totalBuyAndHoldReturnPercent,
+      totalTrades: totalTradesCount,
+      winningTrades: totalWinningTrades,
+      losingTrades: totalLosingTrades,
+      winRate: totalTradesCount > 0 ? totalWinningTrades / totalTradesCount : 0,
+      averageWin: totalWinningTrades > 0 ? totalWins / totalWinningTrades : 0,
+      averageLoss: totalLosingTrades > 0 ? totalLosses / totalLosingTrades : 0,
+      largestWin: maxWin,
+      largestLoss: maxLoss,
+      profitFactor: totalLosses > 0 ? totalWins / totalLosses : 0,
+      sharpeRatio,
+      maxDrawdown,
+      maxDrawdownPercent,
+      averageHoldTimeSeconds: totalTradesCount > 0 ?
+        Math.floor(totalHoldTimePts / totalTradesCount) : 0,
+      totalDurationSeconds,
+      equityCurve: combinedEquityCurve,
+      buyAndHoldEquityCurve,
+      performanceByIndicator,
+    };
+
+    logger.info("Backtest completed (Multi-Symbol)", {
+      symbols,
       totalTrades: result.totalTrades,
       totalReturn: result.totalReturn,
     });
@@ -213,6 +431,7 @@ export const runBacktest = onCall(async (request) => {
  */
 async function runBacktestSimulation(params: BacktestParams) {
   const {
+    symbol,
     symbolData,
     marketData,
     startDate,
@@ -247,6 +466,7 @@ async function runBacktestSimulation(params: BacktestParams) {
   let position: Position | null = null;
   let highestPriceInPosition = 0;
   const equityCurve: EquityPoint[] = [];
+  const buyAndHoldEquityCurve: EquityPoint[] = [];
   const performanceByIndicator: Record<string, unknown> = {};
   let initialPositionQuantity = 0; // Track initial quantity for partial exits
 
@@ -267,6 +487,8 @@ async function runBacktestSimulation(params: BacktestParams) {
   }
 
   const finalIndex = endIndex === -1 ? timestamps.length : endIndex;
+  // Calculate Start Price for Buy & Hold
+  const initialPrice = closes[startIndex];
 
   logger.info("Backtest range", {
     startIndex,
@@ -274,24 +496,44 @@ async function runBacktestSimulation(params: BacktestParams) {
     totalBars: finalIndex - startIndex,
   });
 
+  // Optimization: Pre-calculate active keys and define max history window
+  // to prevent O(N^2) complexity where N is history length.
+  // 500 bars is sufficient for even the slowest indicators
+  // (SMA 200, Ichimoku 80).
+  const MAX_LOOKBACK = 500;
+  const activeIndicatorKeys = Object.keys(enabledIndicators).filter(
+    (key) => enabledIndicators[key] === true
+  );
+
   // Iterate through historical data
   for (let i = startIndex; i < finalIndex; i++) {
     const timestamp = new Date(timestamps[i] * 1000);
     const close = closes[i];
 
-    // Get data up to current point
+    // Buy & Hold Calculation
+    const bhChangePercent = (close - initialPrice) / initialPrice;
+    const bhEquity = initialCapital * (1 + bhChangePercent);
+    buyAndHoldEquityCurve.push({
+      timestamp: timestamp.toISOString(),
+      equity: bhEquity,
+    });
+
+    // Get data up to current point (Optimized with sliding window)
+    const windowStart = Math.max(0, i + 1 - MAX_LOOKBACK);
+
     const histSymbolData = {
-      opens: opens.slice(0, i + 1),
-      highs: highs.slice(0, i + 1),
-      lows: lows.slice(0, i + 1),
-      closes: closes.slice(0, i + 1),
-      volumes: volumes.slice(0, i + 1),
+      opens: opens.slice(windowStart, i + 1),
+      highs: highs.slice(windowStart, i + 1),
+      lows: lows.slice(windowStart, i + 1),
+      closes: closes.slice(windowStart, i + 1),
+      volumes: volumes.slice(windowStart, i + 1),
     };
 
     const histMarketData = {
-      closes: marketData.closes.slice(0, i + 1),
+      closes: marketData.closes.slice(windowStart, i + 1),
       volumes: marketData.volumes ?
-        marketData.volumes.slice(0, i + 1) : undefined,
+        marketData.volumes.slice(windowStart, i + 1) :
+        undefined,
     };
 
     // Evaluate indicators at this point in time
@@ -304,6 +546,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         marketSlowPeriod: smaPeriodSlow,
         customIndicators: customIndicators ||
           (config?.customIndicators as CustomIndicatorConfig[]),
+        enabledIndicators: activeIndicatorKeys, // Optimization: only active
       }
     );
 
@@ -338,6 +581,7 @@ async function runBacktestSimulation(params: BacktestParams) {
               trades.push({
                 timestamp: timestamp.toISOString(),
                 action: "SELL",
+                symbol,
                 price: exitPrice,
                 quantity: exitQuantity,
                 commission: 0,
@@ -420,6 +664,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         trades.push({
           timestamp: timestamp.toISOString(),
           action: "SELL",
+          symbol,
           price: exitPrice,
           quantity: position.quantity,
           commission: 0,
@@ -521,6 +766,7 @@ async function runBacktestSimulation(params: BacktestParams) {
           trades.push({
             timestamp: timestamp.toISOString(),
             action: "BUY",
+            symbol,
             price: entryPrice,
             quantity,
             commission: 0,
@@ -550,6 +796,7 @@ async function runBacktestSimulation(params: BacktestParams) {
     trades.push({
       timestamp: new Date(timestamps[finalIndex - 1] * 1000).toISOString(),
       action: "SELL",
+      symbol,
       price: exitPrice,
       quantity: position.quantity,
       commission: 0,
@@ -562,6 +809,13 @@ async function runBacktestSimulation(params: BacktestParams) {
   const finalCapital = capital;
   const totalReturn = finalCapital - initialCapital;
   const totalReturnPercent = (totalReturn / initialCapital) * 100;
+
+  // Calculate Buy & Hold Return
+  const startPrice = closes[startIndex];
+  const endPrice = closes[finalIndex - 1];
+  const buyAndHoldReturnPercent =
+    ((endPrice - startPrice) / startPrice) * 100;
+  const buyAndHoldReturn = initialCapital * (buyAndHoldReturnPercent / 100);
 
   // Calculate trade statistics
   const buyTrades = trades.filter((t) => t.action === "BUY");
@@ -605,15 +859,21 @@ async function runBacktestSimulation(params: BacktestParams) {
   // Calculate Sharpe ratio
   const returns: number[] = [];
   for (let i = 1; i < equityCurve.length; i++) {
-    const ret =
-      (equityCurve[i].equity - equityCurve[i - 1].equity) /
-      equityCurve[i - 1].equity;
-    returns.push(ret);
+    const val = equityCurve[i].equity;
+    const prev = equityCurve[i - 1].equity;
+    // Guard against division by zero if prev is 0 (bankruptcy)
+    if (prev === 0) {
+      returns.push(0);
+    } else {
+      const ret = (val - prev) / prev;
+      returns.push(ret);
+    }
   }
-  const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const variance =
+  const avgReturn = returns.length > 0 ?
+    returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+  const variance = returns.length > 0 ?
     returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) /
-    returns.length;
+    returns.length : 0;
   const stdDev = Math.sqrt(variance);
   const sharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0;
 
@@ -718,6 +978,8 @@ async function runBacktestSimulation(params: BacktestParams) {
     finalCapital,
     totalReturn,
     totalReturnPercent,
+    buyAndHoldReturn,
+    buyAndHoldReturnPercent,
     totalTrades: trades.length,
     winningTrades,
     losingTrades,
@@ -733,6 +995,8 @@ async function runBacktestSimulation(params: BacktestParams) {
     averageHoldTimeSeconds: avgHoldTimeSeconds,
     totalDurationSeconds: totalDurationSeconds,
     equityCurve,
+    buyAndHoldEquityCurve,
     performanceByIndicator,
+    indicatorSignalCounts,
   };
 }

@@ -168,6 +168,7 @@ class TradeStrategyConfig {
 class BacktestTrade {
   final DateTime timestamp;
   final String action; // 'BUY', 'SELL'
+  final String? symbol;
   final double price;
   final int quantity;
   final double commission;
@@ -177,6 +178,7 @@ class BacktestTrade {
   BacktestTrade({
     required this.timestamp,
     required this.action,
+    this.symbol,
     required this.price,
     required this.quantity,
     this.commission = 0.0,
@@ -189,6 +191,7 @@ class BacktestTrade {
   Map<String, dynamic> toJson() => {
         'timestamp': timestamp.toIso8601String(),
         'action': action,
+        'symbol': symbol,
         'price': price,
         'quantity': quantity,
         'commission': commission,
@@ -199,6 +202,7 @@ class BacktestTrade {
   factory BacktestTrade.fromJson(Map<String, dynamic> json) => BacktestTrade(
         timestamp: DateTime.parse(json['timestamp'] as String),
         action: json['action'] as String,
+        symbol: json['symbol'] as String?,
         price: (json['price'] as num).toDouble(),
         quantity: json['quantity'] as int,
         commission: (json['commission'] as num?)?.toDouble() ?? 0.0,
@@ -211,11 +215,16 @@ class BacktestTrade {
 
 /// Results from a completed backtest run
 class BacktestResult {
+  final String? id; // Firestore Document ID
+  final String? templateId; // ID of the template used (if any)
+  final String? templateName; // Name of the template used (if any)
   final TradeStrategyConfig config;
   final List<BacktestTrade> trades;
   final double finalCapital;
   final double totalReturn;
   final double totalReturnPercent;
+  final double buyAndHoldReturn;
+  final double buyAndHoldReturnPercent;
   final int totalTrades;
   final int winningTrades;
   final int losingTrades;
@@ -231,14 +240,20 @@ class BacktestResult {
   final Duration averageHoldTime;
   final Duration totalDuration;
   final List<Map<String, dynamic>> equityCurve; // [{timestamp, equity}]
+  final List<Map<String, dynamic>> buyAndHoldEquityCurve;
   final Map<String, dynamic> performanceByIndicator;
 
   BacktestResult({
+    this.id,
+    this.templateId,
+    this.templateName,
     required this.config,
     required this.trades,
     required this.finalCapital,
     required this.totalReturn,
     required this.totalReturnPercent,
+    required this.buyAndHoldReturn,
+    required this.buyAndHoldReturnPercent,
     required this.totalTrades,
     required this.winningTrades,
     required this.losingTrades,
@@ -254,15 +269,56 @@ class BacktestResult {
     required this.averageHoldTime,
     required this.totalDuration,
     required this.equityCurve,
+    this.buyAndHoldEquityCurve = const [],
     required this.performanceByIndicator,
   });
 
+  BacktestResult copyWith({
+    String? id,
+    String? templateId,
+    String? templateName,
+  }) {
+    return BacktestResult(
+      id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      templateName: templateName ?? this.templateName,
+      config: config,
+      trades: trades,
+      finalCapital: finalCapital,
+      totalReturn: totalReturn,
+      totalReturnPercent: totalReturnPercent,
+      buyAndHoldReturn: buyAndHoldReturn,
+      buyAndHoldReturnPercent: buyAndHoldReturnPercent,
+      totalTrades: totalTrades,
+      winningTrades: winningTrades,
+      losingTrades: losingTrades,
+      winRate: winRate,
+      averageWin: averageWin,
+      averageLoss: averageLoss,
+      largestWin: largestWin,
+      largestLoss: largestLoss,
+      profitFactor: profitFactor,
+      sharpeRatio: sharpeRatio,
+      maxDrawdown: maxDrawdown,
+      maxDrawdownPercent: maxDrawdownPercent,
+      averageHoldTime: averageHoldTime,
+      totalDuration: totalDuration,
+      equityCurve: equityCurve,
+      buyAndHoldEquityCurve: buyAndHoldEquityCurve,
+      performanceByIndicator: performanceByIndicator,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
+        'templateId': templateId,
+        'templateName': templateName,
         'config': config.toJson(),
         'trades': trades.map((t) => t.toJson()).toList(),
         'finalCapital': finalCapital,
         'totalReturn': totalReturn,
         'totalReturnPercent': totalReturnPercent,
+        'buyAndHoldReturn': buyAndHoldReturn,
+        'buyAndHoldReturnPercent': buyAndHoldReturnPercent,
         'totalTrades': totalTrades,
         'winningTrades': winningTrades,
         'losingTrades': losingTrades,
@@ -278,10 +334,15 @@ class BacktestResult {
         'averageHoldTimeSeconds': averageHoldTime.inSeconds,
         'totalDurationSeconds': totalDuration.inSeconds,
         'equityCurve': equityCurve,
+        'buyAndHoldEquityCurve': buyAndHoldEquityCurve,
         'performanceByIndicator': performanceByIndicator,
       };
 
-  factory BacktestResult.fromJson(Map<String, dynamic> json) => BacktestResult(
+  factory BacktestResult.fromJson(Map<String, dynamic> json, {String? id}) =>
+      BacktestResult(
+        id: id,
+        templateId: json['templateId'] as String?,
+        templateName: json['templateName'] as String?,
         config: TradeStrategyConfig.fromJson(
           Map<String, dynamic>.from(json['config'] as Map),
         ),
@@ -292,6 +353,9 @@ class BacktestResult {
         finalCapital: (json['finalCapital'] as num).toDouble(),
         totalReturn: (json['totalReturn'] as num).toDouble(),
         totalReturnPercent: (json['totalReturnPercent'] as num).toDouble(),
+        buyAndHoldReturn: (json['buyAndHoldReturn'] as num?)?.toDouble() ?? 0.0,
+        buyAndHoldReturnPercent:
+            (json['buyAndHoldReturnPercent'] as num?)?.toDouble() ?? 0.0,
         totalTrades: json['totalTrades'] as int,
         winningTrades: json['winningTrades'] as int,
         losingTrades: json['losingTrades'] as int,
@@ -310,6 +374,10 @@ class BacktestResult {
         equityCurve: (json['equityCurve'] as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
+        buyAndHoldEquityCurve: (json['buyAndHoldEquityCurve'] as List?)
+                ?.map((e) => Map<String, dynamic>.from(e as Map))
+                .toList() ??
+            [],
         performanceByIndicator:
             Map<String, dynamic>.from(json['performanceByIndicator'] as Map),
       );

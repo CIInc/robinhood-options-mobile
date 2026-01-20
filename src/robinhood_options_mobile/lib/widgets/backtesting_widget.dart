@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'dart:math' as dart_math;
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:csv/csv.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
@@ -11,16 +15,25 @@ import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/strategy_list_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/backtest_optimization_tab.dart';
 
 /// Main backtesting interface widget
 class BacktestingWidget extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final String? prefilledSymbol;
   final AgenticTradingConfig? prefilledConfig;
+  final TradeStrategyConfig? prefilledStrategyConfig;
 
   const BacktestingWidget(
-      {super.key, this.userDocRef, this.prefilledSymbol, this.prefilledConfig});
+      {super.key,
+      this.userDocRef,
+      this.prefilledSymbol,
+      this.prefilledConfig,
+      this.prefilledStrategyConfig});
 
   @override
   State<BacktestingWidget> createState() => _BacktestingWidgetState();
@@ -29,7 +42,7 @@ class BacktestingWidget extends StatefulWidget {
 class _BacktestingWidgetState extends State<BacktestingWidget>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final GlobalKey<_BacktestRunTabState> _runTabKey = GlobalKey();
+  final GlobalKey<BacktestRunTabState> _runTabKey = GlobalKey();
 
   @override
   void initState() {
@@ -66,14 +79,19 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _BacktestRunTab(
+          BacktestRunTab(
             key: _runTabKey,
             userDocRef: widget.userDocRef,
             tabController: _tabController,
             prefilledSymbol: widget.prefilledSymbol,
             prefilledConfig: widget.prefilledConfig,
+            prefilledStrategyConfig: widget.prefilledStrategyConfig,
           ),
-          const _BacktestHistoryTab(),
+          _BacktestHistoryTab(
+            userDocRef: widget.userDocRef,
+            runTabKey: _runTabKey,
+            tabController: _tabController,
+          ),
           _BacktestTemplatesTab(
             tabController: _tabController,
             runTabKey: _runTabKey,
@@ -85,25 +103,27 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
 }
 
 /// Tab for running new backtests
-class _BacktestRunTab extends StatefulWidget {
+class BacktestRunTab extends StatefulWidget {
   final DocumentReference<User>? userDocRef;
   final TabController? tabController;
   final String? prefilledSymbol;
   final AgenticTradingConfig? prefilledConfig;
+  final TradeStrategyConfig? prefilledStrategyConfig;
 
-  const _BacktestRunTab({
+  const BacktestRunTab({
     super.key,
     this.userDocRef,
     this.tabController,
     this.prefilledSymbol,
     this.prefilledConfig,
+    this.prefilledStrategyConfig,
   });
 
   @override
-  State<_BacktestRunTab> createState() => _BacktestRunTabState();
+  State<BacktestRunTab> createState() => BacktestRunTabState();
 }
 
-class _BacktestRunTabState extends State<_BacktestRunTab> {
+class BacktestRunTabState extends State<BacktestRunTab> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _symbolController;
   final _initialCapitalController = TextEditingController(text: '10000');
@@ -135,7 +155,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
   bool _timeBasedExitEnabled = false;
   bool _marketCloseExitEnabled = false;
   bool _enablePartialExits = false;
-  bool _enableDynamicPositionSizing = false;
+  bool _enableDynamicPositionSizing = true;
   List<ExitStage> _exitStages = [];
   List<CustomIndicatorConfig> _customIndicators = [];
 
@@ -161,7 +181,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
   void initState() {
     super.initState();
     _symbolController = TextEditingController(
-      text: widget.prefilledSymbol ?? 'AAPL',
+      text: widget.prefilledSymbol ?? 'SPY',
     );
 
     if (widget.prefilledConfig != null) {
@@ -192,6 +212,42 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       _exitStages = List.from(config.exitStages);
       _customIndicators = List.from(config.customIndicators);
     }
+
+    if (widget.prefilledStrategyConfig != null) {
+      final config = widget.prefilledStrategyConfig!;
+      _symbolController.text = config.symbolFilter.join(', ');
+      _initialCapitalController.text = config.initialCapital.toString();
+      _tradeQuantityController.text = config.tradeQuantity.toString();
+      _takeProfitController.text = config.takeProfitPercent.toString();
+      _stopLossController.text = config.stopLossPercent.toString();
+      _trailingStopEnabled = config.trailingStopEnabled;
+      _trailingStopController.text = config.trailingStopPercent.toString();
+      _rsiPeriodController.text = config.rsiPeriod.toString();
+      _smaFastController.text = config.smaPeriodFast.toString();
+      _smaSlowController.text = config.smaPeriodSlow.toString();
+      _marketIndexController.text = config.marketIndexSymbol;
+
+      _minSignalStrengthController.text = config.minSignalStrength.toString();
+      _requireAllIndicatorsGreen = config.requireAllIndicatorsGreen;
+      _timeBasedExitEnabled = config.timeBasedExitEnabled;
+      _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
+      _marketCloseExitEnabled = config.marketCloseExitEnabled;
+      _marketCloseExitController.text =
+          config.marketCloseExitMinutes.toString();
+      _enablePartialExits = config.enablePartialExits;
+      _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
+      _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
+      _atrMultiplierController.text = config.atrMultiplier.toString();
+      _exitStages = List.from(config.exitStages);
+      _customIndicators = List.from(config.customIndicators);
+
+      _startDate = config.startDate;
+      _endDate = config.endDate;
+      _interval = config.interval;
+
+      _enabledIndicators.clear();
+      _enabledIndicators.addAll(config.enabledIndicators);
+    }
   }
 
   @override
@@ -214,12 +270,139 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     super.dispose();
   }
 
+  void _resetToDefaults() {
+    setState(() {
+      _loadedTemplate = null;
+      _symbolController.text = widget.prefilledSymbol ?? 'SPY';
+      _initialCapitalController.text = '10000';
+      _tradeQuantityController.text = '1';
+      _takeProfitController.text = '10';
+      _stopLossController.text = '5';
+      _trailingStopController.text = '5';
+      _rsiPeriodController.text = '14';
+      _smaFastController.text = '10';
+      _smaSlowController.text = '30';
+      _marketIndexController.text = 'SPY';
+      _minSignalStrengthController.text = '50';
+      _timeBasedExitController.text = '120';
+      _marketCloseExitController.text = '15';
+      _riskPerTradeController.text = '1.0';
+      _atrMultiplierController.text = '2.0';
+
+      _startDate = DateTime.now().subtract(const Duration(days: 365));
+      _endDate = DateTime.now();
+      _interval = '1d';
+      _trailingStopEnabled = false;
+      _requireAllIndicatorsGreen = false;
+      _timeBasedExitEnabled = false;
+      _marketCloseExitEnabled = false;
+      _enablePartialExits = false;
+      _enableDynamicPositionSizing = false;
+      _exitStages.clear();
+
+      // Reset indicators
+      for (final key in _enabledIndicators.keys) {
+        _enabledIndicators[key] = true;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Configuration reset to defaults')),
+    );
+  }
+
+  /// Get current configuration from UI state
+  TradeStrategyConfig getStrategyConfig() {
+    // Parse symbols
+    final symbols = _symbolController.text
+        .split(',')
+        .map((e) => e.trim().toUpperCase())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    return TradeStrategyConfig(
+      startDate: _startDate,
+      endDate: _endDate,
+      symbolFilter: symbols.isEmpty ? ['SPY'] : symbols,
+      initialCapital:
+          double.tryParse(_initialCapitalController.text) ?? 10000.0,
+      tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      takeProfitPercent: double.tryParse(_takeProfitController.text) ?? 10.0,
+      stopLossPercent: double.tryParse(_stopLossController.text) ?? 5.0,
+      trailingStopEnabled: _trailingStopEnabled,
+      trailingStopPercent: double.tryParse(_trailingStopController.text) ?? 5.0,
+      rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
+      smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
+      marketIndexSymbol: _marketIndexController.text,
+      interval: _interval,
+      enabledIndicators: Map.from(_enabledIndicators),
+      minSignalStrength:
+          double.tryParse(_minSignalStrengthController.text) ?? 50.0,
+      requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+      timeBasedExitEnabled: _timeBasedExitEnabled,
+      timeBasedExitMinutes: int.tryParse(_timeBasedExitController.text) ?? 120,
+      marketCloseExitEnabled: _marketCloseExitEnabled,
+      marketCloseExitMinutes:
+          int.tryParse(_marketCloseExitController.text) ?? 15,
+      enablePartialExits: _enablePartialExits,
+      enableDynamicPositionSizing: _enableDynamicPositionSizing,
+      // riskPerTrade is stored as percent in controller (1.0) but decimal in config (0.01)
+      riskPerTrade:
+          (double.tryParse(_riskPerTradeController.text) ?? 1.0) / 100.0,
+      atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      exitStages: List.from(_exitStages),
+      customIndicators: List.from(_customIndicators),
+    );
+  }
+
+  void loadConfig(TradeStrategyConfig config) {
+    setState(() {
+      _symbolController.text = config.symbolFilter.join(', ');
+      _initialCapitalController.text = config.initialCapital.toString();
+      _tradeQuantityController.text = config.tradeQuantity.toString();
+      _takeProfitController.text = config.takeProfitPercent.toString();
+      _stopLossController.text = config.stopLossPercent.toString();
+      _trailingStopController.text = config.trailingStopPercent.toString();
+      _rsiPeriodController.text = config.rsiPeriod.toString();
+      _smaFastController.text = config.smaPeriodFast.toString();
+      _smaSlowController.text = config.smaPeriodSlow.toString();
+      _marketIndexController.text = config.marketIndexSymbol;
+      _startDate = config.startDate;
+      _endDate = config.endDate;
+      _interval = config.interval;
+      _trailingStopEnabled = config.trailingStopEnabled;
+      _enabledIndicators.clear();
+      _enabledIndicators.addAll(config.enabledIndicators);
+
+      _minSignalStrengthController.text = config.minSignalStrength.toString();
+      _requireAllIndicatorsGreen = config.requireAllIndicatorsGreen;
+      _timeBasedExitEnabled = config.timeBasedExitEnabled;
+      _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
+      _marketCloseExitEnabled = config.marketCloseExitEnabled;
+      _marketCloseExitController.text =
+          config.marketCloseExitMinutes.toString();
+      _enablePartialExits = config.enablePartialExits;
+      _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
+      _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
+      _atrMultiplierController.text = config.atrMultiplier.toString();
+      _exitStages = List.from(config.exitStages);
+      _customIndicators = List.from(config.customIndicators);
+    });
+
+    // Switch to Run tab
+    widget.tabController?.animateTo(0);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Configuration loaded from optimization result')),
+    );
+  }
+
   void _loadFromTemplate(TradeStrategyTemplate template) {
     setState(() {
       _loadedTemplate = template;
-      _symbolController.text = template.config.symbolFilter.isNotEmpty
-          ? template.config.symbolFilter.first
-          : '';
+      _symbolController.text = template.config.symbolFilter.join(', ');
       _initialCapitalController.text =
           template.config.initialCapital.toString();
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
@@ -260,49 +443,43 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     });
   }
 
-  Widget _buildSection({
-    required BuildContext context,
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-    String? subtitle,
-    bool initiallyExpanded = false,
-  }) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: initiallyExpanded,
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: subtitle != null
-              ? Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                )
-              : null,
-          leading: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          children: children,
-        ),
+  void _addCustomIndicator() async {
+    final result = await Navigator.push<CustomIndicatorConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CustomIndicatorPage(),
       ),
     );
+
+    if (result != null) {
+      setState(() {
+        _customIndicators.add(result);
+      });
+    }
+  }
+
+  void _editCustomIndicator(CustomIndicatorConfig indicator) async {
+    final result = await Navigator.push<CustomIndicatorConfig>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomIndicatorPage(indicator: indicator),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        final index = _customIndicators.indexWhere((i) => i.id == indicator.id);
+        if (index != -1) {
+          _customIndicators[index] = result;
+        }
+      });
+    }
+  }
+
+  void _removeCustomIndicator(CustomIndicatorConfig indicator) {
+    setState(() {
+      _customIndicators.removeWhere((i) => i.id == indicator.id);
+    });
   }
 
   Widget _buildStatusHeader(BuildContext context) {
@@ -324,7 +501,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: colorScheme.primary.withOpacity(0.1),
+                    color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.science, color: colorScheme.primary),
@@ -349,6 +526,34 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Reset to Defaults',
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                                title: const Text('Reset Configuration'),
+                                content: const Text(
+                                    'Are you sure you want to reset all settings to default values?'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Cancel')),
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('Reset')),
+                                ]));
+                    if (confirm == true) _resetToDefaults();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmark_border),
+                  tooltip: 'Save as Template',
+                  onPressed: () => _showSaveTemplateDialog(context),
+                ),
               ],
             ),
             if (_loadedTemplate != null) ...[
@@ -359,10 +564,10 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: colorScheme.primary.withOpacity(0.1),
+                    color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: colorScheme.primary.withOpacity(0.3)),
+                    border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -402,7 +607,8 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   child: TextFormField(
                     controller: _symbolController,
                     decoration: InputDecoration(
-                      labelText: 'Symbol',
+                      labelText: 'Symbols',
+                      hintText: 'SPY, QQQ, IWM',
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -412,6 +618,12 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                       fillColor: colorScheme.surface,
                     ),
                     textCapitalization: TextCapitalization.characters,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter at least one symbol';
+                      }
+                      return null;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -479,7 +691,62 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildDateRangeChip('1M', const Duration(days: 30)),
+                  const SizedBox(width: 8),
+                  _buildDateRangeChip('3M', const Duration(days: 90)),
+                  const SizedBox(width: 8),
+                  _buildDateRangeChip('6M', const Duration(days: 180)),
+                  const SizedBox(width: 8),
+                  _buildDateRangeChip('YTD', null, isYtd: true),
+                  const SizedBox(width: 8),
+                  _buildDateRangeChip('1Y', const Duration(days: 365)),
+                  const SizedBox(width: 8),
+                  _buildDateRangeChip('5Y', const Duration(days: 365 * 5)),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeChip(String label, Duration? duration,
+      {bool isYtd = false}) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _endDate = DateTime.now();
+          if (isYtd) {
+            _startDate = DateTime(_endDate.year, 1, 1);
+          } else if (duration != null) {
+            _startDate = _endDate.subtract(duration);
+          }
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
     );
@@ -492,6 +759,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     String? suffixText,
     IconData? prefixIcon,
     TextInputType keyboardType = TextInputType.number,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -504,7 +772,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
           ),
         ),
         filled: true,
@@ -513,7 +781,16 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
             const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       ),
       keyboardType: keyboardType,
-      validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+      validator: validator ??
+          (value) {
+            if (value?.isEmpty ?? true) return 'Required';
+            if (keyboardType == TextInputType.number) {
+              if (double.tryParse(value!.replaceAll(',', '')) == null) {
+                return 'Invalid number';
+              }
+            }
+            return null;
+          },
     );
   }
 
@@ -564,25 +841,35 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
     );
   }
 
-  Future<void> _runBacktest() async {
-    if (!_formKey.currentState!.validate()) return;
+  TradeStrategyConfig _createConfigFromState() {
+    final symbols = _symbolController.text
+        .toUpperCase()
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
 
-    final config = TradeStrategyConfig(
-      symbolFilter: [_symbolController.text.trim().toUpperCase()],
+    return TradeStrategyConfig(
+      symbolFilter: symbols.isEmpty ? ['SPY'] : symbols,
       startDate: _startDate,
       endDate: _endDate,
-      initialCapital: double.parse(_initialCapitalController.text),
+      initialCapital:
+          double.tryParse(_initialCapitalController.text.replaceAll(',', '')) ??
+              10000.0,
       interval: _interval,
       enabledIndicators: _enabledIndicators,
-      tradeQuantity: int.parse(_tradeQuantityController.text),
-      takeProfitPercent: double.parse(_takeProfitController.text),
-      stopLossPercent: double.parse(_stopLossController.text),
+      tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      takeProfitPercent: double.tryParse(_takeProfitController.text) ?? 5.0,
+      stopLossPercent: double.tryParse(_stopLossController.text) ?? 2.0,
       trailingStopEnabled: _trailingStopEnabled,
-      trailingStopPercent: double.parse(_trailingStopController.text),
-      rsiPeriod: int.parse(_rsiPeriodController.text),
-      smaPeriodFast: int.parse(_smaFastController.text),
-      smaPeriodSlow: int.parse(_smaSlowController.text),
-      marketIndexSymbol: _marketIndexController.text.trim().toUpperCase(),
+      trailingStopPercent: double.tryParse(_trailingStopController.text) ?? 1.0,
+      rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
+      smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
+      marketIndexSymbol:
+          _marketIndexController.text.trim().toUpperCase().isEmpty
+              ? 'SPY'
+              : _marketIndexController.text.trim().toUpperCase(),
       minSignalStrength:
           double.tryParse(_minSignalStrengthController.text) ?? 50.0,
       requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
@@ -599,16 +886,32 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
       exitStages: _exitStages,
       customIndicators: _customIndicators,
     );
+  }
+
+  Future<void> _runBacktest() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final config = _createConfigFromState();
 
     final provider = Provider.of<BacktestingProvider>(context, listen: false);
-    final result = await provider.runBacktest(config);
+    final result = await provider.runBacktest(
+      config,
+      templateId: _loadedTemplate?.id,
+      templateName: _loadedTemplate?.name,
+    );
 
     if (result != null && mounted) {
       // Navigate to result page
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => _BacktestResultPage(result: result),
+          builder: (context) => _BacktestResultPage(
+              result: result,
+              userDocRef: widget.userDocRef,
+              onApplyConfig: (config) {
+                loadConfig(config);
+                Navigator.pop(context);
+              }),
         ),
       );
     } else if (provider.errorMessage != null && mounted) {
@@ -625,10 +928,14 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
   Widget build(BuildContext context) {
     return Consumer<BacktestingProvider>(
       builder: (context, provider, child) {
+        // Handle pending template loading
         if (provider.pendingTemplate != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _loadFromTemplate(provider.pendingTemplate!);
-            provider.clearPendingTemplate();
+            if (mounted) {
+              _loadFromTemplate(provider.pendingTemplate!);
+              // Clear pending template to prevent reload loops
+              provider.clearPendingTemplate();
+            }
           });
         }
 
@@ -640,10 +947,10 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildStatusHeader(context),
-                _buildSection(
-                  context: context,
+                _BacktestConfigSection(
                   title: 'Execution Settings',
                   icon: Icons.tune,
+                  initiallyExpanded: true,
                   children: [
                     Row(
                       children: [
@@ -668,10 +975,10 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                     ),
                   ],
                 ),
-                _buildSection(
-                  context: context,
+                _BacktestConfigSection(
                   title: 'Risk Management',
                   icon: Icons.shield,
+                  initiallyExpanded: true,
                   children: [
                     _buildSwitchListTile(
                       'Dynamic Position Sizing',
@@ -700,8 +1007,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                     ],
                   ],
                 ),
-                _buildSection(
-                  context: context,
+                _BacktestConfigSection(
                   title: 'Entry Strategies',
                   icon: Icons.login,
                   initiallyExpanded: true,
@@ -732,11 +1038,14 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                       smaFastController: _smaFastController,
                       smaSlowController: _smaSlowController,
                       marketIndexController: _marketIndexController,
+                      customIndicators: _customIndicators,
+                      onAddCustomIndicator: _addCustomIndicator,
+                      onEditCustomIndicator: _editCustomIndicator,
+                      onRemoveCustomIndicator: _removeCustomIndicator,
                     ),
                   ],
                 ),
-                _buildSection(
-                  context: context,
+                _BacktestConfigSection(
                   title: 'Exit Strategies',
                   icon: Icons.logout,
                   initiallyExpanded: true,
@@ -880,44 +1189,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                   return;
                 }
 
-                final config = TradeStrategyConfig(
-                  symbolFilter: [symbol],
-                  startDate: _startDate,
-                  endDate: _endDate,
-                  initialCapital: double.parse(_initialCapitalController.text),
-                  interval: _interval,
-                  enabledIndicators: _enabledIndicators,
-                  tradeQuantity: int.parse(_tradeQuantityController.text),
-                  takeProfitPercent: double.parse(_takeProfitController.text),
-                  stopLossPercent: double.parse(_stopLossController.text),
-                  trailingStopEnabled: _trailingStopEnabled,
-                  trailingStopPercent:
-                      double.parse(_trailingStopController.text),
-                  rsiPeriod: int.parse(_rsiPeriodController.text),
-                  smaPeriodFast: int.parse(_smaFastController.text),
-                  smaPeriodSlow: int.parse(_smaSlowController.text),
-                  marketIndexSymbol:
-                      _marketIndexController.text.trim().toUpperCase(),
-                  minSignalStrength:
-                      double.tryParse(_minSignalStrengthController.text) ??
-                          50.0,
-                  requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
-                  timeBasedExitEnabled: _timeBasedExitEnabled,
-                  timeBasedExitMinutes:
-                      int.tryParse(_timeBasedExitController.text) ?? 120,
-                  marketCloseExitEnabled: _marketCloseExitEnabled,
-                  marketCloseExitMinutes:
-                      int.tryParse(_marketCloseExitController.text) ?? 15,
-                  enablePartialExits: _enablePartialExits,
-                  enableDynamicPositionSizing: _enableDynamicPositionSizing,
-                  riskPerTrade:
-                      (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
-                          100.0,
-                  atrMultiplier:
-                      double.tryParse(_atrMultiplierController.text) ?? 2.0,
-                  exitStages: _exitStages,
-                  customIndicators: _customIndicators,
-                );
+                final config = _createConfigFromState();
 
                 final provider =
                     Provider.of<BacktestingProvider>(context, listen: false);
@@ -962,42 +1234,7 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
                 return;
               }
 
-              final config = TradeStrategyConfig(
-                symbolFilter: [symbol],
-                startDate: _startDate,
-                endDate: _endDate,
-                initialCapital: double.parse(_initialCapitalController.text),
-                interval: _interval,
-                enabledIndicators: _enabledIndicators,
-                tradeQuantity: int.parse(_tradeQuantityController.text),
-                takeProfitPercent: double.parse(_takeProfitController.text),
-                stopLossPercent: double.parse(_stopLossController.text),
-                trailingStopEnabled: _trailingStopEnabled,
-                trailingStopPercent: double.parse(_trailingStopController.text),
-                rsiPeriod: int.parse(_rsiPeriodController.text),
-                smaPeriodFast: int.parse(_smaFastController.text),
-                smaPeriodSlow: int.parse(_smaSlowController.text),
-                marketIndexSymbol:
-                    _marketIndexController.text.trim().toUpperCase(),
-                minSignalStrength:
-                    double.tryParse(_minSignalStrengthController.text) ?? 50.0,
-                requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
-                timeBasedExitEnabled: _timeBasedExitEnabled,
-                timeBasedExitMinutes:
-                    int.tryParse(_timeBasedExitController.text) ?? 120,
-                marketCloseExitEnabled: _marketCloseExitEnabled,
-                marketCloseExitMinutes:
-                    int.tryParse(_marketCloseExitController.text) ?? 15,
-                enablePartialExits: _enablePartialExits,
-                enableDynamicPositionSizing: _enableDynamicPositionSizing,
-                riskPerTrade:
-                    (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
-                        100.0,
-                atrMultiplier:
-                    double.tryParse(_atrMultiplierController.text) ?? 2.0,
-                exitStages: _exitStages,
-                customIndicators: _customIndicators,
-              );
+              final config = _createConfigFromState();
 
               final provider =
                   Provider.of<BacktestingProvider>(context, listen: false);
@@ -1039,8 +1276,14 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
 /// Detail page showing backtest results
 class _BacktestResultPage extends StatefulWidget {
   final BacktestResult result;
+  final DocumentReference<User>? userDocRef;
+  final Function(TradeStrategyConfig)? onApplyConfig;
 
-  const _BacktestResultPage({required this.result});
+  const _BacktestResultPage({
+    required this.result,
+    this.userDocRef,
+    this.onApplyConfig,
+  });
 
   @override
   State<_BacktestResultPage> createState() => _BacktestResultPageState();
@@ -1049,6 +1292,22 @@ class _BacktestResultPage extends StatefulWidget {
 class _BacktestResultPageState extends State<_BacktestResultPage> {
   int? _selectedIndex;
   final ScrollController _listScrollController = ScrollController();
+  String _tradeFilter = 'All'; // All, BUY, SELL
+  String _chartType = 'Equity'; // Equity, Drawdown
+  String? _templateName;
+
+  String _getSymbolDisplay(List<String> symbols) {
+    if (symbols.isEmpty) return "Multi-Symbol";
+    if (symbols.length == 1) return symbols.first;
+    if (symbols.length <= 3) return symbols.join(', ');
+    return "${symbols.first} +${symbols.length - 1}";
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _templateName = widget.result.templateName;
+  }
 
   @override
   void dispose() {
@@ -1102,13 +1361,13 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
       final initialSelectionConfig = _selectedIndex != null
           ? [
               charts.SeriesDatumConfig<DateTime>(
-                'Equity',
+                _chartType, // Use dynamic ID based on chart type
                 chartData[_selectedIndex!].timestamp,
               ),
             ]
           : [
               charts.SeriesDatumConfig<DateTime>(
-                'Equity',
+                _chartType,
                 chartData.last.timestamp,
               ),
             ];
@@ -1126,7 +1385,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
 
   /// Map trades to chart markers aligned to the nearest equity point.
   List<_TradeMarker> _buildTradeMarkers(List<EquityPoint> chartData) {
-    if (chartData.isEmpty) return [];
+    if (chartData.isEmpty || _chartType == 'Drawdown')
+      return []; // Hide trades on Drawdown chart
 
     double equityAt(DateTime ts) {
       // Find the last equity point at or before the trade timestamp
@@ -1170,16 +1430,20 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
 
   void _showSaveTemplateDialog(BuildContext context) {
     // Generate default name and description
-    final dateFormat = DateFormat('MM/dd/yy');
-    final defaultName =
-        '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi"} ${widget.result.config.interval} Strategy';
+    final dateFormat = DateFormat('MMM dd, yyyy');
+    final symbolDisplay = _getSymbolDisplay(widget.result.config.symbolFilter);
+    final defaultName = widget.result.templateName ??
+        '$symbolDisplay ${widget.result.config.interval} Strategy';
     final defaultDescription =
-        '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"} backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
+        '$symbolDisplay backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
         '(${widget.result.totalTrades} trades, ${(widget.result.winRate * 100).toStringAsFixed(1)}% win rate)';
 
     final nameController = TextEditingController(text: defaultName);
     final descriptionController =
         TextEditingController(text: defaultDescription);
+
+    final canUpdate = widget.result.templateId != null &&
+        !widget.result.templateId!.startsWith('default_');
 
     showDialog(
       context: context,
@@ -1188,6 +1452,14 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (canUpdate) ...[
+              Text(
+                'Originally from: ${widget.result.templateName}',
+                style: TextStyle(
+                    fontSize: 12, color: Theme.of(context).colorScheme.primary),
+              ),
+              const SizedBox(height: 16),
+            ],
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
@@ -1212,6 +1484,51 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
+          if (canUpdate)
+            TextButton(
+              onPressed: () async {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please enter a template name')),
+                  );
+                  return;
+                }
+
+                final provider =
+                    Provider.of<BacktestingProvider>(context, listen: false);
+                try {
+                  // Update existing template
+                  final template = TradeStrategyTemplate(
+                    id: widget.result.templateId!,
+                    name: nameController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    config: widget.result.config,
+                    createdAt: DateTime.now(), // Updated at
+                    lastUsedAt: DateTime.now(),
+                  );
+                  await provider.saveTemplate(template);
+
+                  if (context.mounted) {
+                    setState(() {
+                      _templateName = template.name;
+                    });
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Template updated successfully')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error updating template: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Update Existing'),
+            ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isEmpty) {
@@ -1230,6 +1547,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   config: widget.result.config,
                 );
                 if (context.mounted) {
+                  setState(() {
+                    _templateName = nameController.text.trim();
+                  });
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1244,7 +1564,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                 }
               }
             },
-            child: const Text('Save'),
+            child: const Text('Save as New'),
           ),
         ],
       ),
@@ -1277,25 +1597,25 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     if (confirmed == true && context.mounted) {
       final provider = Provider.of<BacktestingProvider>(context, listen: false);
       // Find index of this result in history
-      final index = provider.backtestHistory.indexWhere((r) =>
-          ((r.config.symbolFilter.isEmpty &&
-                  widget.result.config.symbolFilter.isEmpty) ||
-              (r.config.symbolFilter.isNotEmpty &&
-                  widget.result.config.symbolFilter.isNotEmpty &&
-                  r.config.symbolFilter.first ==
-                      widget.result.config.symbolFilter.first)) &&
-          r.config.startDate == widget.result.config.startDate &&
-          r.config.endDate == widget.result.config.endDate &&
-          r.totalTrades == widget.result.totalTrades);
+      final index = provider.backtestHistory.indexWhere((r) {
+        if (widget.result.id != null && r.id != null) {
+          return r.id == widget.result.id;
+        }
+        return (r.config.symbolFilter.join(',') ==
+                widget.result.config.symbolFilter.join(',')) &&
+            r.config.startDate == widget.result.config.startDate &&
+            r.config.endDate == widget.result.config.endDate &&
+            r.totalTrades == widget.result.totalTrades;
+      });
 
       if (index != -1) {
-        await provider.deleteBacktestFromHistory(index);
-        if (context.mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backtest deleted from history')),
-          );
-        }
+        final navigator = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+        navigator.pop();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Backtest deleted from history')),
+        );
+        provider.deleteBacktestFromHistory(index);
       }
     }
   }
@@ -1306,15 +1626,19 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     final isProfit = widget.result.totalReturn >= 0;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Backtest Results', style: TextStyle(fontSize: 16)),
+              Text(_templateName ?? 'Backtest Results',
+                  overflow: TextOverflow.fade,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: const TextStyle(fontSize: 16)),
               Text(
-                '${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"} · ${DateFormat('MMM dd').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
+                '${_getSymbolDisplay(widget.result.config.symbolFilter)} · ${DateFormat('MMM dd, yyyy').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
@@ -1329,7 +1653,8 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: (isProfit ? Colors.green : Colors.red).withOpacity(0.2),
+                color: (isProfit ? Colors.green : Colors.red)
+                    .withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -1356,11 +1681,17 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
               icon: const Icon(Icons.more_vert),
               onSelected: (value) async {
                 switch (value) {
+                  case 'edit':
+                    _editStrategy(context);
+                    break;
                   case 'save':
                     _showSaveTemplateDialog(context);
                     break;
                   case 'share':
                     await _shareResults(context);
+                    break;
+                  case 'export':
+                    await _exportToCsv(context);
                     break;
                   case 'delete':
                     await _deleteResult(context);
@@ -1368,6 +1699,18 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                 }
               },
               itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      const Text('Edit Strategy'),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: 'save',
                   child: Row(
@@ -1392,6 +1735,18 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                     ],
                   ),
                 ),
+                PopupMenuItem(
+                  value: 'export',
+                  child: Row(
+                    children: [
+                      Icon(Icons.download,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      const Text('Export to CSV'),
+                    ],
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'delete',
                   child: Row(
@@ -1412,8 +1767,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
               Tab(text: 'Trades', icon: Icon(Icons.list, size: 16)),
               Tab(text: 'Equity', icon: Icon(Icons.show_chart, size: 16)),
               Tab(text: 'Details', icon: Icon(Icons.info, size: 16)),
+              Tab(text: 'Optimize', icon: Icon(Icons.tune, size: 16)),
             ],
-            isScrollable: false,
+            isScrollable: true,
             labelStyle: TextStyle(fontSize: 12),
           ),
         ),
@@ -1423,22 +1779,91 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
             _buildTradesTab(),
             _buildEquityTab(),
             _buildDetailsTab(),
+            BacktestOptimizationTab(
+              userDocRef: widget.userDocRef,
+              prefilledConfig: widget.result.config,
+              onApplyConfig: widget.onApplyConfig,
+            ),
           ],
         ),
       ),
     );
   }
 
+  void _editStrategy(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BacktestingWidget(
+          prefilledStrategyConfig: widget.result.config,
+          userDocRef: widget.userDocRef,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportToCsv(BuildContext context) async {
+    final List<List<dynamic>> rows = [];
+
+    // Headers
+    rows.add([
+      'Timestamp',
+      'Symbol',
+      'Action',
+      'Quantity',
+      'Price',
+      'Reason',
+      'Total',
+    ]);
+
+    for (final trade in widget.result.trades) {
+      final total = trade.price * trade.quantity;
+      rows.add([
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(trade.timestamp),
+        trade.symbol ?? widget.result.config.symbolFilter.join(','),
+        trade.action,
+        trade.quantity,
+        trade.price,
+        trade.reason,
+        total,
+      ]);
+    }
+
+    final csvData = const ListToCsvConverter().convert(rows);
+    final bytes = utf8.encode(csvData);
+    final filename = widget.result.templateName != null
+        ? 'backtest_${widget.result.templateName!.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.csv'
+        : 'backtest_trades.csv';
+    final xFile = XFile.fromData(
+      Uint8List.fromList(bytes),
+      mimeType: 'text/csv',
+      name: filename,
+    );
+
+    final box = context.findRenderObject() as RenderBox?;
+    await Share.shareXFiles(
+      [xFile],
+      text: 'Backtest Trades CSV',
+      sharePositionOrigin:
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+    );
+  }
+
   Future<void> _shareResults(BuildContext context) async {
     final dateFormat = DateFormat('MMM dd, yyyy');
+    final symbolDisplay = _getSymbolDisplay(widget.result.config.symbolFilter);
+    final templateDisplay = widget.result.templateName != null
+        ? ' (${widget.result.templateName})'
+        : '';
     final shareText = '''
-📊 Backtest Results - ${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"}
+📊 Backtest Results - $symbolDisplay$templateDisplay
 
 📅 Period: ${dateFormat.format(widget.result.config.startDate)} - ${dateFormat.format(widget.result.config.endDate)}
 ⏱️ Interval: ${widget.result.config.interval}
 
 💰 Performance:
 • Total Return: \$${widget.result.totalReturn.toStringAsFixed(2)} (${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%)
+• Buy & Hold: ${widget.result.buyAndHoldReturnPercent >= 0 ? '+' : ''}${widget.result.buyAndHoldReturnPercent.toStringAsFixed(2)}%
 • Win Rate: ${(widget.result.winRate * 100).toStringAsFixed(1)}%
 • Sharpe Ratio: ${widget.result.sharpeRatio.toStringAsFixed(2)}
 • Profit Factor: ${widget.result.profitFactor.toStringAsFixed(2)}
@@ -1468,28 +1893,322 @@ Generated by RealizeAlpha
     final box = context.findRenderObject() as RenderBox?;
     await Share.share(
       shareText,
-      subject:
-          'Backtest Results - ${widget.result.config.symbolFilter.isNotEmpty ? widget.result.config.symbolFilter.first : "Multi-Symbol"}',
+      subject: 'Backtest Results - $symbolDisplay',
       sharePositionOrigin:
           box != null ? box.localToGlobal(Offset.zero) & box.size : null,
     );
   }
 
+  Map<int, Map<int, double>> _calculateMonthlyReturns() {
+    final returns = <int, Map<int, double>>{};
+    if (widget.result.equityCurve.isEmpty) return returns;
+
+    // Map to store end-of-month equity. Key: Year*100 + Month
+    final eomEquity = <int, double>{};
+
+    // Iterate calculated equity points to find last equity for each month
+    for (final point in widget.result.equityCurve) {
+      final ts = DateTime.parse(point['timestamp'] as String);
+      final key = ts.year * 100 + ts.month;
+      final equity = (point['equity'] as num).toDouble();
+      eomEquity[key] = equity; // Overwrite to keep the last one
+    }
+
+    double prevEquity = widget.result.config.initialCapital;
+    final sortedKeys = eomEquity.keys.toList()..sort();
+
+    for (final key in sortedKeys) {
+      final currentEquity = eomEquity[key]!;
+      final ret =
+          prevEquity != 0 ? (currentEquity - prevEquity) / prevEquity : 0.0;
+
+      final year = key ~/ 100;
+      final month = key % 100;
+
+      returns.putIfAbsent(year, () => {});
+      returns[year]![month] = ret;
+
+      prevEquity = currentEquity;
+    }
+
+    return returns;
+  }
+
+  double _calculateSortinoRatio(double annualReturn) {
+    if (widget.result.equityCurve.isEmpty) return 0.0;
+
+    final returns = <double>[];
+    double prevEquity = widget.result.config.initialCapital;
+
+    for (final point in widget.result.equityCurve) {
+      final equity = (point['equity'] as num).toDouble();
+      if (prevEquity > 0) {
+        returns.add((equity - prevEquity) / prevEquity);
+      }
+      prevEquity = equity;
+    }
+
+    if (returns.isEmpty) return 0.0;
+
+    // Calculate downside deviation (RMS of negative returns)
+    final sumSquaredNegatives =
+        returns.fold(0.0, (sum, r) => sum + (r < 0 ? r * r : 0.0));
+    final meanSquaredNegatives = sumSquaredNegatives / returns.length;
+
+    // Annualization factor based on interval
+    double periodsPerYear = 252.0;
+    if (widget.result.config.interval == '1h')
+      periodsPerYear = 252 * 7; // Approx
+    else if (widget.result.config.interval == '15m') periodsPerYear = 252 * 26;
+
+    final downsideDev =
+        dart_math.sqrt(meanSquaredNegatives) * dart_math.sqrt(periodsPerYear);
+
+    if (downsideDev == 0) return 0.0;
+    return annualReturn / downsideDev;
+  }
+
+  Widget _buildMonthlyReturnsTable(Map<int, Map<int, double>> monthlyReturns) {
+    if (monthlyReturns.isEmpty) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final years = monthlyReturns.keys.toList()
+      ..sort((a, b) => b.compareTo(a)); // Newest year first
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
+    final posColor = isDark ? Colors.green[300] : Colors.green[800];
+    final negColor = isDark ? Colors.red[300] : Colors.red[800];
+    final posColorYtd = isDark ? Colors.green[200] : Colors.green[900];
+    final negColorYtd = isDark ? Colors.red[200] : Colors.red[900];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Monthly Returns',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Table(
+                defaultColumnWidth: const FixedColumnWidth(40),
+                columnWidths: const {0: FixedColumnWidth(50)},
+                border: TableBorder.all(
+                    color: Colors.grey.withOpacity(0.2), width: 0.5),
+                children: [
+                  // Header Row
+                  TableRow(
+                    decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest),
+                    children: [
+                      const TableCell(
+                          child: Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Center(
+                                  child: Text('Year',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10))))),
+                      ...months.map((m) => TableCell(
+                          child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Center(
+                                  child: Text(m,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10)))))),
+                      const TableCell(
+                          child: Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Center(
+                                  child: Text('YTD',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 10))))),
+                    ],
+                  ),
+                  // Data Rows
+                  ...years.map((year) {
+                    final yReturns = monthlyReturns[year]!;
+                    // Calculate YTD for the row
+                    double ytd = 1.0;
+                    for (var m = 1; m <= 12; m++) {
+                      if (yReturns.containsKey(m)) {
+                        ytd *= (1 + yReturns[m]!);
+                      }
+                    }
+                    ytd -= 1.0;
+
+                    return TableRow(
+                      children: [
+                        TableCell(
+                            child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Center(
+                                    child: Text('$year',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11))))),
+                        ...List.generate(12, (index) {
+                          final m = index + 1;
+                          final ret = yReturns[m];
+                          if (ret == null)
+                            return const TableCell(child: SizedBox());
+
+                          final bg = ret >= 0
+                              ? Colors.green
+                                  .withOpacity(0.1 + (ret * 2).clamp(0.0, 0.4))
+                              : Colors.red.withOpacity(
+                                  0.1 + (ret.abs() * 2).clamp(0.0, 0.4));
+
+                          return TableCell(
+                            child: Container(
+                              color: bg,
+                              padding: const EdgeInsets.all(4),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${(ret * 100).toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: ret >= 0 ? posColor : negColor,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          );
+                        }),
+                        TableCell(
+                          child: Container(
+                            color: ytd >= 0
+                                ? Colors.green.withOpacity(0.2)
+                                : Colors.red.withOpacity(0.2),
+                            padding: const EdgeInsets.all(4),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${(ytd * 100).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: ytd >= 0 ? posColorYtd : negColorYtd,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverviewTab(ColorScheme colorScheme, bool isProfit) {
+    // Calculate CAGR
+    final durationDays = widget.result.config.endDate
+        .difference(widget.result.config.startDate)
+        .inDays;
+    final years = durationDays / 365.25;
+    double? cagr;
+    if (years > 0) {
+      final endingValue =
+          widget.result.config.initialCapital + widget.result.totalReturn;
+      if (widget.result.config.initialCapital > 0 && endingValue > 0) {
+        // formula: (End / Start) ^ (1 / Years) - 1
+        cagr = (dart_math.pow(endingValue / widget.result.config.initialCapital,
+                1 / years) as double) -
+            1;
+      }
+    }
+
+    // Calculate Advanced Metrics
+    final sortino = cagr != null ? _calculateSortinoRatio(cagr) : 0.0;
+    final calmar = (cagr != null && widget.result.maxDrawdownPercent != 0)
+        ? cagr / (widget.result.maxDrawdownPercent / 100).abs()
+        : 0.0;
+
+    final monthlyReturns = _calculateMonthlyReturns();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Key metrics
-          // Key metrics
           _buildMetricCard(
             'Total Return',
             '\$${widget.result.totalReturn.toStringAsFixed(2)}',
             '${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
             isProfit ? Colors.green : Colors.red,
+            subtitleWidget: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'vs Buy & Hold: ${widget.result.buyAndHoldReturnPercent > 0 ? '+' : ''}${widget.result.buyAndHoldReturnPercent.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: widget.result.buyAndHoldReturnPercent >= 0
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
+          if (cagr != null) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricCard(
+                    'CAGR',
+                    '${(cagr * 100).toStringAsFixed(2)}%',
+                    'Compound Annual Growth',
+                    cagr >= 0 ? Colors.green : Colors.red,
+                    tooltip: 'Smoothed annual return over the backtest period.',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMetricCard(
+                    'Calmar Ratio',
+                    calmar.toStringAsFixed(2),
+                    'Return vs Max Drawdown',
+                    colorScheme.primary,
+                    tooltip:
+                        'Annual Return divided by Max Drawdown. Higher is better.',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Expanded(
@@ -1498,6 +2217,7 @@ Generated by RealizeAlpha
                   '${(widget.result.winRate * 100).toStringAsFixed(1)}%',
                   '${widget.result.winningTrades}/${widget.result.totalTrades} trades',
                   colorScheme.primary,
+                  tooltip: 'Percentage of trades that were profitable.',
                 ),
               ),
               const SizedBox(width: 12),
@@ -1507,6 +2227,8 @@ Generated by RealizeAlpha
                   widget.result.sharpeRatio.toStringAsFixed(2),
                   'Risk-adjusted return',
                   colorScheme.primary,
+                  tooltip:
+                      'Measure of risk-adjusted return (Return / Volatility).',
                 ),
               ),
             ],
@@ -1516,10 +2238,38 @@ Generated by RealizeAlpha
             children: [
               Expanded(
                 child: _buildMetricCard(
+                  'Sortino Ratio',
+                  sortino.toStringAsFixed(2),
+                  'Return vs Downside Risk',
+                  colorScheme.primary,
+                  tooltip:
+                      'Like Sharpe, but only penalizes downside volatility.',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
                   'Profit Factor',
                   widget.result.profitFactor.toStringAsFixed(2),
-                  'Win/Loss ratio',
+                  'Gross Win / Gross Loss',
                   colorScheme.primary,
+                  tooltip:
+                      'Gross Profit divided by Gross Loss. > 1.0 is profitable.',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  'Expectancy',
+                  '\$${(widget.result.totalReturn / (widget.result.totalTrades > 0 ? widget.result.totalTrades : 1)).toStringAsFixed(2)}',
+                  'Per Trade Average',
+                  colorScheme.primary,
+                  tooltip:
+                      'Average net profit per trade (Total Return / Trades).',
                 ),
               ),
               const SizedBox(width: 12),
@@ -1529,68 +2279,159 @@ Generated by RealizeAlpha
                   '${widget.result.maxDrawdownPercent.toStringAsFixed(2)}%',
                   '\$${widget.result.maxDrawdown.toStringAsFixed(2)}',
                   Colors.red,
+                  tooltip:
+                      'Largest percentage drop in portfolio value from a peak.',
                 ),
               ),
             ],
           ),
+
+          const SizedBox(height: 24),
+          _buildMonthlyReturnsTable(monthlyReturns),
         ],
       ),
     );
   }
 
   Widget _buildTradesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: widget.result.trades.length,
-      itemBuilder: (context, index) {
-        final trade = widget.result.trades[index];
-        final isBuy = trade.action == 'BUY';
+    if (widget.result.trades.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.block, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text('No trades executed',
+                style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+            const SizedBox(height: 8),
+            const Text('Try adjusting your entry strategy or signal filters.',
+                style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (isBuy ? Colors.blue : Colors.orange).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+    final filteredTrades = widget.result.trades.where((trade) {
+      if (_tradeFilter == 'All') return true;
+      return trade.action == _tradeFilter;
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              const Text('Filter: ',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              Wrap(
+                spacing: 8,
+                children: ['All', 'BUY', 'SELL'].map((type) {
+                  return ChoiceChip(
+                    label: Text(type),
+                    selected: _tradeFilter == type,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _tradeFilter = type;
+                        });
+                      }
+                    },
+                    visualDensity: VisualDensity.compact,
+                  );
+                }).toList(),
               ),
-              child: Icon(
-                isBuy ? Icons.arrow_downward : Icons.arrow_upward,
-                color: isBuy ? Colors.blue : Colors.orange,
-                size: 20,
-              ),
-            ),
-            title: Text(
-              '${trade.action} ${trade.quantity} @ \$${trade.price.toStringAsFixed(2)}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(DateFormat('MMM dd, yyyy HH:mm').format(trade.timestamp)),
-                Text(trade.reason, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-            trailing: Text(
-              '\$${(trade.price * trade.quantity).toStringAsFixed(2)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            isThreeLine: true,
+              const Spacer(),
+              Text('${filteredTrades.length} trades',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            ],
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: filteredTrades.length,
+            itemBuilder: (context, index) {
+              final trade = filteredTrades[index];
+              final isBuy = trade.action == 'BUY';
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (isBuy ? Colors.blue : Colors.orange)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isBuy ? Icons.arrow_downward : Icons.arrow_upward,
+                      color: isBuy ? Colors.blue : Colors.orange,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    '${trade.symbol != null ? '${trade.symbol} ' : ''}${trade.action} ${trade.quantity} @ \$${trade.price.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(DateFormat('MMM dd, yyyy HH:mm')
+                          .format(trade.timestamp)),
+                      Text(trade.reason, style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  trailing: Text(
+                    '\$${(trade.price * trade.quantity).toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  isThreeLine: true,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildEquityTab() {
-    // Prepare chart data
-    final chartData = widget.result.equityCurve.map((point) {
-      return EquityPoint(
-        DateTime.parse(point['timestamp'] as String),
-        (point['equity'] as num).toDouble(),
-      );
-    }).toList();
+    // Determine data based on chart type
+    List<EquityPoint> chartData;
+    List<EquityPoint> secondaryData = [];
+    final isDrawdown = _chartType == 'Drawdown';
+
+    if (isDrawdown) {
+      // Calculate Drawdown Series
+      double maxEquity = 0;
+      chartData = widget.result.equityCurve.map((point) {
+        final equity = (point['equity'] as num).toDouble();
+        if (equity > maxEquity) maxEquity = equity;
+        final drawdown = maxEquity > 0 ? (equity - maxEquity) / maxEquity : 0.0;
+        return EquityPoint(
+          DateTime.parse(point['timestamp'] as String),
+          drawdown * 100, // Convert to percentage
+        );
+      }).toList();
+    } else {
+      // Equity Curve
+      chartData = widget.result.equityCurve.map((point) {
+        return EquityPoint(
+          DateTime.parse(point['timestamp'] as String),
+          (point['equity'] as num).toDouble(),
+        );
+      }).toList();
+
+      secondaryData = widget.result.buyAndHoldEquityCurve.map((point) {
+        return EquityPoint(
+          DateTime.parse(point['timestamp'] as String),
+          (point['equity'] as num).toDouble(),
+        );
+      }).toList();
+    }
 
     // Group trades by exact timestamp for quick lookup
     final tradesByTimestamp = <int, List<BacktestTrade>>{};
@@ -1603,39 +2444,68 @@ Generated by RealizeAlpha
 
     return Column(
       children: [
-        // Stats header
+        // Stats header with Toggle
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: (isProfit ? Colors.green : Colors.red).withOpacity(0.05),
+            color:
+                (isProfit ? Colors.green : Colors.red).withValues(alpha: 0.05),
             border: Border(
               bottom: BorderSide(
-                color: (isProfit ? Colors.green : Colors.red).withOpacity(0.2),
+                color: (isProfit ? Colors.green : Colors.red)
+                    .withValues(alpha: 0.2),
               ),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          child: Column(
             children: [
-              _buildStatChip('Start',
-                  '\$${widget.result.config.initialCapital.toStringAsFixed(0)}'),
-              Icon(
-                Icons.trending_up,
-                size: 20,
-                color: isProfit ? Colors.green : Colors.red,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'Equity', label: Text('Equity')),
+                      ButtonSegment(value: 'Drawdown', label: Text('Drawdown')),
+                    ],
+                    selected: {_chartType},
+                    onSelectionChanged: (Set<String> newSelection) {
+                      setState(() {
+                        _chartType = newSelection.first;
+                        _selectedIndex = null; // Clear selection on switch
+                      });
+                    },
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
               ),
-              _buildStatChip('Final',
-                  '\$${widget.result.finalCapital.toStringAsFixed(0)}'),
-              const Icon(Icons.arrow_forward, size: 20),
-              _buildStatChip(
-                'Return',
-                '${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
-                color: isProfit ? Colors.green : Colors.red,
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatChip('Start',
+                      '\$${widget.result.config.initialCapital.toStringAsFixed(0)}'),
+                  Icon(
+                    Icons.trending_up,
+                    size: 20,
+                    color: isProfit ? Colors.green : Colors.red,
+                  ),
+                  _buildStatChip('Final',
+                      '\$${widget.result.finalCapital.toStringAsFixed(0)}'),
+                  const Icon(Icons.arrow_forward, size: 20),
+                  _buildStatChip(
+                    'Return',
+                    '${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
+                    color: isProfit ? Colors.green : Colors.red,
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        // Equity curve chart
+        // Chart
         Expanded(
           flex: 3,
           child: Padding(
@@ -1643,58 +2513,107 @@ Generated by RealizeAlpha
             child: TimeSeriesChart(
               [
                 charts.Series<EquityPoint, DateTime>(
-                  id: 'Equity',
+                  id: isDrawdown ? 'Drawdown' : 'Equity',
                   data: chartData,
                   domainFn: (EquityPoint point, _) => point.timestamp,
                   measureFn: (EquityPoint point, _) => point.equity,
                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                    isProfit ? Colors.green : Colors.red,
+                    isDrawdown
+                        ? Colors.red
+                        : (isProfit ? Colors.green : Colors.red),
                   ),
-                  labelAccessorFn: (EquityPoint point, _) =>
-                      '\$${point.equity.toStringAsFixed(2)}',
-                ),
-                charts.Series<_TradeMarker, DateTime>(
-                  id: 'Trades',
-                  data: _buildTradeMarkers(chartData),
-                  domainFn: (_TradeMarker marker, _) => marker.timestamp,
-                  measureFn: (_TradeMarker marker, _) => marker.equity,
-                  colorFn: (_TradeMarker marker, _) => marker.color,
-                  // render trades as points on top of the equity line
-                  overlaySeries: true,
-                )..setAttribute(charts.rendererIdKey, 'tradePoints'),
+                  // areaColorFn for Drawdown to fill below
+                  areaColorFn: isDrawdown
+                      ? (_, __) => charts.ColorUtil.fromDartColor(
+                          Colors.red.withOpacity(0.2))
+                      : null,
+                  labelAccessorFn: (EquityPoint point, _) => isDrawdown
+                      ? '${point.equity.toStringAsFixed(2)}%'
+                      : '\$${point.equity.toStringAsFixed(2)}',
+                )..setAttribute(
+                    charts.rendererIdKey,
+                    isDrawdown
+                        ? 'drawdownArea'
+                        : 'default'), // Use area renderer for drawdown
+
+                if (!isDrawdown && secondaryData.isNotEmpty)
+                  charts.Series<EquityPoint, DateTime>(
+                    id: 'Buy & Hold',
+                    data: secondaryData,
+                    domainFn: (EquityPoint point, _) => point.timestamp,
+                    measureFn: (EquityPoint point, _) => point.equity,
+                    colorFn: (_, __) =>
+                        charts.ColorUtil.fromDartColor(Colors.grey),
+                    dashPatternFn: (_, __) => [4, 4],
+                  ),
+
+                if (!isDrawdown) // Only show trades on Equity chart
+                  charts.Series<_TradeMarker, DateTime>(
+                    id: 'Trades',
+                    data: _buildTradeMarkers(chartData),
+                    domainFn: (_TradeMarker marker, _) => marker.timestamp,
+                    measureFn: (_TradeMarker marker, _) => marker.equity,
+                    colorFn: (_TradeMarker marker, _) => marker.color,
+                    overlaySeries: true,
+                  )..setAttribute(charts.rendererIdKey, 'tradePoints'),
               ],
               animate: false,
-              zeroBound: false,
+              domainAxis: const charts.DateTimeAxisSpec(
+                tickFormatterSpec: charts.AutoDateTimeTickFormatterSpec(
+                  day: charts.TimeFormatterSpec(
+                    format: 'MM/dd',
+                    transitionFormat: 'MM/dd/yy',
+                  ),
+                ),
+              ),
+              zeroBound:
+                  false, // Important for Equity, maybe true for Drawdown?
               onSelected: _onChartSelectionChanged,
               customSeriesRenderers: [
-                charts.PointRendererConfig<DateTime>(
-                  customRendererId: 'tradePoints',
-                  radiusPx: 4,
-                  strokeWidthPx: 2,
-                ),
+                if (!isDrawdown)
+                  charts.PointRendererConfig<DateTime>(
+                    customRendererId: 'tradePoints',
+                    radiusPx: 4,
+                    strokeWidthPx: 2,
+                  ),
+                if (isDrawdown)
+                  charts.LineRendererConfig<DateTime>(
+                    customRendererId: 'drawdownArea',
+                    includeArea: true,
+                    stacked: false,
+                  )
               ],
               behaviors: _buildChartBehaviors(chartData),
+              primaryMeasureAxis: isDrawdown
+                  ? const charts.NumericAxisSpec(
+                      tickProviderSpec:
+                          charts.BasicNumericTickProviderSpec(zeroBound: true),
+                      renderSpec: charts.GridlineRendererSpec(
+                        labelStyle: charts.TextStyleSpec(fontSize: 10),
+                      ),
+                    )
+                  : null, // Use default for equity
             ),
           ),
         ),
-        // Equity list
+        // List View
         Expanded(
           flex: 2,
           child: ListView.builder(
             controller: _listScrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: widget.result.equityCurve.length,
+            itemCount: chartData.length,
             itemBuilder: (context, index) {
-              final point = widget.result.equityCurve[index];
-              final equity = (point['equity'] as num).toDouble();
-              final timestamp = DateTime.parse(point['timestamp'] as String);
-              final change = equity - widget.result.config.initialCapital;
-              final changePercent =
-                  (change / widget.result.config.initialCapital) * 100;
+              final point = chartData[index];
+              // Map back to original equity point for list view context if needed, or just use display data
+              final timestamp = point.timestamp;
               final isSelected = _selectedIndex == index;
               final tradesAtTime =
                   tradesByTimestamp[timestamp.millisecondsSinceEpoch] ??
                       const <BacktestTrade>[];
+
+              // If Drawdown mode, point.equity is drawdown %
+              // If Equity mode, point.equity is $ value
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 4),
@@ -1719,7 +2638,7 @@ Generated by RealizeAlpha
                     });
                   },
                   leading: Text(
-                    DateFormat('MM/dd').format(timestamp),
+                    DateFormat('MM/dd/yy').format(timestamp),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight:
@@ -1727,16 +2646,19 @@ Generated by RealizeAlpha
                     ),
                   ),
                   title: Text(
-                    '\$${equity.toStringAsFixed(2)}',
+                    isDrawdown
+                        ? '${point.equity.toStringAsFixed(2)}%'
+                        : '\$${point.equity.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.w600,
                       fontSize: 14,
+                      color: isDrawdown ? Colors.red : null,
                     ),
                   ),
-                  subtitle: tradesAtTime.isEmpty
-                      ? null
-                      : Padding(
+                  // Only show trade details in subtitle if we are in Equity mode or if we want to show them in Drawdown too (but markers are hidden)
+                  subtitle: (!isDrawdown && tradesAtTime.isNotEmpty)
+                      ? Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Wrap(
                             spacing: 6,
@@ -1748,7 +2670,7 @@ Generated by RealizeAlpha
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: (isBuy ? Colors.blue : Colors.orange)
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isBuy ? Colors.blue : Colors.orange,
@@ -1781,15 +2703,25 @@ Generated by RealizeAlpha
                               );
                             }).toList(),
                           ),
+                        )
+                      : null,
+                  trailing: isDrawdown
+                      ? null
+                      : Text(
+                          // This assumes we have access to original start capital or similar for calculation.
+                          // But wait, point.equity is just a number.
+                          // We can recalculate change percent if needed or just hide it for Drawdown mode.
+                          '${((point.equity - widget.result.config.initialCapital) / widget.result.config.initialCapital * 100).toStringAsFixed(2)}%',
+                          style: TextStyle(
+                            color: (point.equity -
+                                        widget.result.config.initialCapital) >=
+                                    0
+                                ? Colors.green
+                                : Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
-                  trailing: Text(
-                    '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%',
-                    style: TextStyle(
-                      color: change >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
                 ),
               );
             },
@@ -1805,9 +2737,50 @@ Generated by RealizeAlpha
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Configuration section
+          // Configuration section - Execution Settings
           const Text(
-            'Configuration',
+            'Execution Settings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  if (widget.result.templateName != null)
+                    _buildDetailRow('Template', widget.result.templateName!),
+                  _buildDetailRow(
+                      'Symbol',
+                      widget.result.config.symbolFilter.isNotEmpty
+                          ? _getSymbolDisplay(widget.result.config.symbolFilter)
+                          : "Multi"),
+                  _buildDetailRow('Interval', widget.result.config.interval),
+                  _buildDetailRow('Initial Capital',
+                      '\$${widget.result.config.initialCapital.toStringAsFixed(2)}'),
+                  _buildDetailRow('Trade Quantity',
+                      '${widget.result.config.tradeQuantity} shares'),
+                  _buildDetailRow(
+                    'Position Sizing',
+                    widget.result.config.enableDynamicPositionSizing
+                        ? 'Dynamic (ATR Risk)'
+                        : 'Fixed Quantity',
+                  ),
+                  if (widget.result.config.enableDynamicPositionSizing) ...[
+                    _buildDetailRow('Risk Per Trade',
+                        '${(widget.result.config.riskPerTrade * 100).toStringAsFixed(1)}%'),
+                    _buildDetailRow('ATR Multiplier',
+                        '${widget.result.config.atrMultiplier}x'),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Entry Conditions
+          const Text(
+            'Entry Strategy',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -1817,15 +2790,40 @@ Generated by RealizeAlpha
               child: Column(
                 children: [
                   _buildDetailRow(
-                      'Symbol',
-                      widget.result.config.symbolFilter.isNotEmpty
-                          ? widget.result.config.symbolFilter.first
-                          : "Multi"),
-                  _buildDetailRow('Interval', widget.result.config.interval),
-                  _buildDetailRow('Initial Capital',
-                      '\$${widget.result.config.initialCapital.toStringAsFixed(2)}'),
-                  _buildDetailRow('Trade Quantity',
-                      '${widget.result.config.tradeQuantity} shares'),
+                    'Entry Logic',
+                    widget.result.config.requireAllIndicatorsGreen
+                        ? 'Strict (All Green)'
+                        : 'Score Based',
+                  ),
+                  if (!widget.result.config.requireAllIndicatorsGreen)
+                    _buildDetailRow('Min Strength',
+                        '${widget.result.config.minSignalStrength.toStringAsFixed(0)}%'),
+                  const Divider(),
+                  _buildDetailRow(
+                      'RSI Period', '${widget.result.config.rsiPeriod}'),
+                  _buildDetailRow(
+                      'Fast SMA', '${widget.result.config.smaPeriodFast}'),
+                  _buildDetailRow(
+                      'Slow SMA', '${widget.result.config.smaPeriodSlow}'),
+                  _buildDetailRow(
+                      'Market Index', widget.result.config.marketIndexSymbol),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Exit Strategies
+          const Text(
+            'Exit Strategies',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
                   _buildDetailRow('Take Profit',
                       '${widget.result.config.takeProfitPercent}%'),
                   _buildDetailRow(
@@ -1836,14 +2834,55 @@ Generated by RealizeAlpha
                         ? '${widget.result.config.trailingStopPercent}%'
                         : 'Disabled',
                   ),
+                  const Divider(),
                   _buildDetailRow(
-                      'RSI Period', '${widget.result.config.rsiPeriod}'),
+                    'Time-Based Exit',
+                    widget.result.config.timeBasedExitEnabled
+                        ? '${widget.result.config.timeBasedExitMinutes} min'
+                        : 'Disabled',
+                  ),
                   _buildDetailRow(
-                      'Fast SMA', '${widget.result.config.smaPeriodFast}'),
+                    'Market Close Exit',
+                    widget.result.config.marketCloseExitEnabled
+                        ? '${widget.result.config.marketCloseExitMinutes} min before close'
+                        : 'Disabled',
+                  ),
                   _buildDetailRow(
-                      'Slow SMA', '${widget.result.config.smaPeriodSlow}'),
-                  _buildDetailRow(
-                      'Market Index', widget.result.config.marketIndexSymbol),
+                    'Partial Exits',
+                    widget.result.config.enablePartialExits
+                        ? widget.result.config.exitStages.isEmpty
+                            ? 'Enabled (No stages)'
+                            : 'Enabled'
+                        : 'Disabled',
+                  ),
+                  if (widget.result.config.enablePartialExits &&
+                      widget.result.config.exitStages.isNotEmpty) ...[
+                    const Divider(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Text('Exit Stages:',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    ...widget.result.config.exitStages.asMap().entries.map((e) {
+                      final stage = e.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(left: 12, bottom: 4),
+                        child: Row(
+                          children: [
+                            Text('${e.key + 1}. ',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                            Expanded(
+                              child: Text(
+                                  'Target: ${stage.profitTargetPercent}% → Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}%',
+                                  style: const TextStyle(fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                 ],
               ),
             ),
@@ -1868,6 +2907,58 @@ Generated by RealizeAlpha
                     ))
                 .toList(),
           ),
+          if (widget.result.config.customIndicators.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const Text('Custom Indicators',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...widget.result.config.customIndicators.map((ci) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.perm_data_setting_sharp,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(ci.name,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          Text(ci.type.toString().split('.').last,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Signal: ${ci.condition.toString().split('.').last} ${ci.compareToPrice ? "Price" : (ci.threshold ?? "Reference")}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      if (ci.parameters.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 8,
+                          children: ci.parameters.entries.map((p) {
+                            return Text(
+                              '${p.key}: ${p.value}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
           const SizedBox(height: 24),
 
           // Performance by Indicator
@@ -1922,7 +3013,7 @@ Generated by RealizeAlpha
                                     horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: _getWinRateColor(winRate)
-                                      .withOpacity(0.2),
+                                      .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: _getWinRateColor(winRate),
@@ -2005,8 +3096,19 @@ Generated by RealizeAlpha
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Expanded(
+            flex: 2,
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );
@@ -2026,6 +3128,10 @@ Generated by RealizeAlpha
       'vwap': 'VWAP',
       'adx': 'ADX',
       'williamsR': 'Williams %R',
+      'cci': 'CCI',
+      'smaCrossover': 'SMA Crossover',
+      'parabolicSar': 'Parabolic SAR',
+      'ichimoku': 'Ichimoku Cloud',
     };
     return labels[key] ?? key;
   }
@@ -2044,7 +3150,7 @@ Generated by RealizeAlpha
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -2078,16 +3184,40 @@ Generated by RealizeAlpha
   }
 
   Widget _buildMetricCard(
-      String title, String value, String subtitle, Color color) {
+      String title, String value, String subtitle, Color color,
+      {Widget? subtitleWidget, String? tooltip}) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+                if (tooltip != null)
+                  Tooltip(
+                    message: tooltip,
+                    triggerMode: TooltipTriggerMode.tap,
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -2098,10 +3228,14 @@ Generated by RealizeAlpha
                 color: color,
               ),
             ),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const SizedBox(height: 4),
+            if (subtitleWidget != null)
+              subtitleWidget
+            else
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
           ],
         ),
       ),
@@ -2110,8 +3244,34 @@ Generated by RealizeAlpha
 }
 
 /// Tab showing backtest history
-class _BacktestHistoryTab extends StatelessWidget {
-  const _BacktestHistoryTab();
+class _BacktestHistoryTab extends StatefulWidget {
+  final DocumentReference<User>? userDocRef;
+  final GlobalKey<BacktestRunTabState>? runTabKey;
+  final TabController? tabController;
+
+  const _BacktestHistoryTab({
+    this.userDocRef,
+    this.runTabKey,
+    this.tabController,
+  });
+
+  @override
+  State<_BacktestHistoryTab> createState() => _BacktestHistoryTabState();
+}
+
+class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
+  String _searchQuery = '';
+  String _filterType = 'All'; // All, Profit, Loss
+  String _sortBy = 'Date'; // Date, Return, Trades
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2130,171 +3290,466 @@ class _BacktestHistoryTab extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: provider.backtestHistory.length,
-          itemBuilder: (context, index) {
-            final result = provider.backtestHistory[index];
-            final isProfit = result.totalReturn >= 0;
+        // Apply filters
+        var filteredHistory = provider.backtestHistory.where((result) {
+          final displaySymbol = result.config.symbolFilter.isNotEmpty
+              ? result.config.symbolFilter.first
+              : "Multi";
+          final matchesSearch =
+              displaySymbol.toLowerCase().contains(_searchQuery.toLowerCase());
 
-            return Dismissible(
-              key: Key('backtest_$index'),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(12),
+          final isProfit = result.totalReturn >= 0;
+          final matchesFilter = _filterType == 'All' ||
+              (_filterType == 'Profit' && isProfit) ||
+              (_filterType == 'Loss' && !isProfit);
+
+          final matchesDate = (_filterStartDate == null ||
+                  result.config.startDate.isAfter(
+                      _filterStartDate!.subtract(const Duration(days: 1)))) &&
+              (_filterEndDate == null ||
+                  result.config.endDate
+                      .isBefore(_filterEndDate!.add(const Duration(days: 1))));
+
+          return matchesSearch && matchesFilter && matchesDate;
+        }).toList();
+
+        // Apply Sort
+        if (_sortBy != 'Date') {
+          filteredHistory.sort((a, b) {
+            switch (_sortBy) {
+              case 'Return':
+                return b.totalReturn.compareTo(a.totalReturn);
+              case 'Trades':
+                return b.trades.length.compareTo(a.trades.length);
+              case 'Sharpe Ratio':
+                return b.sharpeRatio.compareTo(a.sharpeRatio);
+              case 'Win Rate':
+                return b.winRate.compareTo(a.winRate);
+              default:
+                return 0;
+            }
+          });
+        } else {
+          // Default to newest first (assuming list is chronological, so reverse it)
+          // If list is already newest first, this reverses it to oldest first.
+          // Usually history lists are append-only (oldest at 0).
+          // So reversing gives newest at top.
+          filteredHistory = filteredHistory.reversed.toList();
+        }
+
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor,
+                    width: 0.5,
+                  ),
                 ),
-                child: const Icon(Icons.delete, color: Colors.white),
               ),
-              confirmDismiss: (direction) async {
-                return await showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('Delete Backtest'),
-                      content: const Text(
-                          'Are you sure you want to delete this backtest from history?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search Symbol',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withOpacity(0.3),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 0),
+                            isDense: true,
                           ),
-                          child: const Text('Delete'),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
                         ),
-                      ],
-                    );
-                  },
-                );
-              },
-              onDismissed: (direction) async {
-                await provider.deleteBacktestFromHistory(index);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Backtest deleted')),
-                  );
-                }
-              },
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            _BacktestResultPage(result: result),
                       ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.sort),
+                        tooltip: 'Sort By',
+                        initialValue: _sortBy,
+                        onSelected: (newValue) {
+                          setState(() {
+                            _sortBy = newValue;
+                          });
+                        },
+                        itemBuilder: (context) => [
+                          'Date',
+                          'Return',
+                          'Trades',
+                          'Sharpe Ratio',
+                          'Win Rate'
+                        ].map((String value) {
+                          return PopupMenuItem<String>(
+                            value: value,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  value == 'Return' ||
+                                          value == 'Sharpe Ratio' ||
+                                          value == 'Win Rate'
+                                      ? Icons.trending_up
+                                      : (value == 'Trades'
+                                          ? Icons.analytics_outlined
+                                          : Icons.calendar_today),
+                                  size: 18,
+                                  color: _sortBy == value
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  value,
+                                  style: TextStyle(
+                                    fontWeight: _sortBy == value
+                                        ? FontWeight.bold
+                                        : null,
+                                    color: _sortBy == value
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: (isProfit ? Colors.green : Colors.red)
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                        Wrap(
+                          spacing: 8,
+                          children: ['All', 'Profit', 'Loss'].map((type) {
+                            final isSelected = _filterType == type;
+                            return FilterChip(
+                              label: Text(type),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    _filterType = type;
+                                  });
+                                }
+                              },
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              labelStyle: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
-                              child: Icon(
-                                isProfit
-                                    ? Icons.trending_up
-                                    : Icons.trending_down,
-                                color: isProfit ? Colors.green : Colors.red,
-                                size: 24,
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          height: 24,
+                          width: 1,
+                          color: Theme.of(context).dividerColor,
+                        ),
+                        const SizedBox(width: 12),
+                        ActionChip(
+                          avatar: const Icon(Icons.date_range, size: 14),
+                          label: Text(
+                            _filterStartDate == null
+                                ? 'Start Date'
+                                : DateFormat('MMM dd, yyyy')
+                                    .format(_filterStartDate!),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _filterStartDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() => _filterStartDate = picked);
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('-', style: TextStyle(color: Colors.grey)),
+                        const SizedBox(width: 4),
+                        ActionChip(
+                          avatar: const Icon(Icons.date_range, size: 14),
+                          label: Text(
+                            _filterEndDate == null
+                                ? 'End Date'
+                                : DateFormat('MMM dd, yyyy')
+                                    .format(_filterEndDate!),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _filterEndDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setState(() => _filterEndDate = picked);
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                        ),
+                        if (_filterStartDate != null ||
+                            _filterEndDate != null) ...[
+                          const SizedBox(width: 4),
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Clear Date Filter',
+                            onPressed: () {
+                              setState(() {
+                                _filterStartDate = null;
+                                _filterEndDate = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filteredHistory.length,
+                itemBuilder: (context, index) {
+                  final result = filteredHistory[index];
+                  final isProfit = result.totalReturn >= 0;
+                  // For deletion, we need the original index in the provider's list
+                  final originalIndex =
+                      provider.backtestHistory.indexOf(result);
+
+                  return Dismissible(
+                    key: Key('backtest_${originalIndex}_${result.hashCode}'),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    confirmDismiss: (direction) async {
+                      return await showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Delete Backtest'),
+                            content: const Text(
+                                'Are you sure you want to delete this backtest from history?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    onDismissed: (direction) {
+                      final messenger = ScaffoldMessenger.of(context);
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Backtest deleted')),
+                      );
+                      provider.deleteBacktestFromHistory(originalIndex);
+                    },
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => _BacktestResultPage(
+                                result: result,
+                                userDocRef: widget.userDocRef,
+                                onApplyConfig: (config) {
+                                  if (widget.runTabKey?.currentState != null) {
+                                    widget.runTabKey!.currentState!
+                                        .loadConfig(config);
+                                  }
+                                  if (widget.tabController != null) {
+                                    widget.tabController!.animateTo(0);
+                                  }
+                                  Navigator.pop(context);
+                                },
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        result.config.symbolFilter.isNotEmpty
-                                            ? result.config.symbolFilter.first
-                                            : "Multi",
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Chip(
-                                        label: Text(
-                                          result.config.interval,
-                                          style: const TextStyle(fontSize: 11),
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (isProfit ? Colors.green : Colors.red)
+                                              .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      isProfit
+                                          ? Icons.trending_up
+                                          : Icons.trending_down,
+                                      color:
+                                          isProfit ? Colors.green : Colors.red,
+                                      size: 24,
+                                    ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                result.config.symbolFilter
+                                                        .isEmpty
+                                                    ? "Multi"
+                                                    : result.config.symbolFilter
+                                                                .length ==
+                                                            1
+                                                        ? result.config
+                                                            .symbolFilter.first
+                                                        : result
+                                                                    .config
+                                                                    .symbolFilter
+                                                                    .length <=
+                                                                3
+                                                            ? result.config
+                                                                .symbolFilter
+                                                                .join(', ')
+                                                            : '${result.config.symbolFilter.first} +${result.config.symbolFilter.length - 1}',
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Chip(
+                                              label: Text(
+                                                result.config.interval,
+                                                style: const TextStyle(
+                                                    fontSize: 11),
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${DateFormat('MMM dd, yyyy').format(result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(result.config.endDate)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   Text(
-                                    '${DateFormat('MMM dd, yyyy').format(result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(result.config.endDate)}',
+                                    '${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toStringAsFixed(2)}%',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          isProfit ? Colors.green : Colors.red,
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Text(
-                              '${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toStringAsFixed(2)}%',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: isProfit ? Colors.green : Colors.red,
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  _buildHistoryMetric(
+                                    Icons.analytics_outlined,
+                                    '${result.totalTrades} trades',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildHistoryMetric(
+                                    Icons.percent,
+                                    '${(result.winRate * 100).toStringAsFixed(1)}% wins',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _buildHistoryMetric(
+                                    Icons.show_chart,
+                                    'SR ${result.sharpeRatio.toStringAsFixed(2)}',
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _buildHistoryMetric(
-                              Icons.analytics_outlined,
-                              '${result.totalTrades} trades',
-                            ),
-                            const SizedBox(width: 16),
-                            _buildHistoryMetric(
-                              Icons.percent,
-                              '${(result.winRate * 100).toStringAsFixed(1)}% wins',
-                            ),
-                            const SizedBox(width: 16),
-                            _buildHistoryMetric(
-                              Icons.show_chart,
-                              'SR ${result.sharpeRatio.toStringAsFixed(2)}',
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         );
       },
     );
@@ -2321,7 +3776,7 @@ class _BacktestHistoryTab extends StatelessWidget {
 /// Tab for managing backtest templates
 class _BacktestTemplatesTab extends StatefulWidget {
   final TabController? tabController;
-  final GlobalKey<_BacktestRunTabState>? runTabKey;
+  final GlobalKey<BacktestRunTabState>? runTabKey;
 
   const _BacktestTemplatesTab({this.tabController, this.runTabKey});
 
@@ -2347,239 +3802,82 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: provider.templates.length,
-          itemBuilder: (context, index) {
-            final template = provider.templates[index];
-
-            final isDefault = template.id.startsWith('default_');
-
-            return Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: InkWell(
-                onTap: () async {
-                  // Load template into Run tab via provider
-                  final provider =
-                      Provider.of<BacktestingProvider>(context, listen: false);
-
-                  // Set pending template and update usage
-                  provider.setPendingTemplate(template);
-                  await provider.updateTemplateUsage(template.id);
-
-                  // Switch to Run tab
-                  if (widget.tabController != null) {
-                    widget.tabController!.animateTo(0);
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Loaded template: ${template.name}'),
+        return StrategyListWidget(
+          strategies: provider.templates,
+          allowDelete: true,
+          onSelect: (template) {
+            _showTemplateDetailsSheet(context, template);
+          },
+          onDelete: (template) async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  title: const Text('Delete Template'),
+                  content: Text(
+                      'Are you sure you want to delete the template "${template.name}"?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
                       ),
-                    );
-                  }
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isDefault
-                                  ? Colors.amber.withValues(alpha: 0.15)
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .primaryContainer
-                                      .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              isDefault ? Icons.verified : Icons.bookmark,
-                              color: isDefault
-                                  ? Colors.amber[800]
-                                  : Theme.of(context).colorScheme.primary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        template.name,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (isDefault) ...[
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber
-                                              .withValues(alpha: 0.2),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                          border: Border.all(
-                                              color: Colors.amber
-                                                  .withValues(alpha: 0.5),
-                                              width: 0.5),
-                                        ),
-                                        child: Text(
-                                          'SYSTEM',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber[900],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                if (template.description.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    template.description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (!isDefault)
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20),
-                              color: Colors.grey,
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (BuildContext dialogContext) {
-                                    return AlertDialog(
-                                      title: const Text('Delete Template'),
-                                      content: Text(
-                                          'Are you sure you want to delete the template "${template.name}"?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(dialogContext)
-                                                  .pop(false),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.of(dialogContext)
-                                                  .pop(true),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-
-                                if (confirmed == true) {
-                                  await provider.deleteTemplate(template.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Template deleted')),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          _buildTemplateChip(
-                            Icons.show_chart,
-                            template.config.symbolFilter.isNotEmpty
-                                ? template.config.symbolFilter.first
-                                : "Multi",
-                          ),
-                          _buildTemplateChip(
-                            Icons.calendar_today,
-                            template.config.interval,
-                          ),
-                          _buildTemplateChip(
-                            Icons.insights,
-                            '${template.config.enabledIndicators.values.where((e) => e).length} indicators',
-                          ),
-                          if (template.lastUsedAt != null)
-                            _buildTemplateChip(
-                              Icons.access_time,
-                              'Used ${_formatTime(template.lastUsedAt!)}',
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                );
+              },
             );
+
+            if (confirmed == true) {
+              await provider.deleteTemplate(template.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Template deleted')),
+                );
+              }
+            }
           },
         );
       },
     );
   }
 
-  Widget _buildTemplateChip(IconData icon, String label) {
-    return Chip(
-      avatar: Icon(icon, size: 14),
-      label: Text(label, style: const TextStyle(fontSize: 11)),
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  void _showTemplateDetailsSheet(
+      BuildContext context, TradeStrategyTemplate template) {
+    StrategyDetailsBottomSheet.show(
+      context,
+      template,
+      () async {
+        Navigator.pop(context); // Close bottom sheet first
+
+        // Load template into Run tab via provider
+        final provider =
+            Provider.of<BacktestingProvider>(context, listen: false);
+
+        // Set pending template and update usage
+        provider.setPendingTemplate(template);
+        await provider.updateTemplateUsage(template.id);
+
+        // Switch to Run tab
+        if (widget.tabController != null) {
+          widget.tabController!.animateTo(0);
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loaded template: ${template.name}'),
+            ),
+          );
+        }
+      },
     );
-  }
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final difference = now.difference(time);
-
-    if (difference.inMinutes < 1) {
-      return 'just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return DateFormat('MMM dd').format(time);
-    }
   }
 }
 
@@ -2598,4 +3896,48 @@ class _TradeMarker {
   final DateTime timestamp;
   final double equity;
   final charts.Color color;
+}
+
+class _BacktestConfigSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+  final bool initiallyExpanded;
+
+  const _BacktestConfigSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+    this.initiallyExpanded = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          leading: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          children: children,
+        ),
+      ),
+    );
+  }
 }

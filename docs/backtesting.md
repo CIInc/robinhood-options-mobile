@@ -40,16 +40,33 @@ Comprehensive backtesting interface for testing trading strategies on historical
 - **Weighted Scoring**: Signals are evaluated using the live Weighted Signal Strength system (Price Action weighted 1.5x) for realistic simulation.
 
 ### Visual Results
-- Trade-by-trade breakdown
-- Entry/exit reasons for each trade
-- Signal data included for analysis
-- Performance comparison across different configurations
+- **Visual Charts**:
+  - Interactive Equity Curve
+  - Drawdown Chart (new)
+  - Buy & Hold comparison line
+- **Trade-by-trade breakdown** with entry/exit reasons
+- **Performance Metrics**:
+  - Sortino Ratio and Calmar Ratio
+  - Expectancy
+- **Empty State**: Friendly "No trades executed" message when no trades occur
+- Visual indicators for configured strategies in the Details tab
+
+### Enhanced Reporting
+- **Details Tab**: Now shows full configuration:
+  - Partial exit stages
+  - Detailed custom indicator cards with signal logic
+- **Consistent Formatting**:
+  - Dates formatted as `MMM dd, yyyy` (e.g., Jan 19, 2026) in headers and dialogs
+  - Chart axis formatted compactly as `MM/dd` for mobile readability
+- **Template Management**: dynamic title updates when templates are saved
 
 ### Export Reports
 - Export results as JSON
+- Export results as CSV (new)
 - Save backtest configurations as templates
 - Compare multiple backtest runs
 - Historical backtest storage (last 50 runs)
+- Share visual result summaries
 
 ## Architecture
 
@@ -288,14 +305,15 @@ users/{userId}/backtest_templates/{templateId}
 
 ### Planned Features
 - [x] Visual equity curve charts
+- [x] Drawdown charts
+- [x] Export to CSV
+- [x] Share backtest results
 - [ ] Monte Carlo simulation for confidence intervals
 - [ ] Walk-forward analysis for robustness testing
 - [ ] Portfolio backtesting (multiple symbols)
 - [ ] Custom commission models
-- [ ] Benchmark comparison (vs. buy-and-hold)
+- [ ] Benchmark comparison metrics
 - [ ] Optimization algorithms for parameter tuning
-- [ ] Export to CSV/Excel
-- [ ] Share backtest results
 
 ### Advanced Analytics
 - [ ] Win/loss distribution analysis
@@ -314,6 +332,8 @@ users/{userId}/backtest_templates/{templateId}
 3. Start date is before end date
 4. Internet connection is stable
 5. Firebase Functions are deployed correctly
+
+*Note: The system now automatically handles `NaN` and `Infinity` values in underlying calculations to prevent data transmission errors.*
 
 ### No Trades Generated
 **Likely causes:**

@@ -676,146 +676,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
             SliverToBoxAdapter(
-              child: OptionsFlowCardWidget(
-                brokerageUser: widget.brokerageUser,
-                service: widget.service,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                includePortfolioSymbols: true,
-              ),
-            ),
-            Consumer<OptionPositionStore>(
-                builder: (context, optionPositionStore, child) {
-              //if (optionPositions != null) {
-              var filteredOptionAggregatePositions = optionPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      (positionFilters.isEmpty ||
-                          positionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionFilters.isEmpty ||
-                          optionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionSymbolFilters.isEmpty ||
-                          optionSymbolFilters.contains(element.symbol)))
-                  .toList();
-
-              return OptionPositionsWidget(
-                widget.brokerageUser!,
-                widget.service!,
-                filteredOptionAggregatePositions,
-                showList: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-              );
-            }),
-            Consumer<InstrumentPositionStore>(
-                builder: (context, stockPositionStore, child) {
-              //if (positions != null) {
-              var filteredPositions = stockPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                      (stockSymbolFilters.isEmpty ||
-                          stockSymbolFilters
-                              .contains(element.instrumentObj!.symbol)))
-                  // widget.user.displayValue == DisplayValue.totalReturnPercent ? : i.marketValue
-                  .toList();
-
-              /*
-              double? value = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions);
-              String? trailingText;
-              Icon? icon;
-              if (value != null) {
-                trailingText = widget.user.getDisplayText(value);
-                icon = widget.user.getDisplayIcon(value);
-              }
-              */
-              return InstrumentPositionsWidget(
-                widget.brokerageUser!,
-                widget.service!,
-                filteredPositions,
-                showList: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-              );
-            }),
-            Consumer<ForexHoldingStore>(
-              builder: (context, forexHoldingStore, child) {
-                var nummusHoldings = forexHoldingStore.items;
-                cryptoSymbols =
-                    nummusHoldings.map((e) => e.currencyCode).toSet().toList();
-                cryptoSymbols.sort((a, b) => (a.compareTo(b)));
-                var filteredHoldings = nummusHoldings
-                    .where((element) =>
-                        ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                            (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                                (!hasQuantityFilters[1] ||
-                                    element.quantity! <= 0)) &&
-                        /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                        (cryptoFilters.isEmpty ||
-                            cryptoFilters.contains(element.currencyCode)))
-                    // .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
-                    // .reversed
-                    .toList();
-
-                return SliverToBoxAdapter(
-                    child: ShrinkWrappingViewport(
-                        offset: ViewportOffset.zero(),
-                        slivers: [
-                      //if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                      /*
-                      const SliverToBoxAdapter(
-                          child: SizedBox(
-                        height: 25.0,
-                      )),
-                      */
-                      ForexPositionsWidget(
-                        widget.brokerageUser!,
-                        widget.service!,
-                        filteredHoldings,
-                        showList: false,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      ),
-                      //],
-                      // const SliverToBoxAdapter(
-                      //     child: SizedBox(
-                      //   height: 25.0,
-                      // ))
-                    ]));
-              },
-            ),
-            SliverToBoxAdapter(
               child:
                   // Promote Automated Trading & Backtesting
                   Padding(
@@ -962,6 +822,146 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ),
                 ),
               ),
+            ),
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                includePortfolioSymbols: true,
+              ),
+            ),
+            Consumer<OptionPositionStore>(
+                builder: (context, optionPositionStore, child) {
+              //if (optionPositions != null) {
+              var filteredOptionAggregatePositions = optionPositionStore.items
+                  .where((element) =>
+                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                              (!hasQuantityFilters[1] ||
+                                  element.quantity! <= 0)) &&
+                      (positionFilters.isEmpty ||
+                          positionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionFilters.isEmpty ||
+                          optionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionSymbolFilters.isEmpty ||
+                          optionSymbolFilters.contains(element.symbol)))
+                  .toList();
+
+              return OptionPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                filteredOptionAggregatePositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+              );
+            }),
+            Consumer<InstrumentPositionStore>(
+                builder: (context, stockPositionStore, child) {
+              //if (positions != null) {
+              var filteredPositions = stockPositionStore.items
+                  .where((element) =>
+                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                          //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
+                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                              (!hasQuantityFilters[1] ||
+                                  element.quantity! <= 0)) &&
+                      /*
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                        */
+                      (stockSymbolFilters.isEmpty ||
+                          stockSymbolFilters
+                              .contains(element.instrumentObj!.symbol)))
+                  // widget.user.displayValue == DisplayValue.totalReturnPercent ? : i.marketValue
+                  .toList();
+
+              /*
+              double? value = widget.user
+                  .getPositionAggregateDisplayValue(filteredPositions);
+              String? trailingText;
+              Icon? icon;
+              if (value != null) {
+                trailingText = widget.user.getDisplayText(value);
+                icon = widget.user.getDisplayIcon(value);
+              }
+              */
+              return InstrumentPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                filteredPositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+              );
+            }),
+            Consumer<ForexHoldingStore>(
+              builder: (context, forexHoldingStore, child) {
+                var nummusHoldings = forexHoldingStore.items;
+                cryptoSymbols =
+                    nummusHoldings.map((e) => e.currencyCode).toSet().toList();
+                cryptoSymbols.sort((a, b) => (a.compareTo(b)));
+                var filteredHoldings = nummusHoldings
+                    .where((element) =>
+                        ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                            (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                                (!hasQuantityFilters[1] ||
+                                    element.quantity! <= 0)) &&
+                        /*
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                        */
+                        (cryptoFilters.isEmpty ||
+                            cryptoFilters.contains(element.currencyCode)))
+                    // .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
+                    // .reversed
+                    .toList();
+
+                return SliverToBoxAdapter(
+                    child: ShrinkWrappingViewport(
+                        offset: ViewportOffset.zero(),
+                        slivers: [
+                      //if (filteredOptionAggregatePositions.isNotEmpty) ...[
+                      /*
+                      const SliverToBoxAdapter(
+                          child: SizedBox(
+                        height: 25.0,
+                      )),
+                      */
+                      ForexPositionsWidget(
+                        widget.brokerageUser!,
+                        widget.service!,
+                        filteredHoldings,
+                        showList: false,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      ),
+                      //],
+                      // const SliverToBoxAdapter(
+                      //     child: SizedBox(
+                      //   height: 25.0,
+                      // ))
+                    ]));
+              },
             ),
             SliverToBoxAdapter(
               child: PerformanceChartWidget(

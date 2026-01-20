@@ -55,7 +55,7 @@ class CustomIndicatorConfig {
         type: IndicatorType.values.firstWhere(
             (e) => e.toString().split('.').last == json['type'],
             orElse: () => IndicatorType.SMA),
-        parameters: json['parameters'] as Map<String, dynamic>,
+        parameters: Map<String, dynamic>.from(json['parameters'] as Map),
         condition: SignalCondition.values.firstWhere(
             (e) => e.toString().split('.').last == json['condition'],
             orElse: () => SignalCondition.GreaterThan),
