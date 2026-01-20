@@ -830,37 +830,6 @@ class _UserWidgetState extends State<UserWidget> {
                                               ?.copyWith(
                                                   fontWeight: FontWeight.bold),
                                         )),
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child: const Icon(
-                                            Icons.assessment_outlined),
-                                      ),
-                                      title: const Text('Investment Profile'),
-                                      subtitle: const Text(
-                                          'Configure goals and risk tolerance for personalized recommendations'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  InvestmentProfileSettingsWidget(
-                                                user: user!,
-                                                firestoreService:
-                                                    _firestoreService,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
                                     // Agentic Trading Settings entry moved here from the app Drawer
                                     ListTile(
                                       leading: CircleAvatar(
@@ -955,6 +924,37 @@ class _UserWidgetState extends State<UserWidget> {
                                                 user: user!,
                                                 userDocRef:
                                                     userDocumentReference!,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(
+                                            Icons.assessment_outlined),
+                                      ),
+                                      title: const Text('Investment Profile'),
+                                      subtitle: const Text(
+                                          'Configure goals and risk tolerance for personalized recommendations'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  InvestmentProfileSettingsWidget(
+                                                user: user!,
+                                                firestoreService:
+                                                    _firestoreService,
                                               ),
                                             ),
                                           );

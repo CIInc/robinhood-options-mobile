@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:convert';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -35,6 +38,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     'Cash': 0,
   };
   final Map<String, double> _sectorTargets = {};
+  Map<String, double>? _assetTargetsBackup;
+  Map<String, double>? _sectorTargetsBackup;
   bool _isEditing = false;
   int _viewMode = 0; // 0: Asset Class, 1: Sector
   final NumberFormat formatCurrency =
@@ -68,9 +73,25 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     }
   }
 
-  void _toggleEditing() {
+  void _startEditing() {
     setState(() {
-      _isEditing = !_isEditing;
+      _assetTargetsBackup = Map.from(_assetTargets);
+      _sectorTargetsBackup = Map.from(_sectorTargets);
+      _isEditing = true;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      if (_assetTargetsBackup != null) {
+        _assetTargets.clear();
+        _assetTargets.addAll(_assetTargetsBackup!);
+      }
+      if (_sectorTargetsBackup != null) {
+        _sectorTargets.clear();
+        _sectorTargets.addAll(_sectorTargetsBackup!);
+      }
+      _isEditing = false;
     });
   }
 
@@ -246,389 +267,749 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Portfolio Rebalance'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showSettings,
-          ),
-          IconButton(
-            icon: Icon(_isEditing ? Icons.save : Icons.edit),
-            onPressed: _isEditing ? _saveTargets : _toggleEditing,
-          ),
-        ],
-      ),
-      bottomNavigationBar: _isEditing
-          ? BottomAppBar(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Future<void> _optimizeWithAI() async {
+    final risks = InvestmentProfile.riskToleranceOptions;
+    final horizons = InvestmentProfile.timeHorizonOptions;
+    final goals = InvestmentProfile.investmentGoalOptions;
+
+    // Defaults from user profile or fallbacks - ensure value is in list
+    String selectedRisk =
+        widget.user.investmentProfile?.riskTolerance ?? 'Moderate';
+    if (!risks.contains(selectedRisk)) selectedRisk = 'Moderate';
+
+    String selectedHorizon =
+        widget.user.investmentProfile?.timeHorizon ?? 'Medium Term (3-7 yrs)';
+    if (!horizons.contains(selectedHorizon)) {
+      selectedHorizon = 'Medium Term (3-7 yrs)';
+    }
+
+    String selectedGoal =
+        widget.user.investmentProfile?.investmentGoals ?? 'Growth';
+    if (!goals.contains(selectedGoal)) selectedGoal = 'Growth';
+
+    final bool? proceed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('AI Allocation Strategy'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Text('Total: ',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          formatPercentage.format(
-                              (_viewMode == 0 ? _assetTargets : _sectorTargets)
-                                  .values
-                                  .fold(0.0, (a, b) => a + b)),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: ((_viewMode == 0
-                                                    ? _assetTargets
-                                                    : _sectorTargets)
-                                                .values
-                                                .fold(0.0, (a, b) => a + b) -
-                                            1.0)
-                                        .abs() >
-                                    0.01
-                                ? Colors.red
-                                : Colors.green,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                        'Define your investor profile to generate personalized allocation targets.'),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedRisk,
+                      decoration: const InputDecoration(
+                        labelText: 'Risk Tolerance',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.speed),
+                      ),
+                      items: risks.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() => selectedRisk = newValue);
+                        }
+                      },
                     ),
-                    FilledButton.icon(
-                      onPressed: _normalizeTargets,
-                      icon: const Icon(Icons.balance),
-                      label: const Text('Normalize'),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedHorizon,
+                      decoration: const InputDecoration(
+                        labelText: 'Time Horizon',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.calendar_today),
+                      ),
+                      items: horizons.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() => selectedHorizon = newValue);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedGoal,
+                      decoration: const InputDecoration(
+                        labelText: 'Investment Goal',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.flag),
+                      ),
+                      items: goals.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() => selectedGoal = newValue);
+                        }
+                      },
                     ),
                   ],
                 ),
               ),
-            )
-          : null,
-      body: Consumer4<PortfolioStore, InstrumentPositionStore,
-          OptionPositionStore, ForexHoldingStore>(
-        builder: (context, portfolioStore, stockPositionStore,
-            optionPositionStore, forexHoldingStore, child) {
-          // Calculate current allocation
-          double stockEquity = 0;
-          final Map<String, double> sectorEquity = {};
-
-          for (var item in stockPositionStore.items) {
-            final equity = (item.quantity ?? 0) * (item.averageBuyPrice ?? 0);
-            stockEquity += equity;
-
-            final sector =
-                item.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
-            sectorEquity[sector] = (sectorEquity[sector] ?? 0) + equity;
-          }
-
-          double optionEquity = 0;
-          for (var item in optionPositionStore.items) {
-            // Use averageOpenPrice as averagePrice is not available on OptionAggregatePosition
-            optionEquity += (item.quantity ?? 0) * (item.averageOpenPrice ?? 0);
-          }
-
-          double cryptoEquity = 0;
-          for (var item in forexHoldingStore.items) {
-            if (item.quantity != null &&
-                item.quoteObj != null &&
-                item.quoteObj!.markPrice != null) {
-              cryptoEquity += item.quantity! * item.quoteObj!.markPrice!;
-            }
-          }
-
-          double cashEquity = widget.account.portfolioCash ?? 0;
-
-          final totalEquity =
-              stockEquity + optionEquity + cryptoEquity + cashEquity;
-
-          if (totalEquity == 0) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.pie_chart_outline,
-                      size: 64, color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(height: 16),
-                  Text('No portfolio data available',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('Add positions to see allocation analysis',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
+              actions: [
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                FilledButton.icon(
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Generate Strategy'),
+                  onPressed: () => Navigator.of(context).pop(true),
+                ),
+              ],
             );
-          }
+          },
+        );
+      },
+    );
 
-          final currentAssetAllocation = {
-            'Stocks': stockEquity / totalEquity,
-            'Options': optionEquity / totalEquity,
-            'Crypto': cryptoEquity / totalEquity,
-            'Cash': cashEquity / totalEquity,
-          };
+    if (proceed != true) return;
 
-          final currentSectorAllocation = sectorEquity.map((key, value) =>
-              MapEntry(key, value / totalEquity)); // Sector % of TOTAL equity
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    }
 
-          // Ensure all sectors in current allocation are in targets (init with 0 if missing)
-          if (_sectorTargets.isEmpty && currentSectorAllocation.isNotEmpty) {
-            // Initialize targets with current if empty
-            // Or just ensure keys exist
-          }
-          for (var key in currentSectorAllocation.keys) {
-            if (!_sectorTargets.containsKey(key)) {
-              _sectorTargets[key] = 0;
-            }
-          }
+    try {
+      // 1. Update User Profile
+      final profileData = widget.user.investmentProfile?.toJson() ?? {};
+      profileData['riskTolerance'] = selectedRisk;
+      profileData['timeHorizon'] = selectedHorizon;
+      profileData['investmentGoals'] = selectedGoal;
 
-          final currentAllocation =
-              _viewMode == 0 ? currentAssetAllocation : currentSectorAllocation;
-          final targets = _viewMode == 0 ? _assetTargets : _sectorTargets;
+      if (widget.user.investmentProfile == null) {
+        widget.user.investmentProfile = InvestmentProfile(
+          riskTolerance: selectedRisk,
+          timeHorizon: selectedHorizon,
+          investmentGoals: selectedGoal,
+        );
+      } else {
+        widget.user.investmentProfile!.riskTolerance = selectedRisk;
+        widget.user.investmentProfile!.timeHorizon = selectedHorizon;
+        widget.user.investmentProfile!.investmentGoals = selectedGoal;
+      }
+      // Fire and forget update
+      widget.userDocRef.update({'investmentProfile': profileData});
 
-          final allKeys = _viewMode == 0
-              ? ['Stocks', 'Options', 'Crypto', 'Cash']
-              : {
-                  ...currentSectorAllocation.keys,
-                  ..._sectorTargets.keys,
-                  ..._standardSectors
-                }.toList();
-          if (_viewMode == 1) {
-            allKeys.sort();
-          }
+      // 2. Generate Content
+      String portfolioContext = "";
+      if (widget.user.investmentProfile?.totalPortfolioValue != null) {
+        portfolioContext =
+            "- Portfolio Value: ${formatCurrency.format(widget.user.investmentProfile!.totalPortfolioValue)}\n";
+      }
 
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final assetColors = {
-            'Stocks': Colors.blue,
-            'Options': isDark ? Colors.orange : Colors.orange[800]!,
-            'Crypto': Colors.purple,
-            'Cash': Colors.green,
-          };
+      final prompt =
+          "Acting as a senior portfolio manager, suggest a specific portfolio allocation (Stocks, Options, Crypto, Cash) and Sector allocation for an investor with the following profile:\n"
+          "- Risk Tolerance: $selectedRisk\n"
+          "- Time Horizon: $selectedHorizon\n"
+          "- Primary Goal: $selectedGoal\n"
+          "$portfolioContext\n"
+          "Return ONLY a clean JSON object (no markdown formatting) with this structure:\n"
+          "{\n"
+          "  \"explanation\": \"A concise 2-3 sentence explanation of why this allocation fits the profile.\",\n"
+          "  \"assets\": {\"Stocks\": 0.60, \"Options\": 0.10, \"Crypto\": 0.05, \"Cash\": 0.25},\n"
+          "  \"sectors\": {\"Technology\": 0.30, \"Financial Services\": 0.20, ... (ensure covering major sectors, sum to 1.0)}\n"
+          "}\n"
+          "Ensure all percentages in 'assets' sum exactly to 1.0, and 'sectors' sum exactly to 1.0.";
 
-          // Distinct palette for sectors to ensure readability across themes
-          final List<Color> sectorPalette = [
-            Colors.blue,
-            Colors.red,
-            Colors.green,
-            isDark ? Colors.orange : Colors.orange[800]!,
-            Colors.purple,
-            Colors.teal,
-            Colors.pink,
-            Colors.indigo,
-            isDark ? Colors.cyan : Colors.cyan[700]!,
-            isDark ? Colors.amber : Colors.amber[800]!,
-            Colors.brown,
-            isDark ? Colors.lime : Colors.lime[800]!,
-            Colors.deepOrange,
-            Colors.lightBlue,
-            Colors.deepPurple,
-          ];
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('generateContent25')
+          .call({'prompt': prompt});
 
-          final sectorColors = <String, Color>{};
-          if (_viewMode == 1) {
-            for (int i = 0; i < allKeys.length; i++) {
-              sectorColors[allKeys[i]] =
-                  sectorPalette[i % sectorPalette.length];
-            }
-          }
+      // 3. Process Result
+      String responseText =
+          result.data['candidates'][0]['content']['parts'][0]['text'];
 
-          Color getColor(String key) {
-            if (_viewMode == 0) {
-              return assetColors[key] ?? Colors.grey;
-            } else {
-              return sectorColors[key] ?? Colors.grey;
-            }
-          }
+      int startIndex = responseText.indexOf('{');
+      int endIndex = responseText.lastIndexOf('}');
+      if (startIndex == -1 || endIndex == -1) {
+        throw const FormatException('No JSON object found in response');
+      }
+      final jsonStr = responseText.substring(startIndex, endIndex + 1);
+      final data = jsonDecode(jsonStr);
+      final String explanation =
+          data['explanation'] ?? 'No explanation provided.';
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 0, label: Text('Asset Class')),
-                    ButtonSegment(value: 1, label: Text('Sector')),
+      // Dismiss Loading Indicator
+      if (mounted) Navigator.of(context).pop();
+
+      // 4. Show Recommendation Dialog
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('AI Recommendation'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.lightbulb, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              explanation,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Asset Allocation',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    ...(data['assets'] as Map<String, dynamic>)
+                        .entries
+                        .map((e) => Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.key),
+                                Text(
+                                    '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%'),
+                              ],
+                            )),
+                    const SizedBox(height: 16),
+                    Text('Sector Allocation',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    ...(data['sectors'] as Map<String, dynamic>)
+                        .entries
+                        .take(5) // Just show top 5 for preview
+                        .map((e) => Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.key),
+                                Text(
+                                    '${((e.value as num).toDouble() * 100).toStringAsFixed(1)}%'),
+                              ],
+                            )),
+                    if ((data['sectors'] as Map).length > 5)
+                      Text('...and ${(data['sectors'] as Map).length - 5} more',
+                          style: Theme.of(context).textTheme.bodySmall),
                   ],
-                  selected: {_viewMode},
-                  onSelectionChanged: (Set<int> newSelection) {
+                ),
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Dismiss'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                FilledButton(
+                  child: const Text('Apply Strategy'),
+                  onPressed: () {
                     setState(() {
-                      _viewMode = newSelection.first;
-                      _isEditing = false; // Exit edit mode when switching views
+                      if (!_isEditing) {
+                        _assetTargetsBackup = Map.from(_assetTargets);
+                        _sectorTargetsBackup = Map.from(_sectorTargets);
+                        _isEditing = true;
+                      }
+                      if (data['assets'] != null) {
+                        _assetTargets.clear();
+                        Map<String, dynamic> assets = data['assets'];
+                        assets.forEach(
+                            (k, v) => _assetTargets[k] = (v as num).toDouble());
+                      }
+                      if (data['sectors'] != null) {
+                        _sectorTargets.clear();
+                        Map<String, dynamic> sectors = data['sectors'];
+                        sectors.forEach((k, v) =>
+                            _sectorTargets[k] = (v as num).toDouble());
+                      }
                     });
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Targets updated. Review and Save.')),
+                    );
                   },
                 ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        // Dismiss Loading Dialog
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating strategy: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_isEditing,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final bool? shouldPop = await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Discard Changes?'),
+            content: const Text(
+                'You have unsaved changes. Are you sure you want to discard them?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
               ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16.0),
-                  children: [
-                    if (_isEditing) ...[
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            const Text('Presets: ',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 8),
-                            ...(_viewMode == 0
-                                    ? [
-                                        'Aggressive',
-                                        'Moderate',
-                                        'Conservative',
-                                        'All Equity'
-                                      ]
-                                    : ['Tech Heavy', 'Balanced', 'Defensive'])
-                                .map((preset) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: ActionChip(
-                                        label: Text(preset),
-                                        onPressed: () => _applyPreset(preset),
-                                      ),
-                                    )),
-                          ],
-                        ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Discard'),
+              ),
+            ],
+          ),
+        );
+        if (shouldPop == true) {
+          _cancelEditing(); // Reset changes if discarding
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Portfolio Rebalance'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              onPressed: _optimizeWithAI,
+              tooltip: "AI Optimization",
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: _showSettings,
+            ),
+            if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _cancelEditing,
+                tooltip: "Cancel",
+              ),
+            IconButton(
+              icon: Icon(_isEditing ? Icons.save : Icons.edit),
+              onPressed: _isEditing ? _saveTargets : _startEditing,
+              tooltip: _isEditing ? "Save" : "Edit",
+            ),
+          ],
+        ),
+        bottomNavigationBar: _isEditing
+            ? BottomAppBar(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Text('Total: ',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            formatPercentage.format((_viewMode == 0
+                                    ? _assetTargets
+                                    : _sectorTargets)
+                                .values
+                                .fold(0.0, (a, b) => a + b)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: ((_viewMode == 0
+                                                      ? _assetTargets
+                                                      : _sectorTargets)
+                                                  .values
+                                                  .fold(0.0, (a, b) => a + b) -
+                                              1.0)
+                                          .abs() >
+                                      0.01
+                                  ? Colors.red
+                                  : Colors.green,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _normalizeTargets,
+                        icon: const Icon(Icons.balance),
+                        label: const Text('Normalize'),
+                      ),
                     ],
-                    if (!_isEditing) ...[
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: SizedBox(
-                            height: 220,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      Text('Current',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 8),
-                                      Expanded(
-                                        child: PieChart(
-                                          [
-                                            charts.Series<PieChartData, String>(
-                                              id: 'Current',
-                                              domainFn:
-                                                  (PieChartData sales, _) =>
-                                                      sales.label,
-                                              measureFn:
-                                                  (PieChartData sales, _) =>
-                                                      sales.value,
-                                              colorFn: (PieChartData row, _) =>
-                                                  charts.ColorUtil
-                                                      .fromDartColor(
-                                                          getColor(row.label)),
-                                              data: currentAllocation.entries
-                                                  .map((e) => PieChartData(
-                                                      e.key, e.value))
-                                                  .toList(),
-                                              labelAccessorFn: (PieChartData
-                                                          row,
-                                                      _) =>
-                                                  '${row.label}\n${formatPercentage.format(row.value)}',
-                                            )
-                                          ],
-                                          animate: false,
-                                          renderer: charts.ArcRendererConfig(
-                                            arcWidth: 60,
-                                            arcRendererDecorators: [
-                                              charts.ArcLabelDecorator(
-                                                  labelPosition: charts
-                                                      .ArcLabelPosition.auto)
-                                            ],
-                                          ),
-                                          onSelected: (p0) {},
+                  ),
+                ),
+              )
+            : null,
+        body: Consumer4<PortfolioStore, InstrumentPositionStore,
+            OptionPositionStore, ForexHoldingStore>(
+          builder: (context, portfolioStore, stockPositionStore,
+              optionPositionStore, forexHoldingStore, child) {
+            // Calculate current allocation
+            double stockEquity = 0;
+            final Map<String, double> sectorEquity = {};
+
+            for (var item in stockPositionStore.items) {
+              final equity = (item.quantity ?? 0) * (item.averageBuyPrice ?? 0);
+              stockEquity += equity;
+
+              final sector =
+                  item.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
+              sectorEquity[sector] = (sectorEquity[sector] ?? 0) + equity;
+            }
+
+            double optionEquity = 0;
+            for (var item in optionPositionStore.items) {
+              // Use averageOpenPrice as averagePrice is not available on OptionAggregatePosition
+              optionEquity +=
+                  (item.quantity ?? 0) * (item.averageOpenPrice ?? 0);
+            }
+
+            double cryptoEquity = 0;
+            for (var item in forexHoldingStore.items) {
+              if (item.quantity != null &&
+                  item.quoteObj != null &&
+                  item.quoteObj!.markPrice != null) {
+                cryptoEquity += item.quantity! * item.quoteObj!.markPrice!;
+              }
+            }
+
+            double cashEquity = widget.account.portfolioCash ?? 0;
+
+            final totalEquity =
+                stockEquity + optionEquity + cryptoEquity + cashEquity;
+
+            if (totalEquity == 0) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.pie_chart_outline,
+                        size: 64, color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(height: 16),
+                    Text('No portfolio data available',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text('Add positions to see allocation analysis',
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              );
+            }
+
+            final currentAssetAllocation = {
+              'Stocks': stockEquity / totalEquity,
+              'Options': optionEquity / totalEquity,
+              'Crypto': cryptoEquity / totalEquity,
+              'Cash': cashEquity / totalEquity,
+            };
+
+            final currentSectorAllocation = sectorEquity.map((key, value) =>
+                MapEntry(key, value / totalEquity)); // Sector % of TOTAL equity
+
+            // Ensure all sectors in current allocation are in targets (init with 0 if missing)
+            if (_sectorTargets.isEmpty && currentSectorAllocation.isNotEmpty) {
+              // Initialize targets with current if empty
+              // Or just ensure keys exist
+            }
+            for (var key in currentSectorAllocation.keys) {
+              if (!_sectorTargets.containsKey(key)) {
+                _sectorTargets[key] = 0;
+              }
+            }
+
+            final currentAllocation = _viewMode == 0
+                ? currentAssetAllocation
+                : currentSectorAllocation;
+            final targets = _viewMode == 0 ? _assetTargets : _sectorTargets;
+
+            final allKeys = _viewMode == 0
+                ? ['Stocks', 'Options', 'Crypto', 'Cash']
+                : {
+                    ...currentSectorAllocation.keys,
+                    ..._sectorTargets.keys,
+                    ..._standardSectors
+                  }.toList();
+            if (_viewMode == 1) {
+              allKeys.sort();
+            }
+
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final assetColors = {
+              'Stocks': Colors.blue,
+              'Options': isDark ? Colors.orange : Colors.orange[800]!,
+              'Crypto': Colors.purple,
+              'Cash': Colors.green,
+            };
+
+            // Distinct palette for sectors to ensure readability across themes
+            final List<Color> sectorPalette = [
+              Colors.blue,
+              Colors.red,
+              Colors.green,
+              isDark ? Colors.orange : Colors.orange[800]!,
+              Colors.purple,
+              Colors.teal,
+              Colors.pink,
+              Colors.indigo,
+              isDark ? Colors.cyan : Colors.cyan[700]!,
+              isDark ? Colors.amber : Colors.amber[800]!,
+              Colors.brown,
+              isDark ? Colors.lime : Colors.lime[800]!,
+              Colors.deepOrange,
+              Colors.lightBlue,
+              Colors.deepPurple,
+            ];
+
+            final sectorColors = <String, Color>{};
+            if (_viewMode == 1) {
+              for (int i = 0; i < allKeys.length; i++) {
+                sectorColors[allKeys[i]] =
+                    sectorPalette[i % sectorPalette.length];
+              }
+            }
+
+            Color getColor(String key) {
+              if (_viewMode == 0) {
+                return assetColors[key] ?? Colors.grey;
+              } else {
+                return sectorColors[key] ?? Colors.grey;
+              }
+            }
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('Asset Class')),
+                      ButtonSegment(value: 1, label: Text('Sector')),
+                    ],
+                    selected: {_viewMode},
+                    onSelectionChanged: (Set<int> newSelection) {
+                      setState(() {
+                        _viewMode = newSelection.first;
+                        _isEditing =
+                            false; // Exit edit mode when switching views
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      if (_isEditing) ...[
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              const Text('Presets: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              ...(_viewMode == 0
+                                      ? [
+                                          'Aggressive',
+                                          'Moderate',
+                                          'Conservative',
+                                          'All Equity'
+                                        ]
+                                      : ['Tech Heavy', 'Balanced', 'Defensive'])
+                                  .map((preset) => Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 8.0),
+                                        child: ActionChip(
+                                          label: Text(preset),
+                                          onPressed: () => _applyPreset(preset),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const VerticalDivider(width: 32),
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      Text('Target',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 8),
-                                      Expanded(
-                                        child: PieChart(
-                                          [
-                                            charts.Series<PieChartData, String>(
-                                              id: 'Target',
-                                              domainFn:
-                                                  (PieChartData sales, _) =>
-                                                      sales.label,
-                                              measureFn:
-                                                  (PieChartData sales, _) =>
-                                                      sales.value,
-                                              colorFn: (PieChartData row, _) =>
-                                                  charts.ColorUtil
-                                                      .fromDartColor(
-                                                          getColor(row.label)),
-                                              data: targets.entries
-                                                  .map((e) => PieChartData(
-                                                      e.key, e.value))
-                                                  .toList(),
-                                              labelAccessorFn: (PieChartData
-                                                          row,
-                                                      _) =>
-                                                  '${row.label}\n${formatPercentage.format(row.value)}',
-                                            )
-                                          ],
-                                          animate: false,
-                                          renderer: charts.ArcRendererConfig(
-                                            arcWidth: 60,
-                                            arcRendererDecorators: [
-                                              charts.ArcLabelDecorator(
-                                                  labelPosition: charts
-                                                      .ArcLabelPosition.auto)
+                                      )),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (!_isEditing) ...[
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: SizedBox(
+                              height: 220,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Text('Current',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                        const SizedBox(height: 8),
+                                        Expanded(
+                                          child: PieChart(
+                                            [
+                                              charts.Series<PieChartData,
+                                                  String>(
+                                                id: 'Current',
+                                                domainFn:
+                                                    (PieChartData sales, _) =>
+                                                        sales.label,
+                                                measureFn:
+                                                    (PieChartData sales, _) =>
+                                                        sales.value,
+                                                colorFn: (PieChartData row,
+                                                        _) =>
+                                                    charts.ColorUtil
+                                                        .fromDartColor(getColor(
+                                                            row.label)),
+                                                data: currentAllocation.entries
+                                                    .map((e) => PieChartData(
+                                                        e.key, e.value))
+                                                    .toList(),
+                                                labelAccessorFn: (PieChartData
+                                                            row,
+                                                        _) =>
+                                                    '${row.label}\n${formatPercentage.format(row.value)}',
+                                              )
                                             ],
+                                            animate: false,
+                                            renderer: charts.ArcRendererConfig(
+                                              arcWidth: 60,
+                                              arcRendererDecorators: [
+                                                charts.ArcLabelDecorator(
+                                                    labelPosition: charts
+                                                        .ArcLabelPosition.auto)
+                                              ],
+                                            ),
+                                            onSelected: (p0) {},
                                           ),
-                                          onSelected: (p0) {},
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const VerticalDivider(width: 32),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Text('Target',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                        const SizedBox(height: 8),
+                                        Expanded(
+                                          child: PieChart(
+                                            [
+                                              charts.Series<PieChartData,
+                                                  String>(
+                                                id: 'Target',
+                                                domainFn:
+                                                    (PieChartData sales, _) =>
+                                                        sales.label,
+                                                measureFn:
+                                                    (PieChartData sales, _) =>
+                                                        sales.value,
+                                                colorFn: (PieChartData row,
+                                                        _) =>
+                                                    charts.ColorUtil
+                                                        .fromDartColor(getColor(
+                                                            row.label)),
+                                                data: targets.entries
+                                                    .map((e) => PieChartData(
+                                                        e.key, e.value))
+                                                    .toList(),
+                                                labelAccessorFn: (PieChartData
+                                                            row,
+                                                        _) =>
+                                                    '${row.label}\n${formatPercentage.format(row.value)}',
+                                              )
+                                            ],
+                                            animate: false,
+                                            renderer: charts.ArcRendererConfig(
+                                              arcWidth: 60,
+                                              arcRendererDecorators: [
+                                                charts.ArcLabelDecorator(
+                                                    labelPosition: charts
+                                                        .ArcLabelPosition.auto)
+                                              ],
+                                            ),
+                                            onSelected: (p0) {},
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                      ],
+                      ...allKeys.map((key) {
+                        final currentPct = currentAllocation[key] ?? 0.0;
+                        final targetPct = targets[key] ?? 0.0;
+                        return _buildAllocationCard(
+                            key,
+                            currentPct * totalEquity,
+                            currentPct,
+                            targetPct,
+                            totalEquity,
+                            targets,
+                            getColor(key));
+                      }),
                       const SizedBox(height: 20),
+                      if (!_isEditing)
+                        _buildRecommendations(
+                            currentAllocation, targets, totalEquity),
                     ],
-                    ...allKeys.map((key) {
-                      final currentPct = currentAllocation[key] ?? 0.0;
-                      final targetPct = targets[key] ?? 0.0;
-                      return _buildAllocationCard(
-                          key,
-                          currentPct * totalEquity,
-                          currentPct,
-                          targetPct,
-                          totalEquity,
-                          targets,
-                          getColor(key));
-                    }),
-                    const SizedBox(height: 20),
-                    if (!_isEditing)
-                      _buildRecommendations(
-                          currentAllocation, targets, totalEquity),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -694,7 +1075,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                           Container(
                             height: 12,
                             decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.2),
+                              color: Colors.grey.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                           ),
@@ -775,7 +1156,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                 Container(
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.2),
+                                    color: Colors.grey.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                 ),
@@ -784,7 +1165,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                   child: Container(
                                     height: 12,
                                     decoration: BoxDecoration(
-                                      color: color.withOpacity(0.6),
+                                      color: color.withValues(alpha: 0.6),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                   ),
@@ -818,7 +1199,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                             ),
                       ),
                       const SizedBox(width: 8),
@@ -872,7 +1253,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     if (recommendations.isEmpty) {
       return Card(
         elevation: 0,
-        color: Colors.green.withOpacity(0.1),
+        color: Colors.green.withValues(alpha: 0.1),
         child: const Padding(
           padding: EdgeInsets.all(16.0),
           child: Row(
@@ -920,7 +1301,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
 
             return ListTile(
               leading: CircleAvatar(
-                backgroundColor: color.withOpacity(0.1),
+                backgroundColor: color.withValues(alpha: 0.1),
                 child:
                     Icon(amount > 0 ? Icons.add : Icons.remove, color: color),
               ),

@@ -29,4 +29,25 @@ class InvestmentProfile {
       'totalPortfolioValue': totalPortfolioValue,
     };
   }
+
+  static const List<String> investmentGoalOptions = [
+    'Capital Preservation',
+    'Income',
+    'Growth',
+    'Speculation',
+  ];
+
+  static const List<String> timeHorizonOptions = [
+    'Short Term (< 3 yrs)',
+    'Medium Term (3-7 yrs)',
+    'Long Term (> 7 yrs)',
+  ];
+
+  static const List<String> riskToleranceOptions = [
+    'Conservative',
+    'Moderate',
+    'Growth',
+    'Aggressive',
+    'Speculative',
+  ];
 }
