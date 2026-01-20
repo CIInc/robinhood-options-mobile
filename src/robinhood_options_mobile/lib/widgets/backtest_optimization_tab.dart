@@ -369,9 +369,9 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
         // Highlight top 3
         final isTopRank = index < 3;
         Color? cardColor;
-        if (index == 0)
+        if (index == 0) {
           cardColor = Colors.amber.withOpacity(0.1); // Gold
-        else if (index == 1)
+        } else if (index == 1)
           cardColor = Colors.grey.withOpacity(0.1); // Silver
         else if (index == 2)
           cardColor = Colors.brown.withOpacity(0.1); // Bronze

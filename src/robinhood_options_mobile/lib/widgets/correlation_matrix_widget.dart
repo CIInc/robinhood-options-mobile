@@ -14,11 +14,11 @@ class CorrelationMatrixWidget extends StatefulWidget {
   final List<String> symbols;
 
   const CorrelationMatrixWidget({
-    Key? key,
+    super.key,
     required this.user,
     required this.service,
     required this.symbols,
-  }) : super(key: key);
+  });
 
   @override
   State<CorrelationMatrixWidget> createState() =>
@@ -301,7 +301,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                 TextButton(
                   onPressed: () {
                     // Update main state
-                    this.setState(() {
+                    setState(() {
                       _selectedSymbols = currentlySelected;
                       _loadedSymbols = 0;
                       _totalSymbols = _selectedSymbols.length;
@@ -574,8 +574,9 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
   }
 
   String _getCorrelationDescription(double corr) {
-    if (corr > 0.7)
+    if (corr > 0.7) {
       return "Strong positive correlation. These assets likely move in the same direction.";
+    }
     if (corr > 0.3) return "Moderate positive correlation.";
     if (corr > -0.3) return "Low correlation. These assets move independently.";
     if (corr > -0.7) return "Moderate negative correlation.";

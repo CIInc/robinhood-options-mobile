@@ -18,11 +18,14 @@ class Prompt {
   final String title;
   final String prompt;
   bool appendPortfolioToPrompt;
-  Prompt(
-      {required this.key,
-      required this.title,
-      required this.prompt,
-      this.appendPortfolioToPrompt = false});
+  bool appendInvestmentProfile;
+  Prompt({
+    required this.key,
+    required this.title,
+    required this.prompt,
+    this.appendPortfolioToPrompt = false,
+    this.appendInvestmentProfile = false,
+  });
 }
 
 class GenerativeService {
@@ -30,36 +33,43 @@ class GenerativeService {
 
   final List<Prompt> prompts = [
     Prompt(
-        key: 'portfolio-summary',
-        title: 'Portfolio Summary',
-        prompt: 'Summarize my portfolio including key metrics and performance.',
-        appendPortfolioToPrompt: true),
+      key: 'portfolio-summary',
+      title: 'Portfolio Summary',
+      prompt: 'Summarize my portfolio including key metrics and performance.',
+      appendInvestmentProfile: true,
+      appendPortfolioToPrompt: true,
+    ),
     Prompt(
-        key: 'portfolio-recommendations',
-        title: 'Portfolio Recommendations',
-        prompt: 'Investment recommendations for my portfolio',
-        // prompt: 'Provide recommendations for my portfolio, including risk '
-        //     'management, diversification, and potential trades to consider.',
-        appendPortfolioToPrompt: true),
+      key: 'portfolio-recommendations',
+      title: 'Portfolio Recommendations',
+      prompt: 'Investment recommendations for my portfolio',
+      // prompt: 'Provide recommendations for my portfolio, including risk '
+      //     'management, diversification, and potential trades to consider.',
+      appendInvestmentProfile: true,
+      appendPortfolioToPrompt: true,
+    ),
     Prompt(
-        key: 'market-summary',
-        title: 'Market Summary',
-        prompt:
-            'Summarize the financial markets for ${formatLongDate.format(DateTime.now())}'), // in a single paragraph
+      key: 'market-summary',
+      title: 'Market Summary',
+      prompt:
+          'Summarize the financial markets for ${formatLongDate.format(DateTime.now())}',
+    ), // in a single paragraph
     Prompt(
-        key: 'stock-summary',
-        title: 'Stock Summary',
-        prompt: 'Summarize the stock {{symbol}}.'), // in a single paragraph
+      key: 'stock-summary',
+      title: 'Stock Summary',
+      prompt: 'Summarize the stock {{symbol}}.',
+    ), // in a single paragraph
     Prompt(
-        key: 'investment-thesis',
-        title: 'Investment Thesis',
-        prompt:
-            'Generate a comprehensive investment thesis for {{symbol}}, covering bullish and bearish arguments, key risks, and catalysts.'),
+      key: 'investment-thesis',
+      title: 'Investment Thesis',
+      prompt:
+          'Generate a comprehensive investment thesis for {{symbol}}, covering bullish and bearish arguments, key risks, and catalysts.',
+    ),
     Prompt(
-        key: 'chart-trend',
-        title: 'Chart Trend',
-        prompt:
-            '''Analyze stock symbol {{symbol}} and provide a summary of the trend.
+      key: 'chart-trend',
+      title: 'Chart Trend',
+      prompt:
+          '''Analyze stock symbol {{symbol}} and provide a summary of the trend.
 Use the following chart patterns to identify the trend:
 - Head and Shoulders - A reversal pattern that can signal a change in trend direction.
 - Double Top and Bottom - A reversal pattern that can signal a change in trend direction.
@@ -76,39 +86,64 @@ Use the following chart patterns to identify the trend:
 - Volume - A tool that can signal a change in trend direction.
 - Candlestick Patterns - A tool that can signal a change in trend direction.
 - Chart Patterns - A tool that can signal a change in trend direction.
-- Price Movement - Use chart patterns to predict price movement - https://www.babypips.com/learn/forex/chart-patterns-cheat-sheet'''),
+- Price Movement - Use chart patterns to predict price movement - https://www.babypips.com/learn/forex/chart-patterns-cheat-sheet''',
+    ),
     /*
 Momentum - ex: Relative Strength Index (RSI) and other momentum technical indicators
 Overall market direction - Moving averages and trend lines on SPY or QQQ
 Volume - Volume bar or other volume indicators
             */
     Prompt(
-        key: 'market-predictions',
-        title: 'Market Predictions',
-        prompt:
-            'Predict the market movements for today and the next week, including major indices and sectors.'),
+      key: 'construct-portfolio',
+      title: 'Construct Portfolio',
+      prompt:
+          '''Construct a portfolio based on the user's request (or a default Growth portfolio if not specified).
+Provide a Markdown table with the following columns:
+- **Symbol**: Ticker symbol
+- **Allocation**: Recommended percentage (total 100%)
+- **Sector**: Industry/Sector
+
+Follow with a bulleted list of rationale (reason for inclusion) for each asset. 
+
+Then include a brief summary of the **Strategy** and **Risk Profile**.
+''',
+      appendInvestmentProfile: true,
+      appendPortfolioToPrompt: false,
+    ),
     Prompt(
-        key: 'select-option',
-        title: 'Option Selector',
-        prompt:
-            'Analyze the option chain for symbol {{symbol}} as of ${formatLongDate.format(DateTime.now())} and provide the best {{type}} contracts to {{action}} and explain why.'),
+      key: 'market-predictions',
+      title: 'Market Predictions',
+      prompt:
+          'Predict the market movements for today and the next week, including major indices and sectors.',
+    ),
     Prompt(
-        key: 'ask',
-        title: 'Ask a Question',
-        prompt: '',
-        appendPortfolioToPrompt: true),
+      key: 'select-option',
+      title: 'Option Selector',
+      prompt:
+          'Analyze the option chain for symbol {{symbol}} as of ${formatLongDate.format(DateTime.now())} and provide the best {{type}} contracts to {{action}} and explain why.',
+    ),
+    Prompt(
+      key: 'ask',
+      title: 'Ask a Question',
+      prompt: '',
+      appendPortfolioToPrompt: true,
+    ),
   ];
   // final String _apiKey;
   // final String _baseUrl;
 
   // GenerativeService(this._apiKey, {String baseUrl = 'https://vertexai.googleapis.com/v1'}) : _baseUrl = baseUrl;
   GenerativeService()
-      :
-        // Initialize the Vertex AI service and the generative model
+      : // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
             // model: 'gemini-2.5-flash'
-            model: 'gemini-2.5-flash-lite'); // gemini-2.5-flash-preview-04-17
+            model: 'gemini-2.5-flash-lite',
+            systemInstruction: Content.system(
+                'You are a helpful financial assistant for RealizeAlpha. '
+                // 'When asked to build or construct a portfolio, always present it as a Markdown table with Asset (Symbol & Name), Allocation, and Sector columns. '
+                // 'Provide the Rationale for each holding as a bulleted list after the table. Follow with a Strategy and Risk Profile summary.'
+                )); // gemini-2.5-flash-preview-04-17
 
   Future<String> generateContentFromServer(
     Prompt prompt,
@@ -117,15 +152,30 @@ Volume - Volume bar or other volume indicators
     ForexHoldingStore? forexHoldingStore, {
     User? user,
   }) async {
+    String context = "";
+    bool profileAppended = false;
+
+    if (prompt.appendInvestmentProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      profileAppended = true;
+    }
+
+    if (stockPositionStore != null &&
+        optionPositionStore != null &&
+        forexHoldingStore != null &&
+        prompt.appendPortfolioToPrompt) {
+      context += portfolioPrompt(
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
+    }
     String promptString =
         """You are a financial assistant, provide answers in markdown format.
     ${prompt.prompt}
-    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : '') : ''}""";
-    HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('generateContent25');
-    final resp = await callable.call(<String, dynamic>{
-      'prompt': promptString,
-    });
+    $context""";
+    HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      'generateContent25',
+    );
+    final resp = await callable.call(<String, dynamic>{'prompt': promptString});
     debugPrint("result: ${resp.data}");
     String? response;
     if (resp.data["modelVersion"].toString().startsWith("gemini-2")) {
@@ -147,11 +197,10 @@ Volume - Volume bar or other volume indicators
 
   Future<PriceTargetAnalysis?> analyzePriceTargets(String symbol) async {
     try {
-      HttpsCallable callable =
-          FirebaseFunctions.instance.httpsCallable('analyzePriceTargets');
-      final resp = await callable.call(<String, dynamic>{
-        'symbol': symbol,
-      });
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'analyzePriceTargets',
+      );
+      final resp = await callable.call(<String, dynamic>{'symbol': symbol});
 
       String? responseText;
       if (resp.data != null) {
@@ -189,34 +238,48 @@ Volume - Volume bar or other volume indicators
     OptionPositionStore? optionPositionStore,
     ForexHoldingStore? forexHoldingStore,
     User? user,
+    bool includeProfile = true,
+    bool includePortfolio = true,
   }) async {
     // Basic history formatting if we want to include context
-    String promptString = "";
+    String context = "";
 
     // Add portfolio context if stores are provided
-    if (stockPositionStore != null &&
+    if (includePortfolio &&
+        stockPositionStore != null &&
         optionPositionStore != null &&
         forexHoldingStore != null) {
-      promptString += portfolioPrompt(
-          stockPositionStore, optionPositionStore, forexHoldingStore,
-          user: user);
-      promptString += "\n";
+      context += portfolioPrompt(
+        stockPositionStore,
+        optionPositionStore,
+        forexHoldingStore,
+        user: user,
+        includeProfile: includeProfile,
+      );
+      context += "\n";
+    } else if (includeProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      context += "\n";
     }
 
+    String promptString = "";
     if (history != null && history.isNotEmpty) {
       promptString += "History:\n";
+      // ... same as before
       for (var msg in history) {
         promptString += "${msg.isUser ? 'User' : 'Assistant'}: ${msg.text}\n";
       }
       promptString += "\nCurrent Question:\n";
     }
     promptString += message;
+    if (context.isNotEmpty) {
+      promptString += "\n$context";
+    }
 
-    HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('generateContent25');
-    final resp = await callable.call(<String, dynamic>{
-      'prompt': promptString,
-    });
+    HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      'generateContent25',
+    );
+    final resp = await callable.call(<String, dynamic>{'prompt': promptString});
 
     // Parse response similar to generateContentFromServer
     String? response;
@@ -241,21 +304,32 @@ Volume - Volume bar or other volume indicators
   }
 
   Future<GenerateContentResponse> generatePortfolioContent(
-      Prompt prompt,
-      InstrumentPositionStore? stockPositionStore,
-      OptionPositionStore? optionPositionStore,
-      ForexHoldingStore? forexHoldingStore,
-      GenerativeProvider provider,
-      {User? user}) async {
-    String promptString = stockPositionStore == null ||
-            optionPositionStore == null ||
-            forexHoldingStore == null
-        ? prompt.prompt
-        : """${prompt.prompt}
-${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
-    final prompts = [
-      Content.text(promptString),
-    ];
+    Prompt prompt,
+    InstrumentPositionStore? stockPositionStore,
+    OptionPositionStore? optionPositionStore,
+    ForexHoldingStore? forexHoldingStore,
+    GenerativeProvider provider, {
+    User? user,
+  }) async {
+    String context = "";
+    bool profileAppended = false;
+
+    if (prompt.appendInvestmentProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      profileAppended = true;
+    }
+
+    if (stockPositionStore != null &&
+        optionPositionStore != null &&
+        forexHoldingStore != null &&
+        prompt.appendPortfolioToPrompt) {
+      context += portfolioPrompt(
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
+    }
+
+    String promptString = "${prompt.prompt}\n$context";
+    final prompts = [Content.text(promptString)];
 
     // To generate text output, call generateContent with the text input
     final response = await model.generateContent(
@@ -280,19 +354,30 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     OptionPositionStore? optionPositionStore,
     ForexHoldingStore? forexHoldingStore,
     User? user,
+    bool includeProfile = true,
+    bool includePortfolio = true,
   }) async* {
-    String promptString = "";
+    String context = "";
 
     // Add portfolio context if stores are provided
-    if (stockPositionStore != null &&
+    if (includePortfolio &&
+        stockPositionStore != null &&
         optionPositionStore != null &&
         forexHoldingStore != null) {
-      promptString += portfolioPrompt(
-          stockPositionStore, optionPositionStore, forexHoldingStore,
-          user: user);
-      promptString += "\n";
+      context += portfolioPrompt(
+        stockPositionStore,
+        optionPositionStore,
+        forexHoldingStore,
+        user: user,
+        includeProfile: includeProfile,
+      );
+      context += "\n";
+    } else if (includeProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      context += "\n";
     }
 
+    String promptString = "";
     if (history != null && history.isNotEmpty) {
       promptString += "History:\n";
       for (var msg in history) {
@@ -301,6 +386,9 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       promptString += "\nCurrent Question:\n";
     }
     promptString += message;
+    if (context.isNotEmpty) {
+      promptString += "\n$context";
+    }
 
     final prompts = [Content.text(promptString)];
     final buffer = StringBuffer();
@@ -324,18 +412,31 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
   }
 
   Stream<String> streamPortfolioContent(
-      Prompt prompt,
-      InstrumentPositionStore? stockPositionStore,
-      OptionPositionStore? optionPositionStore,
-      ForexHoldingStore? forexHoldingStore,
-      GenerativeProvider provider,
-      {User? user}) async* {
-    String promptString = stockPositionStore == null ||
-            optionPositionStore == null ||
-            forexHoldingStore == null
-        ? prompt.prompt
-        : """${prompt.prompt}
-${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
+    Prompt prompt,
+    InstrumentPositionStore? stockPositionStore,
+    OptionPositionStore? optionPositionStore,
+    ForexHoldingStore? forexHoldingStore,
+    GenerativeProvider provider, {
+    User? user,
+  }) async* {
+    String context = "";
+    bool profileAppended = false;
+
+    if (prompt.appendInvestmentProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      profileAppended = true;
+    }
+
+    if (stockPositionStore != null &&
+        optionPositionStore != null &&
+        forexHoldingStore != null &&
+        prompt.appendPortfolioToPrompt) {
+      context += portfolioPrompt(
+          stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user, includeProfile: !profileAppended);
+    }
+
+    String promptString = "${prompt.prompt}\n$context";
     final prompts = [Content.text(promptString)];
 
     final buffer = StringBuffer();
@@ -365,60 +466,68 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     }
   }
 
+  String investmentProfilePrompt(User user) {
+    String profilePrompt = "";
+    profilePrompt +=
+        user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
+
+    profilePrompt += "## Investment Profile\n";
+    if (user.investmentProfile?.investmentGoals != null &&
+        user.investmentProfile!.investmentGoals!.isNotEmpty) {
+      profilePrompt +=
+          "**Investment Goals:** ${user.investmentProfile!.investmentGoals}\n";
+    }
+    if (user.investmentProfile?.timeHorizon != null &&
+        user.investmentProfile!.timeHorizon!.isNotEmpty) {
+      profilePrompt +=
+          "**Time Horizon:** ${user.investmentProfile!.timeHorizon}\n";
+    }
+    if (user.investmentProfile?.riskTolerance != null &&
+        user.investmentProfile!.riskTolerance!.isNotEmpty) {
+      profilePrompt +=
+          "**Risk Tolerance:** ${user.investmentProfile!.riskTolerance}\n";
+    }
+    // Include total portfolio value if available
+    if (user.investmentProfile?.totalPortfolioValue != null) {
+      profilePrompt +=
+          "**Total Portfolio Value:** \$${formatCompactNumber.format(user.investmentProfile!.totalPortfolioValue)}\n";
+    }
+
+    // Include cash per account and aggregated cash if accounts are present
+    double totalCash = 0.0;
+    try {
+      if (user.allAccounts.isNotEmpty) {
+        profilePrompt += "**Accounts Cash:**\n";
+        for (var acct in user.allAccounts) {
+          double? acctCash = acct.portfolioCash;
+          if (acctCash != null) {
+            totalCash += acctCash;
+            profilePrompt +=
+                "- Account ${acct.accountNumber}: ${formatCurrency.format(acctCash)}\n";
+          }
+        }
+        profilePrompt +=
+            "**Total Cash Across Accounts:** ${formatCurrency.format(totalCash)}\n";
+      }
+    } catch (e) {
+      // If accounts are not present or another error occurs, ignore
+    }
+    profilePrompt += "\n";
+    return profilePrompt;
+  }
+
   String portfolioPrompt(
-      InstrumentPositionStore stockPositionStore,
-      OptionPositionStore optionPositionStore,
-      ForexHoldingStore forexHoldingStore,
-      {User? user}) {
+    InstrumentPositionStore stockPositionStore,
+    OptionPositionStore optionPositionStore,
+    ForexHoldingStore forexHoldingStore, {
+    User? user,
+    bool includeProfile = true,
+  }) {
     String positionPrompt = "";
 
     // Add investment profile information if user is provided
-    if (user != null) {
-      positionPrompt +=
-          user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
-
-      positionPrompt += "## Investment Profile\n";
-      if (user.investmentProfile?.investmentGoals != null &&
-          user.investmentProfile!.investmentGoals!.isNotEmpty) {
-        positionPrompt +=
-            "**Investment Goals:** ${user.investmentProfile!.investmentGoals}\n";
-      }
-      if (user.investmentProfile?.timeHorizon != null &&
-          user.investmentProfile!.timeHorizon!.isNotEmpty) {
-        positionPrompt +=
-            "**Time Horizon:** ${user.investmentProfile!.timeHorizon}\n";
-      }
-      if (user.investmentProfile?.riskTolerance != null &&
-          user.investmentProfile!.riskTolerance!.isNotEmpty) {
-        positionPrompt +=
-            "**Risk Tolerance:** ${user.investmentProfile!.riskTolerance}\n";
-      }
-      // Include total portfolio value if available
-      if (user.investmentProfile?.totalPortfolioValue != null) {
-        positionPrompt +=
-            "**Total Portfolio Value:** \$${formatCompactNumber.format(user.investmentProfile!.totalPortfolioValue)}\n";
-      }
-
-      // Include cash per account and aggregated cash if accounts are present
-      double totalCash = 0.0;
-      try {
-        if (user.allAccounts.isNotEmpty) {
-          positionPrompt += "**Accounts Cash:**\n";
-          for (var acct in user.allAccounts) {
-            double? acctCash = acct.portfolioCash;
-            if (acctCash != null) {
-              totalCash += acctCash;
-              positionPrompt +=
-                  "- Account ${acct.accountNumber}: ${formatCurrency.format(acctCash)}\n";
-            }
-          }
-          positionPrompt +=
-              "**Total Cash Across Accounts:** ${formatCurrency.format(totalCash)}\n";
-        }
-      } catch (e) {
-        // If accounts are not present or another error occurs, ignore
-      }
-      positionPrompt += "\n";
+    if (user != null && includeProfile) {
+      positionPrompt += investmentProfilePrompt(user);
     }
 
     positionPrompt += """
@@ -495,7 +604,8 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       var iv =
           item.optionInstrument?.optionMarketData?.impliedVolatility != null
               ? formatPercentage.format(
-                  item.optionInstrument!.optionMarketData!.impliedVolatility)
+                  item.optionInstrument!.optionMarketData!.impliedVolatility,
+                )
               : "-";
       var delta =
           item.optionInstrument?.optionMarketData?.delta?.toString() ?? "-";
@@ -510,11 +620,14 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
               null
           ? (side == 'Long'
               ? formatPercentage.format(
-                  item.optionInstrument!.optionMarketData!.chanceOfProfitLong)
+                  item.optionInstrument!.optionMarketData!.chanceOfProfitLong,
+                )
               : (item.optionInstrument?.optionMarketData?.chanceOfProfitShort !=
                       null
-                  ? formatPercentage.format(item
-                      .optionInstrument!.optionMarketData!.chanceOfProfitShort)
+                  ? formatPercentage.format(
+                      item.optionInstrument!.optionMarketData!
+                          .chanceOfProfitShort,
+                    )
                   : "-"))
           : "-";
 

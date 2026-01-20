@@ -766,13 +766,20 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-                          Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.1),
+                          Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withOpacity(0.3),
+                          Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withOpacity(0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
@@ -784,7 +791,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -796,7 +806,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                               const SizedBox(width: 12),
                               const Text("Analysis History",
                                   style: TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.bold)),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                           IconButton(
@@ -831,11 +842,16 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.3),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.history_toggle_off,
-                  size: 64, color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
+                  size: 64,
+                  color:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.4)),
             ),
             const SizedBox(height: 24),
             Text(
@@ -875,14 +891,15 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
         return Card(
           elevation: isSelected ? 6 : 2,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shadowColor: isSelected 
+          shadowColor: isSelected
               ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
               : Colors.black.withOpacity(0.1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: isSelected
                 ? BorderSide(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    color:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.3),
                     width: 2,
                   )
                 : BorderSide.none,
@@ -1033,7 +1050,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -1044,8 +1064,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                       ),
                       const SizedBox(width: 12),
                       const Text("Analysis Settings",
-                          style:
-                              TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -1394,7 +1414,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  tilePadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   childrenPadding: const EdgeInsets.all(0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1405,209 +1426,212 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       )),
-                  subtitle: const Text("Tap to view the data sent to the AI Coach",
+                  subtitle: const Text(
+                      "Tap to view the data sent to the AI Coach",
                       style: TextStyle(fontSize: 12, color: Colors.grey)),
-                children: [
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _analyzedTrades.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final t = _analyzedTrades[index];
-                      final isStock = t['type'] == 'stock';
-                      final date = DateTime.parse(t['date']).toLocal();
+                  children: [
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _analyzedTrades.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final t = _analyzedTrades[index];
+                        final isStock = t['type'] == 'stock';
+                        final date = DateTime.parse(t['date']).toLocal();
 
-                      // Theme colors
-                      final buyColor = Colors.green;
-                      final sellColor = Colors.red;
+                        // Theme colors
+                        final buyColor = Colors.green;
+                        final sellColor = Colors.red;
 
-                      // Display Variables
-                      String leadingText = "";
-                      Color leadingColor = Colors.grey;
-                      String titleStr = "";
-                      String subtitlePrefix = "";
+                        // Display Variables
+                        String leadingText = "";
+                        Color leadingColor = Colors.grey;
+                        String titleStr = "";
+                        String subtitlePrefix = "";
 
-                      if (isStock) {
-                        final side = t['side']?.toString().toUpperCase() ?? "";
-                        final isBuy = side == "BUY";
-                        leadingText = isBuy ? "B" : "S";
-                        leadingColor = isBuy ? buyColor : sellColor;
-                        titleStr = "${t['symbol']} Stock";
-                        subtitlePrefix = side;
-                      } else {
-                        // Options
-                        final type = t['details']?['option_type']
-                            ?.toString()
-                            .toLowerCase();
-                        final legs = t['legs']?.toString() ?? "";
-                        final direction =
-                            t['direction']?.toString().toUpperCase() ?? "";
-                        final opening =
-                            t['opening']?.toString().toUpperCase() ?? "";
-
-                        // Avatar: C or P
-                        if (type == 'call') {
-                          leadingText = "C";
-                          leadingColor = buyColor; // Calls displayed green
-                        } else if (type == 'put') {
-                          leadingText = "P";
-                          leadingColor = sellColor; // Puts displayed red
+                        if (isStock) {
+                          final side =
+                              t['side']?.toString().toUpperCase() ?? "";
+                          final isBuy = side == "BUY";
+                          leadingText = isBuy ? "B" : "S";
+                          leadingColor = isBuy ? buyColor : sellColor;
+                          titleStr = "${t['symbol']} Stock";
+                          subtitlePrefix = side;
                         } else {
-                          leadingText = "Op";
-                          leadingColor = Colors.blue;
+                          // Options
+                          final type = t['details']?['option_type']
+                              ?.toString()
+                              .toLowerCase();
+                          final legs = t['legs']?.toString() ?? "";
+                          final direction =
+                              t['direction']?.toString().toUpperCase() ?? "";
+                          final opening =
+                              t['opening']?.toString().toUpperCase() ?? "";
+
+                          // Avatar: C or P
+                          if (type == 'call') {
+                            leadingText = "C";
+                            leadingColor = buyColor; // Calls displayed green
+                          } else if (type == 'put') {
+                            leadingText = "P";
+                            leadingColor = sellColor; // Puts displayed red
+                          } else {
+                            leadingText = "Op";
+                            leadingColor = Colors.blue;
+                          }
+
+                          // Title: AAPL 150C 1/20
+                          titleStr = "${t['symbol']} $legs";
+
+                          // Subtitle: BTO DEBIT
+                          subtitlePrefix = "$opening $direction".trim();
                         }
 
-                        // Title: AAPL 150C 1/20
-                        titleStr = "${t['symbol']} $legs";
+                        bool canNavigate =
+                            t.containsKey('original') && t['original'] != null;
 
-                        // Subtitle: BTO DEBIT
-                        subtitlePrefix = "$opening $direction".trim();
-                      }
-
-                      bool canNavigate =
-                          t.containsKey('original') && t['original'] != null;
-
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 0),
-                        dense: true,
-                        horizontalTitleGap: 12,
-                        minLeadingWidth: 0,
-                        onTap: canNavigate
-                            ? () {
-                                if (isStock) {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              PositionOrderWidget(
-                                                widget.user,
-                                                widget.service,
-                                                t['original']
-                                                    as InstrumentOrder,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService!,
-                                                user: widget.firebaseUser,
-                                                userDocRef: widget.userDoc,
-                                              )));
-                                } else {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              OptionOrderWidget(
-                                                widget.user,
-                                                widget.service,
-                                                t['original'] as OptionOrder,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService!,
-                                                user: widget.firebaseUser,
-                                                userDocRef: widget.userDoc,
-                                              )));
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 0),
+                          dense: true,
+                          horizontalTitleGap: 12,
+                          minLeadingWidth: 0,
+                          onTap: canNavigate
+                              ? () {
+                                  if (isStock) {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                PositionOrderWidget(
+                                                  widget.user,
+                                                  widget.service,
+                                                  t['original']
+                                                      as InstrumentOrder,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
+                                                  generativeService:
+                                                      widget.generativeService!,
+                                                  user: widget.firebaseUser,
+                                                  userDocRef: widget.userDoc,
+                                                )));
+                                  } else {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                OptionOrderWidget(
+                                                  widget.user,
+                                                  widget.service,
+                                                  t['original'] as OptionOrder,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
+                                                  generativeService:
+                                                      widget.generativeService!,
+                                                  user: widget.firebaseUser,
+                                                  userDocRef: widget.userDoc,
+                                                )));
+                                  }
                                 }
-                              }
-                            : null, // Disable tap if no original object (historical session)
-                        leading: CircleAvatar(
-                            radius: 14,
-                            backgroundColor: leadingColor.withOpacity(0.15),
-                            child: Text(leadingText,
-                                style: TextStyle(
-                                    color: leadingColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12))),
-                        title: Text(titleStr,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 13)),
-                        subtitle: Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 6,
-                          children: [
-                            Text(
-                                "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
-                                style: const TextStyle(fontSize: 11)),
-                            if (t['order_type'] != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: (t['order_type'] == 'limit')
-                                      ? Colors.purple.withOpacity(0.1)
-                                      : Colors.amber.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  t['order_type'].toString().toUpperCase(),
-                                  // .substring(0, 3),
+                              : null, // Disable tap if no original object (historical session)
+                          leading: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: leadingColor.withOpacity(0.15),
+                              child: Text(leadingText,
                                   style: TextStyle(
-                                      fontSize: 9,
+                                      color: leadingColor,
                                       fontWeight: FontWeight.bold,
-                                      color: (t['order_type'] == 'limit')
-                                          ? Colors.purple
-                                          : Colors.amber.shade800),
+                                      fontSize: 12))),
+                          title: Text(titleStr,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13)),
+                          subtitle: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            children: [
+                              Text(
+                                  "$subtitlePrefix \u2022 ${DateFormat('MM/dd HH:mm').format(date)}",
+                                  style: const TextStyle(fontSize: 11)),
+                              if (t['order_type'] != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: (t['order_type'] == 'limit')
+                                        ? Colors.purple.withOpacity(0.1)
+                                        : Colors.amber.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    t['order_type'].toString().toUpperCase(),
+                                    // .substring(0, 3),
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: (t['order_type'] == 'limit')
+                                            ? Colors.purple
+                                            : Colors.amber.shade800),
+                                  ),
                                 ),
-                              ),
-                            if (t['trigger'] == 'stop')
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
+                              if (t['trigger'] == 'stop')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "STOP",
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade700),
+                                  ),
                                 ),
-                                child: Text(
-                                  "STOP",
-                                  style: TextStyle(
-                                      fontSize: 9,
+                              if (t['state'] != null && t['state'] != 'filled')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    (t['state'] ?? "").toString().toUpperCase(),
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade700),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                  "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
+                                  style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.orange.shade700),
-                                ),
-                              ),
-                            if (t['state'] != null && t['state'] != 'filled')
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  (t['state'] ?? "").toString().toUpperCase(),
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue.shade700),
-                                ),
-                              ),
-                          ],
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                                "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text("${t['quantity']} ${isStock ? 'sh' : 'cts'}",
-                                style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                                      fontSize: 13)),
+                              Text("${t['quantity']} ${isStock ? 'sh' : 'cts'}",
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ]
-        ],
-      ),
+            ]
+          ],
+        ),
       ),
     );
   }
@@ -2505,126 +2529,127 @@ class CoachingResultView extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: CircularProgressIndicator(
-                            value: score / 100.0,
-                            strokeWidth: 8,
-                            color: scoreColor,
-                            backgroundColor: scoreColor.withOpacity(0.2),
-                          ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "$score",
-                              style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: scoreColor),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: CircularProgressIndicator(
+                              value: score / 100.0,
+                              strokeWidth: 8,
+                              color: scoreColor,
+                              backgroundColor: scoreColor.withOpacity(0.2),
                             ),
-                            if (scoreDelta != null && scoreDelta != 0)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    scoreDelta > 0
-                                        ? Icons.arrow_upward
-                                        : Icons.arrow_downward,
-                                    size: 10,
-                                    color: scoreDelta > 0
-                                        ? Colors.green
-                                        : Colors.red,
-                                  ),
-                                  Text(
-                                    "${scoreDelta > 0 ? '+' : ''}$scoreDelta",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "$score",
+                                style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: scoreColor),
+                              ),
+                              if (scoreDelta != null && scoreDelta != 0)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      scoreDelta > 0
+                                          ? Icons.arrow_upward
+                                          : Icons.arrow_downward,
+                                      size: 10,
                                       color: scoreDelta > 0
                                           ? Colors.green
                                           : Colors.red,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            if (scoreDelta == null || scoreDelta == 0)
-                              const Text("Score",
-                                  style: TextStyle(fontSize: 10)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("TRADER ARCHETYPE",
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
-                          Row(
-                            children: [
-                              Icon(_getArchetypeIcon(archetype),
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 28),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  archetype,
-                                  style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary),
+                                    Text(
+                                      "${scoreDelta > 0 ? '+' : ''}$scoreDelta",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: scoreDelta > 0
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                              if (scoreDelta == null || scoreDelta == 0)
+                                const Text("Score",
+                                    style: TextStyle(fontSize: 10)),
                             ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                if (subScores != null) ...[
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildSubScore(
-                          context, "Discipline", subScores['discipline'] ?? 0,
-                          prevValue: prevSubScores?['discipline'],
-                          description:
-                              "Measures patience (Limit vs Market orders), adherence to plans, and avoidance of emotional impulses like revenge trading."),
-                      _buildSubScore(context, "Risk Mgmt",
-                          subScores['risk_management'] ?? 0,
-                          prevValue: prevSubScores?['risk_management'],
-                          description:
-                              "Evaluates capital preservation, use of stop losses, position sizing, and exposure control."),
-                      _buildSubScore(
-                          context, "Consistency", subScores['consistency'] ?? 0,
-                          prevValue: prevSubScores?['consistency'],
-                          description:
-                              "Tracks the steadiness of your approach, avoiding strategy hopping or erratic changes in activity."),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("TRADER ARCHETYPE",
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                            Row(
+                              children: [
+                                Icon(_getArchetypeIcon(archetype),
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    size: 28),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    archetype,
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ]
-              ],
+                  if (subScores != null) ...[
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildSubScore(
+                            context, "Discipline", subScores['discipline'] ?? 0,
+                            prevValue: prevSubScores?['discipline'],
+                            description:
+                                "Measures patience (Limit vs Market orders), adherence to plans, and avoidance of emotional impulses like revenge trading."),
+                        _buildSubScore(context, "Risk Mgmt",
+                            subScores['risk_management'] ?? 0,
+                            prevValue: prevSubScores?['risk_management'],
+                            description:
+                                "Evaluates capital preservation, use of stop losses, position sizing, and exposure control."),
+                        _buildSubScore(context, "Consistency",
+                            subScores['consistency'] ?? 0,
+                            prevValue: prevSubScores?['consistency'],
+                            description:
+                                "Tracks the steadiness of your approach, avoiding strategy hopping or erratic changes in activity."),
+                      ],
+                    ),
+                  ]
+                ],
+              ),
             ),
           ),
-        ),
         ),
         const SizedBox(height: 20),
 
@@ -2995,9 +3020,8 @@ class CoachingResultView extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16),
                                   side: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
                                       width: 2),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -3195,7 +3219,9 @@ class CoachingResultView extends StatelessWidget {
           color: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2))),
+              side: BorderSide(
+                  color:
+                      Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
@@ -3274,7 +3300,9 @@ class CoachingResultView extends StatelessWidget {
           color: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.2))),
+              side: BorderSide(
+                  color:
+                      Theme.of(context).colorScheme.outline.withOpacity(0.2))),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: MarkdownBody(
@@ -3785,13 +3813,14 @@ class TradeExecutionStatsView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+            color:
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Text("EXECUTION STATISTICS",
               style: TextStyle(
-                  fontWeight: FontWeight.bold, 
-                  fontSize: 12, 
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                   letterSpacing: 1.2)),
         ),
         const SizedBox(height: 12),
@@ -4075,9 +4104,9 @@ class _StatCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 8),
-          Text(label, 
+          Text(label,
               style: TextStyle(
-                  fontSize: 10, 
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).textTheme.bodySmall?.color,
                   letterSpacing: 0.5)),
@@ -4102,12 +4131,12 @@ class _InsightItem extends StatelessWidget {
   final bool isPositive;
 
   const _InsightItem({
-    Key? key,
+    super.key,
     required this.text,
     required this.icon,
     required this.color,
     this.isPositive = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -4188,7 +4217,7 @@ class _InsightItem extends StatelessWidget {
 
 class _LoadingSkeleton extends StatefulWidget {
   final String status;
-  const _LoadingSkeleton({Key? key, required this.status}) : super(key: key);
+  const _LoadingSkeleton({super.key, required this.status});
 
   @override
   State<_LoadingSkeleton> createState() => _LoadingSkeletonState();
@@ -4221,9 +4250,18 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-            Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.5),
+            Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withOpacity(0.3),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
@@ -4248,7 +4286,8 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
               ),
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 400),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -4264,7 +4303,9 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      widget.status.isEmpty ? "Analyzing trades..." : widget.status,
+                      widget.status.isEmpty
+                          ? "Analyzing trades..."
+                          : widget.status,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,

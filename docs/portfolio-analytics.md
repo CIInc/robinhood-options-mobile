@@ -99,6 +99,60 @@ The dashboard automatically analyzes your metrics to provide plain-English insig
 - **D- (35-39)**: Below Average - Critical issues requiring review
 - **F (<35)**: Poor/Critical - Immediate action required
 
+### 4. Risk-Adjusted Returns
+Evaluate how much return you are generating for every unit of risk taken:
+- **Sharpe Ratio**: Excess return per unit of total risk (volatility).
+- **Sortino Ratio**: Focuses on downside risk; better for asymmetric strategies.
+- **Treynor Ratio**: Excess return per unit of systematic risk (Beta).
+- **Information Ratio**: Measures consistent outperformance vs. benchmark.
+- **Calmar Ratio**: Annual return divided by Max Drawdown; return efficiency vs. worst case.
+- **Omega Ratio**: Probability-weighted ratio of gains vs. losses.
+
+### 5. Market Comparison
+Understand how your portfolio behaves relative to the broader market:
+- **Beta**: Sensitivity to market moves (>1.0 is more volatile, <1.0 is defensive).
+- **Correlation**: How closely you track the market (diversification indicator).
+- **Alpha**: True outperformance beyond what Beta predicts (active management skill).
+- **Excess Return**: Simple difference between portfolio and benchmark return.
+
+### 6. Risk Metrics
+Deep dive into your portfolio's exposure:
+- **Max Drawdown**: Largest peak-to-trough decline (historical stress test).
+- **Volatility**: Annualized standard deviation of returns.
+- **VaR (95%)**: Value at Risk - Maximum expected daily loss with 95% confidence.
+- **CVaR (95%)**: Conditional VaR (Expected Shortfall) - Average loss when VaR is breached.
+- **Correlation Matrix**: Interactive tool to view correlation coefficients between all assets in your portfolio.
+
+### 7. Advanced Edge Metrics
+Professional-grade metrics for strategy refinement:
+- **Kelly Criterion**: Optimal position sizing for long-term growth.
+- **Ulcer Index**: Measures depth and duration of drawdowns (emotional stress).
+- **Tail Ratio**: Ratio of upside deviation to downside deviation (skewness).
+
+### 8. Daily Return Statistics
+Analysis of your daily trading performance:
+- **Profit Factor**: Gross Profits / Gross Losses (>1.5 is strong).
+- **Win Rate**: Percentage of profitable days.
+- **Payoff Ratio**: Average Win / Average Loss size.
+- **Expectancy**: Average dollar value per trade/day.
+- **Streaks**: Max consecutive winning and losing days.
+
+### 9. Risk Heatmap
+A visual representation of your portfolio's risk distribution. It maps positions based on their day's performance or other risk factors, allowing you to instantly spot outliers and concentration risks.
+
+### 10. Tax Optimization
+Smart, seasonality-aware tax loss harvesting suggestions:
+- **Smart Visibility**: Shows opportunities based on urgency (e.g., highly visible in Q4).
+- **Estimated Loss**: Potential realized loss available for harvesting.
+- **Offset Analysis**: How losses can offset realized gains.
+
+### 11. ESG Analysis
+Environmental, Social, and Governance scoring for your portfolio:
+- **Weighted Average**: Portfolio-level scores based on position size.
+- **Breakdown**: Individual scores for Environmental, Social, and Governance factors.
+- **Details**: Drill-down view into specific asset ratings.
+
+
 #### Score Calculation
 The health score starts at a base of **50** and adjusts based on five key dimensions:
 1. **Risk-Adjusted Returns** (Max +35/-15) - Sharpe, Sortino, Treynor, Omega ratios

@@ -182,8 +182,9 @@ class TechnicalIndicators {
       double lowestLow = double.maxFinite;
 
       for (int j = 0; j < kPeriod; j++) {
-        if (candles[i - j].high > highestHigh)
+        if (candles[i - j].high > highestHigh) {
           highestHigh = candles[i - j].high;
+        }
         if (candles[i - j].low < lowestLow) lowestLow = candles[i - j].low;
       }
 
@@ -322,8 +323,9 @@ class TechnicalIndicators {
       double lowestLow = double.maxFinite;
 
       for (int j = 0; j < period; j++) {
-        if (candles[i - j].high > highestHigh)
+        if (candles[i - j].high > highestHigh) {
           highestHigh = candles[i - j].high;
+        }
         if (candles[i - j].low < lowestLow) lowestLow = candles[i - j].low;
       }
 

@@ -1368,25 +1368,25 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     // Oscillator Votes
     if (rsi != null) {
-      if (rsi < 30)
+      if (rsi < 30) {
         vote(true); // Oversold -> Buy
-      else if (rsi > 70) vote(false); // Overbought -> Sell
+      } else if (rsi > 70) vote(false); // Overbought -> Sell
     }
     if (stochK != null && stochD != null) {
-      if (stochK < 20 && stochK > stochD)
+      if (stochK < 20 && stochK > stochD) {
         vote(true); // Oversold crossover
-      else if (stochK > 80 && stochK < stochD)
+      } else if (stochK > 80 && stochK < stochD)
         vote(false); // Overbought crossover
     }
     if (cci != null) {
-      if (cci < -100)
+      if (cci < -100) {
         vote(true);
-      else if (cci > 100) vote(false);
+      } else if (cci > 100) vote(false);
     }
     if (williamsR != null) {
-      if (williamsR < -80)
+      if (williamsR < -80) {
         vote(true);
-      else if (williamsR > -20) vote(false);
+      } else if (williamsR > -20) vote(false);
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
@@ -1751,25 +1751,25 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
     // Oscillator Votes
     if (rsi != null) {
-      if (rsi < 30)
+      if (rsi < 30) {
         vote(true); // Oversold -> Buy
-      else if (rsi > 70) vote(false); // Overbought -> Sell
+      } else if (rsi > 70) vote(false); // Overbought -> Sell
     }
     if (stochK != null && stochD != null) {
-      if (stochK < 20 && stochK > stochD)
+      if (stochK < 20 && stochK > stochD) {
         vote(true); // Oversold crossover
-      else if (stochK > 80 && stochK < stochD)
+      } else if (stochK > 80 && stochK < stochD)
         vote(false); // Overbought crossover
     }
     if (cci != null) {
-      if (cci < -100)
+      if (cci < -100) {
         vote(true);
-      else if (cci > 100) vote(false);
+      } else if (cci > 100) vote(false);
     }
     if (williamsR != null) {
-      if (williamsR < -80)
+      if (williamsR < -80) {
         vote(true);
-      else if (williamsR > -20) vote(false);
+      } else if (williamsR > -20) vote(false);
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
@@ -1867,57 +1867,67 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                             _buildSectionHeader(
                                 context, "Momentum & Oscillators"),
                             _buildIndicatorWithSignal("RSI (14)", rsi, (v) {
-                              if (v > 70)
+                              if (v > 70) {
                                 return const Signal(
                                     text: "Overbought", color: Colors.red);
-                              if (v < 30)
+                              }
+                              if (v < 30) {
                                 return const Signal(
                                     text: "Oversold", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
                             }),
                             _buildIndicatorWithSignal(
                                 "Stochastic (14, 3)", stochK, (v) {
-                              if (v > 80)
+                              if (v > 80) {
                                 return const Signal(
                                     text: "Overbought", color: Colors.red);
-                              if (v < 20)
+                              }
+                              if (v < 20) {
                                 return const Signal(
                                     text: "Oversold", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
                             },
                                 valueText:
                                     "K: ${stochK?.toStringAsFixed(2)} D: ${stochD?.toStringAsFixed(2)}"),
                             _buildIndicatorWithSignal("CCI (20)", cci, (v) {
-                              if (v > 100)
+                              if (v > 100) {
                                 return const Signal(
                                     text: "Overbought", color: Colors.red);
-                              if (v < -100)
+                              }
+                              if (v < -100) {
                                 return const Signal(
                                     text: "Oversold", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
                             }),
                             _buildIndicatorWithSignal(
                                 "Williams %R (14)", williamsR, (v) {
-                              if (v > -20)
+                              if (v > -20) {
                                 return const Signal(
                                     text: "Overbought", color: Colors.red);
-                              if (v < -80)
+                              }
+                              if (v < -80) {
                                 return const Signal(
                                     text: "Oversold", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
                             }),
                             _buildIndicatorWithSignal("MACD (12, 26, 9)", macd,
                                 (v) {
-                              if (signal == null)
+                              if (signal == null) {
                                 return const Signal(
                                     text: "N/A", color: Colors.grey);
-                              if (v > signal)
+                              }
+                              if (v > signal) {
                                 return const Signal(
                                     text: "Bullish", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Bearish", color: Colors.red);
                             }, valueText: "${macd?.toStringAsFixed(2)}"),
@@ -1925,9 +1935,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                             const Divider(),
                             _buildSectionHeader(context, "Trend Strength"),
                             _buildIndicatorWithSignal("ADX (14)", adx, (v) {
-                              if (v > 25)
+                              if (v > 25) {
                                 return const Signal(
                                     text: "Strong Trend", color: Colors.blue);
+                              }
                               return const Signal(
                                   text: "Weak Trend", color: Colors.grey);
                             }),
@@ -1965,12 +1976,14 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     .replaceAll('\$', '')),
                             _buildIndicatorWithSignal("Bollinger Bands", null,
                                 (v) {
-                              if (upper != null && currentPrice > upper)
+                              if (upper != null && currentPrice > upper) {
                                 return const Signal(
                                     text: "Above Upper", color: Colors.red);
-                              if (lower != null && currentPrice < lower)
+                              }
+                              if (lower != null && currentPrice < lower) {
                                 return const Signal(
                                     text: "Below Lower", color: Colors.green);
+                              }
                               return const Signal(
                                   text: "Within Bands", color: Colors.grey);
                             },
@@ -1983,10 +1996,12 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   }
 
   Signal _comparePrice(double price, double indicatorValue) {
-    if (price > indicatorValue)
+    if (price > indicatorValue) {
       return const Signal(text: "Bullish", color: Colors.green);
-    if (price < indicatorValue)
+    }
+    if (price < indicatorValue) {
       return const Signal(text: "Bearish", color: Colors.red);
+    }
     return const Signal(text: "Neutral", color: Colors.grey);
   }
 

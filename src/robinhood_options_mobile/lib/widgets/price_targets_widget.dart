@@ -7,8 +7,7 @@ class PriceTargetsWidget extends StatefulWidget {
   final GenerativeService generativeService;
 
   const PriceTargetsWidget(
-      {Key? key, required this.symbol, required this.generativeService})
-      : super(key: key);
+      {super.key, required this.symbol, required this.generativeService});
 
   @override
   State<PriceTargetsWidget> createState() => _PriceTargetsWidgetState();

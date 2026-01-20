@@ -351,7 +351,7 @@ class _SentimentAnalysisDashboardWidgetState
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  "${item.score.toStringAsFixed(0)}",
+                                  item.score.toStringAsFixed(0),
                                   style: TextStyle(
                                       color: color,
                                       fontWeight: FontWeight.bold,
