@@ -127,7 +127,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     color: Theme.of(context)
                         .colorScheme
                         .primaryContainer
-                        .withOpacity(0.15),
+                        .withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(Icons.filter_alt,
@@ -171,7 +171,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                       ),
                       SizedBox(
@@ -184,7 +184,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .outlineVariant
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                           ),
                           style: TextStyle(
                             fontSize: 13,
@@ -232,7 +232,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     color: Theme.of(context)
                         .colorScheme
                         .outlineVariant
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                   ),
                 ],
               ),
@@ -266,7 +266,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.3)),
+                            .withValues(alpha: 0.3)),
                     SizedBox(height: 16),
                     Text('No results found.',
                         style: TextStyle(
@@ -275,7 +275,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         )),
                     SizedBox(height: 8),
                     Text('Try adjusting your filter criteria',
@@ -284,7 +284,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.4),
+                              .withValues(alpha: 0.4),
                         )),
                   ],
                 ),
@@ -397,10 +397,10 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               fillColor: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.08),
+                  .withValues(alpha: 0.08),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               contentPadding:
                   EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -493,7 +493,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -537,7 +537,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -557,7 +557,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('Value: <15, Growth: >20',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           Row(children: [
@@ -593,7 +593,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -635,7 +635,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -655,7 +655,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('High dividend: >3%',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           Row(children: [
@@ -692,7 +692,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -735,7 +735,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -787,7 +787,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -830,7 +830,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                   fillColor: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   contentPadding:
                       EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
@@ -850,7 +850,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           Text('Minimum average daily volume',
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               )),
           SizedBox(height: 4),
           SingleChildScrollView(
@@ -920,7 +920,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
               fillColor: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.05),
+                  .withValues(alpha: 0.05),
               contentPadding:
                   EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
@@ -1075,7 +1075,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     disabledBackgroundColor:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -1096,9 +1096,9 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           )),
       onPressed: onTap,
       backgroundColor:
-          Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+          Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2),
       side: BorderSide(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         width: 1,
       ),
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1248,11 +1248,11 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
             color: changeToday > 0
-                ? Colors.green.withOpacity(0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : (changeToday < 0
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(
-                        0.2)), // Theme.of(context).colorScheme.outlineVariant)
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(
+                        alpha: 0.2)), // Theme.of(context).colorScheme.outlineVariant)
             width: 1.5,
           ),
         ),
@@ -1342,7 +1342,7 @@ class _ScreenerWidgetState extends State<ScreenerWidget> {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
+                                    .withValues(alpha: 0.6),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis),

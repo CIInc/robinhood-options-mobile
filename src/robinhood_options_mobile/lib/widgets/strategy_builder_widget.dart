@@ -145,7 +145,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                       color: Theme.of(context)
                           .colorScheme
                           .surfaceContainerHighest
-                          .withOpacity(0.3),
+                          .withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
@@ -171,7 +171,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                       return Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: color.withOpacity(0.1),
+                                          color: color.withValues(alpha: 0.1),
                                           borderRadius:
                                               BorderRadius.circular(8),
                                         ),
@@ -259,9 +259,9 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         .colorScheme
                                         .surfaceContainerHighest;
                                     if (tag == 'Bullish') {
-                                      color = Colors.green.withOpacity(0.1);
+                                      color = Colors.green.withValues(alpha: 0.1);
                                     } else if (tag == 'Bearish') {
-                                      color = Colors.red.withOpacity(0.1);
+                                      color = Colors.red.withValues(alpha: 0.1);
                                     }
 
                                     return Container(
@@ -578,7 +578,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -636,7 +636,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         isAny ? Colors.grey : (isBuy ? Colors.green : Colors.red);
 
     final backgroundColor =
-        selectedLeg != null ? actionColor.withOpacity(0.05) : null;
+        selectedLeg != null ? actionColor.withValues(alpha: 0.05) : null;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // 8
@@ -672,7 +672,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: actionColor.withOpacity(0.1),
+                            color: actionColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -1352,13 +1352,13 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: isBuy
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
                                   color: isBuy
-                                      ? Colors.green.withOpacity(0.5)
-                                      : Colors.red.withOpacity(0.5)),
+                                      ? Colors.green.withValues(alpha: 0.5)
+                                      : Colors.red.withValues(alpha: 0.5)),
                             ),
                             child: Text(
                               isBuy ? 'BUY' : 'SELL',
@@ -2065,7 +2065,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                     children: [
                                       CircleAvatar(
                                         backgroundColor:
-                                            iconColor.withOpacity(0.1),
+                                            iconColor.withValues(alpha: 0.1),
                                         child: Icon(icon, color: iconColor),
                                       ),
                                       const SizedBox(width: 16),
@@ -2094,10 +2094,10 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                                     .surfaceContainerHighest;
                                                 if (tag == 'Bullish') {
                                                   color = Colors.green
-                                                      .withOpacity(0.1);
+                                                      .withValues(alpha: 0.1);
                                                 } else if (tag == 'Bearish') {
                                                   color = Colors.red
-                                                      .withOpacity(0.1);
+                                                      .withValues(alpha: 0.1);
                                                 }
                                                 return Container(
                                                   padding: const EdgeInsets
@@ -2151,7 +2151,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .surfaceContainerHighest
-                                          .withOpacity(0.3),
+                                          .withValues(alpha: 0.3),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Column(

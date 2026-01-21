@@ -407,7 +407,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                                   height: 50,
                                   alignment: Alignment.center,
                                   color: isSelf
-                                      ? Colors.grey.withOpacity(0.2)
+                                      ? Colors.grey.withValues(alpha: 0.2)
                                       : _getColorForCorrelation(corr),
                                   child: isSelf
                                       ? const Text("1",
@@ -447,7 +447,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
         color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, -2),
           )
@@ -481,7 +481,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                 stops: [0.0, 0.5, 1.0],
               ),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
             ),
           ),
           const SizedBox(height: 5),
@@ -525,7 +525,7 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color:
-                              _getColorForCorrelation(corr).withOpacity(1.0))),
+                              _getColorForCorrelation(corr).withValues(alpha: 1.0))),
                   const SizedBox(height: 10),
                   Text(_getCorrelationDescription(corr),
                       textAlign: TextAlign.center),
@@ -586,10 +586,10 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
   Color _getColorForCorrelation(double correlation) {
     if (correlation > 0) {
       // 0 to 1 -> White to Red
-      return Colors.red.withOpacity(correlation.clamp(0.1, 1.0));
+      return Colors.red.withValues(alpha: correlation.clamp(0.1, 1.0));
     } else {
       // 0 to -1 -> White to Blue
-      return Colors.blue.withOpacity(correlation.abs().clamp(0.1, 1.0));
+      return Colors.blue.withValues(alpha: correlation.abs().clamp(0.1, 1.0));
     }
   }
 

@@ -79,10 +79,10 @@ class WatchlistGridItemWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
             color: isPositive
-                ? Colors.green.withOpacity(0.3)
+                ? Colors.green.withValues(alpha: 0.3)
                 : (isNegative
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2)),
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.2)),
             width: 1.5,
           ),
         ),
@@ -151,10 +151,10 @@ class WatchlistGridItemWidget extends StatelessWidget {
                               horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: isPositive
-                                ? Colors.green.withOpacity(0.15)
+                                ? Colors.green.withValues(alpha: 0.15)
                                 : (isNegative
-                                    ? Colors.red.withOpacity(0.15)
-                                    : Colors.grey.withOpacity(0.15)),
+                                    ? Colors.red.withValues(alpha: 0.15)
+                                    : Colors.grey.withValues(alpha: 0.15)),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Wrap(

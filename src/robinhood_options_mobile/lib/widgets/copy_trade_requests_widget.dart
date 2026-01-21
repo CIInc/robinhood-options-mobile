@@ -140,7 +140,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
 
         return Card(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2)
+              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2)
               : null,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
@@ -190,7 +190,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.purple.withOpacity(0.1),
+                                  color: Colors.purple.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: Colors.purple),
                                 ),
@@ -287,7 +287,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),

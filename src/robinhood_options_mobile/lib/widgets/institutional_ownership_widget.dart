@@ -194,7 +194,7 @@ class InstitutionalOwnershipWidget extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
@@ -358,7 +358,7 @@ class InstitutionalOwnershipWidget extends StatelessWidget {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .surfaceContainerHighest
-                                            .withOpacity(0.3),
+                                            .withValues(alpha: 0.3),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                     ),

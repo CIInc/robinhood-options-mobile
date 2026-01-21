@@ -70,13 +70,13 @@ class IndicatorDocumentationWidget extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: Theme.of(context)
                           .colorScheme
                           .outline
-                          .withOpacity(0.2),
+                          .withValues(alpha: 0.2),
                     ),
                   ),
                   child: MarkdownBody(
@@ -123,10 +123,10 @@ class IndicatorDocumentationWidget extends StatelessWidget {
           color: Theme.of(context)
               .colorScheme
               .surfaceContainerHighest
-              .withOpacity(0.5),
+              .withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
           ),
         ),
         child: content,

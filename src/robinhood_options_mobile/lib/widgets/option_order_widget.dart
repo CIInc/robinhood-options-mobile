@@ -147,7 +147,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       color: Theme.of(context)
                           .appBarTheme
                           .foregroundColor
-                          ?.withOpacity(0.7)))
+                          ?.withValues(alpha: 0.7)))
             ]))),
       ),
       SliverToBoxAdapter(
@@ -165,11 +165,11 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                 trailing: Chip(
                   label: Text(widget.optionOrder.state.toUpperCase()),
                   backgroundColor: widget.optionOrder.state == 'filled'
-                      ? Colors.green.withOpacity(0.2)
+                      ? Colors.green.withValues(alpha: 0.2)
                       : (widget.optionOrder.state == 'cancelled' ||
                               widget.optionOrder.state == 'rejected')
-                          ? Colors.red.withOpacity(0.2)
-                          : Colors.orange.withOpacity(0.2),
+                          ? Colors.red.withValues(alpha: 0.2)
+                          : Colors.orange.withValues(alpha: 0.2),
                 ),
               ),
               const Divider(),

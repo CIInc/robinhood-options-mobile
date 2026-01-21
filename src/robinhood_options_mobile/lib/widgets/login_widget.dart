@@ -146,7 +146,7 @@ class _LoginWidgetState extends State<LoginWidget> {
               end: Alignment.bottomCenter,
               colors: [
                 Theme.of(context).colorScheme.surface,
-                Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
               ],
             ),
           ),
@@ -284,7 +284,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             shadowColor: (source == BrokerageSource.robinhood
                     ? const Color(0xFF00C805)
                     : Theme.of(context).colorScheme.primary)
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -464,7 +464,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             const SizedBox(height: 24),
             Card(
               elevation: 6,
-              shadowColor: Colors.black.withOpacity(0.15),
+              shadowColor: Colors.black.withValues(alpha: 0.15),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28)),
               child: Padding(
@@ -478,7 +478,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00C805).withOpacity(0.1),
+                              color: const Color(0xFF00C805).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.account_balance_wallet,
@@ -604,7 +604,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00A3E0).withOpacity(0.1),
+                              color: const Color(0xFF00A3E0).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.account_balance,
@@ -626,7 +626,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                             foregroundColor: Colors.white,
                             elevation: 3,
                             shadowColor:
-                                const Color(0xFF00A3E0).withOpacity(0.3),
+                                const Color(0xFF00A3E0).withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(
@@ -687,7 +687,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                             shadowColor: Theme.of(context)
                                 .colorScheme
                                 .secondary
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(
@@ -710,7 +710,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.1),
+                              color: Colors.deepPurple.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.link,
@@ -740,7 +740,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                             backgroundColor: Colors.deepPurple,
                             foregroundColor: Colors.white,
                             elevation: 3,
-                            shadowColor: Colors.deepPurple.withOpacity(0.3),
+                            shadowColor: Colors.deepPurple.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(

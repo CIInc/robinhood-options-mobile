@@ -727,7 +727,7 @@ class _HistoryPageState extends State<HistoryPage>
                         color: Theme.of(context)
                             .colorScheme
                             .surfaceContainerHighest
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(25),
                       ),
                       child: TabBar(
@@ -872,8 +872,8 @@ class _HistoryPageState extends State<HistoryPage>
                                         leading: CircleAvatar(
                                             radius: 22,
                                             backgroundColor: order.side == 'buy'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.red.withOpacity(0.1),
+                                                ? Colors.green.withValues(alpha: 0.1)
+                                                : Colors.red.withValues(alpha: 0.1),
                                             foregroundColor: order.side == 'buy'
                                                 ? Colors.green
                                                 : Colors.red,
@@ -902,7 +902,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                 color: (order.side == 'buy'
                                                         ? Colors.green
                                                         : Colors.red)
-                                                    .withOpacity(0.1),
+                                                    .withValues(alpha: 0.1),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),
@@ -960,7 +960,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                     decoration: BoxDecoration(
                                                         color: _amountColor(
                                                                 amount)
-                                                            .withOpacity(0.12),
+                                                            .withValues(alpha: 0.12),
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(8),
@@ -1153,8 +1153,8 @@ class _HistoryPageState extends State<HistoryPage>
                                             backgroundColor: optionOrder
                                                         .direction ==
                                                     'credit'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.red.withOpacity(0.1),
+                                                ? Colors.green.withValues(alpha: 0.1)
+                                                : Colors.red.withValues(alpha: 0.1),
                                             foregroundColor:
                                                 optionOrder.direction ==
                                                         'credit'
@@ -1188,7 +1188,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .primary
-                                                    .withOpacity(0.1),
+                                                    .withValues(alpha: 0.1),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),
@@ -1226,7 +1226,7 @@ class _HistoryPageState extends State<HistoryPage>
                                               decoration: BoxDecoration(
                                                   color: _amountColor(
                                                           displayPremium)
-                                                      .withOpacity(0.12),
+                                                      .withValues(alpha: 0.12),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                   border: Border.all(
@@ -1343,8 +1343,8 @@ class _HistoryPageState extends State<HistoryPage>
                                       radius: 22,
                                       backgroundColor:
                                           event.direction == 'credit'
-                                              ? Colors.green.withOpacity(0.1)
-                                              : Colors.red.withOpacity(0.1),
+                                              ? Colors.green.withValues(alpha: 0.1)
+                                              : Colors.red.withValues(alpha: 0.1),
                                       foregroundColor:
                                           event.direction == 'credit'
                                               ? Colors.green
@@ -1389,7 +1389,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                       vertical: 4),
                                               decoration: BoxDecoration(
                                                   color: _amountColor(eventCash)
-                                                      .withOpacity(0.12),
+                                                      .withValues(alpha: 0.12),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                   border: Border.all(
@@ -1649,7 +1649,7 @@ class _HistoryPageState extends State<HistoryPage>
                                         leading: CircleAvatar(
                                             radius: 22,
                                             backgroundColor:
-                                                Colors.green.withOpacity(0.1),
+                                                Colors.green.withValues(alpha: 0.1),
                                             foregroundColor: Colors.green,
                                             child: Text(
                                               dividend["instrumentObj"] != null
@@ -1696,7 +1696,7 @@ class _HistoryPageState extends State<HistoryPage>
                                               decoration: BoxDecoration(
                                                   color: _amountColor(
                                                           dividendAmount)
-                                                      .withOpacity(0.12),
+                                                      .withValues(alpha: 0.12),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                   border: Border.all(
@@ -1894,7 +1894,7 @@ class _HistoryPageState extends State<HistoryPage>
                                         leading: CircleAvatar(
                                             radius: 22,
                                             backgroundColor:
-                                                Colors.green.withOpacity(0.1),
+                                                Colors.green.withValues(alpha: 0.1),
                                             foregroundColor: Colors.green,
                                             child: const Icon(
                                                 Icons.attach_money,
@@ -1926,7 +1926,7 @@ class _HistoryPageState extends State<HistoryPage>
                                               decoration: BoxDecoration(
                                                   color: _amountColor(
                                                           interestAmount)
-                                                      .withOpacity(0.12),
+                                                      .withValues(alpha: 0.12),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                   border: Border.all(
@@ -2862,7 +2862,7 @@ class _HistoryPageState extends State<HistoryPage>
                 color: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.history,
@@ -2889,7 +2889,7 @@ class _HistoryPageState extends State<HistoryPage>
       color: Theme.of(context)
           .colorScheme
           .surfaceContainerHighest
-          .withOpacity(0.3),
+          .withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Padding(

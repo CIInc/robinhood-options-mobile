@@ -205,7 +205,7 @@ class _NotificationItem extends StatelessWidget {
           color: notification.read
               ? null
               : theme.colorScheme.primaryContainer
-                  .withAlpha(50), //.withOpacity(0.1),
+                  .withAlpha(50), //.withValues(alpha: 0.1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -215,7 +215,7 @@ class _NotificationItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: signalColor.withOpacity(0.1),
+                    color: signalColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -259,7 +259,7 @@ class _NotificationItem extends StatelessWidget {
                         notification.body,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.textTheme.bodyMedium?.color
-                              ?.withOpacity(0.8),
+                              ?.withValues(alpha: 0.8),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

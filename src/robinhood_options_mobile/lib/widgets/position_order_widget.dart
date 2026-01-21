@@ -137,7 +137,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                       color: Theme.of(context)
                           .appBarTheme
                           .foregroundColor
-                          ?.withOpacity(0.7)),
+                          ?.withValues(alpha: 0.7)),
                   textAlign: TextAlign.start,
                 )
               ])),
@@ -167,11 +167,11 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                 trailing: Chip(
                   label: Text(positionOrder.state.toUpperCase()),
                   backgroundColor: positionOrder.state == 'filled'
-                      ? Colors.green.withOpacity(0.2)
+                      ? Colors.green.withValues(alpha: 0.2)
                       : (positionOrder.state == 'cancelled' ||
                               positionOrder.state == 'rejected')
-                          ? Colors.red.withOpacity(0.2)
-                          : Colors.orange.withOpacity(0.2),
+                          ? Colors.red.withValues(alpha: 0.2)
+                          : Colors.orange.withValues(alpha: 0.2),
                 ),
               ),
               const Divider(),

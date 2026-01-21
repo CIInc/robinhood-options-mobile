@@ -430,7 +430,7 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 border: Border.all(color: Colors.orange),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -453,7 +453,7 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 border: Border.all(color: Colors.green),
                 borderRadius: BorderRadius.circular(8),
               ),

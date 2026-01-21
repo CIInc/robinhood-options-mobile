@@ -250,7 +250,7 @@ class _ChatWidgetState extends State<ChatWidget> {
               color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -303,7 +303,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                         filled: true,
                         fillColor: Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20.0,
                           vertical: 10.0,
@@ -695,7 +695,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                 color: isUser
                     ? theme.colorScheme.primary
                     : theme.colorScheme.surfaceContainerHighest
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),
                   topRight: const Radius.circular(20),
@@ -705,7 +705,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                 border: !isUser
                     ? Border.all(
                         color:
-                            theme.colorScheme.outlineVariant.withOpacity(0.5),
+                            theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                       )
                     : null,
               ),

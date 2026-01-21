@@ -384,18 +384,18 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withOpacity(0.9),
+              color.withValues(alpha: 0.9),
               color,
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -422,7 +422,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                     Shadow(
                       offset: const Offset(0, 1),
                       blurRadius: 2,
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                     ),
                   ],
                 ),
@@ -434,13 +434,13 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                 Text(
                   NumberFormat.compactSimpleCurrency().format(equity),
                   style: TextStyle(
-                    color: textColor.withOpacity(0.9),
+                    color: textColor.withValues(alpha: 0.9),
                     fontSize: (constraints.maxWidth / 12).clamp(9.0, 12.0),
                     shadows: [
                       Shadow(
                         offset: const Offset(0, 1),
                         blurRadius: 2,
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                       ),
                     ],
                   ),
@@ -455,7 +455,7 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                       Shadow(
                         offset: const Offset(0, 1),
                         blurRadius: 2,
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                       ),
                     ],
                   ),
@@ -464,13 +464,13 @@ class _RiskHeatmapWidgetState extends State<RiskHeatmapWidget> {
                   Text(
                     "(${(equity / portfolioEquity * 100).toStringAsFixed(1)}%)",
                     style: TextStyle(
-                      color: textColor.withOpacity(0.8),
+                      color: textColor.withValues(alpha: 0.8),
                       fontSize: (constraints.maxWidth / 14).clamp(8.0, 10.0),
                       shadows: [
                         Shadow(
                           offset: const Offset(0, 1),
                           blurRadius: 2,
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                         ),
                       ],
                     ),

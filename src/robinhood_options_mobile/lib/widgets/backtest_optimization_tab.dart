@@ -212,7 +212,7 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
                 color: Theme.of(context)
                     .colorScheme
                     .primaryContainer
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
@@ -370,11 +370,11 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
         final isTopRank = index < 3;
         Color? cardColor;
         if (index == 0) {
-          cardColor = Colors.amber.withOpacity(0.1); // Gold
+          cardColor = Colors.amber.withValues(alpha: 0.1); // Gold
         } else if (index == 1)
-          cardColor = Colors.grey.withOpacity(0.1); // Silver
+          cardColor = Colors.grey.withValues(alpha: 0.1); // Silver
         else if (index == 2)
-          cardColor = Colors.brown.withOpacity(0.1); // Bronze
+          cardColor = Colors.brown.withValues(alpha: 0.1); // Bronze
 
         return Card(
           color: cardColor,

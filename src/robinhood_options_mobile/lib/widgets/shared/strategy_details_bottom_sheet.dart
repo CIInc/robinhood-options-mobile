@@ -49,8 +49,8 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isDefault
-                          ? Colors.amber.withOpacity(0.1)
-                          : colorScheme.primaryContainer.withOpacity(0.5),
+                          ? Colors.amber.withValues(alpha: 0.1)
+                          : colorScheme.primaryContainer.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -269,8 +269,8 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
       {bool isAccent = true}) {
     final colorScheme = Theme.of(context).colorScheme;
     final bg = isAccent
-        ? colorScheme.secondaryContainer.withOpacity(0.3)
-        : colorScheme.surfaceContainerHighest.withOpacity(0.3);
+        ? colorScheme.secondaryContainer.withValues(alpha: 0.3)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
     final fg = isAccent ? colorScheme.secondary : colorScheme.onSurface;
 
     return Container(
@@ -280,7 +280,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isAccent
-              ? colorScheme.secondary.withOpacity(0.2)
+              ? colorScheme.secondary.withValues(alpha: 0.2)
               : Colors.transparent,
         ),
       ),
@@ -335,7 +335,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
         color: Theme.of(context)
             .colorScheme
             .surfaceContainerHighest
-            .withOpacity(0.3),
+            .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

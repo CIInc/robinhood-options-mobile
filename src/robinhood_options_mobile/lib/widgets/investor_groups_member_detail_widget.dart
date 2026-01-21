@@ -312,11 +312,11 @@ class _InvestorGroupsMemberDetailWidgetState
                           ),
                           decoration: BoxDecoration(
                             color: (isCredit ? Colors.green : Colors.red)
-                                .withOpacity(0.15),
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: (isCredit ? Colors.green : Colors.red)
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -513,7 +513,7 @@ class _InvestorGroupsMemberDetailWidgetState
                                               : (amount < 0
                                                   ? Colors.red
                                                   : Colors.grey))
-                                          .withOpacity(0.15),
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
                                         color: (amount > 0
@@ -521,7 +521,7 @@ class _InvestorGroupsMemberDetailWidgetState
                                                 : (amount < 0
                                                     ? Colors.red
                                                     : Colors.grey))
-                                            .withOpacity(0.3),
+                                            .withValues(alpha: 0.3),
                                         width: 1,
                                       ),
                                     ),

@@ -108,7 +108,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context)
                     .colorScheme
-                    .primaryContainer), // .withOpacity(0.75)
+                    .primaryContainer), // .withValues(alpha: 0.75)
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
@@ -582,7 +582,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[

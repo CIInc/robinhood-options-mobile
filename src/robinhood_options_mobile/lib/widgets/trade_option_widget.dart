@@ -376,7 +376,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           // Summary Section
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -475,7 +475,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.1),
                 border: Border.all(color: Colors.orange),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -499,7 +499,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 border: Border.all(color: Colors.green),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -522,7 +522,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

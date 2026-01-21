@@ -130,12 +130,12 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                               color: Theme.of(context)
                                   .dividerColor
-                                  .withOpacity(0.5)),
+                                  .withValues(alpha: 0.5)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +237,7 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                                   backgroundColor:
                                       Colors.green.withValues(alpha: 0.1),
                                   side: BorderSide(
-                                      color: Colors.green.withOpacity(0.3)),
+                                      color: Colors.green.withValues(alpha: 0.3)),
                                   padding: const EdgeInsets.all(4),
                                 ),
                               ))
@@ -261,7 +261,7 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                                   backgroundColor:
                                       Colors.red.withValues(alpha: 0.1),
                                   side: BorderSide(
-                                      color: Colors.red.withOpacity(0.3)),
+                                      color: Colors.red.withValues(alpha: 0.3)),
                                   padding: const EdgeInsets.all(4),
                                 ),
                               ))
@@ -283,7 +283,7 @@ class _PriceTargetsWidgetState extends State<PriceTargetsWidget> {
                           color: Colors.orange.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border:
-                              Border.all(color: Colors.orange.withOpacity(0.2)),
+                              Border.all(color: Colors.orange.withValues(alpha: 0.2)),
                         ),
                         padding: const EdgeInsets.all(12),
                         child: Column(

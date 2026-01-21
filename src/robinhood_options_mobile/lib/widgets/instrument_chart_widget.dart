@@ -260,7 +260,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               measureFn: (InstrumentHistorical history, _) => history.volume,
               data: historicals,
               colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                  Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
             )
               ..setAttribute(charts.rendererIdKey, 'volume')
               ..setAttribute(
@@ -375,7 +375,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                         color: charts.ColorUtil.fromDartColor(Theme.of(context)
                             .colorScheme
                             .surfaceContainerHighest
-                            .withOpacity(0.3)))
+                            .withValues(alpha: 0.3)))
                   ])
               ],
               selectionMode: common.SelectionMode.expandToDomain,
@@ -512,7 +512,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                             ? Icons.access_time
                                             : Icons.calendar_today,
                                         size: 14,
-                                        color: textColor.withOpacity(0.5),
+                                        color: textColor.withValues(alpha: 0.5),
                                       ),
                                       const SizedBox(width: 6),
                                       Expanded(
@@ -526,7 +526,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                           style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
-                                              color: textColor.withOpacity(0.7),
+                                              color: textColor.withValues(alpha: 0.7),
                                               fontFeatures: [
                                                 ui.FontFeature.tabularFigures()
                                               ]),
@@ -711,7 +711,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               Theme.of(context)
                                   .colorScheme
                                   .primary
-                                  .withOpacity(0.7)),
+                                  .withValues(alpha: 0.7)),
                         )),
                     const SizedBox(height: 20),
                     Text(
@@ -720,7 +720,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6),
+                            .withValues(alpha: 0.6),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -743,9 +743,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -754,7 +754,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: textColor.withOpacity(0.9),
+                    color: textColor.withValues(alpha: 0.9),
                     fontFeatures: [ui.FontFeature.tabularFigures()])),
             const SizedBox(width: 4),
             Text(
@@ -833,7 +833,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: selected ? color : color.withOpacity(0.3),
+              color: selected ? color : color.withValues(alpha: 0.3),
               shape: BoxShape.circle,
               border: Border.all(
                 color: color,
@@ -926,7 +926,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       required List<_IndicatorPoint> points,
       required Color color,
       List<int>? dashPattern}) {
-    final adjustedColor = color.withOpacity(0.85);
+    final adjustedColor = color.withValues(alpha: 0.85);
     return charts.Series<_IndicatorPoint, DateTime>(
       id: label,
       colorFn: (_, __) => charts.ColorUtil.fromDartColor(adjustedColor),
@@ -1139,7 +1139,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   )
@@ -1437,18 +1437,18 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
         color: Theme.of(context).cardColor,
         gradient: LinearGradient(
           colors: [
-            summaryColor.withOpacity(0.05),
+            summaryColor.withValues(alpha: 0.05),
             Theme.of(context).cardColor,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: summaryColor.withOpacity(0.3), width: 1),
+        border: Border.all(color: summaryColor.withValues(alpha: 0.3), width: 1),
         boxShadow: [
           if (_showTechnicalSummary)
             BoxShadow(
-              color: summaryColor.withOpacity(0.1),
+              color: summaryColor.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -1471,10 +1471,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: summaryColor.withOpacity(0.1),
+                              color: summaryColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: summaryColor.withOpacity(0.3)),
+                                  color: summaryColor.withValues(alpha: 0.3)),
                             ),
                             child: Icon(summaryIcon,
                                 color: summaryColor, size: 20),
@@ -1527,7 +1527,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.green.shade400
-                                              .withOpacity(0.8),
+                                              .withValues(alpha: 0.8),
                                           fontWeight: FontWeight.w500),
                                     ),
                                     const SizedBox(width: 8),
@@ -1545,7 +1545,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.red.shade400
-                                              .withOpacity(0.8),
+                                              .withValues(alpha: 0.8),
                                           fontWeight: FontWeight.w500),
                                     ),
                                   ],
@@ -1649,9 +1649,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1833,7 +1833,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurfaceVariant
-                                      .withOpacity(0.4),
+                                      .withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -1860,7 +1860,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                    color: summaryColor.withOpacity(0.1),
+                                    color: summaryColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: summaryColor)),
                                 child: Column(children: [
@@ -2048,9 +2048,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
             Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                    color: signal.color.withOpacity(0.1),
+                    color: signal.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: signal.color.withOpacity(0.5))),
+                    border: Border.all(color: signal.color.withValues(alpha: 0.5))),
                 child: Text(signal.text,
                     style: TextStyle(
                         color: signal.color,

@@ -624,7 +624,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   color: Theme.of(context)
                       .colorScheme
                       .surfaceContainerHighest
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
@@ -686,7 +686,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   color: Theme.of(context)
                       .colorScheme
                       .surfaceContainerHighest
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
@@ -1053,7 +1053,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   color: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
@@ -1114,7 +1114,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onPrimaryContainer
-                                            .withOpacity(0.8),
+                                            .withValues(alpha: 0.8),
                                       ),
                                 ),
                               ],
@@ -1126,7 +1126,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             color: Theme.of(context)
                                 .colorScheme
                                 .onPrimaryContainer
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                           ),
                         ],
                       ),

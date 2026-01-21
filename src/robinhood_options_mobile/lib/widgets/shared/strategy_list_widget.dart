@@ -126,11 +126,11 @@ class StrategyListWidget extends StatelessWidget {
     return Card(
       elevation: isSelected ? 2 : 0,
       shadowColor: isSelected
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
           : Colors.transparent,
       clipBehavior: Clip.antiAlias,
       color: isSelected
-          ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.15)
+          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.15)
           : Theme.of(context).cardColor,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -138,7 +138,7 @@ class StrategyListWidget extends StatelessWidget {
         side: BorderSide(
           color: isSelected
               ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).dividerColor.withOpacity(0.1),
+              : Theme.of(context).dividerColor.withValues(alpha: 0.1),
           width: isSelected ? 1.5 : 1,
         ),
       ),
@@ -437,9 +437,9 @@ class StrategyListWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -454,7 +454,7 @@ class StrategyListWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -475,10 +475,10 @@ class StrategyListWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
       ),
       child: Row(

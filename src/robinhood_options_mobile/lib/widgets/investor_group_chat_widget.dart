@@ -188,7 +188,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                         color: Theme.of(context)
                             .colorScheme
                             .onPrimary
-                            .withOpacity(0.7),
+                            .withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -207,7 +207,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, -1),
             blurRadius: 5,
           ),

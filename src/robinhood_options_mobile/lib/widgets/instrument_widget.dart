@@ -1020,7 +1020,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         Container(
                           padding: const EdgeInsets.all(10.0),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                           child: const Icon(Icons.water, color: Colors.blue),
@@ -1606,7 +1606,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
@@ -2078,7 +2078,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Color color, List<dynamic> ratings, String type) {
     return Card(
       elevation: 0,
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
@@ -2147,7 +2147,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Column(
@@ -3674,7 +3674,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.grey.shade900.withOpacity(0.5)
+                ? Colors.grey.shade900.withValues(alpha: 0.5)
                 : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
@@ -3838,7 +3838,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.grey.shade800.withOpacity(0.5)
+                        ? Colors.grey.shade800.withValues(alpha: 0.5)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -3863,7 +3863,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: _getSignalStrengthColor(signalStrength)
-                                  .withOpacity(0.2),
+                                  .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -3942,15 +3942,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 decoration: BoxDecoration(
                   color: displayAllGreen
                       ? (isDark
-                          ? Colors.green.withOpacity(0.25)
-                          : Colors.green.withOpacity(0.15))
+                          ? Colors.green.withValues(alpha: 0.25)
+                          : Colors.green.withValues(alpha: 0.15))
                       : displayAllRed
                           ? (isDark
-                              ? Colors.red.withOpacity(0.25)
-                              : Colors.red.withOpacity(0.15))
+                              ? Colors.red.withValues(alpha: 0.25)
+                              : Colors.red.withValues(alpha: 0.15))
                           : (isDark
-                              ? Colors.orange.withOpacity(0.25)
-                              : Colors.orange.withOpacity(0.15)),
+                              ? Colors.orange.withValues(alpha: 0.25)
+                              : Colors.orange.withValues(alpha: 0.15)),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
@@ -4436,7 +4436,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     Container(
                       padding: const EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: signalColor.withOpacity(0.1),
+                        color: signalColor.withValues(alpha: 0.1),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           topRight: Radius.circular(12),
@@ -4537,9 +4537,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               colors: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? [
-                                      Colors.purple.shade900.withOpacity(0.2),
+                                      Colors.purple.shade900.withValues(alpha: 0.2),
                                       Colors.deepPurple.shade900
-                                          .withOpacity(0.2),
+                                          .withValues(alpha: 0.2),
                                     ]
                                   : [
                                       Colors.purple.shade50,
@@ -4552,16 +4552,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             border: Border.all(
                               color: Theme.of(context).brightness ==
                                       Brightness.dark
-                                  ? Colors.purpleAccent.withOpacity(0.2)
-                                  : Colors.purple.withOpacity(0.3),
+                                  ? Colors.purpleAccent.withValues(alpha: 0.2)
+                                  : Colors.purple.withValues(alpha: 0.3),
                               width: 1,
                             ),
                             boxShadow: [
                               BoxShadow(
                                 color: Theme.of(context).brightness ==
                                         Brightness.dark
-                                    ? Colors.black.withOpacity(0.1)
-                                    : Colors.purple.withOpacity(0.05),
+                                    ? Colors.black.withValues(alpha: 0.1)
+                                    : Colors.purple.withValues(alpha: 0.05),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -4581,8 +4581,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         color: Theme.of(context).brightness ==
                                                 Brightness.dark
                                             ? Colors.purpleAccent
-                                                .withOpacity(0.1)
-                                            : Colors.purple.withOpacity(0.1),
+                                                .withValues(alpha: 0.1)
+                                            : Colors.purple.withValues(alpha: 0.1),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
@@ -4641,9 +4641,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                                 Theme.of(context).brightness ==
                                                         Brightness.dark
                                                     ? Colors.purpleAccent
-                                                        .withOpacity(0.3)
+                                                        .withValues(alpha: 0.3)
                                                     : Colors.purple
-                                                        .withOpacity(0.2)),
+                                                        .withValues(alpha: 0.2)),
                                       ),
                                       child: Row(
                                         children: [
@@ -4692,7 +4692,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
                                             ? Colors.grey.shade800
-                                            : Colors.purple.withOpacity(0.1),
+                                            : Colors.purple.withValues(alpha: 0.1),
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       (optimization['confidenceScore'] as num) >
                                               80
@@ -4838,8 +4838,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           padding: const EdgeInsets.all(12.0),
                           decoration: BoxDecoration(
                             color: assessment['approved'] == true
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.red.withOpacity(0.1),
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: assessment['approved'] == true
@@ -5208,8 +5208,8 @@ class _RiskGuardButtonState extends State<_RiskGuardButton> {
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
                     color: result['approved']
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(

@@ -127,7 +127,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                         ),
                   ),
                 ],
@@ -802,7 +802,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurfaceVariant
-                        .withOpacity(0.85),
+                        .withValues(alpha: 0.85),
                   ),
                 ),
               ]

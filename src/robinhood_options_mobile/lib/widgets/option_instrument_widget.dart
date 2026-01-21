@@ -485,7 +485,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               color: Theme.of(context)
                   .colorScheme
                   .surfaceContainerHighest
-                  .withOpacity(0.5),
+                  .withValues(alpha: 0.5),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -501,13 +501,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: isItm
-                                ? Colors.green.withOpacity(0.2)
-                                : Colors.grey.withOpacity(0.2),
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.grey.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
                                 color: isItm
                                     ? Colors.green
-                                    : Colors.grey.withOpacity(0.5),
+                                    : Colors.grey.withValues(alpha: 0.5),
                                 width: 1),
                           ),
                           child: Text(
@@ -696,12 +696,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         width: itemWidth),
                   _buildStatCard(context, liquidityLabel,
                       formatPercentage.format(spreadPct),
-                      color: liquidityColor.withOpacity(0.1),
+                      color: liquidityColor.withValues(alpha: 0.1),
                       textColor: liquidityColor,
                       width: itemWidth),
                   if (highActivity)
                     _buildStatCard(context, "Activity", "High",
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         textColor: Colors.orange,
                         width: itemWidth),
                 ],
@@ -941,7 +941,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

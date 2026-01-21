@@ -176,7 +176,7 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                 fillColor: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
               ),
             ),
           ),

@@ -171,7 +171,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                       color: Theme.of(context)
                           .colorScheme
                           .primary
-                          .withOpacity(0.6)),
+                          .withValues(alpha: 0.6)),
                   const SizedBox(height: 16),
                   const Text('Sign in to join investor groups',
                       style:
@@ -225,7 +225,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.6)),
+                              .withValues(alpha: 0.6)),
                       const SizedBox(height: 16),
                       const Text('You haven\'t joined any groups yet',
                           style: TextStyle(
@@ -269,7 +269,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           backgroundColor: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.2),
+                              .withValues(alpha: 0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()
@@ -348,7 +348,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                       color: Theme.of(context)
                           .colorScheme
                           .primary
-                          .withOpacity(0.6)),
+                          .withValues(alpha: 0.6)),
                   const SizedBox(height: 16),
                   const Text('Sign in to view invitations',
                       style:
@@ -402,7 +402,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.6)),
+                              .withValues(alpha: 0.6)),
                       const SizedBox(height: 16),
                       const Text('No pending invitations',
                           style: TextStyle(
@@ -448,7 +448,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           backgroundColor: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.2),
+                              .withValues(alpha: 0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()
@@ -592,7 +592,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           color: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.6)),
+                              .withValues(alpha: 0.6)),
                       const SizedBox(height: 16),
                       const Text('No public groups available',
                           style: TextStyle(
@@ -639,7 +639,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                           backgroundColor: Theme.of(context)
                               .colorScheme
                               .primary
-                              .withOpacity(0.2),
+                              .withValues(alpha: 0.2),
                           child: Text(
                             group.name.isNotEmpty
                                 ? group.name[0].toUpperCase()

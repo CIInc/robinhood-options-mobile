@@ -87,7 +87,7 @@ class _PresetsWidgetState extends State<PresetsWidget> {
                 color: Theme.of(context)
                     .colorScheme
                     .primaryContainer
-                    .withOpacity(0.15),
+                    .withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.dashboard_customize,

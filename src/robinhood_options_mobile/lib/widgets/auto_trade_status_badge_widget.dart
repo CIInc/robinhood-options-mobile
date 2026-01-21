@@ -193,16 +193,16 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              status.color.withOpacity(0.15),
-                              status.color.withOpacity(0.05),
+                              status.color.withValues(alpha: 0.15),
+                              status.color.withValues(alpha: 0.05),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: status.color.withOpacity(
-                                (isAutoTrading || isEmergencyStop)
+                            color: status.color.withValues(
+                                alpha: (isAutoTrading || isEmergencyStop)
                                     ? _opacityAnimation.value
                                     : 0.3),
                             width: 1,
@@ -210,7 +210,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                           boxShadow: (isAutoTrading || isEmergencyStop)
                               ? [
                                   BoxShadow(
-                                    color: status.color.withOpacity(0.2),
+                                    color: status.color.withValues(alpha: 0.2),
                                     blurRadius: 8,
                                     spreadRadius: 1,
                                   )
@@ -247,7 +247,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                                     value: value,
                                     strokeWidth: 2,
                                     backgroundColor:
-                                        status.color.withOpacity(0.2),
+                                        status.color.withValues(alpha: 0.2),
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                         status.color),
                                   ),
@@ -272,7 +272,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
-                                      color: status.color.withOpacity(0.9),
+                                      color: status.color.withValues(alpha: 0.9),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
