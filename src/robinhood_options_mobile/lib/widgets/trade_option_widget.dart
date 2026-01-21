@@ -18,14 +18,17 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 
 class TradeOptionWidget extends StatefulWidget {
-  const TradeOptionWidget(this.user, this.service,
-      //this.account,
-      {super.key,
-      required this.analytics,
-      required this.observer,
-      this.optionPosition,
-      this.optionInstrument,
-      this.positionType = "Buy"});
+  const TradeOptionWidget(
+    this.user,
+    this.service, {
+    //this.account,
+    super.key,
+    required this.analytics,
+    required this.observer,
+    this.optionPosition,
+    this.optionInstrument,
+    this.positionType = "Buy",
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -118,29 +121,32 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     final currentPrice = option.optionMarketData?.markPrice ?? 0.0;
 
     return Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  '${option.chainSymbol} \$${option.strikePrice} ${option.type}'),
-              Text(
-                '${formatDate.format(option.expirationDate!)} • ${formatCurrency.format(currentPrice)}',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: Colors.white70),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${option.chainSymbol} \$${option.strikePrice} ${option.type}',
+            ),
+            Text(
+              '${formatDate.format(option.expirationDate!)} • ${formatCurrency.format(currentPrice)}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: Colors.white70,
               ),
-            ],
-          ),
-          actions: [
-            if (!_isPreviewing)
-              IconButton(
-                icon: const Icon(Icons.save_as),
-                onPressed: _showTemplatesDialog,
-                tooltip: 'Order Templates',
-              )
+            ),
           ],
         ),
-        body: _isPreviewing ? _buildPreview(context) : _buildForm(context));
+        actions: [
+          if (!_isPreviewing)
+            IconButton(
+              icon: const Icon(Icons.save_as),
+              onPressed: _showTemplatesDialog,
+              tooltip: 'Order Templates',
+            ),
+        ],
+      ),
+      body: _isPreviewing ? _buildPreview(context) : _buildForm(context),
+    );
   }
 
   Widget _buildForm(BuildContext context) {
@@ -171,24 +177,24 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               });
             },
             style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                (Set<WidgetState> states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return positionType == "Buy"
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.red.withValues(alpha: 0.2);
-                  }
-                  return null;
-                },
-              ),
-              foregroundColor: WidgetStateProperty.resolveWith<Color?>(
-                (Set<WidgetState> states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return positionType == "Buy" ? Colors.green : Colors.red;
-                  }
-                  return null;
-                },
-              ),
+              backgroundColor: WidgetStateProperty.resolveWith<Color?>((
+                Set<WidgetState> states,
+              ) {
+                if (states.contains(WidgetState.selected)) {
+                  return positionType == "Buy"
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.red.withValues(alpha: 0.2);
+                }
+                return null;
+              }),
+              foregroundColor: WidgetStateProperty.resolveWith<Color?>((
+                Set<WidgetState> states,
+              ) {
+                if (states.contains(WidgetState.selected)) {
+                  return positionType == "Buy" ? Colors.green : Colors.red;
+                }
+                return null;
+              }),
             ),
           ),
           const SizedBox(height: 24),
@@ -200,8 +206,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               labelText: "Order Type",
               border: OutlineInputBorder(),
               filled: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
             ),
             onChanged: (String? newValue) {
               setState(() {
@@ -209,18 +217,19 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 _updateEstimates();
               });
             },
-            items: <String>[
-              'Market',
-              'Limit',
-              'Stop',
-              'Stop Limit',
-              'Trailing Stop'
-            ].map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
+            items:
+                <String>[
+                  'Market',
+                  'Limit',
+                  'Stop',
+                  'Stop Limit',
+                  'Trailing Stop',
+                ].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
           ),
           const SizedBox(height: 16),
 
@@ -248,10 +257,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           if (orderType == 'Limit' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: priceCtl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               decoration: const InputDecoration(
                 labelText: "Limit Price",
@@ -268,10 +278,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           if (orderType == 'Stop' || orderType == 'Stop Limit') ...[
             TextFormField(
               controller: stopPriceCtl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               decoration: const InputDecoration(
                 labelText: "Stop Price",
@@ -292,8 +303,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 labelText: "Trail Type",
                 border: OutlineInputBorder(),
                 filled: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
               onChanged: (String? newValue) {
                 setState(() {
@@ -302,19 +315,21 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               },
               items: <String>['Percentage', 'Amount']
                   .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                  .toList(),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: trailingAmountCtl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               decoration: InputDecoration(
                 labelText: trailingType == 'Percentage'
@@ -337,8 +352,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               labelText: "Time in Force",
               border: OutlineInputBorder(),
               filled: true,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
             ),
             onChanged: (String? newValue) {
               setState(() {
@@ -347,11 +364,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             },
             items: <String>['gtc', 'gfd', 'ioc', 'opg']
                 .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value.toUpperCase()),
-              );
-            }).toList(),
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value.toUpperCase()),
+                  );
+                })
+                .toList(),
           ),
           const SizedBox(height: 24),
 
@@ -359,8 +377,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -387,11 +406,16 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant)),
-                          Text(formatCurrency.format(buyingPower),
-                              style: theme.textTheme.bodyMedium),
+                          Text(
+                            "Buying Power",
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            formatCurrency.format(buyingPower),
+                            style: theme.textTheme.bodyMedium,
+                          ),
                         ],
                       );
                     },
@@ -417,7 +441,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
-                      ))
+                      ),
+                    )
                   : const Icon(Icons.visibility),
               onPressed: placingOrder || estimatedTotal <= 0
                   ? null
@@ -440,8 +465,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         children: <Widget>[
           Text(
             "Review Order",
-            style: theme.textTheme.headlineSmall
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           if (_riskGuardWarning != null) ...[
@@ -460,8 +486,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Warning: $_riskGuardWarning",
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: Colors.orange),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
                 ],
@@ -483,8 +510,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                   Expanded(
                     child: Text(
                       "RiskGuard Check Passed",
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: Colors.green),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.green,
+                      ),
                     ),
                   ),
                 ],
@@ -495,22 +523,25 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   Text(
                     "$positionType ${quantityCtl.text} contracts",
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     "${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type}",
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(color: theme.colorScheme.secondary),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _buildPreviewRow("Order Type", orderType),
@@ -521,13 +552,15 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                   if (orderType == 'Trailing Stop') ...[
                     _buildPreviewRow("Trail Type", trailingType),
                     _buildPreviewRow(
-                        trailingType == 'Percentage'
-                            ? "Trail Percent"
-                            : "Trail Amount",
-                        trailingType == 'Percentage'
-                            ? "${trailingAmountCtl.text}%"
-                            : formatCurrency
-                                .format(double.parse(trailingAmountCtl.text))),
+                      trailingType == 'Percentage'
+                          ? "Trail Percent"
+                          : "Trail Amount",
+                      trailingType == 'Percentage'
+                          ? "${trailingAmountCtl.text}%"
+                          : formatCurrency.format(
+                              double.parse(trailingAmountCtl.text),
+                            ),
+                    ),
                   ],
                   _buildPreviewRow("Time in Force", timeInForce.toUpperCase()),
                   const Padding(
@@ -556,11 +589,16 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Buying Power",
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant)),
-                          Text(formatCurrency.format(buyingPower),
-                              style: theme.textTheme.bodyMedium),
+                          Text(
+                            "Buying Power",
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            formatCurrency.format(buyingPower),
+                            style: theme.textTheme.bodyMedium,
+                          ),
                         ],
                       );
                     },
@@ -601,13 +639,19 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          Text(value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  color: theme.colorScheme.onSurface)),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
         ],
       ),
     );
@@ -620,8 +664,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
     try {
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      var agenticProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
 
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
@@ -657,12 +703,13 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         'multiplier': 100,
       };
 
-      final result =
-          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
-        'proposal': proposal,
-        'portfolioState': portfolioState,
-        'config': agenticProvider.config,
-      });
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('riskguardTask')
+          .call({
+            'proposal': proposal,
+            'portfolioState': portfolioState,
+            'config': agenticProvider.config,
+          });
 
       final data = result.data;
       if (data['approved'] == true) {
@@ -700,9 +747,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('RiskGuard check failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('RiskGuard check failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -720,8 +767,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
     try {
       var accountStore = Provider.of<AccountStore>(context, listen: false);
-      var agenticProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
+      var agenticProvider = Provider.of<AgenticTradingProvider>(
+        context,
+        listen: false,
+      );
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
         portfolioState['cash'] = accountStore.items[0].buyingPower;
@@ -737,10 +786,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       final result = await FirebaseFunctions.instance
           .httpsCallable('calculatePositionSize')
           .call({
-        'symbol': widget.optionInstrument?.chainSymbol,
-        'portfolioState': portfolioState,
-        'config': agenticProvider.config,
-      });
+            'symbol': widget.optionInstrument?.chainSymbol,
+            'portfolioState': portfolioState,
+            'config': agenticProvider.config,
+          });
 
       final data = result.data;
       if (data['status'] == 'success') {
@@ -749,41 +798,51 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
         if (qty < 0) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                "Trade Disallowed: Calculated size is negative ($qty). ${details['reason'] ?? ''}"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Trade Disallowed: Calculated size is negative ($qty). ${details['reason'] ?? ''}",
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+            ),
+          );
         } else {
           setState(() {
             quantityCtl.text = qty.toString();
           });
 
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                "Dynamic Size: $qty (ATR: ${details['atr'].toStringAsFixed(2)})"),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.green,
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Dynamic Size: $qty (ATR: ${details['atr'].toStringAsFixed(2)})",
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error: ${data['message']}"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${data['message']}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Dynamic size calculation failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error: $e"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -836,7 +895,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         trigger = 'stop';
         trailingPeg = {
           'type': trailingType.toLowerCase(),
-          'value': double.parse(trailingAmountCtl.text)
+          'value': double.parse(trailingAmountCtl.text),
         };
         price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0;
       } else {
@@ -844,12 +903,27 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         price = double.parse(priceCtl.text);
       }
 
+      String positionEffect = "open";
+      if (widget.optionPosition != null) {
+        if (widget.optionPosition!.direction == "debit") {
+          // Long position
+          if (positionType == "Sell") {
+            positionEffect = "close";
+          }
+        } else if (widget.optionPosition!.direction == "credit") {
+          // Short position
+          if (positionType == "Buy") {
+            positionEffect = "close";
+          }
+        }
+      }
+
       var orderJson = await widget.service.placeOptionsOrder(
         widget.user,
         accountStore.items[0],
         widget.optionInstrument!,
         positionType == "Buy" ? "buy" : "sell", // side
-        "open", //positionEffect
+        positionEffect, //positionEffect
         "debit", //creditOrDebit
         price,
         int.parse(quantityCtl.text),
@@ -866,25 +940,32 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
       if (newOrder.state == "confirmed" || newOrder.state == "unconfirmed") {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed."),
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.",
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error placing order. State: ${newOrder.state}"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error placing order. State: ${newOrder.state}"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error: $e"),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -920,7 +1001,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                       return ListTile(
                         title: Text(template.name),
                         subtitle: Text(
-                            '${template.symbol != null ? "${template.symbol} " : ""}${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} contracts" : ""}'),
+                          '${template.symbol != null ? "${template.symbol} " : ""}${template.positionType} ${template.orderType} ${template.quantity != null ? "${template.quantity} contracts" : ""}',
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () {
@@ -988,7 +1070,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         builder: (context) => AlertDialog(
           title: const Text('Overwrite Template?'),
           content: Text(
-              'A template named "$name" already exists. Do you want to overwrite it?'),
+            'A template named "$name" already exists. Do you want to overwrite it?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -1031,8 +1114,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     );
 
     context.read<OrderTemplateStore>().addTemplate(template);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Template saved')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Template saved')));
   }
 
   void _applyTemplate(OrderTemplate template) {

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.29.2] - 2026-01-20
+
+### Added
+- **Instrument Notes:** Introduced "Personal Instrument Notes" feature allowing users to maintain private, formatted notes for any ticker with AI-powered drafting.
+- **AI Asset Allocation:** Added AI-driven portfolio allocation recommendations based on user risk profiles within the Rebalancing widget.
+- **Strategy Optimization:** Enhanced the backtesting engine with strategy optimization capabilities to refine trading parameters.
+
+### Changed
+- **Market Assistant:** Improved prompts and chat widget structure for better readability and more relevant responses.
+- **Portfolio Calculation:** Refined cumulative return calculations to align with full historical data for improved accuracy.
+
 ## [0.29.1] - 2026-01-17
 
 ### Added
