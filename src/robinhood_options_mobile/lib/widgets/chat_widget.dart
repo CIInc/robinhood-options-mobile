@@ -15,12 +15,14 @@ class ChatWidget extends StatefulWidget {
   final GenerativeService generativeService;
   final User? user;
   final String? initialMessage;
+  final List<Prompt>? prompts;
 
   const ChatWidget({
     super.key,
     required this.generativeService,
     this.user,
     this.initialMessage,
+    this.prompts,
   });
 
   @override
@@ -391,6 +393,50 @@ class _ChatWidgetState extends State<ChatWidget> {
   // }
 
   Widget _buildWelcomeView(GenerativeProvider provider) {
+    if (widget.prompts != null && widget.prompts!.isNotEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Welcome to Market Assistant',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Here are some suggestions to get you started.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _buildPromptSection(
+                context,
+                'Suggestions',
+                widget.prompts!,
+                provider,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // --- Portfolio Section ---
 
     // 1. Portfolio Summary

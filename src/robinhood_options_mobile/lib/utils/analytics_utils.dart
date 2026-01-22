@@ -151,6 +151,14 @@ class AnalyticsUtils {
     return calculateStdDev(returns) * sqrt(252);
   }
 
+  /// Calculates the Compound Annual Growth Rate (CAGR)
+  static double calculateCAGR(double totalReturn, double periodYears) {
+    if (periodYears <= 0) return 0.0;
+    // Handle negative total return case carefully: (1+r)^(1/t) - 1
+    // If totalReturn is -50%, base is 0.5.
+    return pow(1 + totalReturn, 1 / periodYears).toDouble() - 1;
+  }
+
   static double calculateCumulativeReturn(List<double> prices) {
     if (prices.isEmpty) return 0.0;
     return (prices.last - prices.first) / prices.first;
@@ -259,6 +267,7 @@ class AnalyticsUtils {
     required double beta,
     double? volatility,
     double? benchmarkVolatility,
+    double? currentDrawdown,
     double? profitFactor,
     double? winRate,
     double? calmar,
@@ -295,6 +304,16 @@ class AnalyticsUtils {
       healthScore -= 10; // Very poor
     } else if (sharpe < 0) {
       healthScore -= 5; // Negative
+    }
+
+    // Drawdowns (Current + Max)
+    // Penalize if currently in deep drawdown
+    if (currentDrawdown != null) {
+      if (currentDrawdown < -0.20) {
+        healthScore -= 8; // Heavy penalty for deep active drawdown
+      } else if (currentDrawdown < -0.10) {
+        healthScore -= 4;
+      }
     }
 
     // Sortino Ratio - Downside-focused risk measure
@@ -615,5 +634,204 @@ class AnalyticsUtils {
 
     if (return05 == 0) return 0.0;
     return return95 / return05.abs();
+  }
+
+  /// Calculates comprehensive portfolio metrics
+  static Map<String, dynamic> calculatePortfolioMetrics({
+    required List<double> alignedPortfolioPrices,
+    required List<double> alignedBenchmarkPrices,
+    required List<double> fullPortfolioPrices,
+    required double periodYears,
+    List<DateTime>? alignedDates,
+  }) {
+    if (alignedPortfolioPrices.length < 2 ||
+        alignedBenchmarkPrices.length < 2) {
+      return {};
+    }
+
+    List<double> portfolioReturns =
+        calculateDailyReturns(alignedPortfolioPrices);
+    List<double> benchmarkReturns =
+        calculateDailyReturns(alignedBenchmarkPrices);
+
+    List<double> activeReturns = [];
+    for (int i = 0; i < portfolioReturns.length; i++) {
+      activeReturns.add(portfolioReturns[i] - benchmarkReturns[i]);
+    }
+
+    double sharpe = calculateSharpeRatio(portfolioReturns);
+    double beta = calculateBeta(portfolioReturns, benchmarkReturns);
+    double correlation =
+        calculateCorrelation(portfolioReturns, benchmarkReturns);
+    double alpha = calculateAlpha(portfolioReturns, benchmarkReturns, beta);
+    double maxDrawdown = calculateMaxDrawdown(alignedPortfolioPrices);
+    double volatility = calculateVolatility(portfolioReturns);
+    double benchmarkVolatility = calculateVolatility(benchmarkReturns);
+
+    double portfolioCumulative = fullPortfolioPrices.length >= 2
+        ? calculateCumulativeReturn(fullPortfolioPrices)
+        : calculateCumulativeReturn(alignedPortfolioPrices);
+    double benchmarkCumulative =
+        calculateCumulativeReturn(alignedBenchmarkPrices);
+
+    double trackingError = activeReturns.isNotEmpty
+        ? calculateStdDev(activeReturns) * sqrt(252)
+        : 0.0;
+    double avgDailyReturn = calculateMean(portfolioReturns);
+
+    double currentDrawdown = 0.0;
+    if (alignedPortfolioPrices.isNotEmpty) {
+      double currentPrice = alignedPortfolioPrices.last;
+      // Peak of the selected period (High Water Mark for this window)
+      double peak = alignedPortfolioPrices.reduce(max);
+      if (peak != 0) {
+        currentDrawdown = (currentPrice - peak) / peak;
+      }
+    }
+
+    double bestDay = 0.0;
+    double worstDay = 0.0;
+    DateTime? bestDayDate;
+    DateTime? worstDayDate;
+
+    if (portfolioReturns.isNotEmpty) {
+      int bestIdx = 0;
+      int worstIdx = 0;
+      bestDay = portfolioReturns[0];
+      worstDay = portfolioReturns[0];
+
+      for (int i = 1; i < portfolioReturns.length; i++) {
+        if (portfolioReturns[i] > bestDay) {
+          bestDay = portfolioReturns[i];
+          bestIdx = i;
+        }
+        if (portfolioReturns[i] < worstDay) {
+          worstDay = portfolioReturns[i];
+          worstIdx = i;
+        }
+      }
+
+      if (alignedDates != null && alignedDates.length > bestIdx + 1) {
+        // aligns with daily returns which start from index 1 (date[1])
+        bestDayDate = alignedDates[bestIdx + 1];
+        worstDayDate = alignedDates[worstIdx + 1];
+      }
+    }
+
+    double sortino = calculateSortinoRatio(portfolioReturns);
+    double treynor = calculateTreynorRatio(portfolioReturns, beta);
+    double informationRatio =
+        calculateInformationRatio(portfolioReturns, benchmarkReturns);
+
+    double calmar =
+        calculateCalmarRatio(portfolioCumulative, maxDrawdown, periodYears);
+    double omega = calculateOmegaRatio(portfolioReturns);
+    double var95 = calculateVaR(portfolioReturns);
+    double cvar95 = calculateCVaR(portfolioReturns);
+
+    // Calculate Daily Stats (Dollar based)
+    double grossProfit = 0.0;
+    double grossLoss = 0.0;
+    int winCount = 0;
+    int lossCount = 0;
+    double totalWinAmt = 0.0;
+    double totalLossAmt = 0.0;
+
+    for (int i = 1; i < alignedPortfolioPrices.length; i++) {
+      double diff = alignedPortfolioPrices[i] - alignedPortfolioPrices[i - 1];
+      if (diff > 0) {
+        grossProfit += diff;
+        winCount++;
+        totalWinAmt += diff;
+      } else if (diff < 0) {
+        grossLoss += diff.abs();
+        lossCount++;
+        totalLossAmt += diff.abs();
+      }
+    }
+
+    double profitFactor = calculateProfitFactor(grossProfit, grossLoss);
+    double winRate =
+        (winCount + lossCount) > 0 ? winCount / (winCount + lossCount) : 0.0;
+    double avgWin = winCount > 0 ? totalWinAmt / winCount : 0.0;
+    // Return negative value for Avg Loss to make it intuitive
+    double avgLoss = lossCount > 0 ? -(totalLossAmt / lossCount) : 0.0;
+    // Payoff Ratio uses absolute values: Avg Win / |Avg Loss|
+    double payoffRatio = avgLoss != 0 ? avgWin / avgLoss.abs() : 0.0;
+    double expectancy = (avgWin * winRate) - (avgLoss * (1 - winRate));
+
+    int maxWinStreak = calculateMaxWinningStreak(portfolioReturns);
+    int maxLossStreak = calculateMaxLosingStreak(portfolioReturns);
+
+    double kellyCriterion = calculateKellyCriterion(winRate, payoffRatio);
+    double ulcerIndex = calculateUlcerIndex(alignedPortfolioPrices);
+    double tailRatio = calculateTailRatio(portfolioReturns);
+
+    double cagr = calculateCAGR(portfolioCumulative, periodYears);
+
+    double healthScore = calculateHealthScore(
+      sharpe: sharpe,
+      sortino: sortino,
+      alpha: alpha,
+      maxDrawdown: maxDrawdown,
+      currentDrawdown: currentDrawdown,
+      beta: beta,
+      volatility: volatility,
+      benchmarkVolatility: benchmarkVolatility,
+      profitFactor: profitFactor,
+      winRate: winRate,
+      calmar: calmar,
+      informationRatio: informationRatio,
+      treynor: treynor,
+      var95: var95,
+      cvar95: cvar95,
+      omega: omega,
+      correlation: correlation,
+      payoffRatio: payoffRatio,
+      expectancy: expectancy,
+      maxLossStreak: maxLossStreak,
+      kellyCriterion: kellyCriterion,
+      ulcerIndex: ulcerIndex,
+      tailRatio: tailRatio,
+    );
+
+    return {
+      'sharpe': sharpe,
+      'beta': beta,
+      'correlation': correlation,
+      'alpha': alpha,
+      'maxDrawdown': maxDrawdown,
+      'currentDrawdown': currentDrawdown,
+      'volatility': volatility,
+      'benchmarkVolatility': benchmarkVolatility,
+      'portfolioCumulative': portfolioCumulative,
+      'benchmarkCumulative': benchmarkCumulative,
+      'trackingError': trackingError,
+      'avgDailyReturn': avgDailyReturn,
+      'bestDay': bestDay,
+      'worstDay': worstDay,
+      'bestDayDate': bestDayDate,
+      'worstDayDate': worstDayDate,
+      'sortino': sortino,
+      'treynor': treynor,
+      'informationRatio': informationRatio,
+      'calmar': calmar,
+      'omega': omega,
+      'var95': var95,
+      'cvar95': cvar95,
+      'profitFactor': profitFactor,
+      'winRate': winRate,
+      'cagr': cagr,
+      'avgWin': avgWin,
+      'avgLoss': avgLoss,
+      'payoffRatio': payoffRatio,
+      'expectancy': expectancy,
+      'maxWinStreak': maxWinStreak,
+      'maxLossStreak': maxLossStreak,
+      'kellyCriterion': kellyCriterion,
+      'ulcerIndex': ulcerIndex,
+      'tailRatio': tailRatio,
+      'healthScore': healthScore,
+    };
   }
 }

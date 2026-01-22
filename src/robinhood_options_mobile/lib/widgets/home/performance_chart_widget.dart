@@ -10,7 +10,6 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_chart_widget.dart';
 
 class PerformanceChartWidget extends StatefulWidget {
   final Future<dynamic>? futureMarketIndexHistoricalsSp500;
@@ -21,6 +20,9 @@ class PerformanceChartWidget extends StatefulWidget {
   final ChartDateSpan benchmarkChartDateSpanFilter;
   final Function(ChartDateSpan) onFilterChanged;
   final bool isFullScreen;
+  final String? selectedBenchmark;
+  final Future<dynamic>? futureCustomBenchmark;
+  final String? customBenchmarkSymbol;
 
   const PerformanceChartWidget({
     super.key,
@@ -32,6 +34,9 @@ class PerformanceChartWidget extends StatefulWidget {
     required this.benchmarkChartDateSpanFilter,
     required this.onFilterChanged,
     this.isFullScreen = false,
+    this.selectedBenchmark,
+    this.futureCustomBenchmark,
+    this.customBenchmarkSymbol,
   });
 
   @override
@@ -53,7 +58,10 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
             : Future.value(null),
         widget.futurePortfolioHistoricalsYear != null
             ? widget.futurePortfolioHistoricalsYear as Future
-            : Future.value(null)
+            : Future.value(null),
+        widget.futureCustomBenchmark != null
+            ? widget.futureCustomBenchmark as Future
+            : Future.value(null),
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData &&
@@ -63,6 +71,7 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
           var dow = snapshot.data![2];
           var russell2000 = snapshot.data![3];
           var portfolioHistoricals = snapshot.data![4] as PortfolioHistoricals?;
+          var customBenchmarkData = snapshot.data![5];
           if (portfolioHistoricals != null) {
             final DateTime now = DateTime.now();
             final DateTime newYearsDay = DateTime(now.year, 1, 1);
@@ -91,6 +100,11 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 ? russell2000['chart']['result'][0]['meta']
                     ['chartPreviousClose']
                 : null;
+            var customBenchmarkPreviousClose = customBenchmarkData != null
+                ? customBenchmarkData['chart']['result'][0]['meta']
+                    ['chartPreviousClose']
+                : null;
+
             var enddiffsp500 = regularsp500['end'] - regularsp500['start'];
 
             DateTime? cutoff;
@@ -171,6 +185,11 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                 russell2000 != null && russell2000PreviousClose != null
                     ? processMarketData(russell2000, russell2000PreviousClose)
                     : <Map<String, dynamic>>[];
+            var seriesDataCustom = customBenchmarkData != null &&
+                    customBenchmarkPreviousClose != null
+                ? processMarketData(
+                    customBenchmarkData, customBenchmarkPreviousClose)
+                : <Map<String, dynamic>>[];
 
             var seriesOpenportfolio =
                 portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity;
@@ -190,13 +209,15 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
               ...seriesDatarussell2000
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
+              ...seriesDataCustom
+                  .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
               ...seriesDataportfolio
                   .map((e) => (e['value'] as num?)?.toDouble() ?? 0.0),
             ];
             var extents = charts.NumericExtents.fromValues(allValues);
             extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
                 extents.max + (extents.width * 0.1));
-            var brightness = MediaQuery.of(context).platformBrightness;
+            var brightness = Theme.of(context).brightness;
             var axisLabelColor = charts.MaterialPalette.gray.shade500;
             if (brightness == Brightness.light) {
               axisLabelColor = charts.MaterialPalette.gray.shade700;
@@ -209,6 +230,21 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   seriesDataportfolio.last['date'] as DateTime,
                   seriesDataportfolio.last['value'] as double));
             });
+
+            final benchmarkMap = {
+              'SPY': 'S&P 500',
+              'QQQ': 'Nasdaq',
+              'DIA': 'Dow 30',
+              'IWM': 'Russell 2000',
+            };
+            var selectedSeriesId = widget.selectedBenchmark != null
+                ? benchmarkMap[widget.selectedBenchmark]
+                : null;
+            if (widget.selectedBenchmark != null &&
+                widget.customBenchmarkSymbol == widget.selectedBenchmark) {
+              selectedSeriesId = widget.customBenchmarkSymbol;
+            }
+
             TimeSeriesChart marketIndicesChart = TimeSeriesChart(
               [
                 charts.Series<dynamic, DateTime>(
@@ -219,38 +255,60 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   measureFn: (dynamic data, index) => data['value'],
                   data: seriesDataportfolio,
                 ),
-                charts.Series<dynamic, DateTime>(
-                  id: 'S&P 500',
-                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[4 % Colors.accents.length]),
-                  domainFn: (dynamic data, _) => data['date'],
-                  measureFn: (dynamic data, index) => data['value'],
-                  data: seriesDatasp500,
-                ),
-                charts.Series<dynamic, DateTime>(
-                  id: 'Nasdaq',
-                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[2 % Colors.accents.length]),
-                  domainFn: (dynamic data, _) => data['date'],
-                  measureFn: (dynamic data, index) => data['value'],
-                  data: seriesDatanasdaq,
-                ),
-                charts.Series<dynamic, DateTime>(
-                  id: 'Dow 30',
-                  colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                      Colors.accents[6 % Colors.accents.length]),
-                  domainFn: (dynamic data, _) => data['date'],
-                  measureFn: (dynamic data, index) => data['value'],
-                  data: seriesDatadow,
-                ),
-                if (seriesDatarussell2000.isNotEmpty)
+                if (selectedSeriesId == null || selectedSeriesId == 'S&P 500')
+                  charts.Series<dynamic, DateTime>(
+                    id: 'S&P 500',
+                    colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                        Colors.accents[4 % Colors.accents.length]),
+                    domainFn: (dynamic data, _) => data['date'],
+                    measureFn: (dynamic data, index) => data['value'],
+                    data: seriesDatasp500,
+                  ),
+                if (selectedSeriesId == null || selectedSeriesId == 'Nasdaq')
+                  charts.Series<dynamic, DateTime>(
+                    id: 'Nasdaq',
+                    colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                        Colors.accents[2 % Colors.accents.length]),
+                    domainFn: (dynamic data, _) => data['date'],
+                    measureFn: (dynamic data, index) => data['value'],
+                    data: seriesDatanasdaq,
+                  ),
+                if (selectedSeriesId == null || selectedSeriesId == 'Dow 30')
+                  charts.Series<dynamic, DateTime>(
+                    id: 'Dow 30',
+                    colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                        Colors.accents[6 % Colors.accents.length]),
+                    domainFn: (dynamic data, _) => data['date'],
+                    measureFn: (dynamic data, index) => data['value'],
+                    data: seriesDatadow,
+                  ),
+                if (seriesDatarussell2000.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == 'Russell 2000'))
                   charts.Series<dynamic, DateTime>(
                     id: 'Russell 2000',
                     colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                        Colors.accents[8 % Colors.accents.length]),
+                        brightness == Brightness.light
+                            ? Colors.accents[
+                                5 % Colors.accents.length] // Colors.brown
+                            : Colors.accents[8 % Colors.accents.length]),
                     domainFn: (dynamic data, _) => data['date'],
                     measureFn: (dynamic data, index) => data['value'],
                     data: seriesDatarussell2000,
+                  ),
+                if (seriesDataCustom.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == widget.customBenchmarkSymbol))
+                  charts.Series<dynamic, DateTime>(
+                    id: widget.customBenchmarkSymbol!,
+                    colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                        brightness == Brightness.light
+                            ? Colors.accents[
+                                10 % Colors.accents.length] // Another color
+                            : Colors.accents[3 % Colors.accents.length]),
+                    domainFn: (dynamic data, _) => data['date'],
+                    measureFn: (dynamic data, index) => data['value'],
+                    data: seriesDataCustom,
                   ),
               ],
               animate: animateChart,
@@ -278,15 +336,26 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
               initialSelection: charts.InitialSelection(selectedDataConfig: [
                 charts.SeriesDatumConfig<DateTime>(
                     'Portfolio', seriesDataportfolio.last['date'] as DateTime),
-                charts.SeriesDatumConfig<DateTime>(
-                    'S&P 500', seriesDatasp500.last['date'] as DateTime),
-                charts.SeriesDatumConfig<DateTime>(
-                    'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
-                charts.SeriesDatumConfig<DateTime>(
-                    'Dow 30', seriesDatadow.last['date'] as DateTime),
-                if (seriesDatarussell2000.isNotEmpty)
+                if (selectedSeriesId == null || selectedSeriesId == 'S&P 500')
+                  charts.SeriesDatumConfig<DateTime>(
+                      'S&P 500', seriesDatasp500.last['date'] as DateTime),
+                if (selectedSeriesId == null || selectedSeriesId == 'Nasdaq')
+                  charts.SeriesDatumConfig<DateTime>(
+                      'Nasdaq', seriesDatanasdaq.last['date'] as DateTime),
+                if (selectedSeriesId == null || selectedSeriesId == 'Dow 30')
+                  charts.SeriesDatumConfig<DateTime>(
+                      'Dow 30', seriesDatadow.last['date'] as DateTime),
+                if (seriesDatarussell2000.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == 'Russell 2000'))
                   charts.SeriesDatumConfig<DateTime>('Russell 2000',
-                      seriesDatarussell2000.last['date'] as DateTime)
+                      seriesDatarussell2000.last['date'] as DateTime),
+                if (seriesDataCustom.isNotEmpty &&
+                    (selectedSeriesId == null ||
+                        selectedSeriesId == widget.customBenchmarkSymbol))
+                  charts.SeriesDatumConfig<DateTime>(
+                      widget.customBenchmarkSymbol!,
+                      seriesDataCustom.last['date'] as DateTime),
               ], shouldPreserveSelectionOnDraw: true),
               symbolRenderer: TextSymbolRenderer(() {
                 return chartSelectionStore.selection != null
@@ -300,103 +369,27 @@ class _PerformanceChartWidgetState extends State<PerformanceChartWidget> {
                   backgroundColor: Theme.of(context).colorScheme.inverseSurface,
                   textColor: Theme.of(context).colorScheme.onInverseSurface),
             );
-            return Column(
-              children: [
-                ListTile(
-                  title: const Text(
-                    "Performance",
-                    style: TextStyle(fontSize: 20.0),
-                  ),
-                  subtitle: Text(
-                    "Compare market indices and benchmarks (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter).toUpperCase()})",
-                  ),
-                ),
-                SizedBox(
-                    height: 56,
-                    child: ListView(
-                      padding: const EdgeInsets.all(5.0),
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _buildChip('YTD', ChartDateSpan.ytd),
-                        _buildChip('1Y', ChartDateSpan.year),
-                        _buildChip('2Y', ChartDateSpan.year_2),
-                        _buildChip('3Y', ChartDateSpan.year_3),
-                        _buildChip('5Y', ChartDateSpan.year_5),
-                      ],
-                    )),
-                widget.isFullScreen
-                    ? Expanded(
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                          child: marketIndicesChart,
-                        ),
-                      )
-                    : Stack(
-                        children: [
-                          SizedBox(
-                              height: 380,
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    10.0, 10.0, 10.0, 10.0),
-                                child: marketIndicesChart,
-                              )),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.fullscreen),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        FullScreenPerformanceChartWidget(
-                                      futureMarketIndexHistoricalsSp500: widget
-                                          .futureMarketIndexHistoricalsSp500,
-                                      futureMarketIndexHistoricalsNasdaq: widget
-                                          .futureMarketIndexHistoricalsNasdaq,
-                                      futureMarketIndexHistoricalsDow: widget
-                                          .futureMarketIndexHistoricalsDow,
-                                      futureMarketIndexHistoricalsRussell2000:
-                                          widget
-                                              .futureMarketIndexHistoricalsRussell2000,
-                                      futurePortfolioHistoricalsYear:
-                                          widget.futurePortfolioHistoricalsYear,
-                                      benchmarkChartDateSpanFilter:
-                                          widget.benchmarkChartDateSpanFilter,
-                                      onFilterChanged: widget.onFilterChanged,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-              ],
-            );
+            return widget.isFullScreen
+                ? Expanded(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      child: marketIndicesChart,
+                    ),
+                  )
+                : SizedBox(
+                    height: 380,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      child: marketIndicesChart,
+                    ));
           }
         }
         debugPrint("${snapshot.error}");
 
         return const SizedBox();
       },
-    );
-  }
-
-  Widget _buildChip(String label, ChartDateSpan span) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: widget.benchmarkChartDateSpanFilter == span,
-        onSelected: (bool value) {
-          if (value) {
-            widget.onFilterChanged(span);
-          }
-        },
-      ),
     );
   }
 }

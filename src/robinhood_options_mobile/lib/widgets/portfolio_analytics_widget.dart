@@ -1,6 +1,6 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -17,14 +17,21 @@ import 'package:robinhood_options_mobile/services/esg_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
 import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
+import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 
 class PortfolioAnalyticsWidget extends StatefulWidget {
   final BrokerageUser user;
   final IBrokerageService service;
+  final String? accountNumber;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GenerativeService generativeService;
@@ -35,11 +42,14 @@ class PortfolioAnalyticsWidget extends StatefulWidget {
   final Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   final Future<dynamic>? futureMarketIndexHistoricalsDow;
   final Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
+  final ChartDateSpan? benchmarkChartDateSpanFilter;
+  final Function(ChartDateSpan)? onBenchmarkFilterChanged;
 
   const PortfolioAnalyticsWidget(
       {super.key,
       required this.user,
       required this.service,
+      this.accountNumber,
       required this.analytics,
       required this.observer,
       required this.generativeService,
@@ -49,7 +59,9 @@ class PortfolioAnalyticsWidget extends StatefulWidget {
       this.futureMarketIndexHistoricalsSp500,
       this.futureMarketIndexHistoricalsNasdaq,
       this.futureMarketIndexHistoricalsDow,
-      this.futureMarketIndexHistoricalsRussell2000});
+      this.futureMarketIndexHistoricalsRussell2000,
+      this.benchmarkChartDateSpanFilter,
+      this.onBenchmarkFilterChanged});
 
   @override
   State<PortfolioAnalyticsWidget> createState() =>
@@ -62,55 +74,77 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
   final ESGService _esgService = ESGService();
   String _selectedBenchmark = 'SPY'; // Default to SPY
   bool _showAllInsights = false;
+  final bool _showAllBenchmarks = false;
   final List<String> _benchmarks = ['SPY', 'QQQ', 'DIA', 'IWM'];
+  final List<String> _customBenchmarks = [];
+  Future<dynamic>? _futureCustomBenchmark;
+  String? _customBenchmarkSymbol;
 
   static const Map<String, String> definitions = {
     'Sharpe':
-        'Risk-adjusted return metric. Shows how much excess return you earn per unit of risk.\n\n✓ >2.0: Excellent  ✓ >1.0: Good  ✗ <0: Negative returns',
+        'Risk-adjusted return metric. Shows how much excess return you earn per unit of risk.\n\n✓ >2.0: Excellent\n✓ >1.0: Good\n✗ <0: Negative returns',
     'Sortino':
-        'Like Sharpe, but only penalizes downside volatility. Better for asymmetric strategies.\n\n✓ >2.0: Excellent  ✓ >1.0: Good  Focuses on downside risk only',
+        'Like Sharpe, but only penalizes downside volatility. Better for asymmetric strategies.\n\n✓ >2.0: Excellent\n✓ >1.0: Good\nFocuses on downside risk only',
     'Treynor':
-        'Excess return per unit of systematic risk (Beta). Best for diversified portfolios.\n\n✓ >0.15: Excellent  ✓ >0.05: Good  Higher = Better risk-adjusted returns',
+        'Excess return per unit of systematic risk (Beta). Best for diversified portfolios.\n\n✓ >0.15: Excellent\n✓ >0.05: Good\nHigher = Better risk-adjusted returns',
     'Info Ratio':
-        'Measures consistent outperformance vs. benchmark. Active management skill indicator.\n\n✓ >0.5: Good  ✓ >0: Positive  Negative = Underperforming inconsistently',
+        'Measures consistent outperformance vs. benchmark. Active management skill indicator.\n\n✓ >0.5: Good\n✓ >0: Positive\nNegative = Underperforming inconsistently',
     'Calmar':
-        'Annual return ÷ Max Drawdown. Shows return efficiency relative to worst-case loss.\n\n✓ >3.0: Exceptional  ✓ >0.5: Acceptable  Higher = Better recovery',
+        'Annual return ÷ Max Drawdown. Shows return efficiency relative to worst-case loss.\n\n✓ >3.0: Exceptional\n✓ >0.5: Acceptable\nHigher = Better recovery',
     'Omega':
-        'Probability-weighted gains vs. losses ratio. Captures full return distribution.\n\n✓ >2.0: Excellent  ✓ >1.0: Profitable  Must be >1.0 to be positive',
+        'Probability-weighted gains vs. losses ratio. Captures full return distribution.\n\n✓ >2.0: Excellent\n✓ >1.0: Profitable\nMust be >1.0 to be positive',
     'Beta':
-        'Market volatility multiplier. Shows portfolio sensitivity to market moves.\n\n⚡ >1.2: Aggressive  ⚖ 0.8-1.2: Balanced  🛡 <0.8: Defensive',
+        'Market volatility multiplier. Shows portfolio sensitivity to market moves.\n\n⚡ >1.2: Aggressive\n⚖ 0.8-1.2: Balanced\n🛡 <0.8: Defensive',
     'Alpha':
-        'True outperformance beyond what Beta predicts. The holy grail of investing.\n\n✓ >5%: Excellent  ✓ >0%: Positive  ✗ <0%: Underperforming',
+        'True outperformance beyond what Beta predicts. The holy grail of investing.\n\n✓ >5%: Excellent\n✓ >0%: Positive\n✗ <0%: Underperforming',
     'Excess Return':
-        'Portfolio return minus benchmark return. Simple outperformance measure.\n\n✓ >0%: Outperforming  = 0%: Matching  ✗ <0%: Underperforming',
+        'Portfolio return minus benchmark return. Simple outperformance measure.\n\n✓ >0%: Outperforming\n= 0%: Matching\n✗ <0%: Underperforming',
+    'Annualized Return':
+        'Compound Annual Growth Rate (CAGR). The smoothed annual return.',
+    'Tracking Error':
+        'Standard deviation of active returns. Measures consistency vs. benchmark.\n\n✓ <5%: Index hugger\n⚠ >10%: Active manager\nLower = Closer tracking',
     'Max Drawdown':
-        'Largest peak-to-trough loss. Your worst-case scenario experience.\n\n✓ <10%: Low risk  ⚠ <20%: Moderate  ✗ >30%: High risk - Review stops',
+        'Largest peak-to-trough loss. Your worst-case scenario experience.\n\n✓ <10%: Low risk\n⚠ <20%: Moderate\n✗ >30%: High risk - Review stops',
+    'Current Drawdown':
+        'Percentage drop from the highest peak in the selected period to the current value.\n\n✓ 0%: At all-time high\n⚠ < -10%: In correction\n✗ < -20%: Bear market',
     'Volatility':
-        'Annualized return swings (std dev). How bumpy the ride is.\n\n🎢 Higher = Wilder swings  🚂 Lower = Smoother ride  Compare to benchmark',
+        'Annualized return swings (std dev). How bumpy the ride is.\n\n🎢 Higher = Wilder swings\n🚂 Lower = Smoother ride\nCompare to benchmark',
     'Correlation':
-        'How closely you track the market. Diversification indicator.\n\n⚠ >0.9: High - Consider diversifying  ✓ 0.5-0.8: Moderate  ⬇ <0: Inverse',
+        'How closely you track the market. Diversification indicator.\n\n⚠ >0.9: High - Consider diversifying\n✓ 0.5-0.8: Moderate\n⬇ <0: Inverse',
     'VaR (95%)':
-        'Value at Risk: Max expected 1-day loss (95% confidence). Tail risk metric.\n\nExample: -2% = 5% chance of losing >2% in a day  ⚠ Watch for spikes',
+        'Value at Risk: Max expected 1-day loss (95% confidence). Tail risk metric.\n\nExample: -2% = 5% chance of losing >2% in a day\n⚠ Watch for spikes',
     'CVaR (95%)':
-        'Expected Shortfall: Average loss when VaR is breached. True tail risk.\n\n⚠ Shows "black swan" severity  Always worse than VaR  Critical for risk mgmt',
+        'Expected Shortfall: Average loss when VaR is breached. True tail risk.\n\n⚠ Shows "black swan" severity\nAlways worse than VaR\nCritical for risk mgmt',
     'Profit Factor':
-        'Gross Profits ÷ Gross Losses. The profitability multiplier.\n\n✓ >2.0: Highly profitable  ✓ >1.5: Good  ✓ >1.0: Profitable  ✗ <1.0: Losing',
+        'Gross Profits ÷ Gross Losses. The profitability multiplier.\n\n✓ >2.0: Highly profitable\n✓ >1.5: Good\n✓ >1.0: Profitable\n✗ <1.0: Losing',
     'Win Rate':
-        'Percentage of winning days. Consistency indicator.\n\n✓ >65%: High consistency  ✓ >50%: Above average  ⚠ <40%: Low - Need high payoff',
+        'Percentage of winning days. Consistency indicator.\n\n✓ >65%: High consistency\n✓ >50%: Above average\n⚠ <40%: Low - Need high payoff',
     'Expectancy':
-        'Average \$ per day/trade. Your mathematical edge.\n\n✓ >0: Positive edge  ✗ <0: Negative edge  Must be positive long-term',
+        'Average \$ per day/trade. Your mathematical edge.\n\n✓ >0: Positive edge\n✗ <0: Negative edge\nMust be positive long-term',
+    'Avg Win': 'Average daily gain on winning days. Higher is better.',
+    'Avg Loss':
+        'Average daily loss on losing days. Keep this small relative to Avg Win.',
+    'Avg Daily': 'Average daily percentage return over the selected period.',
     'Payoff Ratio':
-        'Avg Win ÷ Avg Loss. Win/loss size comparison.\n\n✓ >2.0: Large winners  ✓ >1.0: Wins bigger than losses  ⚠ <1.0: Losses cut gains',
+        'Avg Win ÷ Avg Loss. Win/loss size comparison.\n\n✓ >2.0: Large winners\n✓ >1.0: Wins bigger than losses\n⚠ <1.0: Losses cut gains',
     'Kelly Criterion':
-        'Optimal position size for max long-term growth. Risk management tool.\n\n✓ >0: Mathematical edge  Use 1/4 to 1/2 Kelly in practice  ⚠ Full Kelly = risky',
+        'Optimal position size for max long-term growth. Risk management tool.\n\n✓ >0: Mathematical edge\nUse 1/4 to 1/2 Kelly in practice\n⚠ Full Kelly = risky',
     'Ulcer Index':
-        'Drawdown depth × duration. Emotional stress measure.\n\n✓ <5%: Low stress  ⚠ <10%: Moderate  ✗ >15%: High anxiety - Review strategy',
+        'Drawdown depth × duration. Emotional stress measure.\n\n✓ <5%: Low stress\n⚠ <10%: Moderate\n✗ >15%: High anxiety - Review strategy',
     'Tail Ratio':
-        'Big gains vs. big losses ratio. Asymmetry indicator.\n\n✓ >1.0: Positive skew (good!)  = 1.0: Symmetric  ✗ <1.0: Negative skew (bad)',
+        'Big gains vs. big losses ratio. Asymmetry indicator.\n\n✓ >1.0: Positive skew (good!)\n= 1.0: Symmetric\n✗ <1.0: Negative skew (bad)',
     'Max Win Streak':
-        'Longest consecutive winning days. Momentum & consistency indicator.\n\n🔥 Higher = Better  Signals favorable market conditions  Track for confidence',
+        'Longest consecutive winning days. Momentum & consistency indicator.\n\n🔥 Higher = Better\nSignals favorable market conditions\nTrack for confidence',
     'Max Loss Streak':
-        'Longest consecutive losing days. Resilience & risk control test.\n\n⚠ >5 days: Review strategy  Lower = Better risk mgmt  🛑 Consider stops',
+        'Longest consecutive losing days. Resilience & risk control test.\n\n⚠ >5 days: Review strategy\nLower = Better risk mgmt\n🛑 Consider stops',
+    'Best Day':
+        'The highest single-day percentage gain in the selected period.',
+    'Worst Day':
+        'The largest single-day percentage loss in the selected period.',
+    'Portfolio Return':
+        'The total cumulative return of the portfolio over the selected period.',
+    'Benchmark Return':
+        'The total cumulative return of the benchmark index over the selected period.',
   };
 
   static const Map<String, Map<String, dynamic>> metricGuidance = {
@@ -145,12 +179,21 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       'tip': 'Lower beta = more defensive, higher beta = more aggressive.',
     },
     'Max Drawdown': {
-      'goodThreshold': 0.10,
-      'acceptableThreshold': 0.20,
+      'goodThreshold': -0.10,
+      'acceptableThreshold': -0.20,
       'example':
-          'A 25% drawdown means your portfolio fell 25% from peak to trough.',
+          'A -25% drawdown means your portfolio fell 25% from peak to trough.',
       'tip': 'Use stop-losses and position sizing to limit maximum drawdown.',
-      'reverse': true,
+      'reverse': false,
+    },
+    'Current Drawdown': {
+      'goodThreshold': -0.05,
+      'acceptableThreshold': -0.10,
+      'example':
+          'Current Drawdown of -12% means your portfolio is 12% below its recent peak.',
+      'tip':
+          'In deep drawdown? Reduce position size to preserve capital until momentum returns.',
+      'reverse': false,
     },
     'Win Rate': {
       'goodThreshold': 0.60,
@@ -164,6 +207,54 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       'acceptableThreshold': 1.0,
       'example': 'Profit factor of 2.0 means you made \$2 for every \$1 lost.',
       'tip': 'Above 1.0 is profitable, above 1.5 is considered strong.',
+    },
+    'Tracking Error': {
+      'goodThreshold': 0.05,
+      'acceptableThreshold': 0.1,
+      'example':
+          'Tracking Error of 3% means you are efficiently matching the benchmark.',
+      'tip':
+          'Lower tracking error means your performance closely mirrors the benchmark.',
+      'reverse': true,
+    },
+    'Excess Return': {
+      'goodThreshold': 0.0,
+      'acceptableThreshold': 0.0,
+      'example':
+          'Excess Return of +5% means you beat the benchmark by 5% over the period.',
+      'tip': 'Positive excess return indicates true outperformance.',
+    },
+    'Annualized Return': {
+      'goodThreshold': 0.10,
+      'acceptableThreshold': 0.0,
+      'example':
+          'CAGR of 12% means your portfolio grew 12% annually on average.',
+      'tip': 'Compare your CAGR against the S&P 500 (~10% historical average).',
+    },
+    'Correlation': {
+      'goodThreshold': 0.7,
+      'acceptableThreshold': 0.5,
+      'example':
+          'Correlation of 0.6 means you have healthy diversification from the index.',
+      'tip':
+          'Lower correlation (<0.7) means you are less exposed to broad market crashes.',
+      'reverse': true,
+    },
+    'Best Day': {
+      'tip': 'A high best day is good, but check if it was luck or volatility.',
+    },
+    'Worst Day': {
+      'goodThreshold': -0.02,
+      'acceptableThreshold': -0.05,
+      'tip': 'Large single-day drops can indicate high risk exposure.',
+    },
+    'Portfolio Return': {
+      'tip':
+          'Cumulative return is the total percentage gain or loss over the specific time period.',
+    },
+    'Benchmark Return': {
+      'tip':
+          'Return of the selected benchmark (e.g. SPY) over the same time period and data points.',
     },
   };
 
@@ -180,6 +271,13 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     if (widget.portfolioHistoricalsFuture !=
         oldWidget.portfolioHistoricalsFuture) {
       setState(() {
+        // If the time span changed, we need to refetch the custom benchmark to match the range
+        if (_customBenchmarkSymbol != null &&
+            widget.benchmarkChartDateSpanFilter !=
+                oldWidget.benchmarkChartDateSpanFilter) {
+          _futureCustomBenchmark =
+              _fetchCustomBenchmark(_customBenchmarkSymbol!);
+        }
         _analyticsFuture = _calculateAnalytics();
         _esgFuture = _calculateESG();
       });
@@ -240,6 +338,70 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     };
   }
 
+  Future<dynamic> _fetchCustomBenchmark(String symbol) async {
+    final yahooService = YahooService();
+    String range = "ytd";
+    if (widget.benchmarkChartDateSpanFilter != null) {
+      switch (widget.benchmarkChartDateSpanFilter!) {
+        case ChartDateSpan.year:
+          range = "1y";
+          break;
+        case ChartDateSpan.year_2:
+          range = "2y";
+          break;
+        case ChartDateSpan.year_3:
+        case ChartDateSpan.year_5:
+          range = "5y";
+          break;
+        default:
+          range = "ytd";
+      }
+    }
+    return yahooService.getMarketIndexHistoricals(symbol: symbol, range: range);
+  }
+
+  Future<void> _addCustomBenchmark() async {
+    final controller = TextEditingController();
+    final symbol = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Custom Benchmark'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Ticker Symbol',
+            hintText: 'e.g. BTC-USD, AAPL',
+          ),
+          textCapitalization: TextCapitalization.characters,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, controller.text.trim().toUpperCase()),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (symbol != null &&
+        symbol.isNotEmpty &&
+        !_benchmarks.contains(symbol) &&
+        !_customBenchmarks.contains(symbol)) {
+      setState(() {
+        _customBenchmarkSymbol = symbol;
+        _customBenchmarks.add(symbol);
+        _selectedBenchmark = symbol;
+        _futureCustomBenchmark = _fetchCustomBenchmark(symbol);
+        _analyticsFuture = _calculateAnalytics();
+      });
+    }
+  }
+
   Future<Map<String, dynamic>> _calculateAnalytics() async {
     PortfolioHistoricals? portfolioHistoricals;
 
@@ -285,6 +447,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       selectedFuture = widget.futureMarketIndexHistoricalsDow;
     } else if (_selectedBenchmark == 'IWM') {
       selectedFuture = widget.futureMarketIndexHistoricalsRussell2000;
+    } else if (_selectedBenchmark == _customBenchmarkSymbol) {
+      selectedFuture = _futureCustomBenchmark;
     }
 
     if (selectedFuture != null) {
@@ -345,28 +509,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       return {};
     }
 
-    List<double> portfolioReturns =
-        AnalyticsUtils.calculateDailyReturns(alignedPortfolioPrices);
-    List<double> benchmarkReturns =
-        AnalyticsUtils.calculateDailyReturns(alignedBenchmarkPrices);
-    List<double> activeReturns = [];
-    for (int i = 0; i < portfolioReturns.length; i++) {
-      activeReturns.add(portfolioReturns[i] - benchmarkReturns[i]);
-    }
-
-    double sharpe = AnalyticsUtils.calculateSharpeRatio(portfolioReturns);
-    double beta =
-        AnalyticsUtils.calculateBeta(portfolioReturns, benchmarkReturns);
-    double correlation =
-        AnalyticsUtils.calculateCorrelation(portfolioReturns, benchmarkReturns);
-    double alpha =
-        AnalyticsUtils.calculateAlpha(portfolioReturns, benchmarkReturns, beta);
-    double maxDrawdown =
-        AnalyticsUtils.calculateMaxDrawdown(alignedPortfolioPrices);
-    double volatility = AnalyticsUtils.calculateVolatility(portfolioReturns);
-    double benchmarkVolatility =
-        AnalyticsUtils.calculateVolatility(benchmarkReturns);
-
     // Calculate unaligned cumulative return to match the Performance Chart
     // The chart uses full history, while analytics uses aligned data (intersection with benchmark).
     // Failing to use the full history causes the "Cumulative Return" tile to disagree with the chart.
@@ -374,27 +516,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         .where((h) => (h.adjustedCloseEquity ?? h.closeEquity ?? 0.0) != 0)
         .map((h) => (h.adjustedCloseEquity ?? h.closeEquity ?? 0.0))
         .toList();
-
-    double portfolioCumulative = fullPortfolioPrices.length >= 2
-        ? AnalyticsUtils.calculateCumulativeReturn(fullPortfolioPrices)
-        : AnalyticsUtils.calculateCumulativeReturn(alignedPortfolioPrices);
-    double benchmarkCumulative =
-        AnalyticsUtils.calculateCumulativeReturn(alignedBenchmarkPrices);
-    double excessReturn = portfolioCumulative - benchmarkCumulative;
-    double trackingError = activeReturns.isNotEmpty
-        ? AnalyticsUtils.calculateStdDev(activeReturns) * sqrt(252)
-        : 0.0;
-    double avgDailyReturn = AnalyticsUtils.calculateMean(portfolioReturns);
-    double bestDay =
-        portfolioReturns.isNotEmpty ? portfolioReturns.reduce(max) : 0.0;
-    double worstDay =
-        portfolioReturns.isNotEmpty ? portfolioReturns.reduce(min) : 0.0;
-
-    double sortino = AnalyticsUtils.calculateSortinoRatio(portfolioReturns);
-    double treynor =
-        AnalyticsUtils.calculateTreynorRatio(portfolioReturns, beta);
-    double informationRatio = AnalyticsUtils.calculateInformationRatio(
-        portfolioReturns, benchmarkReturns);
 
     // Derive period length from aligned dates to match selected timeline
     int periodDays = 0;
@@ -419,184 +540,525 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       periodYears = periodDays / 365.0;
     }
 
-    double calmar = AnalyticsUtils.calculateCalmarRatio(
-        portfolioCumulative, maxDrawdown, periodYears);
-    double omega = AnalyticsUtils.calculateOmegaRatio(portfolioReturns);
-    double var95 = AnalyticsUtils.calculateVaR(portfolioReturns);
-    double cvar95 = AnalyticsUtils.calculateCVaR(portfolioReturns);
+    var metrics = AnalyticsUtils.calculatePortfolioMetrics(
+      alignedPortfolioPrices: alignedPortfolioPrices,
+      alignedBenchmarkPrices: alignedBenchmarkPrices,
+      fullPortfolioPrices: fullPortfolioPrices,
+      periodYears: periodYears,
+      alignedDates: alignedDates,
+    );
 
-    // Calculate Daily Stats (Dollar based)
-    double grossProfit = 0.0;
-    double grossLoss = 0.0;
-    int winCount = 0;
-    int lossCount = 0;
-    double totalWinAmt = 0.0;
-    double totalLossAmt = 0.0;
+    if (metrics.isEmpty) return {};
 
-    for (int i = 1; i < alignedPortfolioPrices.length; i++) {
-      double diff = alignedPortfolioPrices[i] - alignedPortfolioPrices[i - 1];
-      if (diff > 0) {
-        grossProfit += diff;
-        winCount++;
-        totalWinAmt += diff;
-      } else if (diff < 0) {
-        grossLoss += diff.abs();
-        lossCount++;
-        totalLossAmt += diff.abs();
+    // Add extra fields needed for UI
+    metrics['periodDays'] = periodDays;
+    metrics['excessReturn'] = (metrics['portfolioCumulative'] ?? 0.0) -
+        (metrics['benchmarkCumulative'] ?? 0.0);
+
+    // Calculate excess return history for visualization
+    List<Map<String, dynamic>> excessReturnHistory = [];
+    if (alignedPortfolioPrices.isNotEmpty &&
+        alignedBenchmarkPrices.length == alignedPortfolioPrices.length) {
+      double p0 = alignedPortfolioPrices[0];
+      double b0 = alignedBenchmarkPrices[0];
+      if (p0 != 0 && b0 != 0) {
+        for (int i = 0; i < alignedPortfolioPrices.length; i++) {
+          double pRet = (alignedPortfolioPrices[i] / p0) - 1.0;
+          double bRet = (alignedBenchmarkPrices[i] / b0) - 1.0;
+          excessReturnHistory.add({
+            'date': alignedDates[i],
+            'value': pRet - bRet,
+          });
+        }
+      }
+    }
+    metrics['excessReturnHistory'] = excessReturnHistory;
+
+    // Calculate Monthly Returns
+    Map<int, Map<int, double>> monthlyReturns = {};
+    if (alignedDates.isNotEmpty &&
+        alignedPortfolioPrices.length == alignedDates.length) {
+      Map<String, double> monthStartPrice = {};
+      Map<String, double> monthEndPrice = {};
+
+      for (int i = 0; i < alignedDates.length; i++) {
+        DateTime d = alignedDates[i];
+        String key = '${d.year}-${d.month}';
+        double price = alignedPortfolioPrices[i];
+
+        if (!monthStartPrice.containsKey(key)) {
+          // Ideally use previous price as start base for the month
+          if (i > 0) {
+            monthStartPrice[key] = alignedPortfolioPrices[i - 1];
+          } else {
+            monthStartPrice[key] = price;
+          }
+        }
+        monthEndPrice[key] = price;
+      }
+
+      monthEndPrice.forEach((key, endPrice) {
+        if (monthStartPrice.containsKey(key)) {
+          double startPrice = monthStartPrice[key]!;
+          if (startPrice != 0) {
+            double ret = (endPrice - startPrice) / startPrice;
+            List<String> parts = key.split('-');
+            int year = int.parse(parts[0]);
+            int month = int.parse(parts[1]);
+
+            monthlyReturns.putIfAbsent(year, () => {});
+            monthlyReturns[year]![month] = ret;
+          }
+        }
+      });
+    }
+    metrics['monthlyReturns'] = monthlyReturns;
+
+    return metrics;
+  }
+
+  void _generateAIAnalysis(BuildContext context, Map<String, dynamic> metrics) {
+    // 1. Fetch Positions for Context
+    var instrumentPositionStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+    var positions = instrumentPositionStore.items;
+
+    // Sort by market value desc
+    final sortedPositions = List.of(positions)
+      ..sort((a, b) => b.marketValue.compareTo(a.marketValue));
+
+    final topPositions = sortedPositions.take(5).toList();
+    final totalValue =
+        positions.fold<double>(0, (sum, p) => sum + p.marketValue);
+
+    // 2. Identify Sectors
+    final Map<String, double> sectorAllocation = {};
+    if (totalValue > 0) {
+      for (var p in positions) {
+        final sector = p.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
+        sectorAllocation.update(
+            sector, (value) => value + (p.marketValue / totalValue),
+            ifAbsent: () => p.marketValue / totalValue);
       }
     }
 
-    double profitFactor =
-        AnalyticsUtils.calculateProfitFactor(grossProfit, grossLoss);
-    double winRate =
-        (winCount + lossCount) > 0 ? winCount / (winCount + lossCount) : 0.0;
-    double avgWin = winCount > 0 ? totalWinAmt / winCount : 0.0;
-    double avgLoss = lossCount > 0 ? totalLossAmt / lossCount : 0.0;
-    double payoffRatio = avgLoss > 0 ? avgWin / avgLoss : 0.0;
-    double expectancy = (avgWin * winRate) - (avgLoss * (1 - winRate));
+    final sb = StringBuffer();
+    sb.writeln("Analyze my portfolio performance based on these metrics:");
 
-    int maxWinStreak =
-        AnalyticsUtils.calculateMaxWinningStreak(portfolioReturns);
-    int maxLossStreak =
-        AnalyticsUtils.calculateMaxLosingStreak(portfolioReturns);
+    final percentFormat = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+    final decimalFormat = NumberFormat.decimalPattern();
 
-    double kellyCriterion =
-        AnalyticsUtils.calculateKellyCriterion(winRate, payoffRatio);
-    double ulcerIndex =
-        AnalyticsUtils.calculateUlcerIndex(alignedPortfolioPrices);
-    double tailRatio = AnalyticsUtils.calculateTailRatio(portfolioReturns);
+    if (metrics.containsKey('portfolioCumulative')) {
+      sb.writeln(
+          "- Cumulative Return: ${percentFormat.format(metrics['portfolioCumulative'])}");
+    }
+    if (metrics.containsKey('benchmarkCumulative')) {
+      sb.writeln(
+          "- Benchmark Return ($_selectedBenchmark): ${percentFormat.format(metrics['benchmarkCumulative'])}");
+    }
+    if (metrics.containsKey('sharpe')) {
+      sb.writeln("- Sharpe Ratio: ${decimalFormat.format(metrics['sharpe'])}");
+    }
+    if (metrics.containsKey('sortino')) {
+      sb.writeln(
+          "- Sortino Ratio: ${decimalFormat.format(metrics['sortino'])}");
+    }
+    if (metrics.containsKey('maxDrawdown')) {
+      sb.writeln(
+          "- Max Drawdown: ${percentFormat.format(metrics['maxDrawdown'])}");
+    }
+    if (metrics.containsKey('beta')) {
+      sb.writeln("- Beta: ${decimalFormat.format(metrics['beta'])}");
+    }
+    if (metrics.containsKey('alpha')) {
+      sb.writeln("- Alpha: ${percentFormat.format(metrics['alpha'])}");
+    }
+    if (metrics.containsKey('volatility')) {
+      sb.writeln(
+          "- Volatility: ${percentFormat.format(metrics['volatility'])}");
+    }
+    if (metrics.containsKey('correlation')) {
+      sb.writeln(
+          "- Correlation: ${percentFormat.format(metrics['correlation'])}");
+    }
 
-    // Calculate Health Score
-    double healthScore = AnalyticsUtils.calculateHealthScore(
-      sharpe: sharpe,
-      sortino: sortino,
-      alpha: alpha,
-      maxDrawdown: maxDrawdown,
-      beta: beta,
-      volatility: volatility,
-      benchmarkVolatility: benchmarkVolatility,
-      profitFactor: profitFactor,
-      winRate: winRate,
-      calmar: calmar,
-      informationRatio: informationRatio,
-      treynor: treynor,
-      var95: var95,
-      cvar95: cvar95,
-      omega: omega,
-      correlation: correlation,
-      payoffRatio: payoffRatio,
-      expectancy: expectancy,
-      maxLossStreak: maxLossStreak,
-      kellyCriterion: kellyCriterion,
-      ulcerIndex: ulcerIndex,
-      tailRatio: tailRatio,
+    // Add Holdings Context
+    if (topPositions.isNotEmpty && totalValue > 0) {
+      sb.writeln("\nTop Holdings (Context):");
+      for (var p in topPositions) {
+        final allocation = p.marketValue / totalValue;
+        final symbol = p.instrumentObj?.symbol ?? 'Unknown';
+        final sector = p.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
+        sb.writeln("- $symbol: ${percentFormat.format(allocation)} ($sector)");
+      }
+    }
+
+    // Add Sector Context
+    if (sectorAllocation.isNotEmpty) {
+      sb.writeln("\nSector Allocation:");
+      var sortedSectors = sectorAllocation.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      for (var entry in sortedSectors.take(5)) {
+        sb.writeln("- ${entry.key}: ${percentFormat.format(entry.value)}");
+      }
+    }
+
+    sb.writeln("\nPlease provide:");
+    sb.writeln("1. An executive summary of my performance.");
+    sb.writeln("2. Risk assessment (drawdown, volatility, beta).");
+    sb.writeln(
+        "3. Analysis of how my top holdings/sectors contribute to my risk profile.");
+    sb.writeln(
+        "4. Three specific, actionable recommendations to improve my risk-adjusted returns (Sharpe/Sortino).");
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatWidget(
+          generativeService: widget.generativeService,
+          user: widget.appUser,
+          initialMessage: sb.toString(),
+        ),
+      ),
     );
-
-    return {
-      'sharpe': sharpe,
-      'beta': beta,
-      'correlation': correlation,
-      'alpha': alpha,
-      'maxDrawdown': maxDrawdown,
-      'volatility': volatility,
-      'benchmarkVolatility': benchmarkVolatility,
-      'excessReturn': excessReturn,
-      'trackingError': trackingError,
-      'portfolioCumulative': portfolioCumulative,
-      'benchmarkCumulative': benchmarkCumulative,
-      'avgDailyReturn': avgDailyReturn,
-      'bestDay': bestDay,
-      'worstDay': worstDay,
-      'periodDays': periodDays,
-      'sortino': sortino,
-      'treynor': treynor,
-      'informationRatio': informationRatio,
-      'calmar': calmar,
-      'omega': omega,
-      'var95': var95,
-      'cvar95': cvar95,
-      'healthScore': healthScore,
-      'profitFactor': profitFactor,
-      'winRate': winRate,
-      'payoffRatio': payoffRatio,
-      'expectancy': expectancy,
-      'avgWin': avgWin,
-      'avgLoss': avgLoss,
-      'maxWinStreak': maxWinStreak,
-      'maxLossStreak': maxLossStreak,
-      'kellyCriterion': kellyCriterion,
-      'ulcerIndex': ulcerIndex,
-      'tailRatio': tailRatio,
-    };
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _analyticsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 200,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.hasError) {
-          return SizedBox(
-            height: 200,
-            child: Center(child: Text('Error: ${snapshot.error}')),
-          );
-        }
+    return Consumer<InstrumentPositionStore>(
+        builder: (context, instrumentPositionStore, child) {
+      final symbols = instrumentPositionStore.items
+          .where((p) => p.instrumentObj != null)
+          .map((p) => p.instrumentObj!.symbol)
+          .toList();
 
-        var data = snapshot.data ?? {};
-        if (data.isEmpty) {
-          return const SizedBox(
-            height: 200,
-            child: Center(child: Text('No analytics data available.')),
-          );
-        }
+      return FutureBuilder<Map<String, dynamic>>(
+        future: _analyticsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (snapshot.hasError) {
+            return SizedBox(
+              height: 200,
+              child: Center(child: Text('Error: ${snapshot.error}')),
+            );
+          }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 16),
-            _buildPerformanceOverviewCard(context, data),
-            const SizedBox(height: 16),
-            _buildInsightsCard(context, data),
-            const SizedBox(height: 16),
-            _buildRiskAdjustedReturnCard(context, data),
-            const SizedBox(height: 16),
-            _buildMarketComparisonCard(context, data),
-            const SizedBox(height: 16),
-            _buildRiskCard(context, data),
-            const SizedBox(height: 16),
-            _buildAdvancedEdgeCard(context, data),
-            const SizedBox(height: 16),
-            _buildDailyStatsCard(context, data),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.5),
+          var data = snapshot.data ?? {};
+          if (data.isEmpty) {
+            return SizedBox(
+              height: 200,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.query_stats,
+                        size: 48, color: Theme.of(context).colorScheme.outline),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Analytics Data Available',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Try selecting a different benchmark or time period.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: const RiskHeatmapWidget(),
-            ),
-            const SizedBox(height: 16),
-            _buildTaxOptimizationCard(context),
-            const SizedBox(height: 16),
-            _buildESGCard(context),
-            const SizedBox(height: 16),
-          ],
-        );
-      },
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 16),
+              if (widget.benchmarkChartDateSpanFilter != null &&
+                  widget.onBenchmarkFilterChanged != null) ...[
+                SizedBox(
+                  height: 50,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildChip('YTD', ChartDateSpan.ytd),
+                      _buildChip('1Y', ChartDateSpan.year),
+                      _buildChip('2Y', ChartDateSpan.year_2),
+                      _buildChip('3Y', ChartDateSpan.year_3),
+                      _buildChip('5Y', ChartDateSpan.year_5),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      ..._benchmarks.map((b) => _buildBenchmarkChip(b)),
+                      ..._customBenchmarks.map((b) => _buildBenchmarkChip(b)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ActionChip(
+                          label: const Icon(Icons.add, size: 16),
+                          padding: EdgeInsets.zero,
+                          onPressed: _addCustomBenchmark,
+                          tooltip: 'Add Custom Benchmark',
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                AnalyticsStyleCard(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16),
+                        leading: Icon(Icons.show_chart,
+                            color: Theme.of(context).colorScheme.primary),
+                        title: Text(
+                          "Performance",
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        subtitle: Text(
+                          "Compare market indices (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter!).toUpperCase()})",
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.fullscreen),
+                          tooltip: 'Full Screen',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    FullScreenPerformanceChartWidget(
+                                  user: widget.user,
+                                  service: widget.service,
+                                  accountNumber: widget.accountNumber,
+                                  futureMarketIndexHistoricalsSp500:
+                                      widget.futureMarketIndexHistoricalsSp500,
+                                  futureMarketIndexHistoricalsNasdaq:
+                                      widget.futureMarketIndexHistoricalsNasdaq,
+                                  futureMarketIndexHistoricalsDow:
+                                      widget.futureMarketIndexHistoricalsDow,
+                                  futureMarketIndexHistoricalsRussell2000: widget
+                                      .futureMarketIndexHistoricalsRussell2000,
+                                  futurePortfolioHistoricalsYear:
+                                      widget.portfolioHistoricalsFuture,
+                                  benchmarkChartDateSpanFilter:
+                                      widget.benchmarkChartDateSpanFilter!,
+                                  onFilterChanged:
+                                      widget.onBenchmarkFilterChanged!,
+                                  selectedBenchmark: _selectedBenchmark,
+                                  showAllBenchmarks: _showAllBenchmarks,
+                                  customBenchmarkSymbol: _customBenchmarkSymbol,
+                                  futureCustomBenchmark: _futureCustomBenchmark,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      PerformanceChartWidget(
+                        futureMarketIndexHistoricalsSp500:
+                            widget.futureMarketIndexHistoricalsSp500,
+                        futureMarketIndexHistoricalsNasdaq:
+                            widget.futureMarketIndexHistoricalsNasdaq,
+                        futureMarketIndexHistoricalsDow:
+                            widget.futureMarketIndexHistoricalsDow,
+                        futureMarketIndexHistoricalsRussell2000:
+                            widget.futureMarketIndexHistoricalsRussell2000,
+                        futurePortfolioHistoricalsYear:
+                            widget.portfolioHistoricalsFuture,
+                        benchmarkChartDateSpanFilter:
+                            widget.benchmarkChartDateSpanFilter!,
+                        onFilterChanged: widget.onBenchmarkFilterChanged!,
+                        selectedBenchmark:
+                            _showAllBenchmarks ? null : _selectedBenchmark,
+                        futureCustomBenchmark: _futureCustomBenchmark,
+                        customBenchmarkSymbol: _customBenchmarkSymbol,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              _buildPerformanceOverviewCard(context, data),
+              const SizedBox(height: 16),
+              _buildInsightsCard(context, data),
+              const SizedBox(height: 16),
+              _buildRiskAdjustedReturnCard(context, data),
+              const SizedBox(height: 16),
+              _buildMarketComparisonCard(context, data),
+              const SizedBox(height: 16),
+              _buildRiskCard(context, data),
+              const SizedBox(height: 16),
+              _buildConcentrationCard(context, instrumentPositionStore.items),
+              const SizedBox(height: 16),
+              _buildMonthlyReturnsCard(context, data),
+              const SizedBox(height: 16),
+              _buildAdvancedEdgeCard(context, data),
+              const SizedBox(height: 16),
+              _buildDailyStatsCard(context, data),
+              const SizedBox(height: 16),
+              const AnalyticsStyleCard(
+                padding: EdgeInsets.zero,
+                child: RiskHeatmapWidget(),
+              ),
+              const SizedBox(height: 16),
+              if (symbols.isNotEmpty) ...[
+                AnalyticsStyleCard(
+                  padding: EdgeInsets.zero,
+                  child: CorrelationMatrixWidget(
+                    user: widget.user,
+                    service: widget.service,
+                    symbols: symbols,
+                    isEmbedded: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              _buildTaxOptimizationCard(context),
+              const SizedBox(height: 16),
+              _buildESGCard(context),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  void _onBenchmarkSelected(String symbol) {
+    if (_selectedBenchmark == symbol) return;
+
+    setState(() {
+      _selectedBenchmark = symbol;
+      _analyticsFuture = _calculateAnalytics();
+    });
+  }
+
+  Widget _buildBenchmarkChip(String label) {
+    final bool isSelected = _selectedBenchmark == label;
+    // For custom benchmarks, we might want to allow removing them
+    final bool isCustom = _customBenchmarks.contains(label);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (bool selected) {
+          if (selected) {
+            _onBenchmarkSelected(label);
+          }
+        },
+        onDeleted: isCustom
+            ? () {
+                setState(() {
+                  _customBenchmarks.remove(label);
+                  if (_selectedBenchmark == label) {
+                    _selectedBenchmark = 'SPY';
+                    _analyticsFuture = _calculateAnalytics();
+                  }
+                  if (_customBenchmarkSymbol == label) {
+                    _customBenchmarkSymbol = null;
+                    _futureCustomBenchmark = null;
+                  }
+                });
+              }
+            : null,
+        showCheckmark: false,
+        labelStyle: TextStyle(
+          color: isSelected ? Theme.of(context).colorScheme.onSecondary : null,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        selectedColor: Theme.of(context).colorScheme.secondary,
+        checkmarkColor: Theme.of(context).colorScheme.onSecondary,
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, ChartDateSpan span) {
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: widget.benchmarkChartDateSpanFilter == span,
+        onSelected: (bool value) {
+          if (value) {
+            widget.onBenchmarkFilterChanged!(span);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildExcessReturnChart(
+      BuildContext context, List<Map<String, dynamic>> data) {
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final series = [
+      charts.Series<Map<String, dynamic>, DateTime>(
+        id: 'Excess Return',
+        domainFn: (datum, _) => datum['date'] as DateTime,
+        measureFn: (datum, _) => datum['value'] as double,
+        colorFn: (datum, _) {
+          final val = datum['value'] as double;
+          return val >= 0
+              ? charts.MaterialPalette.green.shadeDefault
+              : charts.MaterialPalette.red.shadeDefault;
+        },
+        areaColorFn: (datum, _) {
+          final val = datum['value'] as double;
+          return val >= 0
+              ? charts.MaterialPalette.green.shadeDefault.lighter
+              : charts.MaterialPalette.red.shadeDefault.lighter;
+        },
+        data: data,
+      )
+    ];
+
+    return charts.TimeSeriesChart(
+      series,
+      animate: true,
+      defaultRenderer:
+          charts.LineRendererConfig(includeArea: true, stacked: false),
+      domainAxis: const charts.DateTimeAxisSpec(
+        renderSpec: charts.NoneRenderSpec(),
+      ),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+        renderSpec: charts.GridlineRendererSpec(
+          labelStyle: charts.TextStyleSpec(
+              color: isDark
+                  ? charts.MaterialPalette.gray.shade500
+                  : charts.MaterialPalette.gray.shade700,
+              fontSize: 10),
+          lineStyle: charts.LineStyleSpec(
+            color: isDark
+                ? charts.MaterialPalette.gray.shade800
+                : charts.MaterialPalette.gray.shade300,
+          ),
+        ),
+        tickFormatterSpec:
+            charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+          NumberFormat.percentPattern(),
+        ),
+      ),
     );
   }
 
@@ -619,14 +1081,17 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     double benchmarkReturn = data['benchmarkCumulative'] ?? 0.0;
     double excessReturn =
         data['excessReturn'] ?? portfolioReturn - benchmarkReturn;
-    double avgDailyReturn = data['avgDailyReturn'] ?? 0.0;
+    double cagr = data['cagr'] ?? 0.0;
+    // double avgDailyReturn = data['avgDailyReturn'] ?? 0.0;
     double bestDay = data['bestDay'] ?? 0.0;
     double worstDay = data['worstDay'] ?? 0.0;
-    double trackingError = data['trackingError'] ?? 0.0;
+    DateTime? bestDayDate = data['bestDayDate'];
+    DateTime? worstDayDate = data['worstDayDate'];
     int periodDays = data['periodDays'] ?? 0;
-    final trackingColor = trackingError > 0.12
-        ? Colors.red
-        : (trackingError > 0.08 ? Colors.orange : Colors.green);
+
+    final dateFormat = DateFormat.yMMMd();
+    String formatDate(DateTime? date) =>
+        date != null ? dateFormat.format(date) : '-';
 
     Color colorFor(double value) => value >= 0 ? Colors.green : Colors.red;
 
@@ -635,6 +1100,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         context,
         icon: Icons.trending_up,
         label: 'Portfolio',
+        metricKey: 'Portfolio Return',
         value: formatPercent(portfolioReturn),
         valueColor: colorFor(portfolioReturn),
         footer: 'Cumulative return',
@@ -644,6 +1110,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         context,
         icon: Icons.show_chart,
         label: 'Benchmark',
+        metricKey: 'Benchmark Return',
         value: formatPercent(benchmarkReturn),
         valueColor: colorFor(benchmarkReturn),
         footer: '$_selectedBenchmark performance',
@@ -662,12 +1129,13 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       ),
       _buildSnapshotTile(
         context,
-        icon: Icons.calendar_today_outlined,
-        label: 'Avg Daily',
-        value: formatPercent(avgDailyReturn),
-        valueColor: colorFor(avgDailyReturn),
-        footer: 'Mean daily move',
-        tooltip: 'Mean of daily returns for your portfolio during the window.',
+        icon: Icons.calendar_today,
+        label: 'Annualized',
+        metricKey: 'Annualized Return',
+        value: formatPercent(cagr),
+        valueColor: colorFor(cagr),
+        footer: 'CAGR',
+        tooltip: 'Compound Annual Growth Rate.',
       ),
       _buildSnapshotTile(
         context,
@@ -675,7 +1143,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         label: 'Best Day',
         value: formatPercent(bestDay),
         valueColor: colorFor(bestDay),
-        footer: 'Single-day peak',
+        footer:
+            bestDayDate != null ? formatDate(bestDayDate) : 'Single-day peak',
         tooltip: 'Highest single-day return observed in the period.',
       ),
       _buildSnapshotTile(
@@ -684,120 +1153,228 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         label: 'Worst Day',
         value: formatPercent(worstDay),
         valueColor: colorFor(worstDay),
-        footer: 'Single-day trough',
+        footer: worstDayDate != null
+            ? formatDate(worstDayDate)
+            : 'Single-day trough',
         tooltip: 'Lowest single-day return observed in the period.',
-      ),
-      _buildSnapshotTile(
-        context,
-        icon: Icons.science_outlined,
-        label: 'Tracking Error',
-        value: formatPercent(trackingError),
-        valueColor: trackingColor,
-        footer: 'Active risk (ann.)',
-        tooltip:
-            'Annualized std dev of active returns (portfolio − benchmark).',
       ),
     ];
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.insights,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Performance Snapshot',
-                      style: Theme.of(context).textTheme.titleLarge),
-                ),
-                if (periodDays > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${periodDays}d window',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insights,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Overview',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              if (periodDays > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${periodDays}d window',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                // const SizedBox(width: 8),
-                // Container(
-                //   padding:
-                //       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                //   decoration: BoxDecoration(
-                //     color: Theme.of(context)
-                //         .colorScheme
-                //         .primaryContainer
-                //         .withValues(alpha: 0.3),
-                //     borderRadius: BorderRadius.circular(20),
-                //   ),
-                //   child: Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       const Icon(Icons.flag, size: 14),
-                //       const SizedBox(width: 6),
-                //       Text(
-                //         _selectedBenchmark,
-                //         style: TextStyle(
-                //           fontWeight: FontWeight.bold,
-                //           color:
-                //               Theme.of(context).colorScheme.onPrimaryContainer,
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
+                ),
+              // const SizedBox(width: 8),
+              // Container(
+              //   padding:
+              //       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              //   decoration: BoxDecoration(
+              //     color: Theme.of(context)
+              //         .colorScheme
+              //         .primaryContainer
+              //         .withValues(alpha: 0.3),
+              //     borderRadius: BorderRadius.circular(20),
+              //   ),
+              //   child: Row(
+              //     mainAxisSize: MainAxisSize.min,
+              //     children: [
+              //       const Icon(Icons.flag, size: 14),
+              //       const SizedBox(width: 6),
+              //       Text(
+              //         _selectedBenchmark,
+              //         style: TextStyle(
+              //           fontWeight: FontWeight.bold,
+              //           color:
+              //               Theme.of(context).colorScheme.onPrimaryContainer,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              double itemWidth;
+              if (constraints.maxWidth < 360) {
+                itemWidth = (constraints.maxWidth - 8) / 2;
+              } else if (constraints.maxWidth > 680) {
+                itemWidth = (constraints.maxWidth - 24) / 3;
+              } else {
+                itemWidth = (constraints.maxWidth - 16) / 2;
+              }
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: stats
+                    .map((widget) => SizedBox(
+                          width: itemWidth,
+                          height: 120,
+                          child: widget,
+                        ))
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildBenchmarkComparison(
+              context, portfolioReturn, benchmarkReturn, _selectedBenchmark),
+          if (data['excessReturnHistory'] != null) ...[
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Icon(Icons.monitor_heart_outlined,
+                    size: 18, color: Theme.of(context).colorScheme.secondary),
+                const SizedBox(width: 8),
+                Text('Alpha Drift (Cumulative Excess Return)',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                        )),
               ],
             ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                double itemWidth;
-                if (constraints.maxWidth < 360) {
-                  itemWidth = (constraints.maxWidth - 8) / 2;
-                } else if (constraints.maxWidth > 680) {
-                  itemWidth = (constraints.maxWidth - 24) / 3;
-                } else {
-                  itemWidth = (constraints.maxWidth - 16) / 2;
-                }
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 120,
+              child: _buildExcessReturnChart(context,
+                  data['excessReturnHistory'] as List<Map<String, dynamic>>),
+            )
+          ]
+        ],
+      ),
+    );
+  }
 
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: stats
-                      .map((widget) => SizedBox(
-                            width: itemWidth,
-                            child: widget,
-                          ))
-                      .toList(),
-                );
-              },
-            ),
-          ],
-        ),
+  Widget _buildBenchmarkComparison(BuildContext context, double portfolioReturn,
+      double benchmarkReturn, String benchmarkName) {
+    final percentFormat = NumberFormat.decimalPercentPattern(decimalDigits: 1);
+    final maxVal = [portfolioReturn.abs(), benchmarkReturn.abs()]
+        .reduce((curr, next) => curr > next ? curr : next);
+    // Avoid division by zero
+    final scale = maxVal > 0.001 ? 1.0 / maxVal : 0.0;
+
+    Widget buildBar(String label, double value, Color color, bool isBenchmark) {
+      final widthFactor = (value.abs() * scale).clamp(0.01, 1.0);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(isBenchmark ? Icons.show_chart : Icons.trending_up,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
+              Text(
+                '${(value < 0 ? "-" : "+")}${percentFormat.format(value.abs())}',
+                style: TextStyle(fontWeight: FontWeight.bold, color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Stack(
+            children: [
+              Container(
+                height: 8,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              if (widthFactor > 0)
+                FractionallySizedBox(
+                  widthFactor: widthFactor,
+                  child: Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    final excess = portfolioReturn - benchmarkReturn;
+    final isOutperforming = excess > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(isOutperforming ? Icons.check_circle : Icons.info_outline,
+                size: 16,
+                color: isOutperforming ? Colors.green : Colors.orange),
+            const SizedBox(width: 8),
+            Text(
+              isOutperforming
+                  ? 'Outperforming $benchmarkName by ${percentFormat.format(excess)}'
+                  : 'Trailing $benchmarkName by ${percentFormat.format(excess.abs())}',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isOutperforming ? Colors.green : Colors.orange,
+                  fontSize: 13),
+            )
+          ]),
+          const SizedBox(height: 16),
+          buildBar('Your Portfolio', portfolioReturn,
+              portfolioReturn >= 0 ? Colors.green : Colors.red, false),
+          const SizedBox(height: 12),
+          buildBar('Benchmark ($benchmarkName)', benchmarkReturn,
+              benchmarkReturn >= 0 ? Colors.green : Colors.red, true),
+        ],
       ),
     );
   }
@@ -885,9 +1462,9 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           'Difference between portfolio and benchmark cumulative returns. Positive means outperformance; negative means underperformance.',
         ),
         buildItem(
-          Icons.calendar_today_outlined,
-          'Average Daily Return',
-          'Mean of daily returns for your portfolio during the window. Gives a sense of typical day-to-day movement.',
+          Icons.calendar_today,
+          'Annualized Return (CAGR)',
+          'Compound Annual Growth Rate. Represents the smoothed annual return over the period. For periods < 1 year, this is projected.',
         ),
         buildItem(
           Icons.arrow_upward,
@@ -898,11 +1475,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           Icons.arrow_downward,
           'Worst Day',
           'Lowest single-day return observed in the period.',
-        ),
-        buildItem(
-          Icons.science_outlined,
-          'Tracking Error (Annualized)',
-          'Standard deviation of active returns (portfolio minus benchmark), annualized using √252. Measures consistency vs. benchmark (lower is closer tracking).',
         ),
         const SizedBox(height: 8),
         Row(
@@ -965,13 +1537,22 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 70,
-                  height: 70,
+                  width: 80,
+                  height: 80,
+                  child: CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 8,
+                    color: scoreColor.withValues(alpha: 0.1),
+                  ),
+                ),
+                SizedBox(
+                  width: 80,
+                  height: 80,
                   child: CircularProgressIndicator(
                     value: score / 100,
                     strokeWidth: 8,
-                    backgroundColor: scoreColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                    strokeCap: StrokeCap.round,
                   ),
                 ),
                 Text(
@@ -991,11 +1572,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                 children: [
                   Row(
                     children: [
-                      Text('Portfolio Health Score',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      Flexible(
+                        child: Text('Portfolio Health Score',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis),
+                      ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => _showHealthScoreDetails(context, data),
@@ -1205,25 +1789,23 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     insights.addAll(lowPriority);
     insights.addAll(otherPriority);
 
-    if (insights.isEmpty) return const SizedBox.shrink();
-
-    final displayedInsights =
-        _showAllInsights ? insights : insights.take(3).toList();
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
+    // AI Analysis Button
+    final aiButton = Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+      child: OutlinedButton.icon(
+        onPressed: () => _generateAIAnalysis(context, data),
+        icon: const Icon(Icons.auto_awesome, size: 18),
+        label: const Text('Get AI Assessment'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
+    );
+
+    if (insights.isEmpty) {
+      return AnalyticsStyleCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1236,25 +1818,58 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                     style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
-            const SizedBox(height: 20),
-            ...displayedInsights,
-            if (insights.length > 3) ...[
-              const SizedBox(height: 10),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllInsights = !_showAllInsights;
-                    });
-                  },
-                  icon: Icon(
-                      _showAllInsights ? Icons.expand_less : Icons.expand_more),
-                  label: Text(_showAllInsights ? 'Show Less' : 'Show More'),
-                ),
-              ),
-            ],
+            const SizedBox(height: 16),
+            const Text(
+                'Not enough data for automated insights yet. Try the AI assessment.'),
+            const SizedBox(height: 12),
+            aiButton,
           ],
         ),
+      );
+    }
+
+    final displayedInsights =
+        _showAllInsights ? insights : insights.take(3).toList();
+
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Portfolio Insights',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              // AI Button in header for compact mode
+              IconButton(
+                icon: const Icon(Icons.auto_awesome),
+                tooltip: 'Analyze with AI',
+                onPressed: () => _generateAIAnalysis(context, data),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...displayedInsights,
+          if (insights.length > 3) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _showAllInsights = !_showAllInsights;
+                  });
+                },
+                icon: Icon(
+                    _showAllInsights ? Icons.expand_less : Icons.expand_more),
+                label: Text(_showAllInsights ? 'Show Less' : 'Show More'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1296,183 +1911,163 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           optionPositions: optionPositionStore.items,
         );
 
-        return Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Theme.of(context)
-                  .colorScheme
-                  .outlineVariant
-                  .withValues(alpha: 0.5),
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TaxOptimizationWidget(
-                    user: widget.user,
-                    service: widget.service,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    appUser: widget.appUser,
-                    userDocRef: widget.userDocRef,
-                    portfolioHistoricals: portfolioHistoricals, // Pass it down
-                  ),
+        return AnalyticsStyleCard(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TaxOptimizationWidget(
+                  user: widget.user,
+                  service: widget.service,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  appUser: widget.appUser,
+                  userDocRef: widget.userDocRef,
+                  portfolioHistoricals: portfolioHistoricals, // Pass it down
                 ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.savings_outlined,
-                          color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text('Tax Loss Harvesting',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                  overflow: TextOverflow.ellipsis),
+                  Icon(Icons.savings_outlined,
+                      color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text('Tax Loss Harvesting',
+                              style: Theme.of(context).textTheme.titleLarge,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        if (urgency > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: urgency == 2 ? Colors.red : Colors.orange,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            if (urgency > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color:
-                                      urgency == 2 ? Colors.red : Colors.orange,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  urgency == 2 ? 'URGENT' : 'SEASON',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        formatCurrency.format(totalEstimatedLoss),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Potential Loss',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (estimatedRealizedGains > 0) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Can offset ~${formatCurrency.format(estimatedRealizedGains)} of YTD gains',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  if (suggestions.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor:
-                                Theme.of(context).colorScheme.surface,
                             child: Text(
-                              suggestions.first.symbol.substring(0, 1),
+                              urgency == 2 ? 'URGENT' : 'SEASON',
                               style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Top Opportunity',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  suggestions.first.symbol,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            formatCurrency
-                                .format(suggestions.first.estimatedLoss),
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  _buildInsightRow(
-                    context,
-                    Icons.info_outline,
-                    Colors.orange,
-                    '${suggestions.length} opportunities available to harvest.',
+                  ),
+                  Icon(Icons.chevron_right,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    formatCurrency.format(totalEstimatedLoss),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Potential Loss',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
-            ),
+              if (estimatedRealizedGains > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Can offset ~${formatCurrency.format(estimatedRealizedGains)} of YTD gains',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              if (suggestions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        child: Text(
+                          suggestions.first.symbol.substring(0, 1),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Top Opportunity',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              suggestions.first.symbol,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        formatCurrency.format(suggestions.first.estimatedLoss),
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              _buildInsightRow(
+                context,
+                Icons.info_outline,
+                Colors.orange,
+                '${suggestions.length} opportunities available to harvest.',
+              ),
+            ],
           ),
         );
       },
@@ -1485,9 +2080,23 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       margin: const EdgeInsets.only(bottom: 8.0),
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            color.withValues(alpha: 0.15),
+            color.withValues(alpha: 0.05),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1520,38 +2129,45 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedBenchmark,
-                    isDense: true,
-                    items: _benchmarks.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value,
-                            style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.onSurface)),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedBenchmark = newValue;
-                          _analyticsFuture = _calculateAnalytics();
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
+              // Container(
+              //   padding:
+              //       const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              //   decoration: BoxDecoration(
+              //     color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              //     borderRadius: BorderRadius.circular(20),
+              //   ),
+              //   child: DropdownButtonHideUnderline(
+              //     child: DropdownButton<String>(
+              //       value: _selectedBenchmark,
+              //       isDense: true,
+              //       items: [..._benchmarks, ..._customBenchmarks]
+              //           .map((String value) {
+              //         return DropdownMenuItem<String>(
+              //           value: value,
+              //           child: Text(value,
+              //               style: TextStyle(
+              //                   color:
+              //                       Theme.of(context).colorScheme.onSurface)),
+              //         );
+              //       }).toList(),
+              //       onChanged: (newValue) {
+              //         if (newValue != null) {
+              //           setState(() {
+              //             _selectedBenchmark = newValue;
+              //             // If switching to a custom benchmark, ensure we have the future
+              //             if (_customBenchmarks.contains(newValue)) {
+              //               _customBenchmarkSymbol = newValue;
+              //               _futureCustomBenchmark =
+              //                   _fetchCustomBenchmark(newValue);
+              //             }
+              //             _analyticsFuture = _calculateAnalytics();
+              //           });
+              //         }
+              //       },
+              //     ),
+              //   ),
+              // ),
+              // const SizedBox(width: 8),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.help_outline),
                 tooltip: 'Help & Documentation',
@@ -1610,35 +2226,72 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     Color? valueColor,
     String? footer,
     String? tooltip,
+    String? metricKey,
   }) {
+    final keyToUse = metricKey ?? label;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final tile = Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.3),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Colors.grey[850]!,
+                  Colors.grey[900]!,
+                ]
+              : [
+                  Theme.of(context).colorScheme.surfaceContainer,
+                  Theme.of(context).colorScheme.surface,
+                ],
         ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Theme.of(context)
+                  .colorScheme
+                  .outlineVariant
+                  .withValues(alpha: 0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.05),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon,
-                  size: 18, color: Theme.of(context).colorScheme.primary),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon,
+                    size: 16, color: Theme.of(context).colorScheme.primary),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? Colors.grey[400]
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1646,12 +2299,16 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const Spacer(),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                  color: valueColor ??
+                      (isDark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface),
+                  fontSize: 22,
                 ),
           ),
           if (footer != null) ...[
@@ -1659,16 +2316,25 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
             Text(
               footer,
               style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 11,
+                color: isDark
+                    ? Colors.grey[500]
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.2,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
       ),
     );
 
-    if (tooltip != null && tooltip.isNotEmpty) {
+    // Get definition if available
+    final definition = definitions[keyToUse];
+    final tooltipText = tooltip ?? definition;
+
+    if (tooltipText != null && tooltipText.isNotEmpty) {
       return Tooltip(
         richMessage: TextSpan(
           children: [
@@ -1682,7 +2348,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
               ),
             ),
             TextSpan(
-              text: tooltip,
+              text: tooltipText,
               style: const TextStyle(
                 fontSize: 13,
                 color: Colors.white,
@@ -1690,6 +2356,16 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                 fontWeight: FontWeight.w400,
               ),
             ),
+            if (definition != null)
+              const TextSpan(
+                text: '\n\nTap for details',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white70,
+                  height: 1.6,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
           ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1720,10 +2396,30 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           ],
         ),
         textStyle: const TextStyle(color: Colors.white),
-        child: tile,
+        child: InkWell(
+          onTap: () {
+            if (definition != null) {
+              final guidance = metricGuidance[keyToUse] ??
+                  {'tip': definition, 'noThreshold': true};
+              _showMetricDetails(context, label, definition, guidance);
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: tile,
+        ),
       );
     }
-    return tile;
+    return InkWell(
+      onTap: () {
+        if (definition != null) {
+          final guidance = metricGuidance[keyToUse] ??
+              {'tip': definition, 'noThreshold': true};
+          _showMetricDetails(context, label, definition, guidance);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: tile,
+    );
   }
 
   Widget _buildRiskAdjustedReturnCard(
@@ -1752,45 +2448,29 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           _buildStatItem(context, 'Omega', data['omega'], goodThreshold: 1.0));
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.trending_up,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Risk-Adjusted Return',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStatsGrid(stats),
-          ],
-        ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.trending_up,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Risk-Adjusted Return',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildStatsGrid(stats),
+        ],
       ),
     );
   }
 
   Widget _buildMarketComparisonCard(
       BuildContext context, Map<String, dynamic> data) {
-    if (!data.containsKey('beta') &&
-        !data.containsKey('alpha') &&
-        !data.containsKey('excessReturn')) {
+    if (!data.containsKey('beta') && !data.containsKey('alpha')) {
       return const SizedBox.shrink();
     }
 
@@ -1807,41 +2487,30 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       stats.add(_buildStatItem(context, 'Alpha', data['alpha'],
           isPercent: true, goodThreshold: 0.0));
     }
-    if (data.containsKey('excessReturn')) {
-      stats.add(_buildStatItem(context, 'Excess Return', data['excessReturn'],
-          isPercent: true, goodThreshold: 0.0));
+    if (data.containsKey('trackingError')) {
+      stats.add(_buildStatItem(context, 'Tracking Error', data['trackingError'],
+          isPercent: true,
+          reverseColor: true,
+          badThreshold: 0.1,
+          goodThreshold: 0.05));
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.compare_arrows,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Market Comparison',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStatsGrid(stats),
-          ],
-        ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.compare_arrows,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Market Comparison',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildStatsGrid(stats),
+        ],
       ),
     );
   }
@@ -1853,8 +2522,17 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
     List<Widget> stats = [];
     if (data.containsKey('maxDrawdown')) {
-      stats.add(_buildStatItem(context, 'Max Drawdown', data['maxDrawdown'],
-          isPercent: true, reverseColor: true, badThreshold: 0.2));
+      double? startMaxDD = data['maxDrawdown'];
+      if (startMaxDD != null && startMaxDD > 0) {
+        startMaxDD = -startMaxDD;
+      }
+      stats.add(_buildStatItem(context, 'Max Drawdown', startMaxDD,
+          isPercent: true, reverseColor: false, badThreshold: -0.2));
+    }
+    if (data.containsKey('currentDrawdown')) {
+      stats.add(_buildStatItem(
+          context, 'Current Drawdown', data['currentDrawdown'],
+          isPercent: true, reverseColor: false, badThreshold: -0.1));
     }
     if (data.containsKey('volatility')) {
       stats.add(_buildStatItem(context, 'Volatility', data['volatility'],
@@ -1869,68 +2547,22 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           isPercent: true, reverseColor: false, badThreshold: -0.03));
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Theme.of(context).colorScheme.error),
-                const SizedBox(width: 12),
-                Text('Risk Metrics',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStatsGrid(stats),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.grid_on),
-                label: const Text('View Correlation Matrix'),
-                onPressed: () {
-                  var symbols = Provider.of<InstrumentPositionStore>(context,
-                          listen: false)
-                      .items
-                      .map((p) => p.instrumentObj?.symbol ?? '')
-                      .where((s) => s.isNotEmpty)
-                      .toSet()
-                      .toList();
-                  if (symbols.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('No positions found for correlation.')));
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CorrelationMatrixWidget(
-                        user: widget.user,
-                        service: widget.service,
-                        symbols: symbols,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 12),
+              Text('Risk Metrics',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildStatsGrid(stats),
+        ],
       ),
     );
   }
@@ -1961,36 +2593,22 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           goodThreshold: 1.1, badThreshold: 0.9));
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.psychology_rounded,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Advanced Edge',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStatsGrid(stats),
-          ],
-        ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.psychology_rounded,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Advanced Edge',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildStatsGrid(stats),
+        ],
       ),
     );
   }
@@ -2017,6 +2635,18 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       stats.add(_buildStatItem(context, 'Expectancy', data['expectancy'],
           goodThreshold: 0.0, isCurrency: true));
     }
+    if (data.containsKey('avgWin')) {
+      stats.add(_buildStatItem(context, 'Avg Win', data['avgWin'],
+          goodThreshold: 0.0, isCurrency: true));
+    }
+    if (data.containsKey('avgLoss')) {
+      stats.add(_buildStatItem(context, 'Avg Loss', data['avgLoss'],
+          badThreshold: 0.0, isCurrency: true, reverseColor: true));
+    }
+    if (data.containsKey('avgDailyReturn')) {
+      stats.add(_buildStatItem(context, 'Avg Daily', data['avgDailyReturn'],
+          isPercent: true, goodThreshold: 0.0));
+    }
     if (data.containsKey('maxWinStreak')) {
       stats.add(_buildStatItem(
           context, 'Max Win Streak', (data['maxWinStreak'] as int).toDouble(),
@@ -2028,36 +2658,159 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           isInt: true, badThreshold: 3.0, reverseColor: true));
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.5),
-        ),
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Daily Return Stats',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildStatsGrid(stats),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.analytics_outlined,
-                    color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 12),
-                Text('Daily Return Stats',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildStatsGrid(stats),
-          ],
-        ),
+    );
+  }
+
+  Widget _buildMonthlyReturnsCard(
+      BuildContext context, Map<String, dynamic> data) {
+    if (!data.containsKey('monthlyReturns')) return const SizedBox.shrink();
+
+    Map<int, Map<int, double>> monthlyReturns = data['monthlyReturns'];
+    if (monthlyReturns.isEmpty) return const SizedBox.shrink();
+
+    List<int> years = monthlyReturns.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_month,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Monthly Returns',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Build Table
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+                defaultColumnWidth: const FixedColumnWidth(55),
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                border: TableBorder(
+                    horizontalInside: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.3),
+                        width: 1)),
+                children: [
+                  // Header Row
+                  TableRow(children: [
+                    const SizedBox(
+                        height: 30,
+                        child: Center(
+                            child: Text('Year',
+                                style:
+                                    TextStyle(fontWeight: FontWeight.bold)))),
+                    ...List.generate(
+                        12,
+                        (index) => Center(
+                            child: Text(
+                                DateFormat('MMM')
+                                    .format(DateTime(2000, index + 1)),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold)))),
+                    const Center(
+                        child: Text('YTD',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                  ]),
+                  // Data Rows
+                  ...years.map((year) {
+                    Map<int, double> months = monthlyReturns[year] ?? {};
+                    double ytd = 1.0;
+                    int validMonths = 0;
+                    for (int m = 1; m <= 12; m++) {
+                      if (months.containsKey(m)) {
+                        ytd *= (1 + months[m]!);
+                        validMonths++;
+                      }
+                    }
+                    ytd -= 1.0;
+
+                    if (validMonths == 0) return const TableRow(children: []);
+
+                    return TableRow(children: [
+                      Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text('$year',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold))),
+                      ...List.generate(12, (index) {
+                        int month = index + 1;
+                        double? ret = months[month];
+                        Color? bgColor;
+                        Color? textColor;
+
+                        if (ret != null) {
+                          if (ret >= 0) {
+                            bgColor = Colors.green.withValues(
+                                alpha: 0.1 + (ret * 5).clamp(0.0, 0.4));
+                            textColor = Colors.green;
+                          } else {
+                            bgColor = Colors.red.withValues(
+                                alpha: 0.1 + (ret.abs() * 5).clamp(0.0, 0.4));
+                            textColor = Colors.red;
+                          }
+                        }
+
+                        return Container(
+                          height: 30, // Fixed height for cells
+                          margin:
+                              const EdgeInsets.all(1), // Margin for grid effect
+                          decoration: BoxDecoration(
+                              color: bgColor,
+                              borderRadius: BorderRadius.circular(4)),
+                          child: Center(
+                              child: Text(
+                            ret == null
+                                ? '-'
+                                : '${(ret * 100).toStringAsFixed(1)}%',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: textColor,
+                                fontWeight: FontWeight.bold),
+                          )),
+                        );
+                      }),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Center(
+                            child: Text('${(ytd * 100).toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        ytd >= 0 ? Colors.green : Colors.red))),
+                      )
+                    ]);
+                  })
+                ]),
+          )
+        ],
       ),
     );
   }
@@ -2072,8 +2825,14 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       'Calmar',
       'Omega'
     ];
-    final market = ['Beta', 'Alpha', 'Excess Return', 'Correlation'];
-    final risk = ['Max Drawdown', 'Volatility', 'VaR (95%)', 'CVaR (95%)'];
+    final market = ['Beta', 'Alpha', 'Correlation', 'Tracking Error'];
+    final risk = [
+      'Max Drawdown',
+      'Current Drawdown',
+      'Volatility',
+      'VaR (95%)',
+      'CVaR (95%)'
+    ];
     final advanced = ['Kelly Criterion', 'Ulcer Index', 'Tail Ratio'];
     final daily = ['Profit Factor', 'Win Rate', 'Expectancy', 'Payoff Ratio'];
 
@@ -2380,8 +3139,12 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                       ),
                     if (guidance['example'] != null) const SizedBox(height: 16),
                     // Thresholds
-                    _buildThresholdsSection(context, guidance),
-                    const SizedBox(height: 16),
+                    if (guidance['noThreshold'] != true &&
+                        (guidance['goodThreshold'] != null ||
+                            guidance['acceptableThreshold'] != null)) ...[
+                      _buildThresholdsSection(context, guidance),
+                      const SizedBox(height: 16),
+                    ],
                     // Tip
                     if (guidance['tip'] != null)
                       _buildDetailSection(
@@ -2454,6 +3217,11 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
   Widget _buildThresholdsSection(
       BuildContext context, Map<String, dynamic> guidance) {
+    if (guidance['noThreshold'] == true ||
+        (guidance['goodThreshold'] == null &&
+            guidance['acceptableThreshold'] == null)) {
+      return const SizedBox.shrink();
+    }
     final isReverse = guidance['reverse'] == true;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2605,8 +3373,10 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                         [
                           'Select a benchmark (SPY, QQQ, DIA, IWM) to compare your portfolio performance',
                           'Check the Performance Snapshot to see your cumulative return vs. benchmark',
+                          'Check the Performance Chart to visualize trends and calculate YTD, 1Y, 2Y... returns',
                           'Review your Health Score for an overall assessment',
                           'Check Smart Insights for actionable recommendations',
+                          'Tap "Analyze with AI" for a personalized assessment',
                           'Tap any metric for a detailed definition',
                           'Review the Risk Heatmap to identify sector and correlation risks at a glance',
                         ],
@@ -2648,6 +3418,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                           'High Drawdown? Consider position sizing and stop-losses',
                           'High Beta? Add defensive assets to reduce volatility',
                           'Use Tax Optimization to harvest losses strategically',
+                          'Use the AI Assistant to get tailored advice for your situation',
                         ],
                       ),
                     ],
@@ -2911,6 +3682,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         children: stats.map((widget) {
           return SizedBox(
             width: itemWidth,
+            height: 120,
             child: widget,
           );
         }).toList(),
@@ -2928,7 +3700,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       bool reverseColor = false}) {
     String valueStr = '-';
     Color? valueColor;
-    // Color borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.1);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (value != null) {
       if (isPercent) {
@@ -2954,10 +3726,6 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           valueColor = reverseColor ? Colors.green : Colors.red;
         }
       }
-
-      // if (valueColor != null) {
-      //   borderColor = valueColor.withValues(alpha: 0.3);
-      // }
     }
 
     return Tooltip(
@@ -3011,36 +3779,77 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         ],
       ),
       textStyle: const TextStyle(color: Colors.white),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context)
-              .colorScheme
-              .surfaceContainerHighest
-              .withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(12),
-          // border: Border.all(color: borderColor),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(label,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(valueStr,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: valueColor ??
-                          Theme.of(context).colorScheme.onSurface)),
+      child: InkWell(
+        onTap: () {
+          final definition = definitions[label];
+          if (definition != null) {
+            final guidance = metricGuidance[label] ??
+                {'tip': definition, 'noThreshold': true};
+            _showMetricDetails(context, label, definition, guidance);
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      Colors.grey[850]!,
+                      Colors.grey[900]!,
+                    ]
+                  : [
+                      Theme.of(context).colorScheme.surfaceContainer,
+                      Theme.of(context).colorScheme.surface,
+                    ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                blurRadius: 8,
+                spreadRadius: 1,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: isDark
+                            ? Colors.grey[400]
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(valueStr,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: valueColor ??
+                            (isDark
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onSurface))),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3065,87 +3874,69 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
             ? Colors.green
             : (totalScore >= 50 ? Colors.orange : Colors.red);
 
-        return Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Theme.of(context)
-                  .colorScheme
-                  .outlineVariant
-                  .withValues(alpha: 0.5),
-            ),
-          ),
-          child: InkWell(
-            onTap: () => _showESGDetails(context, scores),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return AnalyticsStyleCard(
+          onTap: () => _showESGDetails(context, scores),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'ESG Analysis',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: scoreColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          totalScore.toStringAsFixed(1),
-                          style: TextStyle(
-                            color: scoreColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   Text(
-                    'Environmental, Social, and Governance Score',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    'ESG Analysis',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 24),
-                  _buildESGBar(
-                      context, 'Environmental', envScore, Colors.green),
-                  const SizedBox(height: 16),
-                  _buildESGBar(context, 'Social', socScore, Colors.blue),
-                  const SizedBox(height: 16),
-                  _buildESGBar(context, 'Governance', govScore, Colors.purple),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Based on weighted average of portfolio holdings.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: scoreColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      totalScore.toStringAsFixed(1),
+                      style: TextStyle(
+                        color: scoreColor,
+                        fontWeight: FontWeight.bold,
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        size: 16,
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                'Environmental, Social, and Governance Score',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              _buildESGBar(context, 'Environmental', envScore, Colors.green),
+              const SizedBox(height: 16),
+              _buildESGBar(context, 'Social', socScore, Colors.blue),
+              const SizedBox(height: 16),
+              _buildESGBar(context, 'Governance', govScore, Colors.purple),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Based on weighted average of portfolio holdings.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -3712,6 +4503,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -3721,165 +4513,350 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) {
-          return SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Health Score Breakdown',
-                      style: Theme.of(context).textTheme.headlineSmall,
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'The Portfolio Health Score starts at a base of 50 and is adjusted based on your portfolio metrics across five key dimensions:',
-                  style: TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                _buildHealthScoreDetailItem(
-                  context,
-                  Icons.trending_up,
-                  Colors.blue,
-                  'Risk-Adjusted Returns',
-                  'Rewards high Sharpe, Sortino, and Omega ratios. Measures return efficiency per unit of risk taken. (Max +35/-15)',
-                  riskAdjustedScore,
-                  riskAdjustedDetails,
-                ),
-                _buildHealthScoreDetailItem(
-                  context,
-                  Icons.compare_arrows,
-                  Colors.purple,
-                  'Market Performance',
-                  'Rewards positive Alpha and Information Ratio. Shows consistent outperformance vs benchmark. (Max +20/-15)',
-                  marketPerformanceScore,
-                  marketPerformanceDetails,
-                ),
-                _buildHealthScoreDetailItem(
-                  context,
-                  Icons.shield,
-                  Colors.orange,
-                  'Risk Management',
-                  'Evaluates drawdowns, volatility, Beta, VaR/CVaR tail risk, and diversification benefit. (Max +20/-40)',
-                  riskManagementScore,
-                  riskManagementDetails,
-                ),
-                _buildHealthScoreDetailItem(
-                  context,
-                  Icons.check_circle_outline,
-                  Colors.green,
-                  'Efficiency & Consistency',
-                  'Rewards Profit Factor, Win Rate, Calmar, and positive expectancy. Measures strategy sustainability. (Max +30/-15)',
-                  efficiencyScore,
-                  efficiencyDetails,
-                ),
-                _buildHealthScoreDetailItem(
-                  context,
-                  Icons.psychology_rounded,
-                  Colors.teal,
-                  'Advanced Risk & Edge',
-                  'Evaluates optimal position sizing (Kelly), stress (Ulcer Index), and return asymmetry (Tail Ratio). (Max +15/-15)',
-                  advancedEdgeScore,
-                  advancedEdgeDetails,
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Calculation Summary:',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                      Text(
+                        'Health Score Breakdown',
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Base Score',
-                              style: TextStyle(fontSize: 15)),
-                          const Text('50', style: TextStyle(fontSize: 15)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Adjustments',
-                              style: TextStyle(fontSize: 15)),
-                          Text(
-                            (riskAdjustedScore +
-                                    marketPerformanceScore +
-                                    riskManagementScore +
-                                    efficiencyScore +
-                                    advancedEdgeScore)
-                                .toStringAsFixed(0),
-                            style: TextStyle(
-                              color: (riskAdjustedScore +
-                                          marketPerformanceScore +
-                                          riskManagementScore +
-                                          efficiencyScore +
-                                          advancedEdgeScore) >=
-                                      0
-                                  ? Colors.green
-                                  : Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total Score',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            data.containsKey('healthScore')
-                                ? data['healthScore'].toStringAsFixed(0)
-                                : (50 +
-                                        riskAdjustedScore +
-                                        marketPerformanceScore +
-                                        riskManagementScore +
-                                        efficiencyScore +
-                                        advancedEdgeScore)
-                                    .clamp(0, 100)
-                                    .toStringAsFixed(0),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'The Portfolio Health Score starts at a base of 50 and is adjusted based on your portfolio metrics across five key dimensions:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildHealthScoreDetailItem(
+                    context,
+                    Icons.trending_up,
+                    Colors.blue,
+                    'Risk-Adjusted Returns',
+                    'Rewards high Sharpe, Sortino, and Omega ratios. Measures return efficiency per unit of risk taken. (Max +35/-15)',
+                    riskAdjustedScore,
+                    riskAdjustedDetails,
+                  ),
+                  _buildHealthScoreDetailItem(
+                    context,
+                    Icons.compare_arrows,
+                    Colors.purple,
+                    'Market Performance',
+                    'Rewards positive Alpha and Information Ratio. Shows consistent outperformance vs benchmark. (Max +20/-15)',
+                    marketPerformanceScore,
+                    marketPerformanceDetails,
+                  ),
+                  _buildHealthScoreDetailItem(
+                    context,
+                    Icons.shield,
+                    Colors.orange,
+                    'Risk Management',
+                    'Evaluates drawdowns, volatility, Beta, VaR/CVaR tail risk, and diversification benefit. (Max +20/-40)',
+                    riskManagementScore,
+                    riskManagementDetails,
+                  ),
+                  _buildHealthScoreDetailItem(
+                    context,
+                    Icons.check_circle_outline,
+                    Colors.green,
+                    'Efficiency & Consistency',
+                    'Rewards Profit Factor, Win Rate, Calmar, and positive expectancy. Measures strategy sustainability. (Max +30/-15)',
+                    efficiencyScore,
+                    efficiencyDetails,
+                  ),
+                  _buildHealthScoreDetailItem(
+                    context,
+                    Icons.psychology_rounded,
+                    Colors.teal,
+                    'Advanced Risk & Edge',
+                    'Evaluates optimal position sizing (Kelly), stress (Ulcer Index), and return asymmetry (Tail Ratio). (Max +15/-15)',
+                    advancedEdgeScore,
+                    advancedEdgeDetails,
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Calculation Summary:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Base Score',
+                                style: TextStyle(fontSize: 15)),
+                            const Text('50', style: TextStyle(fontSize: 15)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Adjustments',
+                                style: TextStyle(fontSize: 15)),
+                            Text(
+                              (riskAdjustedScore +
+                                      marketPerformanceScore +
+                                      riskManagementScore +
+                                      efficiencyScore +
+                                      advancedEdgeScore)
+                                  .toStringAsFixed(0),
+                              style: TextStyle(
+                                color: (riskAdjustedScore +
+                                            marketPerformanceScore +
+                                            riskManagementScore +
+                                            efficiencyScore +
+                                            advancedEdgeScore) >=
+                                        0
+                                    ? Colors.green
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total Score',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              data.containsKey('healthScore')
+                                  ? data['healthScore'].toStringAsFixed(0)
+                                  : (50 +
+                                          riskAdjustedScore +
+                                          marketPerformanceScore +
+                                          riskManagementScore +
+                                          efficiencyScore +
+                                          advancedEdgeScore)
+                                      .clamp(0, 100)
+                                      .toStringAsFixed(0),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
     );
+  }
+
+  Widget _buildConcentrationCard(
+      BuildContext context, List<dynamic> positions) {
+    if (positions.isEmpty) return const SizedBox.shrink();
+
+    // Filter out zero positions just in case
+    final activePositions = positions.where((p) => p.marketValue > 0).toList();
+    if (activePositions.isEmpty) return const SizedBox.shrink();
+
+    final totalValue =
+        activePositions.fold<double>(0, (sum, p) => sum + p.marketValue);
+    if (totalValue == 0) return const SizedBox.shrink();
+
+    // Sort
+    activePositions.sort((a, b) => b.marketValue.compareTo(a.marketValue));
+
+    // Metrics
+    final top1 = activePositions.first.marketValue / totalValue;
+    final top3 = activePositions
+            .take(3)
+            .fold<double>(0, (sum, p) => sum + p.marketValue) /
+        totalValue;
+    final top5 = activePositions
+            .take(5)
+            .fold<double>(0, (sum, p) => sum + p.marketValue) /
+        totalValue;
+    final top10 = activePositions
+            .take(10)
+            .fold<double>(0, (sum, p) => sum + p.marketValue) /
+        totalValue;
+
+    // HHI
+    double hhi = 0;
+    for (var p in activePositions) {
+      final w = p.marketValue / totalValue;
+      hhi += w * w;
+    }
+
+    String status;
+    Color statusColor;
+    IconData statusIcon;
+    String recommendation;
+
+    if (hhi < 0.15) {
+      status = 'Well Diversified';
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+      recommendation = 'Your portfolio is well-balanced across positions.';
+    } else if (hhi < 0.25) {
+      status = 'Moderately Concentrated';
+      statusColor = Colors.orange;
+      statusIcon = Icons.warning_amber;
+      recommendation = 'Consider reducing exposure to your top holdings.';
+    } else {
+      status = 'Highly Concentrated';
+      statusColor = Colors.red;
+      statusIcon = Icons.error_outline;
+      recommendation = 'High risk! A few positions dominate your performance.';
+    }
+
+    return AnalyticsStyleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pie_chart_outline,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              Text('Concentration Risk',
+                  style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(statusIcon, color: statusColor, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(status,
+                          style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text(recommendation,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 13)),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildConcentrationBar(context, 'Top 1 Holding', top1),
+          const SizedBox(height: 12),
+          _buildConcentrationBar(context, 'Top 3 Holdings', top3),
+          const SizedBox(height: 12),
+          _buildConcentrationBar(context, 'Top 5 Holdings', top5),
+          const SizedBox(height: 12),
+          _buildConcentrationBar(context, 'Top 10 Holdings', top10),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Herfindahl-Hirschman Index (HHI)',
+                  style: Theme.of(context).textTheme.bodySmall),
+              Text(hhi.toStringAsFixed(4),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConcentrationBar(
+      BuildContext context, String label, double value) {
+    final percentFormat = NumberFormat.percentPattern();
+    Color barColor = Theme.of(context).colorScheme.primary;
+    if (label.contains('Top 1') && value > 0.20) barColor = Colors.orange;
+    if (label.contains('Top 1') && value > 0.30) barColor = Colors.red;
+    if (label.contains('Top 3') && value > 0.50) barColor = Colors.orange;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(percentFormat.format(value),
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+      const SizedBox(height: 6),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          value: value,
+          backgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+          valueColor: AlwaysStoppedAnimation<Color>(barColor),
+          minHeight: 8,
+        ),
+      ),
+    ]);
   }
 
   Widget _buildHealthScoreDetailItem(BuildContext context, IconData icon,

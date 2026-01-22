@@ -792,38 +792,41 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               allKeys.sort();
             }
 
-            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final colorScheme = Theme.of(context).colorScheme;
+            var brightness = MediaQuery.of(context).platformBrightness;
+
+            // Helper function to get darker color in dark theme
+            Color getDarkerColorForTheme(Color color) {
+              if (brightness == Brightness.dark) {
+                return Color.lerp(color, Colors.black, 0.4) ?? color;
+              }
+              return color;
+            }
+
+            final assetPalette = [
+              getDarkerColorForTheme(colorScheme.primary),
+              getDarkerColorForTheme(colorScheme.secondary),
+              getDarkerColorForTheme(colorScheme.tertiary),
+              getDarkerColorForTheme(colorScheme.primaryContainer),
+            ];
+
             final assetColors = {
-              'Stocks': Colors.blue,
-              'Options': isDark ? Colors.orange : Colors.orange[800]!,
-              'Crypto': Colors.purple,
-              'Cash': Colors.green,
+              'Stocks': assetPalette[0],
+              'Options': assetPalette[1],
+              'Crypto': assetPalette[2],
+              'Cash': assetPalette[3],
             };
 
-            // Distinct palette for sectors to ensure readability across themes
-            final List<Color> sectorPalette = [
-              Colors.blue,
-              Colors.red,
-              Colors.green,
-              isDark ? Colors.orange : Colors.orange[800]!,
-              Colors.purple,
-              Colors.teal,
-              Colors.pink,
-              Colors.indigo,
-              isDark ? Colors.cyan : Colors.cyan[700]!,
-              isDark ? Colors.amber : Colors.amber[800]!,
-              Colors.brown,
-              isDark ? Colors.lime : Colors.lime[800]!,
-              Colors.deepOrange,
-              Colors.lightBlue,
-              Colors.deepPurple,
-            ];
+            var sectorShades = PieChart.makeShades(
+                charts.ColorUtil.fromDartColor(
+                    getDarkerColorForTheme(colorScheme.secondary)),
+                allKeys.isNotEmpty ? allKeys.length : 1);
 
             final sectorColors = <String, Color>{};
             if (_viewMode == 1) {
               for (int i = 0; i < allKeys.length; i++) {
-                sectorColors[allKeys[i]] =
-                    sectorPalette[i % sectorPalette.length];
+                sectorColors[allKeys[i]] = charts.ColorUtil.toDartColor(
+                    sectorShades[i % sectorShades.length]);
               }
             }
 

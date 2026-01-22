@@ -125,5 +125,24 @@ void main() {
       final tail = AnalyticsUtils.calculateTailRatio(returns);
       expect(tail, closeTo(3.0, 0.001));
     });
+
+    test('calculatePortfolioMetrics returns correct structure', () {
+      final portfolioPrices = [100.0, 105.0, 102.0, 110.0];
+      final benchmarkPrices = [100.0, 102.0, 101.0, 105.0];
+      final fullPortfolio = [100.0, 105.0, 102.0, 110.0];
+      final periodYears = 1.0;
+
+      final metrics = AnalyticsUtils.calculatePortfolioMetrics(
+        alignedPortfolioPrices: portfolioPrices,
+        alignedBenchmarkPrices: benchmarkPrices,
+        fullPortfolioPrices: fullPortfolio,
+        periodYears: periodYears,
+      );
+
+      expect(metrics.containsKey('sharpe'), isTrue);
+      expect(metrics.containsKey('beta'), isTrue);
+      expect(metrics.containsKey('healthScore'), isTrue);
+      expect(metrics['sharpe'], isA<double>());
+    });
   });
 }

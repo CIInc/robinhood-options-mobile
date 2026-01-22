@@ -455,109 +455,55 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return Scaffold(
       body: buildScrollView(instrument, done: instrument.quoteObj != null),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAIOptions(context, instrument),
+        onPressed: () => _openAIChat(context, instrument),
         child: const Icon(Icons.auto_awesome),
       ),
     );
   }
 
-  void _showAIOptions(BuildContext context, Instrument instrument) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.chat),
-                title: const Text('Go to Chat'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatWidget(
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.auto_awesome),
-                title: Text('Tell me about ${instrument.symbol}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatWidget(
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        initialMessage: "Tell me about ${instrument.symbol}",
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.trending_up),
-                title: const Text('Trend Analysis'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatWidget(
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        initialMessage:
-                            "Analyze chart trend for ${instrument.symbol}",
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.summarize_outlined),
-                title: Text('Summarize ${instrument.symbol}'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatWidget(
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        initialMessage: "Summarize ${instrument.symbol}",
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.article_outlined),
-                title: const Text('Generate Investment Thesis'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatWidget(
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        initialMessage:
-                            "Generate investment thesis for ${instrument.symbol}",
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
+  void _openAIChat(BuildContext context, Instrument instrument) {
+    List<Prompt> prompts = [
+      Prompt(
+        key: 'overview-${instrument.symbol}',
+        title: 'Tell me about ${instrument.symbol}',
+        prompt:
+            'Tell me about ${instrument.symbol} and its recent performance.',
+      ),
+      Prompt(
+        key: 'chart-${instrument.symbol}',
+        title: 'Analyze Chart',
+        prompt: 'Analyze the technical chart for ${instrument.symbol}.',
+      ),
+      Prompt(
+        key: 'news-${instrument.symbol}',
+        title: 'Why is it moving?',
+        prompt:
+            'Why is ${instrument.symbol} moving today? Summarize recent news.',
+      ),
+    ];
+
+    if (instrument.tradeableChainId != null) {
+      prompts.add(Prompt(
+          key: 'option-strategy-${instrument.symbol}',
+          title: 'Option Strategy',
+          prompt:
+              'Suggest an option trading strategy for ${instrument.symbol} based on current market conditions.'));
+    }
+
+    prompts.add(Prompt(
+        key: 'sentiment-${instrument.symbol}',
+        title: 'Sentiment Analysis',
+        prompt: 'What is the market sentiment for ${instrument.symbol}?'));
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatWidget(
+          generativeService: widget.generativeService,
+          user: widget.user,
+          prompts: prompts,
+        ),
+      ),
     );
   }
 

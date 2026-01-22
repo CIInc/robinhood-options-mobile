@@ -143,7 +143,7 @@ List<String> convertChartSpanFilterWithInterval(
       span = "5year";
       break;
     case ChartDateSpan.all:
-      // interval = "week";
+      interval = "week";
       span = "all";
       break;
     //default:

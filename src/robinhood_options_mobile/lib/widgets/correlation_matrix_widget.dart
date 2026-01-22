@@ -3,21 +3,21 @@ import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
-import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 
 class CorrelationMatrixWidget extends StatefulWidget {
   final BrokerageUser user;
   final IBrokerageService service;
   final List<String> symbols;
+  final bool isEmbedded;
 
   const CorrelationMatrixWidget({
     super.key,
     required this.user,
     required this.service,
     required this.symbols,
+    this.isEmbedded = false,
   });
 
   @override
@@ -321,6 +321,51 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.grid_on,
+                    color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text('Correlation Matrix',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () => _showFilterDialog(context),
+                  tooltip: 'Select Assets',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () => _showLegendDialog(context),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.fullscreen),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CorrelationMatrixWidget(
+                          user: widget.user,
+                          service: widget.service,
+                          symbols: widget.symbols,
+                          isEmbedded: false,
+                        ),
+                      ),
+                    );
+                  },
+                )
+              ],
+            ),
+          ),
+          SizedBox(height: 400, child: _buildBody()),
+        ],
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Correlation Matrix'),
@@ -336,107 +381,110 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
           )
         ],
       ),
-      body: FutureBuilder<Map<String, Map<String, double>>>(
-        future: _correlationFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-                child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                Text(_loadingStatus ?? 'Initializing...'),
-                if (_totalSymbols > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child:
-                        Text('$_loadedSymbols / $_totalSymbols symbols loaded'),
-                  )
-              ],
-            ));
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-                child: Text('No sufficient data for correlation analysis.'));
-          }
+      body: _buildBody(),
+    );
+  }
 
-          final matrix = snapshot.data!;
-          final symbols = matrix.keys.toList();
-
-          return Column(
+  Widget _buildBody() {
+    return FutureBuilder<Map<String, Map<String, double>>>(
+      future: _correlationFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(_loadingStatus ?? 'Initializing...'),
+              if (_totalSymbols > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child:
+                      Text('$_loadedSymbols / $_totalSymbols symbols loaded'),
+                )
+            ],
+          ));
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+              child: Text('No sufficient data for correlation analysis.'));
+        }
+
+        final matrix = snapshot.data!;
+        final symbols = matrix.keys.toList();
+
+        return Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columnSpacing: 2,
-                      dataRowMinHeight: 40,
-                      dataRowMaxHeight: 50,
-                      headingRowHeight: 40,
-                      columns: [
-                        const DataColumn(label: Text('')), // Corner
-                        ...symbols.map((s) => DataColumn(
-                            label: SizedBox(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columnSpacing: 2,
+                    dataRowMinHeight: 40,
+                    dataRowMaxHeight: 50,
+                    headingRowHeight: 40,
+                    columns: [
+                      const DataColumn(label: Text('')), // Corner
+                      ...symbols.map((s) => DataColumn(
+                          label: SizedBox(
+                              width: 40,
+                              child: Center(
+                                  child: Text(s,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12)))))),
+                    ],
+                    rows: symbols.map((symRow) {
+                      return DataRow(cells: [
+                        DataCell(Text(symRow,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12))),
+                        ...symbols.map((symCol) {
+                          final corr = matrix[symRow]?[symCol] ?? 0.0;
+                          final isSelf = symRow == symCol;
+                          return DataCell(
+                            InkWell(
+                              onTap: () => _showDetailDialog(
+                                  context, symRow, symCol, corr),
+                              child: Container(
                                 width: 40,
-                                child: Center(
-                                    child: Text(s,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12)))))),
-                      ],
-                      rows: symbols.map((symRow) {
-                        return DataRow(cells: [
-                          DataCell(Text(symRow,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12))),
-                          ...symbols.map((symCol) {
-                            final corr = matrix[symRow]?[symCol] ?? 0.0;
-                            final isSelf = symRow == symCol;
-                            return DataCell(
-                              InkWell(
-                                onTap: () => _showDetailDialog(
-                                    context, symRow, symCol, corr),
-                                child: Container(
-                                  width: 40,
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  color: isSelf
-                                      ? Colors.grey.withValues(alpha: 0.2)
-                                      : _getColorForCorrelation(corr),
-                                  child: isSelf
-                                      ? const Text("1",
-                                          style: TextStyle(
-                                              fontSize: 10, color: Colors.grey))
-                                      : Text(
-                                          corr.toStringAsFixed(2),
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color:
-                                                  _getTextColorForCorrelation(
-                                                      corr),
-                                              fontWeight: FontWeight.w500),
-                                        ),
-                                ),
+                                height: 50,
+                                alignment: Alignment.center,
+                                color: isSelf
+                                    ? Colors.grey.withValues(alpha: 0.2)
+                                    : _getColorForCorrelation(corr),
+                                child: isSelf
+                                    ? const Text("1",
+                                        style: TextStyle(
+                                            fontSize: 10, color: Colors.grey))
+                                    : Text(
+                                        corr.toStringAsFixed(2),
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: _getTextColorForCorrelation(
+                                                corr),
+                                            fontWeight: FontWeight.w500),
+                                      ),
                               ),
-                            );
-                          })
-                        ]);
-                      }).toList(),
-                    ),
+                            ),
+                          );
+                        })
+                      ]);
+                    }).toList(),
                   ),
                 ),
               ),
-              _buildLegend(context),
-            ],
-          );
-        },
-      ),
+            ),
+            _buildLegend(context),
+          ],
+        );
+      },
     );
   }
 
@@ -524,8 +572,8 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                       style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color:
-                              _getColorForCorrelation(corr).withValues(alpha: 1.0))),
+                          color: _getColorForCorrelation(corr)
+                              .withValues(alpha: 1.0))),
                   const SizedBox(height: 10),
                   Text(_getCorrelationDescription(corr),
                       textAlign: TextAlign.center),

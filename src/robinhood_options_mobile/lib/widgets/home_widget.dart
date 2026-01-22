@@ -53,7 +53,6 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -963,53 +962,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ]));
               },
             ),
-            SliverToBoxAdapter(
-              child: PerformanceChartWidget(
-                futureMarketIndexHistoricalsSp500:
-                    futureMarketIndexHistoricalsSp500,
-                futureMarketIndexHistoricalsNasdaq:
-                    futureMarketIndexHistoricalsNasdaq,
-                futureMarketIndexHistoricalsDow:
-                    futureMarketIndexHistoricalsDow,
-                futureMarketIndexHistoricalsRussell2000:
-                    futureMarketIndexHistoricalsRussell2000,
-                futurePortfolioHistoricalsYear: futurePortfolioHistoricalsYear,
-                benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
-                onFilterChanged: (span) {
-                  setState(() {
-                    benchmarkChartDateSpanFilter = span;
-                    _loadPortfolioHistoricals();
-                    _loadMarketIndices();
-                  });
-                },
-              ),
-            ),
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-                widget.brokerageUser!.source == BrokerageSource.demo)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: PortfolioAnalyticsWidget(
-                    user: widget.brokerageUser!,
-                    service: widget.service!,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    appUser: widget.user,
-                    userDocRef: widget.userDoc,
-                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
-                    futureMarketIndexHistoricalsSp500:
-                        futureMarketIndexHistoricalsSp500,
-                    futureMarketIndexHistoricalsNasdaq:
-                        futureMarketIndexHistoricalsNasdaq,
-                    futureMarketIndexHistoricalsDow:
-                        futureMarketIndexHistoricalsDow,
-                    futureMarketIndexHistoricalsRussell2000:
-                        futureMarketIndexHistoricalsRussell2000,
-                  ),
-                ),
-              ),
             if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
                 widget.brokerageUser!.source == BrokerageSource.demo) ...[
               Consumer2<DividendStore, InterestStore>(
@@ -1042,6 +994,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     observer: widget.observer);
               }),
             ],
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+                widget.brokerageUser!.source == BrokerageSource.demo)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: PortfolioAnalyticsWidget(
+                    user: widget.brokerageUser!,
+                    service: widget.service!,
+                    accountNumber: account?.accountNumber,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    appUser: widget.user,
+                    userDocRef: widget.userDoc,
+                    portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+                    futureMarketIndexHistoricalsSp500:
+                        futureMarketIndexHistoricalsSp500,
+                    futureMarketIndexHistoricalsNasdaq:
+                        futureMarketIndexHistoricalsNasdaq,
+                    futureMarketIndexHistoricalsDow:
+                        futureMarketIndexHistoricalsDow,
+                    futureMarketIndexHistoricalsRussell2000:
+                        futureMarketIndexHistoricalsRussell2000,
+                    benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
+                    onBenchmarkFilterChanged: (span) {
+                      setState(() {
+                        benchmarkChartDateSpanFilter = span;
+                        _loadPortfolioHistoricals();
+                        _loadMarketIndices();
+                      });
+                    },
+                  ),
+                ),
+              ),
 
             SliverToBoxAdapter(
               child: Padding(

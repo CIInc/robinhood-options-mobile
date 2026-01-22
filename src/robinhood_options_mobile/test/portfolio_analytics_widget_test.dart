@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -31,8 +33,6 @@ class FakeFirebaseAnalyticsObserver extends Fake
 
 class FakeGenerativeService extends Fake implements GenerativeService {}
 
-class FakeDocumentReference<T> extends Fake implements DocumentReference<T> {}
-
 void main() {
   testWidgets('PortfolioAnalyticsWidget renders correctly',
       (WidgetTester tester) async {
@@ -48,6 +48,8 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
+          ChangeNotifierProvider(create: (_) => InstrumentPositionStore()),
+          ChangeNotifierProvider(create: (_) => OptionPositionStore()),
           ChangeNotifierProvider(create: (_) => PortfolioHistoricalsStore()),
           ChangeNotifierProvider(create: (_) => InstrumentHistoricalsStore()),
         ],
@@ -60,12 +62,16 @@ void main() {
               observer: FakeFirebaseAnalyticsObserver(),
               generativeService: FakeGenerativeService(),
               appUser: appUser,
-              userDocRef: FakeDocumentReference<User>(),
+              userDocRef: null,
             ),
           ),
         ),
       ),
     );
+
+    // Allow Future.delayed and other async ops to complete
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
 
     expect(find.byType(PortfolioAnalyticsWidget), findsOneWidget);
   });
