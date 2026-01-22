@@ -4,7 +4,7 @@ description: Update markdown documentation based on recently closed or merged pu
 argument-hint: PR numbers or "latest" to use most recent closed PRs, or the new version number.
 ---
 
-Update all markdown documentation based on recently closed or merged pull requests. If no PRs are specified, use the latest commits since the previous version.
+Update all markdown documentation based on recently closed or merged pull requests. If a version number is specified, use the recent commits since the previous version.
 
 ## Process:
 
@@ -51,6 +51,7 @@ Update all markdown documentation based on recently closed or merged pull reques
 7. **Update ROADMAP.md**:
    - Mark completed features as done (check off items)
    - Add new planned features based on PR discussions or future enhancements mentioned
+   - Add entry in release versions & timeline if applicable
    - Reorder priorities if necessary
 
 8. **Update Developer Instructions**:

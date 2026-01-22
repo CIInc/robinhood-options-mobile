@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-01-22
+
+### Added
+- **Custom Benchmarks:** Users can now compare their portfolio performance against any ticker symbol (e.g., BTC-USD, AAPL) in the Portfolio Analytics dashboard, not just standard indices.
+- **Improved Benchmark Selector:** Replaced the options menu with intuitive filter chips for quick switching between SPY, QQQ, DIA, IWM, and custom benchmarks.
+- **Enhanced Cash Allocation:** Short-term Treasury ETFs (e.g., SGOV, BIL, SHV) are now treated as cash equivalents in Asset Allocation, providing a more accurate view of portfolio liquidity.
+
+### Fixed
+- **Analytics Sync:** Resolved an issue where custom benchmark data was not correctly refreshing when changing the chart date range (e.g., from 1Y to 5Y).
+
 ## [0.29.2] - 2026-01-20
 
 ### Added

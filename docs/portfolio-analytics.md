@@ -66,11 +66,10 @@ Throughout the interface:
 ## Key Features
 
 ### 1. Benchmark Comparison
-- **Selectable Benchmarks**: Compare your portfolio against major market indices:
-  - **SPY**: S&P 500 (Large Cap US Stocks)
-  - **QQQ**: Nasdaq 100 (Tech/Growth Stocks)
-  - **DIA**: Dow Jones Industrial Average (Blue Chip Stocks)
-  - **IWM**: Russell 2000 (Small Cap Stocks)
+- **Selectable Benchmarks**: Compare your portfolio against major market indices and **Custom Benchmarks**:
+  - **Standard Indices**: SPY, QQQ, DIA, IWM.
+  - **Custom Tickers**: Add any stock or crypto symbol (e.g., BTC-USD, AAPL, NVDA) to see how your portfolio stacks up against specific assets.
+- **Intuitive Interface**: Use the horizontal chip selector to quickly toggle between benchmarks or add new ones.
 - **Dynamic Calculation**: All metrics are recalculated in real-time based on the selected benchmark and your portfolio's historical performance.
 
 ### 2. Performance Overview Card
