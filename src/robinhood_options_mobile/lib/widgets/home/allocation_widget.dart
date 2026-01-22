@@ -156,38 +156,67 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         charts.ColorUtil.fromDartColor(
             getDarkerColorForTheme(colorScheme.tertiary)),
         charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.primaryContainer)),
+            getDarkerColorForTheme(colorScheme.inversePrimary)),
       ];
 
-      var positionPalette = [
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.primary)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.secondary)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.tertiary)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.primaryContainer)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.secondaryContainer)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.tertiaryContainer)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.inversePrimary)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.errorContainer)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.surfaceTint)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.outline)),
-        charts.ColorUtil.fromDartColor(
-            getDarkerColorForTheme(colorScheme.outlineVariant)),
-      ];
+      final assetColorMap = {
+        'Stocks': assetPalette[0],
+        'Options': assetPalette[3],
+        'Crypto': assetPalette[2],
+        'Cash': assetPalette[1],
+      };
+
+      var positionPalette = PieChart.makeShades(
+          charts.ColorUtil.fromDartColor(
+              getDarkerColorForTheme(colorScheme.primary)),
+          positionData.isNotEmpty ? positionData.length : 1);
+      // var positionPalette = [
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.primary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.secondary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.tertiary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.primaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.secondaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.tertiaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.inversePrimary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.errorContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.surfaceTint)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.outline)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.outlineVariant)),
+      // ];
 
       var sectorPalette = PieChart.makeShades(
           charts.ColorUtil.fromDartColor(
               getDarkerColorForTheme(colorScheme.secondary)),
           sectorData.isNotEmpty ? sectorData.length : 1);
+      // var sectorPalette = [
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.primary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.secondary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.tertiary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.primaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.secondaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.tertiaryContainer)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.inversePrimary)),
+      //   charts.ColorUtil.fromDartColor(
+      //       getDarkerColorForTheme(colorScheme.errorContainer)),
+      // ];
 
       var industryPalette = PieChart.makeShades(
           charts.ColorUtil.fromDartColor(
@@ -257,6 +286,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
                         title: 'Asset',
                         data: assetData,
                         shades: assetPalette,
+                        colorMap: assetColorMap,
                         axisLabelColor: axisLabelColor),
                     _PieChartItem(
                         key: const ValueKey('Position'),
@@ -441,6 +471,7 @@ class _PieChartItem extends StatefulWidget {
   final String title;
   final List<PieChartData> data;
   final List<charts.Color>? shades;
+  final Map<String, charts.Color>? colorMap;
   final charts.Color axisLabelColor;
 
   const _PieChartItem({
@@ -448,6 +479,7 @@ class _PieChartItem extends StatefulWidget {
     required this.title,
     required this.data,
     this.shades,
+    this.colorMap,
     required this.axisLabelColor,
   });
 
@@ -477,6 +509,10 @@ class _PieChartItemState extends State<_PieChartItem> {
         data: widget.data,
         labelAccessorFn: (PieChartData row, _) => row.label,
         colorFn: (PieChartData row, int? index) {
+          if (widget.colorMap != null &&
+              widget.colorMap!.containsKey(row.label)) {
+            return widget.colorMap![row.label]!;
+          }
           if (widget.shades != null &&
               index != null &&
               index < widget.shades!.length) {

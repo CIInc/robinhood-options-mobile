@@ -798,35 +798,73 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             // Helper function to get darker color in dark theme
             Color getDarkerColorForTheme(Color color) {
               if (brightness == Brightness.dark) {
-                return Color.lerp(color, Colors.black, 0.4) ?? color;
+                return Color.lerp(color, Colors.black, 0.2) ?? color;
               }
               return color;
             }
 
+            // var assetPalette = [
+            //   charts.ColorUtil.fromDartColor(
+            //       getDarkerColorForTheme(colorScheme.primary)),
+            //   charts.ColorUtil.fromDartColor(
+            //       getDarkerColorForTheme(colorScheme.secondary)),
+            //   charts.ColorUtil.fromDartColor(
+            //       getDarkerColorForTheme(colorScheme.tertiary)),
+            //   charts.ColorUtil.fromDartColor(
+            //       getDarkerColorForTheme(colorScheme.primaryContainer)),
+            // ];
             final assetPalette = [
               getDarkerColorForTheme(colorScheme.primary),
               getDarkerColorForTheme(colorScheme.secondary),
               getDarkerColorForTheme(colorScheme.tertiary),
-              getDarkerColorForTheme(colorScheme.primaryContainer),
+              getDarkerColorForTheme(colorScheme.inversePrimary),
             ];
 
             final assetColors = {
               'Stocks': assetPalette[0],
-              'Options': assetPalette[1],
+              'Options': assetPalette[3],
               'Crypto': assetPalette[2],
-              'Cash': assetPalette[3],
+              'Cash': assetPalette[1],
             };
 
-            var sectorShades = PieChart.makeShades(
-                charts.ColorUtil.fromDartColor(
-                    getDarkerColorForTheme(colorScheme.secondary)),
-                allKeys.isNotEmpty ? allKeys.length : 1);
+            final sectorPalette = [
+              Colors.teal.shade800,
+              Colors.indigo.shade800,
+              Colors.orange.shade900,
+              Colors.pink.shade800,
+              Colors.green.shade900,
+              Colors.deepPurple.shade800,
+              Colors.lightBlue.shade900,
+              Colors.red.shade900,
+              Colors.brown.shade800,
+              Colors.cyan.shade900,
+              Colors.deepOrange.shade900,
+              Colors.blueGrey.shade800,
+            ];
+            // getDarkerColorForTheme(colorScheme.secondary),
+            // getDarkerColorForTheme(colorScheme.primary),
+            // getDarkerColorForTheme(colorScheme.tertiary),
+            // getDarkerColorForTheme(colorScheme.secondaryContainer),
+            // getDarkerColorForTheme(colorScheme.primaryContainer),
+            // getDarkerColorForTheme(colorScheme.tertiaryContainer),
+            // getDarkerColorForTheme(colorScheme.inversePrimary),
+            // getDarkerColorForTheme(colorScheme.errorContainer),
+            // getDarkerColorForTheme(colorScheme.surfaceTint),
+            // getDarkerColorForTheme(colorScheme.outline),
+            // getDarkerColorForTheme(colorScheme.outlineVariant),
+
+            // var sectorPalette = PieChart.makeShades(
+            //     charts.ColorUtil.fromDartColor(
+            //         getDarkerColorForTheme(colorScheme.secondary)),
+            //     sectorEquity.isNotEmpty ? sectorEquity.length : 1);
 
             final sectorColors = <String, Color>{};
             if (_viewMode == 1) {
               for (int i = 0; i < allKeys.length; i++) {
-                sectorColors[allKeys[i]] = charts.ColorUtil.toDartColor(
-                    sectorShades[i % sectorShades.length]);
+                sectorColors[allKeys[i]] =
+                    sectorPalette[i % sectorPalette.length];
+                // sectorColors[allKeys[i]] = charts.ColorUtil.toDartColor(
+                //     sectorPalette[i % sectorPalette.length]);
               }
             }
 
@@ -928,9 +966,15 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                                     charts.ColorUtil
                                                         .fromDartColor(getColor(
                                                             row.label)),
-                                                data: currentAllocation.entries
-                                                    .map((e) => PieChartData(
-                                                        e.key, e.value))
+                                                data: allKeys
+                                                    .where((k) =>
+                                                        (currentAllocation[k] ??
+                                                            0) >
+                                                        0)
+                                                    .map((k) => PieChartData(
+                                                        k,
+                                                        currentAllocation[k] ??
+                                                            0))
                                                     .toList(),
                                                 labelAccessorFn: (PieChartData
                                                             row,
@@ -982,9 +1026,11 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                                     charts.ColorUtil
                                                         .fromDartColor(getColor(
                                                             row.label)),
-                                                data: targets.entries
-                                                    .map((e) => PieChartData(
-                                                        e.key, e.value))
+                                                data: allKeys
+                                                    .where((k) =>
+                                                        (targets[k] ?? 0) > 0)
+                                                    .map((k) => PieChartData(
+                                                        k, targets[k] ?? 0))
                                                     .toList(),
                                                 labelAccessorFn: (PieChartData
                                                             row,
