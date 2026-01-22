@@ -40,6 +40,8 @@ class _ChatWidgetState extends State<ChatWidget> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToBottom(animated: false));
     if (widget.initialMessage != null) {
       // Small delay to ensure provider runs
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -119,8 +121,6 @@ class _ChatWidgetState extends State<ChatWidget> {
       )) {
         if (_stopGeneration) break;
         if (mounted) {
-          // With reverse: true, we don't need manual scrolling behavior for streaming updates
-          // as long as we are anchored at 0.0 (the bottom).
           provider.updateLastMessage(chunk);
         }
       }
@@ -140,14 +140,15 @@ class _ChatWidgetState extends State<ChatWidget> {
   void _scrollToBottom({bool animated = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
+        final position = _scrollController.position.maxScrollExtent;
         if (animated) {
           _scrollController.animateTo(
-            0.0, // Scroll to bottom (start of list in reverse)
+            position,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
           );
         } else {
-          _scrollController.jumpTo(0.0);
+          _scrollController.jumpTo(position);
         }
       }
     });
@@ -225,22 +226,15 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ? _buildWelcomeView(provider)
                 : ListView.builder(
                     controller: _scrollController,
-                    reverse: true, // Scroll from bottom up
                     padding: const EdgeInsets.all(16.0),
                     itemCount:
                         provider.chatMessages.length + (_isTyping ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (_isTyping && index == 0) {
-                        return _buildTypingIndicator();
+                      if (index < provider.chatMessages.length) {
+                        final message = provider.chatMessages[index];
+                        return _buildMessageBubble(context, message);
                       }
-
-                      // Calculate actual index for reversed list
-                      final listIndex = _isTyping
-                          ? provider.chatMessages.length - index
-                          : provider.chatMessages.length - 1 - index;
-
-                      final message = provider.chatMessages[listIndex];
-                      return _buildMessageBubble(context, message);
+                      return _buildTypingIndicator();
                     },
                   ),
           ),
@@ -305,7 +299,10 @@ class _ChatWidgetState extends State<ChatWidget> {
                         filled: true,
                         fillColor: Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        )
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20.0,
                           vertical: 10.0,
@@ -750,8 +747,8 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ),
                 border: !isUser
                     ? Border.all(
-                        color:
-                            theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.5),
                       )
                     : null,
               ),

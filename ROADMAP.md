@@ -253,6 +253,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Instrument Notes, AI Asset Allocation & Strategy Optimization**
 - ✅ **Instrument Notes**: Private, markdown-formatted instrument notes with AI drafting.
 - ✅ **AI Asset Allocation**: Risk-profile based portfolio weighting recommendations in Rebalancing tool.
+- ✅ **Natural Language Portfolio Construction**: Chat-based portfolio requests ("Build me a growth portfolio") via Market Assistant.
 - ✅ **Strategy Optimization**: Backtesting engine enhancement to refine strategy parameters.
 - ✅ **Market Assistant**: Improved chat prompts and structured responses.
 - ✅ **Portfolio Calculation**: Refined cumulative return logic for accuracy.
@@ -274,7 +275,6 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.31.0 (Q1 2026 - Late February)
 **AI Portfolio Architect**
-- Natural Language Portfolio Construction ("Build me a growth portfolio with 10% tech exposure")
 - Automated portfolio rebalancing scheduler
 - Voice-activated portfolio queries
 - Holistic portfolio health monitoring with predictive alerts
