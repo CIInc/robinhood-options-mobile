@@ -333,6 +333,42 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     List<PieChartData> data = [];
     if (totalAssets <= 0) return data;
 
+    // Identify cash-equivalent ETFs (e.g. SGOV, BIL, SHV) and count them as Cash
+    double cashEtfsValue = 0.0;
+    // Common short-term treasury ETFs that are often treated as cash
+    // SGOV: iShares 0-3 Month Treasury Bond ETF
+    // BIL: SPDR Bloomberg 1-3 Month T-Bill ETF
+    // SHV: iShares Short Treasury Bond ETF (<=1yr)
+    // USFR: WisdomTree Floating Rate Treasury Fund
+    // TFLO: iShares Treasury Floating Rate Bond ETF
+    // TBIL: US Treasury 3 Month Bill ETF
+    // BILS: SPDR Bloomberg 3-12 Month T-Bill ETF
+    // SHT: SPDR Portfolio Short Term Treasury ETF
+    // GBIL: Goldman Sachs Access Treasury 0-1 Year ETF
+    // CLTL: Invesco Treasury Collateral ETF
+    // VGSH: Vanguard Short-Term Treasury ETF
+    // SCHO: Schwab Short-Term U.S. Treasury ETF
+    final cashEtfSymbols = [
+      'SGOV',
+      'BIL',
+      'SHV',
+      'USFR',
+      'TFLO',
+      'TBIL',
+      'BILS',
+      'SHT',
+      'GBIL',
+      'CLTL',
+      'VGSH',
+      'SCHO'
+    ];
+    for (var position in stockPositionStore.items) {
+      if (position.instrumentObj?.symbol != null &&
+          cashEtfSymbols.contains(position.instrumentObj!.symbol)) {
+        cashEtfsValue += position.marketValue;
+      }
+    }
+
     if (optionPositionStore.equity > 0) {
       // final percent = optionPositionStore.equity / totalAssets;
       data.add(PieChartData(
@@ -342,10 +378,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     }
     if (stockPositionStore.equity > 0) {
       // final percent = stockPositionStore.equity / totalAssets;
-      data.add(PieChartData(
-          'Stocks',
-          stockPositionStore
-              .equity)); //  ${formatPercentageInteger.format(percent)}
+      double adjustedStockEquity = stockPositionStore.equity - cashEtfsValue;
+      if (adjustedStockEquity > 0) {
+        data.add(PieChartData('Stocks',
+            adjustedStockEquity)); //  ${formatPercentageInteger.format(percent)}
+      }
     }
     if (forexHoldingStore.equity > 0) {
       // final percent = forexHoldingStore.equity / totalAssets;
@@ -354,10 +391,11 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           forexHoldingStore
               .equity)); //  ${formatPercentageInteger.format(percent)}
     }
-    if (portfolioCash > 0) {
+    double totalCash = portfolioCash + cashEtfsValue;
+    if (totalCash > 0) {
       // final percent = portfolioCash / totalAssets;
-      data.add(PieChartData('Cash',
-          portfolioCash)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData(
+          'Cash', totalCash)); //  ${formatPercentageInteger.format(percent)}
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;

@@ -683,20 +683,43 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             double stockEquity = 0;
             final Map<String, double> sectorEquity = {};
 
-            for (var item in stockPositionStore.items) {
-              final equity = (item.quantity ?? 0) * (item.averageBuyPrice ?? 0);
-              stockEquity += equity;
+            // Treat SGOV and other short-term treasury ETFs as Cash
+            double cashEtfsValue = 0.0;
+            final cashEtfSymbols = [
+              'SGOV',
+              'BIL',
+              'SHV',
+              'USFR',
+              'TFLO',
+              'TBIL',
+              'BILS',
+              'SHT',
+              'GBIL',
+              'CLTL',
+              'VGSH',
+              'SCHO'
+            ];
 
-              final sector =
-                  item.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
-              sectorEquity[sector] = (sectorEquity[sector] ?? 0) + equity;
+            for (var item in stockPositionStore.items) {
+              // Use marketValue for accurate allocation (was using cost basis before)
+              final equity = item.marketValue;
+
+              if (item.instrumentObj?.symbol != null &&
+                  cashEtfSymbols.contains(item.instrumentObj!.symbol)) {
+                cashEtfsValue += equity;
+              } else {
+                stockEquity += equity;
+
+                final sector =
+                    item.instrumentObj?.fundamentalsObj?.sector ?? 'Unknown';
+                sectorEquity[sector] = (sectorEquity[sector] ?? 0) + equity;
+              }
             }
 
             double optionEquity = 0;
             for (var item in optionPositionStore.items) {
-              // Use averageOpenPrice as averagePrice is not available on OptionAggregatePosition
-              optionEquity +=
-                  (item.quantity ?? 0) * (item.averageOpenPrice ?? 0);
+              // Use marketValue for accurate allocation
+              optionEquity += item.marketValue;
             }
 
             double cryptoEquity = 0;
@@ -708,7 +731,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               }
             }
 
-            double cashEquity = widget.account.portfolioCash ?? 0;
+            double cashEquity =
+                (widget.account.portfolioCash ?? 0) + cashEtfsValue;
 
             final totalEquity =
                 stockEquity + optionEquity + cryptoEquity + cashEquity;
