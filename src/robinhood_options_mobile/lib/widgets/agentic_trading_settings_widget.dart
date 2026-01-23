@@ -77,7 +77,7 @@ class _AgenticTradingSettingsWidgetState
   late List<String> _symbolFilter;
   String _interval = '1d';
   final TextEditingController _newSymbolController = TextEditingController();
-  final ScrollController _templateScrollController = ScrollController();
+  final CarouselController _templateScrollController = CarouselController();
   final ScrollController _intervalScrollController = ScrollController();
   bool _hasScrolledToTemplate = false;
 
@@ -408,13 +408,15 @@ class _AgenticTradingSettingsWidgetState
     final difference = now.difference(time);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return 'just now';
     } else if (difference.inMinutes < 60) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
       return '${difference.inHours}h ago';
-    } else {
+    } else if (difference.inDays < 7) {
       return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM dd').format(time);
     }
   }
 
@@ -1028,8 +1030,19 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildTemplateList(BuildContext context) {
     return Consumer<BacktestingProvider>(
       builder: (context, backtestingProvider, child) {
-        final templates = backtestingProvider.templates;
+        var templates =
+            List<TradeStrategyTemplate>.from(backtestingProvider.templates);
         final colorScheme = Theme.of(context).colorScheme;
+
+        // Move selected template to the front
+        if (_selectedTemplateId != null) {
+          final selectedIndex =
+              templates.indexWhere((t) => t.id == _selectedTemplateId);
+          if (selectedIndex != -1) {
+            final selectedTemplate = templates.removeAt(selectedIndex);
+            templates.insert(0, selectedTemplate);
+          }
+        }
 
         if (!_hasScrolledToTemplate &&
             templates.isNotEmpty &&
@@ -1039,12 +1052,11 @@ class _AgenticTradingSettingsWidgetState
           if (index != -1) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_templateScrollController.hasClients) {
-                final offset = 152.0 + (index * 232.0);
-                // Center the item if possible (approximate screen width logic omitted for simplicity)
-                // Or just ensure it's visible. With horizontal list, scrolling to offset puts it at start.
-                // Let's scroll to put it a bit more to the middle if index > 0.
-                final targetOffset =
-                    index > 0 ? offset - 60 : offset; // Simple adjustment
+                // CarouselView items are 312 wide.
+                // Index 0 is Save Strategy. Template index i matches children[i+1].
+                // We scroll to position the selected template at the start of the view (or near it).
+                final targetOffset = (index + 1) * 312.0;
+
                 _templateScrollController.animateTo(
                   targetOffset,
                   duration: const Duration(milliseconds: 500),
@@ -1104,298 +1116,33 @@ class _AgenticTradingSettingsWidgetState
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 188,
-              child: ListView.separated(
+              height: 200,
+              child: CarouselView(
                 controller: _templateScrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                itemCount: templates.length + 1,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
+                itemExtent: 312,
+                shrinkExtent: 200,
+                itemSnapping: true,
+                onTap: (index) {
                   if (index == 0) {
-                    return SizedBox(
-                      width: 140,
-                      child: Card(
-                        elevation: 0,
-                        margin: EdgeInsets.zero,
-                        color: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: colorScheme.primary.withValues(alpha: 0.5),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: InkWell(
-                          onTap: () => _showSaveTemplateDialog(context),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color:
-                                    colorScheme.primary.withValues(alpha: 0.3),
-                                width: 2,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primary
-                                        .withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.add_rounded,
-                                      size: 32, color: colorScheme.primary),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  "Save Strategy",
-                                  style: TextStyle(
-                                    color: colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Create Template",
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                    _showSaveTemplateDialog(context);
+                  } else if (index - 1 < templates.length) {
+                    _showTemplateDetailsSheet(context, templates[index - 1]);
                   }
-
-                  final template = templates[index - 1];
-                  final isDefault = template.id.startsWith('default_');
-                  final isSelected = template.id == _selectedTemplateId;
-
-                  return SizedBox(
-                    width: 220,
-                    child: Card(
-                      elevation: isSelected ? 4 : 2,
-                      shadowColor: isSelected
-                          ? colorScheme.primary.withValues(alpha: 0.4)
-                          : Colors.black12,
-                      color: isSelected
-                          ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-                          : null,
-                      margin: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outline.withValues(alpha: 0.1),
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () =>
-                            _showTemplateDetailsSheet(context, template),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Stack(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Stack(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: isDefault
-                                                  ? Colors.amber
-                                                      .withValues(alpha: 0.1)
-                                                  : colorScheme.primaryContainer
-                                                      .withValues(alpha: 0.5),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                                isDefault
-                                                    ? Icons.verified_rounded
-                                                    : Icons.bookmark_rounded,
-                                                size: 18,
-                                                color: isDefault
-                                                    ? Colors.amber[700]
-                                                    : colorScheme.primary),
-                                          ),
-                                          if (isSelected)
-                                            Positioned(
-                                              right: 0,
-                                              bottom: 0,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.all(2),
-                                                decoration: BoxDecoration(
-                                                  color: colorScheme.primary,
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                      color:
-                                                          colorScheme.surface,
-                                                      width: 1.5),
-                                                ),
-                                                child: Icon(Icons.check,
-                                                    size: 10,
-                                                    color:
-                                                        colorScheme.onPrimary),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                              right: 24.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                template.name,
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              // const SizedBox(height: 2),
-                                              // Text(
-                                              //   isDefault
-                                              //       ? 'Built-in'
-                                              //       : (template.lastUsedAt !=
-                                              //               null
-                                              //           ? 'Last used ${DateFormat('MMM d').format(template.lastUsedAt!)}'
-                                              //           : 'Custom Strategy'),
-                                              //   style: TextStyle(
-                                              //     fontSize: 10,
-                                              //     color: colorScheme
-                                              //         .onSurfaceVariant,
-                                              //     fontWeight: FontWeight.w500,
-                                              //   ),
-                                              // ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    template.description,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: colorScheme.onSurfaceVariant,
-                                      height: 1.2,
-                                    ),
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const Spacer(),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildCompactMetric(
-                                          context,
-                                          "TP",
-                                          "${template.config.takeProfitPercent.toStringAsFixed(1)}%",
-                                          Colors.green,
-                                          Icons.trending_up),
-                                      _buildCompactMetric(
-                                          context,
-                                          "SL",
-                                          "${template.config.stopLossPercent.toStringAsFixed(1)}%",
-                                          Colors.red,
-                                          Icons.trending_down),
-                                      _buildCompactMetric(
-                                          context,
-                                          "Risk",
-                                          "${(template.config.riskPerTrade * 100).toStringAsFixed(1)}%",
-                                          Colors.orange,
-                                          Icons.shield_outlined),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        if (template.config.symbolFilter
-                                            .isNotEmpty) ...[
-                                          _buildTag(
-                                            context,
-                                            template.config.symbolFilter
-                                                        .length >
-                                                    3
-                                                ? "${template.config.symbolFilter.length} Symbols"
-                                                : template.config.symbolFilter
-                                                    .join(','),
-                                            colorScheme.primaryContainer,
-                                            colorScheme.onPrimaryContainer,
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
-                                        if (template
-                                            .config.exitStages.isNotEmpty) ...[
-                                          _buildTag(
-                                            context,
-                                            "Multi-Exit",
-                                            colorScheme.secondaryContainer,
-                                            colorScheme.onSecondaryContainer,
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
-                                        if (template.config.customIndicators
-                                            .isNotEmpty) ...[
-                                          _buildTag(
-                                            context,
-                                            "Custom",
-                                            colorScheme.tertiaryContainer,
-                                            colorScheme.onTertiaryContainer,
-                                          ),
-                                          const SizedBox(width: 6),
-                                        ],
-                                        if (template
-                                                .config.exitStages.isEmpty &&
-                                            template.config.customIndicators
-                                                .isEmpty &&
-                                            template
-                                                .config.symbolFilter.isEmpty)
-                                          _buildTag(
-                                            context,
-                                            "Standard",
-                                            colorScheme.surfaceContainerHighest,
-                                            colorScheme.onSurface,
-                                          ),
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
                 },
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                children: [
+                  _buildSaveStrategyCard(context, colorScheme),
+                  ...templates.map((template) {
+                    final isDefault = template.id.startsWith('default_');
+                    final isSelected = template.id == _selectedTemplateId;
+
+                    return _buildStrategyTemplateCard(
+                        context, template, isSelected, isDefault);
+                  }),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -1416,54 +1163,377 @@ class _AgenticTradingSettingsWidgetState
     });
   }
 
-  Widget _buildCompactMetric(BuildContext context, String label, String value,
-      Color color, IconData? icon) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon,
-                  size: 10,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(width: 2),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: color,
+  Widget _buildSaveStrategyCard(BuildContext context, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.5),
+            width: 1.5,
           ),
         ),
-      ],
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.add_rounded,
+                    size: 32, color: colorScheme.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Save Strategy",
+                style: TextStyle(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Create Template",
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildTag(BuildContext context, String text, Color bg, Color fg) {
+  Widget _buildStrategyTemplateCard(BuildContext context,
+      TradeStrategyTemplate template, bool isSelected, bool isDefault) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: SizedBox(
+        width: 300,
+        child: Card(
+          elevation: isSelected ? 2 : 0,
+          shadowColor: isSelected
+              ? colorScheme.primary.withValues(alpha: 0.3)
+              : Colors.transparent,
+          clipBehavior: Clip.antiAlias,
+          color: isSelected
+              ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+              : Theme.of(context).cardColor,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outline.withValues(alpha: 0.1),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isDefault
+                            ? Colors.amber.withValues(alpha: 0.15)
+                            : colorScheme.primaryContainer
+                                .withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isDefault ? Icons.verified : Icons.analytics_rounded,
+                        color:
+                            isDefault ? Colors.amber[800] : colorScheme.primary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  template.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isSelected)
+                                Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.check,
+                                      size: 10, color: colorScheme.onPrimary),
+                                ),
+                            ],
+                          ),
+                          if (isDefault) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                    width: 0.5),
+                              ),
+                              child: Text(
+                                'SYSTEM',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber[900],
+                                ),
+                              ),
+                            ),
+                          ] else if (template.lastUsedAt != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Used ${_formatTime(template.lastUsedAt!)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  template.description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  maxLines: 2,
+                ),
+                const Spacer(),
+                // Stats Badge Row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildStatBadge(
+                        context,
+                        '',
+                        template.config.interval,
+                        colorScheme.tertiary,
+                        icon: Icons.timer_outlined,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'TP',
+                        '${template.config.takeProfitPercent.toStringAsFixed(1)}%',
+                        Colors.green,
+                        icon: Icons.trending_up_rounded,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'SL',
+                        '${template.config.stopLossPercent.toStringAsFixed(1)}%',
+                        Colors.red,
+                        icon: Icons.trending_down_rounded,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'Risk',
+                        '${(template.config.riskPerTrade * 100).toStringAsFixed(1)}%',
+                        Colors.orange,
+                        icon: Icons.shield_outlined,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Features Wrap/Row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildFeatureChip(
+                          context,
+                          Icons.show_chart_rounded,
+                          template.config.symbolFilter.isEmpty
+                              ? "All Symbols"
+                              : (template.config.symbolFilter.length > 3
+                                  ? "${template.config.symbolFilter.take(3).join(', ')} +${template.config.symbolFilter.length - 3}"
+                                  : template.config.symbolFilter.join(', '))),
+                      const SizedBox(width: 8),
+                      _buildFeatureChip(context, Icons.layers_outlined,
+                          _getIndicatorsSummary(template.config)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(
+      BuildContext context, String label, String value, Color color,
+      {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+          ],
+          if (label.isNotEmpty) ...[
+            Text(
+              '$label ',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureChip(BuildContext context, IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
       ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _getIndicatorsSummary(TradeStrategyConfig config) {
+    final Map<String, String> friendlyNames = {
+      'priceMovement': 'Price',
+      'momentum': 'RSI',
+      'marketDirection': 'Market',
+      'volume': 'Vol',
+      'macd': 'MACD',
+      'bollingerBands': 'BB',
+      'stochastic': 'Stoch',
+      'atr': 'ATR',
+      'obv': 'OBV',
+      'vwap': 'VWAP',
+      'adx': 'ADX',
+      'williamsR': 'WillR',
+      'ichimoku': 'Ichi',
+      'cci': 'CCI',
+      'parabolicSar': 'SAR',
+    };
+
+    final activeKeys = config.enabledIndicators.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+
+    var names = activeKeys
+        .map((k) => friendlyNames[k] ?? k)
+        .toList(); // Map to friendly names
+
+    if (config.customIndicators.isNotEmpty) {
+      names.addAll(config.customIndicators.map((c) => c.name));
+    }
+
+    if (names.isEmpty) return 'No indicators';
+
+    if (names.length <= 3) {
+      return names.join(', ');
+    }
+    return '${names.take(3).join(", ")} +${names.length - 3}';
   }
 
   Widget _buildStatusHeader(

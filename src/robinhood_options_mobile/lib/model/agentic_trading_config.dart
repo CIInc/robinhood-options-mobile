@@ -250,21 +250,21 @@ class AgenticTradingConfig {
 
   static Map<String, bool> _parseEnabledIndicators(dynamic jsonMap) {
     final defaults = {
-      'priceMovement': true,
-      'momentum': true,
-      'marketDirection': true,
-      'volume': true,
-      'macd': true,
-      'bollingerBands': true,
-      'stochastic': true,
-      'atr': true,
-      'obv': true,
-      'vwap': true,
-      'adx': true,
-      'williamsR': true,
-      'ichimoku': true,
-      'cci': true,
-      'parabolicSar': true,
+      'priceMovement': false,
+      'momentum': false,
+      'marketDirection': false,
+      'volume': false,
+      'macd': false,
+      'bollingerBands': false,
+      'stochastic': false,
+      'atr': false,
+      'obv': false,
+      'vwap': false,
+      'adx': false,
+      'williamsR': false,
+      'ichimoku': false,
+      'cci': false,
+      'parabolicSar': false,
     };
 
     if (jsonMap == null) return defaults;

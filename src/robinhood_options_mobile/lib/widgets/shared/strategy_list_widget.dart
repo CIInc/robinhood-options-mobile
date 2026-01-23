@@ -79,6 +79,16 @@ class StrategyListWidget extends StatelessWidget {
       });
     }
 
+    // Move selected strategy to the front
+    if (selectedStrategyId != null) {
+      final selectedIndex =
+          filtered.indexWhere((s) => s.id == selectedStrategyId);
+      if (selectedIndex > 0) {
+        final selected = filtered.removeAt(selectedIndex);
+        filtered.insert(0, selected);
+      }
+    }
+
     if (filtered.isEmpty) {
       return Center(
         child: Column(
@@ -130,7 +140,10 @@ class StrategyListWidget extends StatelessWidget {
           : Colors.transparent,
       clipBehavior: Clip.antiAlias,
       color: isSelected
-          ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.15)
+          ? Theme.of(context)
+              .colorScheme
+              .primaryContainer
+              .withValues(alpha: 0.15)
           : Theme.of(context).cardColor,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -475,7 +488,10 @@ class StrategyListWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),

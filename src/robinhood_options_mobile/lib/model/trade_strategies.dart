@@ -6,6 +6,74 @@ import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 class TradeStrategyDefaults {
   static final List<TradeStrategyTemplate> defaultTemplates = [
     TradeStrategyTemplate(
+      id: 'default_simple_rsi',
+      name: 'Simple RSI',
+      description:
+          'Classic mean reversion strategy. Buy when RSI is below 30 (Oversold).',
+      config: TradeStrategyConfig(
+        minSignalStrength: 50.0,
+        requireAllIndicatorsGreen: true,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'momentum': true, // RSI
+        },
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'simple_rsi_buy',
+            name: 'RSI < 30',
+            type: IndicatorType.RSI,
+            parameters: {'period': 14},
+            condition: SignalCondition.LessThan,
+            threshold: 30.0,
+            compareToPrice: false,
+          ),
+        ],
+        takeProfitPercent: 5.0,
+        stopLossPercent: 2.0,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_simple_macd',
+      name: 'Simple MACD',
+      description:
+          'Trend following strategy. Buy when MACD line crosses above the Signal line.',
+      config: TradeStrategyConfig(
+        minSignalStrength: 50.0,
+        requireAllIndicatorsGreen: true,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'macd': true,
+        },
+        takeProfitPercent: 8.0,
+        stopLossPercent: 4.0,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_simple_bollinger',
+      name: 'Simple Bollinger',
+      description:
+          'Mean reversion strategy. Buy when price closes near the Lower Bollinger Band.',
+      config: TradeStrategyConfig(
+        minSignalStrength: 50.0,
+        requireAllIndicatorsGreen: true,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        enabledIndicators: {
+          'bollingerBands': true,
+        },
+        takeProfitPercent: 5.0,
+        stopLossPercent: 2.0,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
       id: 'default_momentum_master',
       name: 'Momentum Master',
       description:
@@ -1118,12 +1186,14 @@ class TradeStrategyDefaults {
           'marketDirection': false,
           'volume': false,
           'macd': false,
-          'bollingerBands': true, // Reversal zone (Lower Band implied by oversold)
+          'bollingerBands':
+              true, // Reversal zone (Lower Band implied by oversold)
           'stochastic': true, // Confirmation
           'atr': true,
           'obv': false,
           'vwap': false,
-          'adx': true, // Ensure no strong trend (implied inverse logic if checked?)
+          'adx':
+              true, // Ensure no strong trend (implied inverse logic if checked?)
           'williamsR': true,
           'ichimoku': false,
           'cci': true,
