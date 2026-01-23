@@ -34,25 +34,25 @@ class MarketHours {
 
     final etTime = now.subtract(Duration(hours: offset));
 
-    debugPrint('🕐 Trading session check:');
-    debugPrint('   UTC time: $now');
-    debugPrint('   DST active: $isDST (offset: -$offset hours)');
-    debugPrint('   ET time: $etTime');
-    debugPrint('   Day of week: ${etTime.weekday} (${[
-      '',
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun'
-    ][etTime.weekday]})');
+    // debugPrint('🕐 Trading session check:');
+    // debugPrint('   UTC time: $now');
+    // debugPrint('   DST active: $isDST (offset: -$offset hours)');
+    // debugPrint('   ET time: $etTime');
+    // debugPrint('   Day of week: ${etTime.weekday} (${[
+    //   '',
+    //   'Mon',
+    //   'Tue',
+    //   'Wed',
+    //   'Thu',
+    //   'Fri',
+    //   'Sat',
+    //   'Sun'
+    // ][etTime.weekday]})');
 
     // Market is closed on weekends
     if (etTime.weekday == DateTime.saturday ||
         etTime.weekday == DateTime.sunday) {
-      debugPrint('   ❌ Weekend - market closed');
+      // debugPrint('   ❌ Weekend - market closed');
       return TradingSession.closed;
     }
 
@@ -70,24 +70,24 @@ class MarketHours {
     final afterHoursOpen = 16 * 60; // 960 minutes
     final afterHoursClose = 20 * 60; // 1200 minutes
 
-    debugPrint(
-        '   Current ET: ${etTime.hour}:${etTime.minute.toString().padLeft(2, '0')}');
-    debugPrint('   Current minutes: $currentTimeInMinutes');
+    // debugPrint(
+    //     '   Current ET: ${etTime.hour}:${etTime.minute.toString().padLeft(2, '0')}');
+    // debugPrint('   Current minutes: $currentTimeInMinutes');
 
     if (currentTimeInMinutes >= preMarketOpen &&
         currentTimeInMinutes < preMarketClose) {
-      debugPrint('   📈 PRE-MARKET SESSION');
+      // debugPrint('   📈 PRE-MARKET SESSION');
       return TradingSession.preMarket;
     } else if (currentTimeInMinutes >= regularOpen &&
         currentTimeInMinutes < regularClose) {
-      debugPrint('   ✅ REGULAR MARKET SESSION');
+      // debugPrint('   ✅ REGULAR MARKET SESSION');
       return TradingSession.regular;
     } else if (currentTimeInMinutes >= afterHoursOpen &&
         currentTimeInMinutes < afterHoursClose) {
-      debugPrint('   📉 AFTER-HOURS SESSION');
+      // debugPrint('   📉 AFTER-HOURS SESSION');
       return TradingSession.afterHours;
     } else {
-      debugPrint('   ❌ MARKET CLOSED');
+      // debugPrint('   ❌ MARKET CLOSED');
       return TradingSession.closed;
     }
   }
@@ -251,8 +251,8 @@ class MarketHours {
     DateTime firstSundayNovember =
         DateTime.utc(year, 11, 1 + daysToFirstSundayNov, 6); // 6 AM UTC
 
-    debugPrint('   DST period: $secondSundayMarch to $firstSundayNovember');
-    debugPrint('   Current UTC: $utcTime');
+    // debugPrint('   DST period: $secondSundayMarch to $firstSundayNovember');
+    // debugPrint('   Current UTC: $utcTime');
 
     return utcTime.isAfter(secondSundayMarch) &&
         utcTime.isBefore(firstSundayNovember);

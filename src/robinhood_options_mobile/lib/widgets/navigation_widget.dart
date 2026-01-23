@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/services/subscription_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
@@ -31,6 +32,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -486,6 +488,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           generativeService: _generativeService,
           navigatorKey: navigatorKeys[2],
           userDocRef: userDoc),
+      TradeSignalsPage(
+        user: user,
+        userDocRef: userDoc,
+        brokerageUser: userStore.currentUser,
+        service: service,
+        analytics: widget.analytics,
+        observer: widget.observer,
+        generativeService: _generativeService,
+      ),
       InvestorGroupsWidget(
         firestoreService: _firestoreService,
         brokerageUser: userStore.currentUser,
@@ -575,6 +586,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             label: 'Search',
           ),
           NavigationDestination(
+            icon: Icon(Icons.insights),
+            label: 'Signals', // Trade Signals
+          ),
+          NavigationDestination(
             icon: Icon(Icons.groups),
             label: 'Investors',
           ),
@@ -594,7 +609,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         selectedIndex: _pageIndex > tabPages.length - 1 ? 0 : _pageIndex,
         onDestinationSelected: _onPageChanged,
       ),
-      floatingActionButton: message == null
+      floatingActionButton: message == null &&
+              !(_pageIndex == 3 &&
+                  user != null &&
+                  !SubscriptionService().isSubscriptionActive(user!))
           ? FloatingActionButton(
               onPressed: () {
                 Navigator.of(context).push(

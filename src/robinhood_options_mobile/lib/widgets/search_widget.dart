@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
-import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -20,19 +19,15 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/market_sentiment_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
-import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
-import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -80,23 +75,14 @@ class _SearchWidgetState extends State<SearchWidget>
   Future<List<MidlandMoversItem>>? futureLosers;
   Future<List<Instrument>>? futureListMovers;
   Future<List<Instrument>>? futureListMostPopular;
-  Future<List<Map<String, dynamic>>>? futureTradeSignals;
+
   Stream<List<Watchlist>>? watchlistStream;
 
   InstrumentStore? instrumentStore;
 
-  // Trade Signal Strength category (per docs): STRONG (70-100), MODERATE (40-69), WEAK (0-39)
-  String? signalStrengthCategory; // 'STRONG' | 'MODERATE' | 'WEAK' | null
+  final GlobalKey<TradeSignalsWidgetState> _tradeSignalsKey = GlobalKey();
 
   // Trade Signal Filters
-  // String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
-  Map<String, String> selectedIndicators =
-      {}; // Selected indicators from multiIndicatorResult.indicators
-  int? minSignalStrength; // null = no filter, 0-100
-  int? maxSignalStrength; // null = no filter, 0-100
-  DateTime? tradeSignalStartDate;
-  DateTime? tradeSignalEndDate;
-  int tradeSignalLimit = 50; // Default limit
 
   _SearchWidgetState();
 
@@ -109,20 +95,16 @@ class _SearchWidgetState extends State<SearchWidget>
 
     searchCtl = TextEditingController();
     widget.analytics.logScreenView(screenName: 'Search');
-
-    // Fetch trade signals on initialization
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchTradeSignalsWithFilters();
-    });
   }
 
   @override
   void dispose() {
     searchCtl?.dispose();
     super.dispose();
-  }
+  } // WidgetsBinding.instance.addPostFrameCallback((_) {
 
-  @override
+  //   _fetchTradeSignalsWithFilters();
+  //override
   Widget build(BuildContext context) {
     super.build(context);
 
@@ -294,7 +276,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   */
                   SliverStickyHeader(
                     header: Material(
-                      elevation: 2,
+                      elevation: 1,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: TextField(
@@ -345,29 +327,32 @@ class _SearchWidgetState extends State<SearchWidget>
                         ),
                       ),
                     ),
-                    sliver: SliverPadding(
-                        padding: const EdgeInsets.all(
-                            2), // .symmetric(horizontal: 2),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 150.0,
-                            mainAxisSpacing: 10.0,
-                            crossAxisSpacing: 10.0,
-                            childAspectRatio: 0.925,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext context, int index) {
-                              return _buildSearchGridItem(search, index);
-                            },
-                            childCount: search != null
-                                ? (search is List
-                                    ? search.length
-                                    : search["results"][0]["content"]["data"]
-                                        .length)
-                                : 0,
-                          ),
-                        )),
+                    sliver: search == null
+                        ? null
+                        : SliverPadding(
+                            padding: const EdgeInsets.all(
+                                12), // .symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 150.0,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                                childAspectRatio: 0.925,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildSearchGridItem(search, index);
+                                },
+                                childCount: search != null
+                                    ? (search is List
+                                        ? search.length
+                                        : search["results"][0]["content"]
+                                                ["data"]
+                                            .length)
+                                    : 0,
+                              ),
+                            )),
                   ),
                   if (watchlistStream != null) ...[
                     SliverToBoxAdapter(
@@ -381,8 +366,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             return SizedBox(
                               height: 50,
                               child: ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0),
+                                padding: const EdgeInsets.fromLTRB(
+                                    16.0, 12.0, 16.0, 0.0),
                                 scrollDirection: Axis.horizontal,
                                 itemCount: lists.length + 1,
                                 itemBuilder: (context, index) {
@@ -511,434 +496,25 @@ class _SearchWidgetState extends State<SearchWidget>
                       userDocRef: widget.userDocRef,
                     ),
                   ),
-                  Consumer<TradeSignalsProvider>(
-                    builder: (context, tradeSignalsProvider, child) {
-                      // Apply client-side filtering for strength categories when needed
-                      final tradeSignals = tradeSignalsProvider.tradeSignals;
-                      final isMarketOpen = MarketHours.isMarketOpen();
-                      final selectedInterval =
-                          tradeSignalsProvider.selectedInterval;
-
-                      return SliverStickyHeader(
-                          header: Material(
-                              elevation: 2,
-                              child: Container(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  alignment: Alignment.centerLeft,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        leading: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primaryContainer
-                                                .withValues(alpha: 0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Icon(Icons.insights,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
-                                              size: 22),
-                                        ),
-                                        title: Text(
-                                          "Trade Signals",
-                                          style: TextStyle(
-                                            fontSize: 20.0,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        trailing: PopupMenuButton<String>(
-                                          icon: const Icon(Icons.more_vert),
-                                          tooltip: 'Options',
-                                          itemBuilder: (BuildContext context) =>
-                                              <PopupMenuEntry<String>>[
-                                            // Configuration Section
-                                            const PopupMenuItem<String>(
-                                              enabled: false,
-                                              child: Text('CONFIGURATION',
-                                                  style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w500)),
-                                            ),
-                                            const PopupMenuItem<String>(
-                                              value: 'config:notifications',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons
-                                                      .notifications_outlined),
-                                                  SizedBox(width: 8),
-                                                  Text('Notifications'),
-                                                ],
-                                              ),
-                                            ),
-                                            const PopupMenuItem<String>(
-                                              value: 'config:agentic_settings',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.tune),
-                                                  SizedBox(width: 8),
-                                                  Text('Settings'),
-                                                ],
-                                              ),
-                                            ),
-                                            const PopupMenuDivider(),
-                                            // Sort Section
-                                            const PopupMenuItem<String>(
-                                              enabled: false,
-                                              child: Text('SORT BY',
-                                                  style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w500)),
-                                            ),
-                                            PopupMenuItem<String>(
-                                              value: 'sort:signalStrength',
-                                              child: Row(
-                                                children: [
-                                                  if (tradeSignalsProvider
-                                                          .sortBy ==
-                                                      'signalStrength')
-                                                    Icon(Icons.check,
-                                                        size: 18,
-                                                        color: Colors
-                                                            .green.shade700)
-                                                  else
-                                                    const SizedBox(width: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('Signal Strength'),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuItem<String>(
-                                              value: 'sort:timestamp',
-                                              child: Row(
-                                                children: [
-                                                  if (tradeSignalsProvider
-                                                          .sortBy ==
-                                                      'timestamp')
-                                                    Icon(Icons.check,
-                                                        size: 18,
-                                                        color: Colors
-                                                            .green.shade700)
-                                                  else
-                                                    const SizedBox(width: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('Recent'),
-                                                ],
-                                              ),
-                                            ),
-                                            const PopupMenuDivider(),
-                                            // Interval Section
-                                            PopupMenuItem<String>(
-                                              enabled: false,
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text('INTERVAL',
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w500)),
-                                                  const SizedBox(height: 4),
-                                                  Row(
-                                                    children: [
-                                                      Icon(
-                                                        isMarketOpen
-                                                            ? Icons.access_time
-                                                            : Icons
-                                                                .calendar_today,
-                                                        size: 14,
-                                                        color: isMarketOpen
-                                                            ? Colors
-                                                                .green.shade700
-                                                            : Colors
-                                                                .blue.shade700,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        isMarketOpen
-                                                            ? 'Market Open'
-                                                            : 'After Hours',
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          color: isMarketOpen
-                                                              ? Colors.green
-                                                                  .shade700
-                                                              : Colors.blue
-                                                                  .shade700,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuItem<String>(
-                                              value: 'interval:15m',
-                                              child: Row(
-                                                children: [
-                                                  if (selectedInterval == '15m')
-                                                    Icon(Icons.check,
-                                                        size: 18,
-                                                        color: Colors
-                                                            .green.shade700)
-                                                  else
-                                                    const SizedBox(width: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('15-min'),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuItem<String>(
-                                              value: 'interval:1h',
-                                              child: Row(
-                                                children: [
-                                                  if (selectedInterval == '1h')
-                                                    Icon(Icons.check,
-                                                        size: 18,
-                                                        color: Colors
-                                                            .green.shade700)
-                                                  else
-                                                    const SizedBox(width: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('Hourly'),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuItem<String>(
-                                              value: 'interval:1d',
-                                              child: Row(
-                                                children: [
-                                                  if (selectedInterval == '1d')
-                                                    Icon(Icons.check,
-                                                        size: 18,
-                                                        color: Colors
-                                                            .green.shade700)
-                                                  else
-                                                    const SizedBox(width: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('Daily'),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                          onSelected: (String value) async {
-                                            if (value.startsWith('config:')) {
-                                              if (!mounted ||
-                                                  widget.user == null ||
-                                                  widget.userDocRef == null) {
-                                                return;
-                                              }
-                                              if (value ==
-                                                  'config:notifications') {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        TradeSignalNotificationSettingsWidget(
-                                                      user: widget.user!,
-                                                      userDocRef:
-                                                          widget.userDocRef!,
-                                                    ),
-                                                  ),
-                                                );
-                                              } else if (value ==
-                                                  'config:agentic_settings') {
-                                                final result =
-                                                    await Navigator.of(context)
-                                                        .push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        AgenticTradingSettingsWidget(
-                                                      user: widget.user!,
-                                                      userDocRef:
-                                                          widget.userDocRef!,
-                                                      service: widget.service,
-                                                      initialSection:
-                                                          'entryStrategies',
-                                                    ),
-                                                  ),
-                                                );
-                                                if (result == true && mounted) {
-                                                  _fetchTradeSignalsWithFilters();
-                                                }
-                                              }
-                                            } else if (value
-                                                .startsWith('sort:')) {
-                                              final sortValue =
-                                                  value.split(':')[1];
-                                              tradeSignalsProvider.sortBy =
-                                                  sortValue;
-                                              _fetchTradeSignalsWithFilters();
-                                            } else if (value
-                                                .startsWith('interval:')) {
-                                              final intervalValue =
-                                                  value.split(':')[1];
-                                              tradeSignalsProvider
-                                                  .setSelectedInterval(
-                                                      intervalValue);
-                                              _fetchTradeSignalsWithFilters();
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                      Consumer<AgenticTradingProvider>(
-                                        builder:
-                                            (context, agenticProvider, child) {
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 16.0,
-                                                vertical: 4.0),
-                                            child:
-                                                _buildTradeSignalFilterChips(),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ))),
-                          sliver: tradeSignalsProvider.isLoading
-                              ? SliverToBoxAdapter(
-                                  child: SizedBox(
-                                    height: 300,
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const CircularProgressIndicator(),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Loading trade signal data...',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withValues(alpha: 0.7),
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : tradeSignalsProvider.error != null
-                                  ? SliverToBoxAdapter(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.error_outline,
-                                                  size: 48,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .error),
-                                              const SizedBox(height: 16),
-                                              Text(
-                                                'Error loading signals',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium
-                                                    ?.copyWith(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .error,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                tradeSignalsProvider.error!,
-                                                textAlign: TextAlign.center,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyMedium
-                                                    ?.copyWith(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 16),
-                                              ElevatedButton.icon(
-                                                onPressed: () {
-                                                  _fetchTradeSignalsWithFilters();
-                                                },
-                                                icon: const Icon(Icons.refresh),
-                                                label: const Text('Retry'),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : tradeSignals.isEmpty
-                                      ? SliverToBoxAdapter(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: Center(
-                                              child: Text(
-                                                selectedIndicators.isEmpty &&
-                                                        signalStrengthCategory ==
-                                                            null
-                                                    ? 'No trade signals available'
-                                                    : 'No matching signals found',
-                                                style: TextStyle(
-                                                  fontSize: 16.0,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      : SliverPadding(
-                                          padding: const EdgeInsets.all(
-                                              2), // .symmetric(horizontal: 2),
-                                          sliver: SliverGrid(
-                                            gridDelegate:
-                                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                                              maxCrossAxisExtent: 220.0,
-                                              mainAxisSpacing: 10.0,
-                                              crossAxisSpacing: 10.0,
-                                              childAspectRatio: 1.17,
-                                            ),
-                                            delegate:
-                                                SliverChildBuilderDelegate(
-                                              (BuildContext context,
-                                                  int index) {
-                                                return _buildTradeSignalGridItem(
-                                                    tradeSignals, index);
-                                              },
-                                              childCount: tradeSignals.length,
-                                            ),
-                                          )));
-                    },
-                  ),
+                  // Moved to its own page
+                  // TradeSignalsWidget(
+                  //   key: _tradeSignalsKey,
+                  //   user: widget.user,
+                  //   brokerageUser: widget.brokerageUser,
+                  //   userDocRef: widget.userDocRef,
+                  //   service: widget.service,
+                  //   analytics: widget.analytics,
+                  //   observer: widget.observer,
+                  //   generativeService: widget.generativeService,
+                  // ),
                   if (movers != null && movers.isNotEmpty) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
+                    // const SliverToBoxAdapter(
+                    //     child: SizedBox(
+                    //   height: 25.0,
+                    // )),
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            elevation: 1,
                             child: Container(
                                 color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
@@ -965,7 +541,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 ))),
                         sliver: SliverPadding(
                             padding: const EdgeInsets.all(
-                                2), // .symmetric(horizontal: 2),
+                                12), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -989,7 +565,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     )),
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            elevation: 1,
                             child: Container(
                                 color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
@@ -1015,7 +591,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 ))),
                         sliver: SliverPadding(
                             padding: const EdgeInsets.all(
-                                2), // .symmetric(horizontal: 2),
+                                12), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1039,7 +615,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (listMovers != null && listMovers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            elevation: 1,
                             child: Container(
                                 color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
@@ -1071,7 +647,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 ))),
                         sliver: SliverPadding(
                             padding: const EdgeInsets.all(
-                                2), // .symmetric(horizontal: 2),
+                                12), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1097,7 +673,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       listMostPopular.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            elevation: 1,
                             child: Container(
                                 color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
@@ -1129,7 +705,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 ))),
                         sliver: SliverPadding(
                             padding: const EdgeInsets.all(
-                                2), // .symmetric(horizontal: 2),
+                                12), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1179,17 +755,16 @@ class _SearchWidgetState extends State<SearchWidget>
       futureListMovers = null;
       futureListMostPopular = null;
       futureSearch = Future.value(null);
-      futureTradeSignals = null;
     });
     // Refresh trade signals on pull-to-refresh
-    _fetchTradeSignalsWithFilters();
+    _tradeSignalsKey.currentState?.refresh();
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
     final isPositive = movers[index].marketHoursPriceMovement! > 0;
     final isNegative = movers[index].marketHoursPriceMovement! < 0;
     return Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
@@ -1311,7 +886,7 @@ class _SearchWidgetState extends State<SearchWidget>
       data = search["results"][0]["content"]["data"][index]["item"];
     }
     return Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
@@ -1475,334 +1050,6 @@ class _SearchWidgetState extends State<SearchWidget>
     */
   }
 
-  Widget _buildTradeSignalGridItem(
-      List<Map<String, dynamic>> tradeSignals, int index) {
-    final signal = tradeSignals[index];
-    final timestamp = signal['timestamp'] != null
-        ? DateTime.fromMillisecondsSinceEpoch(signal['timestamp'] as int)
-        : DateTime.now();
-    final symbol = signal['symbol'] ?? 'N/A';
-    final overallSignalType = signal['signal'] ?? 'HOLD';
-
-    // Extract individual indicator signals and signal strength from multiIndicatorResult
-    final multiIndicatorResult =
-        signal['multiIndicatorResult'] as Map<String, dynamic>?;
-    final indicatorsMap =
-        multiIndicatorResult?['indicators'] as Map<String, dynamic>?;
-    final signalStrength = multiIndicatorResult?['signalStrength'] as int?;
-
-    Map<String, String> indicatorSignals = {};
-    if (indicatorsMap != null) {
-      const indicatorNames = [
-        'priceMovement',
-        'momentum',
-        'marketDirection',
-        'volume',
-        'macd',
-        'bollingerBands',
-        'stochastic',
-        'atr',
-        'obv',
-        'vwap',
-        'adx',
-        'williamsR',
-        'ichimoku',
-        'cci',
-        'parabolicSAR',
-      ];
-
-      for (final indicator in indicatorNames) {
-        final indicatorData = indicatorsMap[indicator] as Map<String, dynamic>?;
-        if (indicatorData != null && indicatorData['signal'] != null) {
-          indicatorSignals[indicator] = indicatorData['signal'];
-        }
-      }
-    }
-
-    // Calculate composite signal based on enabled indicators
-    final agenticProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    final enabledIndicators =
-        agenticProvider.config['enabledIndicators'] != null
-            ? Map<String, bool>.from(
-                agenticProvider.config['enabledIndicators'] as Map)
-            : {};
-
-    // If there are enabled indicators, use them to calculate composite signal
-    String displaySignalType = overallSignalType;
-    if (enabledIndicators.isNotEmpty) {
-      final enabledIndicatorSignals = indicatorSignals.entries
-          .where((entry) => enabledIndicators[entry.key] == true)
-          .map((entry) => entry.value)
-          .toList();
-
-      if (enabledIndicatorSignals.isNotEmpty) {
-        // Require unanimous agreement for BUY or SELL, otherwise HOLD (mixed)
-        final allBuy = enabledIndicatorSignals.every((s) => s == 'BUY');
-        final allSell = enabledIndicatorSignals.every((s) => s == 'SELL');
-
-        if (allBuy) {
-          displaySignalType = 'BUY';
-        } else if (allSell) {
-          displaySignalType = 'SELL';
-        } else {
-          // Mixed signals: use HOLD
-          displaySignalType = 'HOLD';
-        }
-      }
-    }
-
-    final signalType = displaySignalType;
-    final isBuy = signalType == 'BUY';
-    final isSell = signalType == 'SELL';
-
-    return Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: isBuy
-                ? Colors.green.withValues(alpha: 0.3)
-                : (isSell
-                    ? Colors.red.withValues(alpha: 0.3)
-                    : Colors.grey.withValues(alpha: 0.2)),
-            width: 1.5,
-          ),
-        ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isBuy
-                                  ? Colors.green.withValues(alpha: 0.15)
-                                  : (isSell
-                                      ? Colors.red.withValues(alpha: 0.15)
-                                      : Colors.grey.withValues(alpha: 0.15)),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                    isBuy
-                                        ? Icons.trending_up
-                                        : (isSell
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: isBuy
-                                        ? Colors.green
-                                        : (isSell ? Colors.red : Colors.grey),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(signalType,
-                                    style: TextStyle(
-                                      fontSize: 13.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: isBuy
-                                          ? Colors.green
-                                          : (isSell ? Colors.red : Colors.grey),
-                                    )),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Timestamp and Signal Strength row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(_formatSignalTimestamp(timestamp),
-                                style: TextStyle(
-                                    fontSize: 12.0,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          if (signalStrength != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _getSignalStrengthColor(signalStrength)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.speed,
-                                    size: 12,
-                                    color:
-                                        _getSignalStrengthColor(signalStrength),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '$signalStrength',
-                                    style: TextStyle(
-                                      fontSize: 11.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getSignalStrengthColor(
-                                          signalStrength),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      // Individual indicator signal tags
-                      if (indicatorSignals.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: indicatorSignals.entries.map((entry) {
-                            final indicatorName = entry.key;
-                            final indicatorSignal = entry.value;
-
-                            Color tagColor;
-                            if (indicatorSignal == 'BUY') {
-                              tagColor = Colors.green;
-                            } else if (indicatorSignal == 'SELL') {
-                              tagColor = Colors.red;
-                            } else {
-                              tagColor = Colors.grey;
-                            }
-
-                            // Short names for display
-                            String displayName;
-                            switch (indicatorName) {
-                              case 'priceMovement':
-                                displayName = 'Price';
-                                break;
-                              case 'marketDirection':
-                                displayName = 'Market';
-                                break;
-                              case 'bollingerBands':
-                                displayName = 'BB';
-                                break;
-                              case 'stochastic':
-                                displayName = 'Stoch';
-                                break;
-                              case 'williamsR':
-                                displayName = 'W%R';
-                                break;
-                              case 'momentum':
-                                displayName = 'RSI';
-                                break;
-                              case 'ichimoku':
-                                displayName = 'Ichimoku';
-                                break;
-                              case 'cci':
-                                displayName = 'CCI';
-                                break;
-                              case 'parabolicSAR':
-                                displayName = 'SAR';
-                                break;
-                              default:
-                                displayName = indicatorName
-                                    .capitalize(); // .toUpperCase()
-                            }
-
-                            // Disable styling for indicators not in settings
-                            final opacity = 1.0;
-                            // isIndicatorEnabled ? 1.0 : 0.4;
-                            final finalTagColor = tagColor;
-                            // isIndicatorEnabled ? tagColor : disabledColor;
-
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: finalTagColor.withValues(
-                                    alpha: 0.15 * opacity),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: finalTagColor.withValues(
-                                      alpha: 0.4 * opacity),
-                                  width: 0.5,
-                                ),
-                              ),
-                              child: Opacity(
-                                opacity: opacity,
-                                child: Text(
-                                  displayName, //'$displayName: ${indicatorSignal[0]}',
-                                  style: TextStyle(
-                                    fontSize: 9.0,
-                                    fontWeight: FontWeight.w600,
-                                    color: finalTagColor,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                      // const SizedBox(height: 8),
-                      // Expanded(
-                      //   child: Text(reason,
-                      //       style: TextStyle(
-                      //         fontSize: 12.0,
-                      //         color: Colors.grey.shade700,
-                      //       ),
-                      //       maxLines: 3,
-                      //       overflow: TextOverflow.ellipsis),
-                      // ),
-                    ])),
-            onTap: () async {
-              final symbol = signal['symbol'];
-              if (symbol == null || symbol == 'N/A') return;
-              if (widget.brokerageUser == null || widget.service == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text(
-                        "Please link a brokerage account to view details.")));
-                return;
-              }
-              var instrument = await widget.service!.getInstrumentBySymbol(
-                  widget.brokerageUser!, instrumentStore!, symbol);
-
-              if (!mounted || instrument == null) return;
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            widget.brokerageUser!,
-                            widget.service!,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
-            }));
-  }
-
   Widget _buildListGridItem(
       List<Instrument> instruments, int index, BrokerageUser user) {
     var instrumentObj = instruments[index];
@@ -1814,7 +1061,7 @@ class _SearchWidgetState extends State<SearchWidget>
         hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
 
     return Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
           side: BorderSide(
@@ -1942,435 +1189,5 @@ class _SearchWidgetState extends State<SearchWidget>
                             userDocRef: widget.userDocRef,
                           )));
             }));
-  }
-
-  void _fetchTradeSignalsWithFilters() {
-    final tradeSignalsProvider =
-        Provider.of<TradeSignalsProvider>(context, listen: false);
-    // Map category to minimum strength for server-side prefiltering.
-    // Strong: >=70, Moderate: 40-69, Weak: 0-39
-    final int? serverMinStrength = signalStrengthCategory == 'STRONG'
-        ? 70
-        : signalStrengthCategory == 'MODERATE'
-            ? 40
-            : signalStrengthCategory == 'WEAK'
-                ? 0
-                : minSignalStrength; // fallback to any explicit slider/legacy state
-
-    final int? serverMaxStrength = signalStrengthCategory == 'STRONG'
-        ? null
-        : signalStrengthCategory == 'MODERATE'
-            ? 69
-            : signalStrengthCategory == 'WEAK'
-                ? 39
-                : null;
-
-    tradeSignalsProvider.streamTradeSignals(
-      // signalType: tradeSignalFilter,
-      indicatorFilters: selectedIndicators.isEmpty ? null : selectedIndicators,
-      minSignalStrength: serverMinStrength,
-      maxSignalStrength: serverMaxStrength,
-      startDate: tradeSignalStartDate,
-      endDate: tradeSignalEndDate,
-      limit: tradeSignalLimit,
-      sortBy: tradeSignalsProvider.sortBy,
-    );
-  }
-
-  Widget _buildTradeSignalFilterChips() {
-    final indicatorOptions = [
-      'priceMovement',
-      'momentum',
-      'marketDirection',
-      'volume',
-      'macd',
-      'bollingerBands',
-      'stochastic',
-      'atr',
-      'obv',
-      'vwap',
-      'adx',
-      'williamsR',
-      'ichimoku',
-      'cci',
-      'parabolicSAR',
-    ];
-
-    // Label mapping for indicators
-    String getIndicatorLabel(String indicator) {
-      switch (indicator) {
-        case 'priceMovement':
-          return 'Price';
-        case 'momentum':
-          return 'RSI';
-        case 'marketDirection':
-          return 'Market';
-        case 'bollingerBands':
-          return 'BB';
-        case 'stochastic':
-          return 'Stoch';
-        case 'williamsR':
-          return 'W%R';
-        case 'volume':
-          return 'Volume';
-        case 'ichimoku':
-          return 'Ichimoku';
-        case 'cci':
-          return 'CCI';
-        case 'parabolicSAR':
-          return 'SAR';
-        default:
-          return indicator.toUpperCase();
-      }
-    }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          // Signal Strength Category Filters FIRST (Strong, Moderate, Weak)
-          // Strong (70-100)
-          FilterChip(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.bolt,
-                    size: 14,
-                    color: signalStrengthCategory == 'STRONG'
-                        ? Colors.green.shade700
-                        : Theme.of(context).colorScheme.onSurface),
-                const SizedBox(width: 4),
-                const Text('Strong'),
-              ],
-            ),
-            selected: signalStrengthCategory == 'STRONG',
-            onSelected: (selected) {
-              setState(() {
-                signalStrengthCategory = selected ? 'STRONG' : null;
-                minSignalStrength = selected ? 70 : null;
-                if (selected) {
-                  selectedIndicators.clear();
-                }
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            backgroundColor: Colors.transparent,
-            selectedColor: Colors.green.withValues(alpha: 0.15),
-            side: BorderSide(
-              color: signalStrengthCategory == 'STRONG'
-                  ? Colors.green.shade400
-                  : Colors.grey.shade300,
-              width: signalStrengthCategory == 'STRONG' ? 1.5 : 1,
-            ),
-            labelStyle: TextStyle(
-              color: signalStrengthCategory == 'STRONG'
-                  ? Colors.green.shade700
-                  : Theme.of(context).colorScheme.onSurface,
-              fontWeight: signalStrengthCategory == 'STRONG'
-                  ? FontWeight.w600
-                  : FontWeight.w500,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Moderate (40-69)
-          FilterChip(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.speed,
-                    size: 14,
-                    color: signalStrengthCategory == 'MODERATE'
-                        ? Colors.orange.shade700
-                        : Theme.of(context).colorScheme.onSurface),
-                const SizedBox(width: 4),
-                const Text('Moderate'),
-              ],
-            ),
-            selected: signalStrengthCategory == 'MODERATE',
-            onSelected: (selected) {
-              setState(() {
-                signalStrengthCategory = selected ? 'MODERATE' : null;
-                minSignalStrength = selected ? 40 : null;
-                if (selected) {
-                  selectedIndicators.clear();
-                }
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            backgroundColor: Colors.transparent,
-            selectedColor: Colors.orange.withValues(alpha: 0.15),
-            side: BorderSide(
-              color: signalStrengthCategory == 'MODERATE'
-                  ? Colors.orange.shade400
-                  : Colors.grey.shade300,
-              width: signalStrengthCategory == 'MODERATE' ? 1.5 : 1,
-            ),
-            labelStyle: TextStyle(
-              color: signalStrengthCategory == 'MODERATE'
-                  ? Colors.orange.shade700
-                  : Theme.of(context).colorScheme.onSurface,
-              fontWeight: signalStrengthCategory == 'MODERATE'
-                  ? FontWeight.w600
-                  : FontWeight.w500,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Weak (0-39)
-          FilterChip(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.thermostat_auto,
-                    size: 14,
-                    color: signalStrengthCategory == 'WEAK'
-                        ? Colors.red.shade700
-                        : Theme.of(context).colorScheme.onSurface),
-                const SizedBox(width: 4),
-                const Text('Weak'),
-              ],
-            ),
-            selected: signalStrengthCategory == 'WEAK',
-            onSelected: (selected) {
-              setState(() {
-                signalStrengthCategory = selected ? 'WEAK' : null;
-                minSignalStrength = selected ? 0 : null;
-                maxSignalStrength = selected ? 39 : null;
-                if (selected) {
-                  selectedIndicators.clear();
-                }
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            backgroundColor: Colors.transparent,
-            selectedColor: Colors.red.withValues(alpha: 0.12),
-            side: BorderSide(
-              color: signalStrengthCategory == 'WEAK'
-                  ? Colors.red.shade400
-                  : Colors.grey.shade300,
-              width: signalStrengthCategory == 'WEAK' ? 1.5 : 1,
-            ),
-            labelStyle: TextStyle(
-              color: signalStrengthCategory == 'WEAK'
-                  ? Colors.red.shade700
-                  : Theme.of(context).colorScheme.onSurface,
-              fontWeight: signalStrengthCategory == 'WEAK'
-                  ? FontWeight.w600
-                  : FontWeight.w500,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text('•',
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.outlineVariant)),
-          const SizedBox(width: 8),
-          // Interval Selection Chip
-          Consumer<TradeSignalsProvider>(
-            builder: (context, tradeSignalsProvider, _) {
-              final selectedInterval = tradeSignalsProvider.selectedInterval;
-              final intervalLabel = selectedInterval == '1d'
-                  ? 'Daily'
-                  : selectedInterval == '1h'
-                      ? 'Hourly'
-                      : selectedInterval == '15m'
-                          ? '15-min'
-                          : selectedInterval;
-              return PopupMenuButton<String>(
-                tooltip: 'Select Interval',
-                offset: const Offset(0, 40),
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: '15m',
-                    child: Row(
-                      children: [
-                        if (selectedInterval == '15m')
-                          Icon(Icons.check,
-                              size: 18, color: Colors.green.shade700)
-                        else
-                          const SizedBox(width: 18),
-                        const SizedBox(width: 8),
-                        const Text('15-min'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: '1h',
-                    child: Row(
-                      children: [
-                        if (selectedInterval == '1h')
-                          Icon(Icons.check,
-                              size: 18, color: Colors.green.shade700)
-                        else
-                          const SizedBox(width: 18),
-                        const SizedBox(width: 8),
-                        const Text('Hourly'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: '1d',
-                    child: Row(
-                      children: [
-                        if (selectedInterval == '1d')
-                          Icon(Icons.check,
-                              size: 18, color: Colors.green.shade700)
-                        else
-                          const SizedBox(width: 18),
-                        const SizedBox(width: 8),
-                        const Text('Daily'),
-                      ],
-                    ),
-                  ),
-                ],
-                onSelected: (String value) {
-                  tradeSignalsProvider.setSelectedInterval(value);
-                  _fetchTradeSignalsWithFilters();
-                },
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-                  decoration: BoxDecoration(
-                    // color: Colors.transparent,
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      width: 1,
-                    ),
-                    borderRadius: BorderRadius.circular(20), // Stadium-like
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.access_time,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.onSurface),
-                      const SizedBox(width: 4),
-                      Text(
-                        intervalLabel,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(Icons.arrow_drop_down,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onSurface),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          Text('•',
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.outlineVariant)),
-          const SizedBox(width: 8),
-          // Indicator chips
-          ...indicatorOptions.map((indicator) {
-            final indicatorLabel = getIndicatorLabel(indicator);
-            final currentSignal = selectedIndicators[indicator];
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(
-                    currentSignal != null
-                        ? '$indicatorLabel: $currentSignal'
-                        : indicatorLabel,
-                    style: TextStyle(fontSize: 12)),
-                selected: currentSignal != null,
-                onSelected: (selected) {
-                  setState(() {
-                    if (currentSignal == null) {
-                      selectedIndicators[indicator] = 'BUY';
-                      signalStrengthCategory = null;
-                      minSignalStrength = null;
-                      maxSignalStrength = null;
-                    } else if (currentSignal == 'BUY') {
-                      selectedIndicators[indicator] = 'SELL';
-                    } else if (currentSignal == 'SELL') {
-                      selectedIndicators[indicator] = 'HOLD';
-                    } else {
-                      selectedIndicators.remove(indicator);
-                    }
-                  });
-                  _fetchTradeSignalsWithFilters();
-                },
-                backgroundColor: Colors.transparent,
-                selectedColor: currentSignal == 'BUY'
-                    ? Colors.green.withValues(alpha: 0.15)
-                    : currentSignal == 'SELL'
-                        ? Colors.red.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.15),
-                side: BorderSide(
-                  color: currentSignal == 'BUY'
-                      ? Colors.green.shade400
-                      : currentSignal == 'SELL'
-                          ? Colors.red.shade400
-                          : currentSignal == 'HOLD'
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade300,
-                  width: currentSignal != null ? 1.5 : 1,
-                ),
-                labelStyle: TextStyle(
-                  color: currentSignal == 'BUY'
-                      ? Colors.green.shade700
-                      : currentSignal == 'SELL'
-                          ? Colors.red.shade700
-                          : currentSignal == 'HOLD'
-                              ? Theme.of(context).colorScheme.onSurface
-                              : Theme.of(context).colorScheme.onSurface,
-                  fontWeight:
-                      currentSignal != null ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 12,
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  /// Formats signal timestamp as "x ago" for recent signals or date for older ones.
-  /// Recent signals (within 24 hours) show relative time (e.g., "5 mins ago").
-  /// Older signals show the formatted date (e.g., "Dec 5, 2024").
-  String _formatSignalTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    // If signal is recent (within 24 hours), show "x ago" format
-    if (difference.inHours < 24) {
-      if (difference.inMinutes < 1) {
-        return 'just now';
-      } else if (difference.inMinutes < 60) {
-        final mins = difference.inMinutes;
-        return '$mins min${mins != 1 ? 's' : ''} ago';
-      } else {
-        final hours = difference.inHours;
-        return '$hours hour${hours != 1 ? 's' : ''} ago';
-      }
-    } else {
-      // For older signals, show the date
-      return formatDate.format(timestamp);
-    }
-  }
-
-  /// Returns color based on signal strength value (0-100).
-  /// Matches filter categories:
-  /// Strong (70-100): Green
-  /// Moderate (40-69): Orange
-  /// Weak (0-39): Red
-  Color _getSignalStrengthColor(int strength) {
-    if (strength >= 70) {
-      return Colors.green;
-    } else if (strength >= 40) {
-      return Colors.orange;
-    } else {
-      return Colors.red;
-    }
   }
 }

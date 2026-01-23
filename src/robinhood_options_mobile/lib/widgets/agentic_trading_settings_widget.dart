@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/trading_strategies_page.dart';
 import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -85,7 +86,9 @@ class _AgenticTradingSettingsWidgetState
     super.initState();
 
     if (widget.initialSection == 'entryStrategies') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Add a small delay to ensure the widget is fully built and expanded
+        await Future.delayed(const Duration(milliseconds: 300));
         if (_entryStrategiesKey.currentContext != null) {
           Scrollable.ensureVisible(
             _entryStrategiesKey.currentContext!,
@@ -3485,6 +3488,25 @@ class _AgenticTradingSettingsWidgetState
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        ListTile(
+          title: const Text('Trade Signal Alerts'),
+          subtitle: const Text('Configure push notifications for signals'),
+          leading: const Icon(Icons.notifications_active_outlined),
+          trailing: const Icon(Icons.chevron_right),
+          contentPadding: EdgeInsets.zero,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => TradeSignalNotificationSettingsWidget(
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

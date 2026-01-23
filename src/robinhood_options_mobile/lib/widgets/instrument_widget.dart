@@ -48,6 +48,7 @@ import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -88,7 +89,8 @@ class InstrumentWidget extends StatefulWidget {
       required this.generativeService,
       required this.user,
       required this.userDocRef,
-      this.heroTag});
+      this.heroTag,
+      this.scrollToTradeSignal = false});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -100,6 +102,7 @@ class InstrumentWidget extends StatefulWidget {
   //final Account account;
   final Instrument instrument;
   final String? heroTag;
+  final bool scrollToTradeSignal;
 
   @override
   State<InstrumentWidget> createState() => _InstrumentWidgetState();
@@ -147,10 +150,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   bool _showAllPositionOrders = false;
   bool _showAllNews = false;
   bool _showAllEarnings = false;
+  // Controls visibility of AI reasoning details in trade signals
+  bool _showAIReasoning = false;
+  // Controls visibility of technical indicators details
+  bool _showTechnicalDetails = false;
   bool _showAllLists = false;
 
   Timer? refreshTriggerTime;
-  //final dataKey = GlobalKey();
+  final GlobalKey tradeSignalKey = GlobalKey();
 
   _InstrumentWidgetState();
 
@@ -378,6 +385,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.scrollToTradeSignal) {
+      _showTechnicalDetails = true;
+    }
+
+    if (widget.scrollToTradeSignal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Add a small delay to ensure the widget is fully built and expanded
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (tradeSignalKey.currentContext != null) {
+          Scrollable.ensureVisible(tradeSignalKey.currentContext!,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              alignment: 0.0);
+        }
+      });
+    }
 
     _loadData();
 
@@ -1008,8 +1032,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child: SizedBox(
               height: 8.0,
             )),
-            _buildAgenticTradeSignals(instrument),
           ],
+          _buildAgenticTradeSignals(instrument),
           if (instrument.dividendsObj != null &&
               instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
@@ -1536,6 +1560,82 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget fundamentalsWidget(Instrument instrument) {
+    if (instrument.fundamentalsObj == null) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    final f = instrument.fundamentalsObj!;
+    final etp = instrument.etpDetails;
+
+    final stats = <Map<String, String>>[];
+    if (f.open != null) {
+      stats.add({"label": "Open", "value": formatCurrency.format(f.open)});
+    }
+    if (f.high != null) {
+      stats.add({"label": "High", "value": formatCurrency.format(f.high)});
+    }
+    if (f.low != null) {
+      stats.add({"label": "Low", "value": formatCurrency.format(f.low)});
+    }
+    if (f.high52Weeks != null) {
+      stats.add(
+          {"label": "52W High", "value": formatCurrency.format(f.high52Weeks)});
+    }
+    if (f.low52Weeks != null) {
+      stats.add(
+          {"label": "52W Low", "value": formatCurrency.format(f.low52Weeks)});
+    }
+    if (f.volume != null) {
+      stats.add(
+          {"label": "Volume", "value": formatCompactNumber.format(f.volume)});
+    }
+    if (f.averageVolume != null) {
+      stats.add({
+        "label": "Avg Vol",
+        "value": formatCompactNumber.format(f.averageVolume)
+      });
+    }
+    if (f.averageVolume30Days != null) {
+      stats.add({
+        "label": "Avg Vol (30D)",
+        "value": formatCompactNumber.format(f.averageVolume30Days)
+      });
+    }
+    if (f.marketCap != null) {
+      stats.add({
+        "label": "Mkt Cap",
+        "value": formatCompactNumber.format(f.marketCap)
+      });
+    }
+    if (f.sharesOutstanding != null) {
+      stats.add({
+        "label": "Shares Out",
+        "value": formatCompactNumber.format(f.sharesOutstanding)
+      });
+    }
+    if (f.float != null) {
+      stats.add(
+          {"label": "Float", "value": formatCompactNumber.format(f.float)});
+    }
+    if (instrument.maintenanceRatio != null) {
+      stats.add({
+        "label": "Maint Req",
+        "value": formatPercentage.format(instrument.maintenanceRatio)
+      });
+    }
+    if (f.peRatio != null) {
+      stats
+          .add({"label": "P/E Ratio", "value": formatNumber.format(f.peRatio)});
+    }
+    if (f.pbRatio != null) {
+      stats
+          .add({"label": "P/B Ratio", "value": formatNumber.format(f.pbRatio)});
+    }
+    if (f.dividendYield != null) {
+      stats.add({
+        "label": "Div Yield",
+        "value": formatNumber.format(f.dividendYield)
+      });
+    }
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1552,421 +1652,339 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             color: Theme.of(context)
                 .colorScheme
                 .surfaceContainerHighest
-                .withValues(alpha: 0.3),
+                .withAlpha(77),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Volume"),
-                  trailing: Text(
-                      formatCompactNumber
-                          .format(instrument.fundamentalsObj!.volume!),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                if (instrument.fundamentalsObj!.averageVolume != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Average Volume"),
-                    trailing: Text(
-                        formatCompactNumber
-                            .format(instrument.fundamentalsObj!.averageVolume!),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Wrap(
+                      runSpacing: 12,
+                      children: stats
+                          .map((s) => SizedBox(
+                              width: (MediaQuery.of(context).size.width - 64) /
+                                  3, // 3 columns approx
+                              child: _buildStatItem(s["label"]!, s["value"]!)))
+                          .toList(),
+                    ),
                   ),
-                ],
-                if (instrument.fundamentalsObj!.averageVolume2Weeks !=
-                    null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Avg Vol (2 weeks)"),
-                    trailing: Text(
-                        formatCompactNumber.format(
-                            instrument.fundamentalsObj!.averageVolume2Weeks!),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
+                  if (f.description.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Divider(),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text("About",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(f.description,
+                            style: const TextStyle(
+                                height: 1.4, fontSize: 14, color: Colors.grey)))
+                  ],
+                  if (f.sector.isNotEmpty ||
+                      f.industry.isNotEmpty ||
+                      f.ceo.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Divider(),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text("Profile",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    if (f.sector.isNotEmpty)
+                      _buildFundamentalRow("Sector", f.sector),
+                    if (f.industry.isNotEmpty)
+                      _buildFundamentalRow("Industry", f.industry),
+                    if (f.numEmployees != null)
+                      _buildFundamentalRow("Employees",
+                          formatCompactNumber.format(f.numEmployees!)),
+                    if (f.yearFounded != null)
+                      _buildFundamentalRow("Founded", f.yearFounded.toString()),
+                    if (instrument.listDate != null)
+                      _buildFundamentalRow("List Date",
+                          formatShortDate.format(instrument.listDate!)),
+                    if (f.headquartersCity.isNotEmpty)
+                      _buildFundamentalRow("Headquarters",
+                          "${f.headquartersCity}, ${f.headquartersState}"),
+                    if (instrument.country.isNotEmpty)
+                      _buildFundamentalRow("Country", instrument.country),
+                    if (f.ceo.isNotEmpty) _buildFundamentalRow("CEO", f.ceo),
+                  ],
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Divider(),
                   ),
-                ],
-                if (instrument.fundamentalsObj!.high52Weeks != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("52 Week High"),
-                    trailing: Text(
-                        formatCurrency
-                            .format(instrument.fundamentalsObj!.high52Weeks!),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                if (instrument.fundamentalsObj!.low52Weeks != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("52 Week Low"),
-                    trailing: Text(
-                        formatCurrency
-                            .format(instrument.fundamentalsObj!.low52Weeks!),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Dividend Yield"),
-                  trailing: Text(
-                      instrument.fundamentalsObj!.dividendYield != null
-                          ? formatCompactNumber.format(
-                              instrument.fundamentalsObj!.dividendYield!)
-                          : "-",
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Market Cap"),
-                  trailing: Text(
-                      formatCompactNumber
-                          .format(instrument.fundamentalsObj!.marketCap ?? 0),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Shares Outstanding"),
-                  trailing: Text(
-                      formatCompactNumber.format(
-                          instrument.fundamentalsObj!.sharesOutstanding ?? 0),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("P/E Ratio"),
-                  trailing: Text(
-                      instrument.fundamentalsObj!.peRatio != null
-                          ? formatCompactNumber
-                              .format(instrument.fundamentalsObj!.peRatio!)
-                          : "-",
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Type"),
-                  trailing: Text(
+                  _buildFundamentalRow(
+                      "Type",
                       instrument.type == "stock"
                           ? "Stock"
                           : (instrument.type == "etp"
                               ? "Exchange Traded Product"
-                              : instrument.type),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                if (instrument.type == "etp" &&
-                    instrument.etpDetails != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Inception"),
-                    trailing: Text(
-                        formatDate.format(DateTime.parse(
-                            instrument.etpDetails["inception_date"])),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                  if (instrument.etpDetails["is_inverse"] ||
-                      instrument.etpDetails["is_leveraged"] ||
-                      instrument.etpDetails["is_volatility_linked"] ||
-                      instrument.etpDetails["is_crypto_futures"] ||
-                      instrument.etpDetails["is_actively_managed"]) ...[
-                    ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(vertical: -2),
-                      title: const Text("Characteristics"),
-                      trailing: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 200),
-                        child: Text(
-                            "${instrument.etpDetails["is_inverse"] ? "Inverse" : ""} ${instrument.etpDetails["is_leveraged"] ? "Leveraged" : ""} ${instrument.etpDetails["is_volatility_linked"] ? "Volatility linked" : ""} ${instrument.etpDetails["is_crypto_futures"] ? "Crypto futures" : ""} ${instrument.etpDetails["is_actively_managed"] ? "Actively managed" : ""}",
-                            textAlign: TextAlign.end,
+                              : instrument.type)),
+                  if (instrument.type == "etp" && etp != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("ETF Details",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold))),
+                    ),
+                    if (etp["inception_date"] != null)
+                      _buildFundamentalRow(
+                          "Inception",
+                          formatShortDate
+                              .format(DateTime.parse(etp["inception_date"]))),
+                    if (etp["aum"] != null)
+                      _buildFundamentalRow(
+                          "AUM",
+                          formatCompactCurrency
+                              .format(double.parse(etp["aum"]))),
+                    if (etp["gross_expense_ratio"] != null)
+                      _buildFundamentalRow(
+                          "Expense Ratio",
+                          formatPercentage.format(
+                              double.tryParse(etp["gross_expense_ratio"])! /
+                                  100)),
+                    if (etp["sec_yield"] != null)
+                      _buildFundamentalRow(
+                          "SEC Yield",
+                          formatPercentage.format(
+                              double.tryParse(etp["sec_yield"])! / 100)),
+                    if (etp["month_end_date"] != null &&
+                        etp["month_end_performance"]?["market"]?["1Y"] != null)
+                      ListTile(
+                        dense: true,
+                        visualDensity: const VisualDensity(vertical: -3),
+                        title: const Text("Month Performance",
+                            style: TextStyle(fontSize: 14)),
+                        subtitle: Text("1 year to ${etp["month_end_date"]}",
+                            style: const TextStyle(fontSize: 12)),
+                        trailing: Text(
+                            formatPercentage.format(double.tryParse(
+                                    etp["month_end_performance"]["market"]
+                                        ["1Y"])! /
+                                100),
                             style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w500)),
+                                fontSize: 14, fontWeight: FontWeight.w500)),
+                      ),
+                    if (etp["quarter_end_date"] != null &&
+                        etp["quarter_end_performance"]?["market"]
+                                ?["since_inception"] !=
+                            null)
+                      ListTile(
+                        dense: true,
+                        visualDensity: const VisualDensity(vertical: -3),
+                        title: const Text("Quarter Performance",
+                            style: TextStyle(fontSize: 14)),
+                        subtitle: Text(
+                            "Since inception to ${etp["quarter_end_date"]}",
+                            style: const TextStyle(fontSize: 12)),
+                        trailing: Text(
+                            formatPercentage.format(double.tryParse(
+                                    etp["quarter_end_performance"]["market"]
+                                        ["since_inception"])! /
+                                100),
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w500)),
+                      ),
+                    if (etp["is_inverse"] == true ||
+                        etp["is_leveraged"] == true ||
+                        etp["is_volatility_linked"] == true ||
+                        etp["is_crypto_futures"] == true ||
+                        etp["is_actively_managed"] == true)
+                      ListTile(
+                        dense: true,
+                        visualDensity: const VisualDensity(vertical: -2),
+                        title: const Text("Characteristics",
+                            style: TextStyle(fontSize: 14)),
+                        subtitle: Wrap(
+                          spacing: 6,
+                          runSpacing: 0,
+                          children: [
+                            if (etp["is_inverse"] == true)
+                              const Chip(
+                                  label: Text("Inverse",
+                                      style: TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                            if (etp["is_leveraged"] == true)
+                              const Chip(
+                                  label: Text("Leveraged",
+                                      style: TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                            if (etp["is_volatility_linked"] == true)
+                              const Chip(
+                                  label: Text("Volatility",
+                                      style: TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                            if (etp["is_crypto_futures"] == true)
+                              const Chip(
+                                  label: Text("Crypto",
+                                      style: TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                            if (etp["is_actively_managed"] == true)
+                              const Chip(
+                                  label: Text("Active",
+                                      style: TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding:
+                                      EdgeInsets.symmetric(horizontal: 8)),
+                          ],
+                        ),
+                      ),
+                    if (etp["total_holdings"] != null)
+                      ListTile(
+                        dense: true,
+                        visualDensity: const VisualDensity(vertical: -3),
+                        title: const Text("Holdings",
+                            style: TextStyle(fontSize: 14)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(formatNumber.format(etp["total_holdings"]),
+                                style: const TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w500)),
+                            const SizedBox(width: 4),
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: IconButton(
+                                iconSize: 16,
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.info_outline),
+                                onPressed: () =>
+                                    _showHoldingsDialog(context, instrument),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                  ],
+                  if (f.marketDate != null) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Divider(),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        "Data as of ${formatShortDate.format(f.marketDate!)}",
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
                   ],
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Category"),
-                    trailing: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 200),
-                      child: Text(instrument.etpDetails["category"],
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500)),
-                    ),
-                  ),
-                  if (instrument.etpDetails["total_holdings"] != null) ...[
-                    ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(vertical: -2),
-                      title: Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          const Text("Holdings"),
-                          const SizedBox(width: 4),
-                          SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: IconButton(
-                              iconSize: 16,
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.info_outline),
-                              onPressed: () {
-                                showDialog<String>(
-                                    context: context,
-                                    builder: (BuildContext context) =>
-                                        AlertDialog(
-                                          title: Text(
-                                              '${instrument.symbol} Holdings'),
-                                          content: SizedBox(
-                                            width: double.maxFinite,
-                                            child: SingleChildScrollView(
-                                              child: Table(
-                                                border: TableBorder.all(
-                                                    color: Theme.of(context)
-                                                        .dividerColor,
-                                                    width: 0.5),
-                                                columnWidths: const {
-                                                  0: FlexColumnWidth(4),
-                                                  1: FlexColumnWidth(1)
-                                                },
-                                                children: [
-                                                  for (var holding
-                                                      in instrument.etpDetails[
-                                                          "holdings"]) ...[
-                                                    TableRow(children: [
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(8.0),
-                                                        child: SelectableText(
-                                                            holding["name"]),
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(8.0),
-                                                        child: SelectableText(
-                                                            holding["weight"]),
-                                                      ),
-                                                    ])
-                                                  ]
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        ));
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                          formatNumber
-                              .format(instrument.etpDetails["total_holdings"]),
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("AUM"),
-                    trailing: Text(
-                        formatCompactCurrency
-                            .format(double.parse(instrument.etpDetails["aum"])),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Gross Expense Ratio"),
-                    trailing: Text(
-                        formatPercentage.format(double.tryParse(
-                                instrument.etpDetails["gross_expense_ratio"])! /
-                            100),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("SEC Yield"),
-                    trailing: Text(
-                        instrument.etpDetails["sec_yield"] != null
-                            ? formatPercentage.format(double.tryParse(
-                                    instrument.etpDetails["sec_yield"])! /
-                                100)
-                            : "-",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Month Performance"),
-                    subtitle: Text(
-                        "1 year to ${instrument.etpDetails["month_end_date"]}"),
-                    trailing: Text(
-                        instrument.etpDetails["month_end_performance"]["market"]
-                                    ["1Y"] !=
-                                null
-                            ? formatPercentage.format(double.tryParse(instrument
-                                        .etpDetails["month_end_performance"]
-                                    ["market"]["1Y"])! /
-                                100)
-                            : "-",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Quarter Performance"),
-                    subtitle: Text(
-                        "Since inception to ${instrument.etpDetails["quarter_end_date"]}"),
-                    trailing: Text(
-                        instrument.etpDetails["quarter_end_performance"]
-                                    ["market"]["since_inception"] !=
-                                null
-                            ? formatPercentage.format(double.tryParse(instrument
-                                        .etpDetails["quarter_end_performance"]
-                                    ["market"]["since_inception"])! /
-                                100)
-                            : "-",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
                 ],
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Sector"),
-                  trailing: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    child: Text(instrument.fundamentalsObj!.sector,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text("Industry"),
-                  trailing: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    child: Text(instrument.fundamentalsObj!.industry,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text(
-                    "Name",
-                  ),
-                  subtitle: Text(instrument.name,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w500)),
-                ),
-                ListTile(
-                  dense: true,
-                  visualDensity: const VisualDensity(vertical: -2),
-                  title: const Text(
-                    "Description",
-                  ),
-                  subtitle: Text(instrument.fundamentalsObj!.description,
-                      style: const TextStyle(fontSize: 14)),
-                ),
-                if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
-                    instrument
-                        .fundamentalsObj!.headquartersState.isNotEmpty) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Headquarters"),
-                    subtitle: Text(
-                        "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("CEO"),
-                    trailing: Text(instrument.fundamentalsObj!.ceo,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                if (instrument.fundamentalsObj!.numEmployees != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Employees"),
-                    trailing: Text(
-                        instrument.fundamentalsObj!.numEmployees != null
-                            ? formatCompactNumber.format(
-                                instrument.fundamentalsObj!.numEmployees!)
-                            : "",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                if (instrument.fundamentalsObj!.yearFounded != null) ...[
-                  ListTile(
-                    dense: true,
-                    visualDensity: const VisualDensity(vertical: -2),
-                    title: const Text("Founded"),
-                    trailing: Text(
-                        "${instrument.fundamentalsObj!.yearFounded ?? ""}",
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500)),
-                  ),
-                ],
-                const SizedBox(height: 8),
-              ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildFundamentalRow(String title, String value) {
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(vertical: -3),
+      title: Text(title, style: const TextStyle(fontSize: 14)),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 200),
+        child: Text(value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500)),
+          const SizedBox(height: 2),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  void _showHoldingsDialog(BuildContext context, Instrument instrument) {
+    showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+              title: Text('${instrument.symbol} Holdings'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Table(
+                    border: TableBorder.all(
+                        color: Theme.of(context).dividerColor, width: 0.5),
+                    columnWidths: const {
+                      0: FlexColumnWidth(4),
+                      1: FlexColumnWidth(1)
+                    },
+                    children: [
+                      for (var holding
+                          in instrument.etpDetails["holdings"]) ...[
+                        TableRow(children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: SelectableText(holding["name"]),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: SelectableText(holding["weight"]),
+                          ),
+                        ])
+                      ]
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ));
   }
 
   Widget _buildRatingsWidget(Instrument instrument) {
@@ -3574,6 +3592,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         // Recalculate signals based on only enabled indicators
         bool displayAllGreen = true;
         bool displayAllRed = true;
+
         if (enabledCount > 0) {
           for (final key in [
             'priceMovement',
@@ -3588,6 +3607,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'vwap',
             'adx',
             'williamsR',
+            'ichimoku',
+            'cci',
+            'parabolicSar',
           ]) {
             if (enabledIndicators[key] == true) {
               final indicator = indicators[key] as Map<String, dynamic>?;
@@ -3607,7 +3629,51 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         }
 
         // Extract signal strength
-        final signalStrength = multiIndicator['signalStrength'] as int?;
+        final overallSignalStrength = multiIndicator['signalStrength'] as int?;
+
+        // Calculate enabled signal strength
+        int? enabledSignalStrength;
+        int buyCount = 0;
+        int sellCount = 0;
+        int holdCount = 0;
+
+        if (enabledCount > 0) {
+          for (final entry in {
+            'priceMovement': 'priceMovement',
+            'momentum': 'momentum',
+            'marketDirection': 'marketDirection',
+            'volume': 'volume',
+            'macd': 'macd',
+            'bollingerBands': 'bollingerBands',
+            'stochastic': 'stochastic',
+            'atr': 'atr',
+            'obv': 'obv',
+            'vwap': 'vwap',
+            'adx': 'adx',
+            'williamsR': 'williamsR',
+            'ichimoku': 'ichimoku',
+            'cci': 'cci',
+            'parabolicSar': 'parabolicSar'
+          }.entries) {
+            final configKey = entry.key;
+            final indicatorKey = entry.value;
+
+            if (enabledIndicators[configKey] == true) {
+              final indicator =
+                  indicators[indicatorKey] as Map<String, dynamic>?;
+              final signal = indicator?['signal'];
+              if (signal == 'BUY') {
+                buyCount++;
+              } else if (signal == 'SELL') {
+                sellCount++;
+              } else {
+                holdCount++;
+              }
+            }
+          }
+          final maxAgreement = math.max(buyCount, sellCount);
+          enabledSignalStrength = ((maxAgreement / enabledCount) * 100).round();
+        }
 
         final Color borderColor = displayAllGreen
             ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
@@ -3617,7 +3683,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
         return Container(
           margin: const EdgeInsets.only(top: 12.0),
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.grey.shade900.withValues(alpha: 0.5)
@@ -3631,322 +3697,385 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.analytics_outlined,
-                    size: 20,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Technical Indicators', // ($enabledCount/9 enabled)
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color:
-                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: 'Indicator Documentation',
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Technical Indicators'),
-                          content: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildDocSection('priceMovement'),
-                                _buildDocSection('momentum'),
-                                _buildDocSection('marketDirection'),
-                                _buildDocSection('volume'),
-                                _buildDocSection('macd'),
-                                _buildDocSection('bollingerBands'),
-                                _buildDocSection('stochastic'),
-                                _buildDocSection('atr'),
-                                _buildDocSection('obv'),
-                                _buildDocSection('vwap'),
-                                _buildDocSection('adx'),
-                                _buildDocSection('williamsR'),
-                                _buildDocSection('ichimoku'),
-                                _buildDocSection('cci'),
-                                _buildDocSection('sar'),
-                              ],
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showTechnicalDetails = !_showTechnicalDetails;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.analytics_outlined,
+                        size: 20,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Technical Indicators',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
                             ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Close'),
-                            ),
+                            if (enabledCount > 0)
+                              Row(
+                                children: [
+                                  if (buyCount > 0)
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
+                                      child: Text(
+                                        '$buyCount Buy',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  if (sellCount > 0)
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
+                                      child: Text(
+                                        '$sellCount Sell',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  if (holdCount > 0)
+                                    Text(
+                                      '$holdCount Hold',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                ],
+                              ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Column(
-                children: [
-                  _buildIndicatorRow(
-                      'Price Movement',
-                      'priceMovement',
-                      indicators['priceMovement'] as Map<String, dynamic>?,
-                      enabledIndicators['priceMovement'] == true),
-                  _buildIndicatorRow(
-                      'Momentum (RSI)',
-                      'momentum',
-                      indicators['momentum'] as Map<String, dynamic>?,
-                      enabledIndicators['momentum'] == true),
-                  _buildIndicatorRow(
-                      'Market Direction',
-                      'marketDirection',
-                      indicators['marketDirection'] as Map<String, dynamic>?,
-                      enabledIndicators['marketDirection'] == true),
-                  _buildIndicatorRow(
-                      'Volume',
-                      'volume',
-                      indicators['volume'] as Map<String, dynamic>?,
-                      enabledIndicators['volume'] == true),
-                  _buildIndicatorRow(
-                      'MACD',
-                      'macd',
-                      indicators['macd'] as Map<String, dynamic>?,
-                      enabledIndicators['macd'] == true),
-                  _buildIndicatorRow(
-                      'Bollinger Bands',
-                      'bollingerBands',
-                      indicators['bollingerBands'] as Map<String, dynamic>?,
-                      enabledIndicators['bollingerBands'] == true),
-                  _buildIndicatorRow(
-                      'Stochastic',
-                      'stochastic',
-                      indicators['stochastic'] as Map<String, dynamic>?,
-                      enabledIndicators['stochastic'] == true),
-                  _buildIndicatorRow(
-                      'ATR (Volatility)',
-                      'atr',
-                      indicators['atr'] as Map<String, dynamic>?,
-                      enabledIndicators['atr'] == true),
-                  _buildIndicatorRow(
-                      'OBV (On-Balance Volume)',
-                      'obv',
-                      indicators['obv'] as Map<String, dynamic>?,
-                      enabledIndicators['obv'] == true),
-                  _buildIndicatorRow(
-                      'VWAP',
-                      'vwap',
-                      indicators['vwap'] as Map<String, dynamic>?,
-                      enabledIndicators['vwap'] == true),
-                  _buildIndicatorRow(
-                      'ADX (Trend Strength)',
-                      'adx',
-                      indicators['adx'] as Map<String, dynamic>?,
-                      enabledIndicators['adx'] == true),
-                  _buildIndicatorRow(
-                      'Williams %R',
-                      'williamsR',
-                      indicators['williamsR'] as Map<String, dynamic>?,
-                      enabledIndicators['williamsR'] == true),
-                  _buildIndicatorRow(
-                      'Ichimoku Cloud',
-                      'ichimoku',
-                      indicators['ichimoku'] as Map<String, dynamic>?,
-                      enabledIndicators['ichimoku'] == true),
-                  _buildIndicatorRow(
-                      'CCI',
-                      'cci',
-                      indicators['cci'] as Map<String, dynamic>?,
-                      enabledIndicators['cci'] == true),
-                  _buildIndicatorRow(
-                      'Parabolic SAR',
-                      'sar',
-                      indicators['sar'] as Map<String, dynamic>?,
-                      enabledIndicators['sar'] == true),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Signal Strength gauge
-              if (signalStrength != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.grey.shade800.withValues(alpha: 0.5)
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Signal Strength',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: isDark
-                                  ? Colors.grey.shade300
-                                  : Colors.grey.shade700,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.settings,
+                          size: 20,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade700,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Automated Trading: Entry Strategies',
+                        onPressed: () async {
+                          if (widget.user == null ||
+                              widget.userDocRef == null) {
+                            return;
+                          }
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  AgenticTradingSettingsWidget(
+                                user: widget.user!,
+                                userDocRef: widget.userDocRef!,
+                                service: widget.service,
+                                initialSection: 'entryStrategies',
+                              ),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _getSignalStrengthColor(signalStrength)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.speed,
-                                  size: 16,
-                                  color:
-                                      _getSignalStrengthColor(signalStrength),
+                          );
+                          if (result == true && mounted) {
+                            final tradeSignalsProvider =
+                                Provider.of<TradeSignalsProvider>(context,
+                                    listen: false);
+                            tradeSignalsProvider.fetchTradeSignal(
+                                widget.instrument.symbol,
+                                interval:
+                                    tradeSignalsProvider.selectedInterval);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade700,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Indicator Documentation',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Technical Indicators'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDocSection('priceMovement'),
+                                    _buildDocSection('momentum'),
+                                    _buildDocSection('marketDirection'),
+                                    _buildDocSection('volume'),
+                                    _buildDocSection('macd'),
+                                    _buildDocSection('bollingerBands'),
+                                    _buildDocSection('stochastic'),
+                                    _buildDocSection('atr'),
+                                    _buildDocSection('obv'),
+                                    _buildDocSection('vwap'),
+                                    _buildDocSection('adx'),
+                                    _buildDocSection('williamsR'),
+                                    _buildDocSection('ichimoku'),
+                                    _buildDocSection('cci'),
+                                    _buildDocSection('sar'),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '$signalStrength/100',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color:
-                                        _getSignalStrengthColor(signalStrength),
-                                  ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: signalStrength / 100,
-                          minHeight: 8,
-                          backgroundColor: isDark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade300,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _getSignalStrengthColor(signalStrength),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Bearish',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.red.shade400,
-                            ),
-                          ),
-                          Text(
-                            'Neutral',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                          Text(
-                            'Bullish',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green.shade400,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showTechnicalDetails
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 20,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-              ],
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: displayAllGreen
-                      ? (isDark
-                          ? Colors.green.withValues(alpha: 0.25)
-                          : Colors.green.withValues(alpha: 0.15))
-                      : displayAllRed
-                          ? (isDark
-                              ? Colors.red.withValues(alpha: 0.25)
-                              : Colors.red.withValues(alpha: 0.15))
-                          : (isDark
-                              ? Colors.orange.withValues(alpha: 0.25)
-                              : Colors.orange.withValues(alpha: 0.15)),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      displayAllGreen
-                          ? Icons.check_circle
-                          : displayAllRed
-                              ? Icons.cancel
-                              : Icons.warning_amber_rounded,
-                      color: displayAllGreen
-                          ? (isDark
-                              ? Colors.green.shade400
-                              : Colors.green.shade800)
-                          : displayAllRed
-                              ? (isDark
-                                  ? Colors.red.shade400
-                                  : Colors.red.shade800)
-                              : (isDark
-                                  ? Colors.orange.shade400
-                                  : Colors.orange.shade800),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      displayAllGreen
-                          ? 'Overall: BUY'
-                          : displayAllRed
-                              ? 'Overall: SELL'
-                              : 'Overall: HOLD',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: displayAllGreen
-                            ? (isDark
-                                ? Colors.green.shade400
-                                : Colors.green.shade800)
-                            : displayAllRed
-                                ? (isDark
-                                    ? Colors.red.shade400
-                                    : Colors.red.shade800)
-                                : (isDark
-                                    ? Colors.orange.shade400
-                                    : Colors.orange.shade800),
-                      ),
-                    ),
-                  ],
-                ),
               ),
+              if (overallSignalStrength != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  enabledSignalStrength != null
+                                      ? 'Signal Strength (Adjusted)${enabledSignalStrength >= Constants.signalStrengthStrongMin ? (sellCount > buyCount ? ' - Strong Sell' : ' - Strong Buy') : enabledSignalStrength >= Constants.signalStrengthModerateMin ? (sellCount > buyCount ? ' - Moderate Sell' : ' - Moderate Buy') : ' - Weak Signal'}'
+                                      : 'Signal Strength',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  '${enabledSignalStrength ?? overallSignalStrength}%',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: (enabledSignalStrength ??
+                                                overallSignalStrength) >=
+                                            Constants.signalStrengthStrongMin
+                                        ? Colors.green
+                                        : ((enabledSignalStrength ??
+                                                    overallSignalStrength) >=
+                                                Constants
+                                                    .signalStrengthModerateMin
+                                            ? Colors.amber
+                                            : Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final strength = enabledSignalStrength ??
+                                    overallSignalStrength;
+                                return Stack(
+                                  children: [
+                                    Container(
+                                      height: 6,
+                                      width: constraints.maxWidth,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    Container(
+                                      height: 6,
+                                      width: constraints.maxWidth *
+                                          (strength / 100),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            strength >=
+                                                    Constants
+                                                        .signalStrengthStrongMin
+                                                ? Colors.green.shade300
+                                                : (strength >=
+                                                        Constants
+                                                            .signalStrengthModerateMin
+                                                    ? Colors.orange.shade300
+                                                    : Colors.red.shade300),
+                                            strength >=
+                                                    Constants
+                                                        .signalStrengthStrongMin
+                                                ? Colors.green
+                                                : (strength >=
+                                                        Constants
+                                                            .signalStrengthModerateMin
+                                                    ? Colors.orange
+                                                    : Colors.red),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                ),
+              if (_showTechnicalDetails) ...[
+                const SizedBox(height: 8),
+                Builder(builder: (context) {
+                  final List<Map<String, String>> indicatorDefs = [
+                    {'label': 'Price Movement', 'key': 'priceMovement'},
+                    {'label': 'RSI (Momentum)', 'key': 'momentum'},
+                    {'label': 'Market Direction', 'key': 'marketDirection'},
+                    {'label': 'Volume Analysis', 'key': 'volume'},
+                    {'label': 'MACD', 'key': 'macd'},
+                    {'label': 'Bollinger Bands', 'key': 'bollingerBands'},
+                    {'label': 'Stochastic Oscillator', 'key': 'stochastic'},
+                    {'label': 'Average True Range', 'key': 'atr'},
+                    {'label': 'On-Balance Volume', 'key': 'obv'},
+                    {'label': 'VWAP', 'key': 'vwap'},
+                    {'label': 'ADX (Trend Strength)', 'key': 'adx'},
+                    {'label': 'Williams %R', 'key': 'williamsR'},
+                    {'label': 'Ichimoku Cloud', 'key': 'ichimoku'},
+                    {'label': 'CCI', 'key': 'cci'},
+                    {'label': 'Parabolic SAR', 'key': 'parabolicSar'},
+                  ];
+
+                  final enabledList = <Widget>[];
+                  final disabledList = <Widget>[];
+
+                  for (var def in indicatorDefs) {
+                    final key = def['key']!;
+                    final label = def['label']!;
+                    final configKey = key;
+                    final isEnabled = enabledIndicators[configKey] == true;
+
+                    final row = _buildIndicatorRow(label, key,
+                        indicators[key] as Map<String, dynamic>?, isEnabled);
+
+                    if (isEnabled) {
+                      enabledList.add(row);
+                    } else {
+                      disabledList.add(row);
+                    }
+                  }
+
+                  return Column(
+                    children: [
+                      if (enabledList.isNotEmpty)
+                        Column(
+                          children: enabledList,
+                        ),
+                      if (disabledList.isNotEmpty)
+                        Theme(
+                          data: Theme.of(context)
+                              .copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Row(
+                              children: [
+                                Text(
+                                  'Disabled Indicators (${disabledList.length})',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                if (enabledCount > 0 &&
+                                    overallSignalStrength != null &&
+                                    overallSignalStrength !=
+                                        enabledSignalStrength) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getSignalStrengthColor(
+                                              overallSignalStrength)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.speed,
+                                            size: 10,
+                                            color: _getSignalStrengthColor(
+                                                overallSignalStrength)),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '$overallSignalStrength% Overall',
+                                          style: TextStyle(
+                                            fontSize: 10.0,
+                                            fontWeight: FontWeight.bold,
+                                            color: _getSignalStrengthColor(
+                                                overallSignalStrength),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            children: disabledList,
+                          ),
+                        ),
+                    ],
+                  );
+                }),
+              ],
             ],
           ),
         );
@@ -3963,52 +4092,51 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color signalColor;
-    IconData signalIcon;
+    Color bgColor;
 
     switch (signal) {
       case 'BUY':
-        signalColor = Colors.green;
-        signalIcon = Icons.arrow_upward;
+        signalColor = Colors.green.shade700;
+        bgColor = Colors.green.withValues(alpha: 0.1);
         break;
       case 'SELL':
-        signalColor = Colors.red;
-        signalIcon = Icons.arrow_downward;
+        signalColor = Colors.red.shade700;
+        bgColor = Colors.red.withValues(alpha: 0.1);
         break;
       default:
-        signalColor = Colors.grey;
-        signalIcon = Icons.horizontal_rule;
+        signalColor = isDark ? Colors.grey.shade400 : Colors.grey.shade700;
+        bgColor = isDark
+            ? Colors.grey.shade800.withValues(alpha: 0.5)
+            : Colors.grey.shade200;
+    }
+
+    if (!isEnabled) {
+      signalColor = Colors.grey;
+      bgColor = Colors.transparent;
     }
 
     return Opacity(
-      opacity: isEnabled ? 1.0 : 0.75,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+      opacity: isEnabled ? 1.0 : 0.5,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              signalIcon,
-              color: signalColor,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8.0,
-                    runSpacing: 4.0,
+                  Row(
                     children: [
                       Text(
-                        '$name: $signal',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: signalColor,
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
-                      if (!isEnabled)
+                      if (!isEnabled) ...[
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
@@ -4029,14 +4157,44 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                   if (reason.isNotEmpty)
-                    Text(
-                      reason,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0, right: 8.0),
+                      child: Text(
+                        reason,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.color
+                              ?.withOpacity(0.8),
+                          height: 1.3,
+                        ),
+                      ),
                     ),
                 ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: signalColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                signal,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: signalColor,
+                ),
               ),
             ),
           ],
@@ -4052,15 +4210,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  String _getTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inDays > 0) {
+      return '${diff.inDays}d ago';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
   /// Returns color based on signal strength value (0-100).
   /// Matches filter categories:
   /// Strong (75-100): Green
   /// Moderate (50-74): Orange
   /// Weak (0-49): Red
   Color _getSignalStrengthColor(int strength) {
-    if (strength >= 75) {
+    if (strength >= Constants.signalStrengthStrongMin) {
       return Colors.green;
-    } else if (strength >= 50) {
+    } else if (strength >= Constants.signalStrengthModerateMin) {
       return Colors.orange;
     } else {
       return Colors.red;
@@ -4070,165 +4241,122 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildAgenticTradeSignals(Instrument instrument) {
     final symbol = instrument.symbol;
     return SliverToBoxAdapter(
+      key: tradeSignalKey,
       child: Column(
         children: [
           Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
-              final isMarketOpen = MarketHours.isMarketOpen();
-              final selectedInterval = provider.selectedInterval;
-              final intervalLabel = selectedInterval == '1d'
-                  ? 'Daily'
-                  : selectedInterval == '1h'
-                      ? 'Hourly'
-                      : selectedInterval == '15m'
-                          ? '15-min'
-                          : selectedInterval;
-
-              return ListTile(
-                title: const Text(
-                  "Trade Signal",
-                  style: TextStyle(fontSize: 20),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.history_outlined,
-                        size: 20,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade700,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Run Backtest',
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => BacktestingWidget(
-                              userDocRef: widget.userDocRef,
-                              prefilledSymbol: widget.instrument.symbol,
-                            ),
-                          ),
-                        );
-                      },
+              return Column(
+                children: [
+                  ListTile(
+                    title: const Text(
+                      "Trade Signal",
+                      style: TextStyle(fontSize: 20),
                     ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: Icon(
-                        Icons.settings,
-                        size: 20,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade700,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      tooltip: 'Automated Trading',
-                      onPressed: () async {
-                        if (widget.user == null || widget.userDocRef == null) {
-                          return;
-                        }
-                        final result = await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => AgenticTradingSettingsWidget(
-                              user: widget.user!,
-                              userDocRef: widget.userDocRef!,
-                              service: widget.service,
-                            ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.notifications_outlined,
+                            size: 20,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade700,
                           ),
-                        );
-                        if (result == true && mounted) {
-                          provider.fetchTradeSignal(widget.instrument.symbol,
-                              interval: provider.selectedInterval);
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 4),
-                    PopupMenuButton<String>(
-                      icon: Icon(
-                        isMarketOpen ? Icons.access_time : Icons.calendar_today,
-                        size: 20,
-                        color: isMarketOpen
-                            ? Colors.green.shade700
-                            : Colors.blue.shade700,
-                      ),
-                      tooltip:
-                          '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      itemBuilder: (context) => [
-                        PopupMenuItem<String>(
-                          enabled: false,
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(
-                              isMarketOpen ? 'Market Open' : 'After Hours',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isMarketOpen
-                                    ? Colors.green.shade700
-                                    : Colors.blue.shade700,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Notification Settings',
+                          onPressed: () {
+                            if (widget.user != null &&
+                                widget.userDocRef != null) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TradeSignalNotificationSettingsWidget(
+                                    user: widget.user!,
+                                    userDocRef: widget.userDocRef!,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: Icon(
+                            Icons.science_outlined,
+                            size: 20,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade700,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Run Backtest',
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => BacktestingWidget(
+                                  userDocRef: widget.userDocRef,
+                                  prefilledSymbol: widget.instrument.symbol,
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem<String>(
-                          value: '15m',
-                          child: Row(
-                            children: [
-                              const Text('15-min'),
-                              if (selectedInterval == '15m') ...[
-                                const SizedBox(width: 8),
-                                Icon(Icons.check,
-                                    size: 18, color: Colors.green.shade700),
-                              ],
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: '1h',
-                          child: Row(
-                            children: [
-                              const Text('Hourly'),
-                              if (selectedInterval == '1h') ...[
-                                const SizedBox(width: 8),
-                                Icon(Icons.check,
-                                    size: 18, color: Colors.green.shade700),
-                              ],
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: '1d',
-                          child: Row(
-                            children: [
-                              const Text('Daily'),
-                              if (selectedInterval == '1d') ...[
-                                const SizedBox(width: 8),
-                                Icon(Icons.check,
-                                    size: 18, color: Colors.green.shade700),
-                              ],
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ],
-                      onSelected: (value) {
-                        provider.setSelectedInterval(value);
-                        provider.fetchTradeSignal(symbol, interval: value);
-                      },
                     ),
-                  ],
-                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment<String>(
+                          value: '15m',
+                          label: Text('15m'),
+                          icon: Icon(Icons.timer_outlined, size: 16),
+                        ),
+                        ButtonSegment<String>(
+                          value: '1h',
+                          label: Text('Hourly'),
+                          icon: Icon(Icons.schedule, size: 16),
+                        ),
+                        ButtonSegment<String>(
+                          value: '1d',
+                          label: Text('Daily'),
+                          icon: Icon(Icons.calendar_today, size: 16),
+                        ),
+                      ],
+                      selected: {provider.selectedInterval},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        provider.setSelectedInterval(newSelection.first);
+                        provider.fetchTradeSignal(widget.instrument.symbol,
+                            interval: newSelection.first);
+                      },
+                      style: ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: WidgetStateProperty.all(EdgeInsets.zero),
+                      ),
+                      showSelectedIcon: false,
+                    ),
+                  ),
+                ],
               );
             },
           ),
           const SizedBox(height: 8),
           Consumer2<TradeSignalsProvider, AccountStore>(
             builder: (context, tradeSignalsProvider, accountStore, child) {
+              if (tradeSignalsProvider.isLoading) {
+                return const Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
               final signal = tradeSignalsProvider.tradeSignal;
               if (signal == null || signal.isEmpty) {
                 return Card(
@@ -4265,12 +4393,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   signal['timestamp'] as int);
               var signalType = signal['signal'] ?? 'HOLD';
               // String? recalculatedReason;
-              final signalInterval = signal['interval'] ?? '1d';
               final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
               final optimization =
                   signal['optimization'] as Map<String, dynamic>?;
+
+              if (optimization != null &&
+                  optimization['refinedSignal'] != null) {
+                signalType = optimization['refinedSignal'];
+              }
 
               // // Recalculate overall signal based on enabled indicators
               // if (multiIndicator != null) {
@@ -4362,16 +4494,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   signalIcon = Icons.trending_flat;
               }
 
-              // Format interval label
-              final intervalLabel = signalInterval == '1d'
-                  ? 'Daily'
-                  : signalInterval == '1h'
-                      ? 'Hourly'
-                      : signalInterval == '30m'
-                          ? '30-min'
-                          : signalInterval == '15m'
-                              ? '15-min'
-                              : signalInterval;
+              final isMarketOpen = MarketHours.isMarketOpen();
 
               return Card(
                 elevation: 2,
@@ -4396,36 +4519,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               Row(
                                 children: [
                                   // Signal Badge
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 8.0,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: signalColor,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          signalIcon,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          signalType,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
                                   Tooltip(
                                     message: signal['reason'] ??
                                         'No reason provided',
@@ -4434,34 +4527,151 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         horizontal: 16),
                                     showDuration: const Duration(seconds: 5),
                                     triggerMode: TooltipTriggerMode.tap,
-                                    child: Icon(
-                                      Icons.info_outline,
-                                      color: signalColor,
-                                      size: 26,
+                                    child: InkWell(
+                                      onTap: optimization != null
+                                          ? () {
+                                              setState(() {
+                                                _showAIReasoning =
+                                                    !_showAIReasoning;
+                                              });
+                                            }
+                                          : null,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                          vertical: 8.0,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: signalColor,
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          boxShadow: optimization != null
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.purple
+                                                        .withValues(alpha: 0.3),
+                                                    blurRadius: 8,
+                                                    spreadRadius: 1,
+                                                  )
+                                                ]
+                                              : null,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              optimization != null
+                                                  ? Icons.auto_awesome
+                                                  : signalIcon,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              signalType,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            if (optimization != null) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.2),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  "${optimization['confidenceScore']}% AI",
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                _showAIReasoning
+                                                    ? Icons.keyboard_arrow_up
+                                                    : Icons.keyboard_arrow_down,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              // Timestamp and interval
+                              // Timestamp and Status
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    intervalLabel,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    formatCompactDateTimeWithHour
-                                        .format(timestamp),
+                                    "${formatCompactDateTimeWithHour.format(timestamp)} · ${_getTimeAgo(timestamp)}",
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade700,
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade300
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isMarketOpen
+                                          ? Colors.amber.withValues(alpha: 0.15)
+                                          : Colors.blue.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isMarketOpen
+                                            ? Colors.amber
+                                                .withValues(alpha: 0.3)
+                                            : Colors.blue
+                                                .withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          isMarketOpen
+                                              ? Icons.wb_sunny_rounded
+                                              : Icons.nightlight_round,
+                                          size: 10,
+                                          color: isMarketOpen
+                                              ? Colors.amber.shade700
+                                              : Colors.blue.shade700,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isMarketOpen
+                                              ? 'Market Open'
+                                              : 'After Hours',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isMarketOpen
+                                                ? Colors.amber.shade800
+                                                : Colors.blue.shade800,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -4472,274 +4682,80 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ),
                     ),
 
-                    // ML Optimization Section
-                    if (optimization != null)
+                    // ML Optimization Section - Content Only if expanded or relevant
+                    if (optimization != null &&
+                        optimization['reasoning'] != null &&
+                        _showAIReasoning)
                       Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12.0),
                         child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? [
-                                      Colors.purple.shade900.withValues(alpha: 0.2),
-                                      Colors.deepPurple.shade900
-                                          .withValues(alpha: 0.2),
+                                      Colors.purple.shade900
+                                          .withValues(alpha: 0.3),
+                                      Colors.blue.shade900
+                                          .withValues(alpha: 0.3)
                                     ]
                                   : [
                                       Colors.purple.shade50,
-                                      Colors.deepPurple.shade50,
+                                      Colors.blue.shade50
                                     ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? Colors.purpleAccent.withValues(alpha: 0.2)
-                                  : Colors.purple.withValues(alpha: 0.3),
-                              width: 1,
+                                  : Colors.purple.withValues(alpha: 0.1),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.black.withValues(alpha: 0.1)
-                                    : Colors.purple.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Header
-                              Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.purpleAccent
-                                                .withValues(alpha: 0.1)
-                                            : Colors.purple.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.auto_awesome,
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.purpleAccent
-                                            : Colors.purple,
-                                        size: 18,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "AI Optimization",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.white
-                                                    : Colors.purple,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        if (optimization['mlModel'] != null)
-                                          Text(
-                                            "Powered by ${optimization['mlModel']}",
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white70
-                                                  : Colors.purple.shade400,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const Spacer(),
-                                    // Confidence Badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey.shade800
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.purpleAccent
-                                                        .withValues(alpha: 0.3)
-                                                    : Colors.purple
-                                                        .withValues(alpha: 0.2)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            "${optimization['confidenceScore']}%",
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.purpleAccent
-                                                  : Colors.purple,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            "Conf.",
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.grey.shade400
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Confidence Bar
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(2),
-                                  child: LinearProgressIndicator(
-                                    value: (optimization['confidenceScore']
-                                            as num) /
-                                        100.0,
-                                    backgroundColor:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey.shade800
-                                            : Colors.purple.withValues(alpha: 0.1),
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      (optimization['confidenceScore'] as num) >
-                                              80
-                                          ? Colors.green
-                                          : (optimization['confidenceScore']
-                                                      as num) >
-                                                  50
-                                              ? (Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.purpleAccent
-                                                  : Colors.purple)
-                                              : Colors.orange,
-                                    ),
-                                    minHeight: 4,
+                              Row(children: [
+                                ShaderMask(
+                                  shaderCallback: (bounds) =>
+                                      const LinearGradient(
+                                    colors: [Colors.purple, Colors.blue],
+                                  ).createShader(bounds),
+                                  child: const Icon(
+                                    Icons.auto_awesome,
+                                    size: 18,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              ),
-
-                              const Divider(height: 24),
-
-                              // Content
-                              Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      optimization['reasoning'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Colors.grey.shade800,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                    if (optimization['refinedSignal'] !=
-                                        signalType) ...[
-                                      const SizedBox(height: 12),
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.grey.shade800
-                                              : Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.grey.shade700
-                                                    : Colors.grey.shade200,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.compare_arrows,
-                                                size: 16,
-                                                color: Theme.of(context)
-                                                            .brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.grey.shade400
-                                                    : Colors.grey),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              "Refined Signal: ",
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.grey.shade400
-                                                      : Colors.grey.shade600),
-                                            ),
-                                            Text(
-                                              optimization['refinedSignal'] ??
-                                                  '',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: optimization[
-                                                            'refinedSignal'] ==
-                                                        'BUY'
-                                                    ? Colors.green
-                                                    : optimization[
-                                                                'refinedSignal'] ==
-                                                            'SELL'
-                                                        ? Colors.red
-                                                        : Colors.grey,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                const SizedBox(width: 8),
+                                Text("AI Insight",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        foreground: Paint()
+                                          ..shader = const LinearGradient(
+                                            colors: [
+                                              Colors.purple,
+                                              Colors.blue
+                                            ],
+                                          ).createShader(const Rect.fromLTWH(
+                                              0.0, 0.0, 200.0, 70.0))))
+                              ]),
+                              const SizedBox(height: 12),
+                              SelectableText(
+                                optimization['reasoning'],
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color,
+                                    height: 1.5),
                               ),
                             ],
                           ),
@@ -4749,54 +4765,47 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     // Multi-Indicator Display
                     if (multiIndicator != null)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0.0),
                         child: _buildMultiIndicatorDisplay(multiIndicator),
                       ),
 
                     // Risk Assessment
-                    if (assessment != null) ...[
-                      const Divider(height: 24),
+                    if (assessment != null)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.shield_outlined,
-                              size: 20,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Risk Assessment',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12.0),
                         child: Container(
                           padding: const EdgeInsets.all(12.0),
                           decoration: BoxDecoration(
                             color: assessment['approved'] == true
                                 ? Colors.green.withValues(alpha: 0.1)
                                 : Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: assessment['approved'] == true
                                   ? Colors.green.shade300
                                   : Colors.red.shade300,
-                              width: 1.5,
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Row(children: [
+                                Icon(Icons.shield_outlined,
+                                    size: 16,
+                                    color: assessment['approved'] == true
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700),
+                                const SizedBox(width: 8),
+                                Text("Risk Assessment",
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: assessment['approved'] == true
+                                            ? Colors.green.shade700
+                                            : Colors.red.shade700)),
+                              ]),
+                              const SizedBox(height: 8),
                               Row(
                                 children: [
                                   Icon(
@@ -4806,7 +4815,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     color: assessment['approved'] == true
                                         ? Colors.green.shade700
                                         : Colors.red.shade700,
-                                    size: 24,
+                                    size: 20,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -4814,7 +4823,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         ? 'Trade Approved'
                                         : 'Trade Rejected',
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       color: assessment['approved'] == true
                                           ? Colors.green.shade700
                                           : Colors.red.shade700,
@@ -4824,18 +4833,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 ],
                               ),
                               if (assessment['reason'] != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
+                                const SizedBox(height: 4),
+                                SelectableText(
                                   assessment['reason'] ?? '',
-                                  style: const TextStyle(fontSize: 14),
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color),
                                 ),
                               ],
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                    ],
 
                     // Action Buttons
                     Padding(

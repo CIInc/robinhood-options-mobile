@@ -34,6 +34,12 @@ class Constants {
   // App constants
   static const String appTitle = 'RealizeAlpha';
 
+  // Trade Signal Strength Thresholds
+  static const int signalStrengthStrongMin = 75;
+  static const int signalStrengthModerateMin = 50;
+  static const int signalStrengthModerateMax = 74;
+  static const int signalStrengthWeakMax = 49;
+
   static const String deepLinkScheme = 'realizealpha://';
   static const String initialLinkLoginCallback =
       '${deepLinkScheme}login-callback\\?(\\?)?code=';

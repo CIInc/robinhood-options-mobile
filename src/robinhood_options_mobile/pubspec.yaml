@@ -102,6 +102,7 @@ dependencies:
   # Used to set app icon badge count (resetting it on app open).
   app_badge_plus: ^1.2.6
   candlesticks: ^2.1.0
+  in_app_purchase: ^3.2.3
 
 dev_dependencies:
   flutter_test:

@@ -44,6 +44,11 @@ class User {
   Map<String, double>? assetAllocationTargets;
   Map<String, double>? sectorAllocationTargets;
 
+  // Subscription fields
+  String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
+  DateTime? trialStartDate;
+  DateTime? subscriptionExpiryDate;
+
   User(
       {this.name,
       this.nameLower,
@@ -65,7 +70,10 @@ class User {
       this.optionFilterPresets,
       this.defaultOptionFilterPreset,
       this.assetAllocationTargets,
-      this.sectorAllocationTargets});
+      this.sectorAllocationTargets,
+      this.subscriptionStatus,
+      this.trialStartDate,
+      this.subscriptionExpiryDate});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -114,7 +122,10 @@ class User {
                 : null,
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
             assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
-            sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null);
+            sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
+            subscriptionStatus: json['subscriptionStatus'] as String?,
+            trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
+            subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -133,6 +144,9 @@ class User {
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
       'refreshQuotes': refreshQuotes,
       'investmentProfile': investmentProfile?.toJson(),
+      'subscriptionStatus': subscriptionStatus,
+      'trialStartDate': trialStartDate,
+      'subscriptionExpiryDate': subscriptionExpiryDate,
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson(),

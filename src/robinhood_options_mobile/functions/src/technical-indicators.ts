@@ -2565,6 +2565,36 @@ export function evaluateAllIndicators(
     reason: "Disabled",
   };
 
+  // Pre-process: Filter out zero-volume data points (market closed/bad data)
+  // This prevents skewing averages and triggering "Low volume (0% of avg)"
+  if (symbolData.volumes && symbolData.volumes.length > 0) {
+    const validIndices: number[] = [];
+    const limit = Math.min(symbolData.volumes.length, symbolData.closes.length);
+    let hasZeroVolume = false;
+
+    for (let i = 0; i < limit; i++) {
+      if (symbolData.volumes[i] > 0) {
+        validIndices.push(i);
+      } else {
+        hasZeroVolume = true;
+      }
+    }
+
+    if (hasZeroVolume) {
+      symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
+      symbolData.volumes = validIndices.map((i) => symbolData.volumes![i]);
+      if (symbolData.opens && symbolData.opens.length >= limit) {
+        symbolData.opens = validIndices.map((i) => symbolData.opens![i]);
+      }
+      if (symbolData.highs && symbolData.highs.length >= limit) {
+        symbolData.highs = validIndices.map((i) => symbolData.highs![i]);
+      }
+      if (symbolData.lows && symbolData.lows.length >= limit) {
+        symbolData.lows = validIndices.map((i) => symbolData.lows![i]);
+      }
+    }
+  }
+
   const highs = symbolData.highs || symbolData.closes;
   const lows = symbolData.lows || symbolData.closes;
   const volumes = symbolData.volumes || [];

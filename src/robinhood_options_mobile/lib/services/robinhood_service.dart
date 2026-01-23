@@ -2606,8 +2606,14 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
   Future<List<dynamic>> getEarnings(
       BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
-    var resultJson = await getJson(user,
-        "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/$instrumentId/")}");
+    var resultJson;
+    try {
+      resultJson = await getJson(user,
+          "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("$endpoint/instruments/$instrumentId/")}");
+    } catch (e) {
+      debugPrint('No earnings found or bad request. Error: $e');
+      return [];
+    }
     List<dynamic> list = [];
     for (var i = 0; i < resultJson["results"].length; i++) {
       var result = resultJson["results"][i];

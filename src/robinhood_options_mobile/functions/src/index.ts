@@ -30,6 +30,7 @@ import * as backtesting from "./backtesting";
 import * as optionsFlow from "./options-flow";
 import * as optionsFlowCron from "./options-flow-cron";
 import * as sentimentAnalysis from "./sentiment-analysis";
+import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -88,3 +89,4 @@ export const getOptionAlerts = optionsFlow.getOptionAlerts;
 export const deleteOptionAlert = optionsFlow.deleteOptionAlert;
 export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
+export const verifySubscription = verifySubscriptionFunc;

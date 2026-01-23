@@ -392,8 +392,8 @@ class TradeSignalsProvider with ChangeNotifier {
   Map<String, dynamic>? get tradeSignal => _tradeSignal;
   String get selectedInterval {
     final interval = _selectedInterval ?? _getDefaultInterval();
-    debugPrint(
-        '🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
+    // debugPrint(
+    //     '🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
     return interval;
   }
 
@@ -718,10 +718,10 @@ class TradeSignalsProvider with ChangeNotifier {
               ? (interval == null || interval == '1d')
               : (interval == effectiveInterval);
 
-          if (include) {
-            debugPrint(
-                '   ✅ ${doc.id}: interval=$interval matches selected $effectiveInterval');
-          }
+          // if (include) {
+          //   debugPrint(
+          //       '   ✅ ${doc.id}: interval=$interval matches selected $effectiveInterval');
+          // }
           return include;
         })
         .map((doc) {
