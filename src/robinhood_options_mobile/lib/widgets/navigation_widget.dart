@@ -17,11 +17,13 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/services/biometric_service.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
+import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/subscription_service.dart';
@@ -73,7 +75,11 @@ class NavigationStatefulWidget extends StatefulWidget {
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     with WidgetsBindingObserver {
   final FirestoreService _firestoreService = FirestoreService();
+  final BiometricService _biometricService = BiometricService();
   final GenerativeService _generativeService = GenerativeService();
+
+  bool _isAuthenticated = false;
+  bool _isCheckingAuth = true;
 
   IBrokerageService? service;
 
@@ -202,6 +208,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     // Used to detect app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
     _removeBadge();
+    _authIfNeeded();
     _pageController = PageController(initialPage: _pageIndex);
 
     RobinhoodService.loadLogos();
@@ -258,6 +265,23 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _removeBadge();
+      _authIfNeeded(); // Re-authenticate resume
+    } else if (state == AppLifecycleState.paused) {
+      // Logic to require auth again if we want to be strict on resume
+      // For now we rely on _authIfNeeded checking the variable,
+      // but strictly we should set _isAuthenticated to false if we want re-auth on resume.
+      // _isAuthenticated = false; // Uncommenting this forces re-auth on every resume.
+      // For user experience, usually we want re-auth on resume if bio is enabled.
+      // So setting it to false on pause is correct.
+      // However, we must check if bio is enabled first to avoid setting it false needlessly?
+      // Actually _authIfNeeded will just set it back to true if bio disabled.
+
+      // Let's check preference synchronously or assume needed.
+      // But we can't check async in paused easily.
+      // Safe bet: set _isAuthenticated = false; and let _authIfNeeded handle it on resume.
+      setState(() {
+        _isAuthenticated = false;
+      });
     }
   }
 
@@ -269,8 +293,54 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     });
   }
 
+  Future<void> _authIfNeeded() async {
+    if (_isAuthenticated) {
+      return;
+    }
+    bool enabled = await _biometricService.isBiometricEnabled();
+    if (enabled) {
+      bool authenticated = await _biometricService.authenticate();
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = authenticated;
+          _isCheckingAuth = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = true;
+          _isCheckingAuth = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_isAuthenticated) {
+      if (_isCheckingAuth) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock, size: 64),
+              const SizedBox(height: 16),
+              const Text('Authentication Required'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _authIfNeeded,
+                child: const Text('Unlock'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // The listen: true here causes the entire app to refresh whenever user settings are changed,
     // yet it seems necessary to detect authentication changes.
     // TODO: Figure out better approach to handle only authentication changes.
@@ -300,6 +370,36 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             var snapshots = dataSnapshot.data as List<dynamic>;
             packageInfo = snapshots
                 .firstWhereOrNull((dynamic element) => element is PackageInfo);
+
+            if (packageInfo != null &&
+                RemoteConfigService.instance
+                    .isUpdateRequired(packageInfo!.version)) {
+              return const Scaffold(
+                body: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.system_update, size: 64, color: Colors.blue),
+                        SizedBox(height: 20),
+                        Text(
+                          "Update Required",
+                          style: TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "A new version of the app is available. Please update to continue using the app.",
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             // packageInfo = dataSnapshot.data![0] as PackageInfo;
             userInfo = snapshots.firstWhereOrNull(
                 (dynamic element) => element is UserInfo) as UserInfo?;
@@ -387,6 +487,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           });
 
           widget.analytics.setUserId(id: userInfo?.username ?? 'anonymous');
+          widget.analytics.setUserProperty(
+              name: 'experiment_group',
+              value: RemoteConfigService.instance.experimentGroup);
 
           return buildScaffold(userStore);
           // TODO: Figure out why adding a loading message property breaks the other tabs

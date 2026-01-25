@@ -331,7 +331,10 @@ class _CopyTradingDashboardWidgetState
     }
 
     String csv = const ListToCsvConverter().convert(rows);
-    Share.share(csv, subject: 'Copy Trade History.csv');
+    SharePlus.instance.share(ShareParams(
+      text: csv,
+      subject: 'Copy Trade History.csv',
+    ));
   }
 
   Widget _buildSummary(

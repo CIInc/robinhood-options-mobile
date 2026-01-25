@@ -1300,11 +1300,11 @@ Based on this specific trade data and the flags, provide a professional trading 
         'Sentiment: ${item.sentiment.toString().split('.').last.toUpperCase()}\n'
         'Score: ${item.score}/100';
     final box = context.findRenderObject() as RenderBox?;
-    Share.share(
-      text,
+    SharePlus.instance.share(ShareParams(
+      text: text,
       sharePositionOrigin:
           box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-    );
+    ));
   }
 }
 

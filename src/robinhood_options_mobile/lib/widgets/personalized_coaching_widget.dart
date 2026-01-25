@@ -346,7 +346,7 @@ class _PersonalizedCoachingWidgetState
                 if (completionPercentage != null) ...[
                   LinearProgressIndicator(
                     value: (completionPercentage / 100).clamp(0.0, 1.0),
-                    backgroundColor: Colors.grey.withOpacity(0.2),
+                    backgroundColor: Colors.grey.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(
                         passed ? Colors.green : Colors.orange),
                   ),
@@ -496,9 +496,9 @@ class _PersonalizedCoachingWidgetState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Text(reason,
                         style: TextStyle(
@@ -744,7 +744,10 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
 
     text += "Analyzed by RealizeAlpha AI Coach.";
 
-    Share.share(text, sharePositionOrigin: sharePositionOrigin);
+    SharePlus.instance.share(ShareParams(
+      text: text,
+      sharePositionOrigin: sharePositionOrigin,
+    ));
   }
 
   void _showHistoryModal() {

@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/services/biometric_service.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
@@ -68,6 +69,7 @@ class UserWidget extends StatefulWidget {
 
 class _UserWidgetState extends State<UserWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  final BiometricService _biometricService = BiometricService();
   late CollectionReference<User> usersCollection;
   late DocumentReference<User>? userDocumentReference;
   late Stream<DocumentSnapshot<User>>? userStream;
@@ -75,6 +77,8 @@ class _UserWidgetState extends State<UserWidget> {
   late UserRole selectedRole;
   bool _isLoading = false;
   bool isExpanded = false;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
   PackageInfo? packageInfo;
 
   bool get isCurrentUserProfileView =>
@@ -85,6 +89,7 @@ class _UserWidgetState extends State<UserWidget> {
   @override
   void initState() {
     super.initState();
+    _checkBiometrics();
 
     PackageInfo.fromPlatform().then((value) {
       if (mounted) {
@@ -98,6 +103,17 @@ class _UserWidgetState extends State<UserWidget> {
     userDocumentReference = usersCollection.doc(widget.userId);
     userStream = userDocumentReference!.snapshots();
     futurePrefs = SharedPreferences.getInstance();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final available = await _biometricService.isBiometricAvailable();
+    final enabled = await _biometricService.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
   }
 
   @override
@@ -366,6 +382,43 @@ class _UserWidgetState extends State<UserWidget> {
                                                                 icon: const Icon(Icons.sms_outlined, size: 18),
                                                                 label: const Text('Compose'))
                                                         : null),
+                                                if (_biometricAvailable) ...[
+                                                  ListTile(
+                                                    leading: const Icon(
+                                                        Icons.fingerprint),
+                                                    title: const Text(
+                                                        'Biometric Authentication'),
+                                                    // subtitle: const Text(
+                                                    //     'Use FaceID/TouchID to access app'),
+                                                    trailing: Switch(
+                                                      value: _biometricEnabled,
+                                                      onChanged: (value) async {
+                                                        if (value) {
+                                                          final authenticated =
+                                                              await _biometricService
+                                                                  .authenticate();
+                                                          if (authenticated) {
+                                                            await _biometricService
+                                                                .setBiometricEnabled(
+                                                                    true);
+                                                            setState(() {
+                                                              _biometricEnabled =
+                                                                  true;
+                                                            });
+                                                          }
+                                                        } else {
+                                                          await _biometricService
+                                                              .setBiometricEnabled(
+                                                                  false);
+                                                          setState(() {
+                                                            _biometricEnabled =
+                                                                false;
+                                                          });
+                                                        }
+                                                      },
+                                                    ),
+                                                  ),
+                                                ],
                                                 ListTile(
                                                   leading: Icon(
                                                       Icons.logout_outlined,

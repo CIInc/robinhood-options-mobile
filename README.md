@@ -29,7 +29,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Watchlist Management:** Create and manage custom watchlists, add/remove instruments, and view real-time data for tracked assets. Now features **Watchlist Streaming** for real-time updates directly in the search interface.
 *   **Investor Groups:** Create and join investor groups to share portfolios and collaborate with other investors. Includes comprehensive member management with invitation system, admin controls for promoting/demoting members, and direct portfolio viewing for private group members. Features real-time user search and 3-tab admin interface (Members, Pending, Invite).
 *   **Copy Trading:** Per-group settings to copy filled stock/ETF and option trades from a selected member with immediate manual execution via brokerage API, quantity/amount limits, audit trail in `copy_trades`, and push notifications. Now features a dedicated **Copy Trading Dashboard** with trade history, filtering, and a request approval workflow. Includes **Inverse Copying** (contrarian mode) and **Exit Strategies** (Take Profit/Stop Loss) for better risk management. Auto-execute supported.
-*   **Futures Positions:** Live futures position enrichment with contract & product metadata (root symbol, expiration, currency, multiplier) plus real-time quote integration and Open P&L calculation using `(lastTradePrice - avgTradePrice) * quantity * multiplier`. (Realized/day P&L, margin metrics, and roll detection planned for Q1 2026.)
+*   **Futures Positions:** Live futures position enrichment with contract & product metadata (root symbol, expiration, currency, multiplier) plus real-time quote integration and Open P&L calculation using `(lastTradePrice - avgTradePrice) * quantity * multiplier`. (See [ROADMAP.md](ROADMAP.md) for future margin and roll detection plans.)
 *   **[Crypto Trading](docs/crypto-trading.md):** Dedicated widgets for placing and managing crypto orders, integrated into the main trading interface.
 *   **[Schwab Integration](docs/schwab-integration.md):** Enhanced integration with Schwab brokerage services for improved option order handling and reliability.
 *   **[Option Chain Screener](docs/option-strategy-builder.md#option-chain-screener):** Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more. Features AI-powered "Find Best Contract" suggestions based on risk tolerance and strategy.
@@ -366,12 +366,10 @@ flutter test
 This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see [ROADMAP.md](ROADMAP.md).
 
 Key areas of planned development include:
-- **Investor Groups**: Enhanced collaboration features, advanced permissions, group analytics
-- **Trade Signals & AI**: Portfolio-wide analysis, custom agent training, ML model optimization
-- **Social & Community**: User profiles, leaderboards, strategy templates
-- **Portfolio Management**: Multi-broker support, asset allocation tools, tax optimization
-- **Advanced Analytics**: Custom dashboards, backtesting engine, performance attribution
-- **Education**: Interactive tutorials, glossary, strategy guides
-- **Mobile Experience**: Widgets, shortcuts, offline mode, tablet optimization
+- **Portfolio & Analysis**: User Intelligence, AI Assistant, and advanced alerting.
+- **Trading & Automation**: Algorithmic strategy marketplace, copy trading evolution, and smart routing.
+- **Social & Community**: Viral growth features, leaderboards, and verified track records.
+- **Platform Foundation**: Reliability, security, CI/CD, and app store polish.
+- **Future Horizons**: Frontier tech, decentralized finance, and multi-agent systems.
 
 See the [full documentation](docs/index.md) for detailed descriptions of each planned enhancement.

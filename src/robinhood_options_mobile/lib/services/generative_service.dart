@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 
 class Prompt {
   final String key;
@@ -138,7 +139,9 @@ Then include a brief summary of the **Strategy** and **Risk Profile**.
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
             // model: 'gemini-2.5-flash'
-            model: 'gemini-2.5-flash-lite',
+            model: RemoteConfigService.instance.aiModelName.isNotEmpty
+                ? RemoteConfigService.instance.aiModelName
+                : 'gemini-2.5-flash-lite',
             systemInstruction: Content.system(
                 'You are a helpful financial assistant for RealizeAlpha. '
                 // 'When asked to build or construct a portfolio, always present it as a Markdown table with Asset (Symbol & Name), Allocation, and Sector columns. '
