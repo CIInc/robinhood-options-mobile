@@ -1262,6 +1262,12 @@ Navigator.push(
 
 ## Version History
 
+- **v1.6** (2026-01-24): Strategy & Signal Enhancements
+  - **Trade Signals Widget**: Dedicated interface for filtering and viewing signals.
+  - **Strategy Templates**: Improved management and filtering by strategy configuration.
+  - **Premium Access**: Integration with In-App Purchases for premium signal features.
+  - **Custom Benchmarks**: Support for custom benchmarking in Portfolio Analytics.
+
 - **v1.5** (2025-12-30): Intraday Data & Sorting Fixes
   - Enhanced market data fetching logic to ensure sufficient historical data for MACD.
   - Improved trade signal sorting functionality and reliability.

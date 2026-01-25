@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-01-24
+
+### Added
+- **Trade Signals Widget:** Introduced a dedicated widget for displaying and filtering trade signals, accessible via the new `TradeSignalsPage`.
+- **In-App Purchases:** Integrated subscription support for premium features, including a paywall for Trade Signals access.
+- **Enhanced Signal Search:** Upgraded `TradeSignalsPage` and `SearchWidget` to support filtering by specific indicators and strategy templates.
+- **Strategy Enhancements:** Refactored `AgenticTradingConfig` to support `TradeStrategyConfig` for better strategy template management.
+- **Improved Chat:** Enhanced scrolling behavior and message handling in the Chat Widget for a smoother user experience.
+
+### Changed
+- **Indicator Defaults:** Default indicators in Agentic Trading are now set to `false` (opt-in) for cleaner initial configuration.
+- **UI Themes:** Updated color handling in Allocation and Rebalancing widgets for better theme support.
+
 ## [0.30.0] - 2026-01-22
 
 ### Added

@@ -273,6 +273,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Analytics Fixes:** Correct data syncing for custom timeframes
 - ✅ **Cash Allocation:** Enhanced handling of short-term treasuries as cash equivalents
 
+### v0.30.1 ✅ (Released Jan 24, 2026)
+**Trade Signals & In-App Subscriptions**
+- ✅ **Trade Signals Widget:** Dedicated widget for displaying and filtering trade signals
+- ✅ **In-App Purchases:** Integrated subscription support for premium features
+- ✅ **Enhanced Signal Search:** Filter signals by specific indicators and strategy templates
+- ✅ **Strategy Enhancements:** Refactored configuration for better template management
+- ✅ **Chat Improvements:** Smoother scrolling and message handling
+
 ### v0.31.0 (Q1 2026 - Late February)
 **AI Portfolio Architect**
 - Automated portfolio rebalancing scheduler
