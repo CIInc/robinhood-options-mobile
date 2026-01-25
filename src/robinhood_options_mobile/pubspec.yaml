@@ -103,6 +103,8 @@ dependencies:
   app_badge_plus: ^1.2.6
   candlesticks: ^2.1.0
   in_app_purchase: ^3.2.3
+  firebase_remote_config: ^5.5.0
+  local_auth: ^3.0.0
 
 dev_dependencies:
   flutter_test:
