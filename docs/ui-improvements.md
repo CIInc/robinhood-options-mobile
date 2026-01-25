@@ -2,6 +2,12 @@
 
 ## Completed Improvements
 
+### Chat Widget Enhancements (v0.30.1)
+- **Component**: Chat Widget (Market Assistant).
+- **Features**:
+  - **Improved Scrolling**: Enhanced behavior to maintain context while receiving new messages.
+  - **Message Handling**: Smoother message rendering and state management for a better conversational experience.
+
 ### Instrument Notes & AI Drafting (v0.29.1)
 - **Component**: New `InstrumentNoteWidget` integrated into Instrument Details.
 - **Features**:
