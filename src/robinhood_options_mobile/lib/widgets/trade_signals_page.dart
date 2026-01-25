@@ -12,8 +12,15 @@ import 'package:robinhood_options_mobile/widgets/paywall_widget.dart';
 import 'package:robinhood_options_mobile/services/subscription_service.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notifications_page.dart';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
@@ -26,6 +33,8 @@ class TradeSignalsPage extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GenerativeService generativeService;
+  final Map<String, String>? initialIndicators;
+  final TradeStrategyTemplate? strategyTemplate;
 
   const TradeSignalsPage({
     super.key,
@@ -36,6 +45,8 @@ class TradeSignalsPage extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    this.initialIndicators,
+    this.strategyTemplate,
   });
 
   @override
@@ -104,9 +115,14 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                 _tradeSignalsKey.currentState?.refresh();
               },
               child: CustomScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   SliverAppBar(
-                    title: const Text(Constants.appTitle),
+                    title: Text(widget.strategyTemplate != null
+                        ? widget.strategyTemplate!
+                            .name // 'Signals: ${widget.strategyTemplate!.name}'
+                        : Constants.appTitle),
                     centerTitle: false,
                     floating: false,
                     pinned: true,
@@ -124,6 +140,8 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                     generativeService: widget.generativeService,
                     showHeader: false,
                     useSlivers: true,
+                    initialIndicators: widget.initialIndicators,
+                    strategyTemplate: widget.strategyTemplate,
                   ),
                 ],
               ),
@@ -133,10 +151,35 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
   }
 
   List<Widget> _buildActions(BuildContext context) {
+    var auth = firebase_auth.FirebaseAuth.instance;
     return [
+      Consumer<TradeSignalNotificationsStore>(
+        builder: (context, store, child) {
+          return IconButton(
+            icon: Badge(
+              isLabelVisible: store.unreadCount > 0,
+              label: Text('${store.unreadCount}'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            tooltip: 'Notifications',
+            onPressed: () {
+              if (widget.user != null && widget.userDocRef != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TradeSignalNotificationsPage(
+                      user: widget.user!,
+                      userDocRef: widget.userDocRef!,
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        },
+      ),
       IconButton(
         icon: const Icon(Icons.tune),
-        tooltip: 'Settings',
+        tooltip: 'Settings (My Strategy)',
         onPressed: () async {
           if (widget.user != null && widget.userDocRef != null) {
             final result = await Navigator.of(context).push(
@@ -145,7 +188,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                   user: widget.user!,
                   userDocRef: widget.userDocRef!,
                   service: widget.service,
-                  initialSection: 'entryStrategies',
+                  // initialSection: 'entryStrategies',
                 ),
               ),
             );
@@ -156,190 +199,77 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
         },
       ),
       IconButton(
-        icon: const Icon(Icons.notifications_outlined),
-        tooltip: 'Notification Settings',
-        onPressed: () {
-          if (widget.user != null && widget.userDocRef != null) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TradeSignalNotificationSettingsWidget(
-                  user: widget.user!,
-                  userDocRef: widget.userDocRef!,
-                ),
-              ),
-            );
-          }
-        },
-      ),
-      PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert),
-        tooltip: 'Options',
-        itemBuilder: (BuildContext context) {
-          final tradeSignalsProvider =
-              Provider.of<TradeSignalsProvider>(context, listen: false);
-          final isMarketOpen = MarketHours.isMarketOpen();
-          final selectedInterval = tradeSignalsProvider.selectedInterval;
+          icon: auth.currentUser != null
+              ? (auth.currentUser!.photoURL == null
+                  ? const Icon(Icons.account_circle)
+                  : CircleAvatar(
+                      maxRadius: 12,
+                      backgroundImage: CachedNetworkImageProvider(
+                          auth.currentUser!.photoURL!)))
+              : const Icon(Icons.account_circle_outlined),
+          onPressed: () async {
+            await showProfile(
+                context,
+                auth,
+                FirestoreService(),
+                widget.analytics,
+                widget.observer,
+                widget.brokerageUser,
+                widget.service);
+          }),
+      // PopupMenuButton<String>(
+      //   icon: const Icon(Icons.more_vert),
+      //   tooltip: 'Options',
+      //   itemBuilder: (BuildContext context) {
+      //     final tradeSignalsProvider =
+      //         Provider.of<TradeSignalsProvider>(context, listen: false);
 
-          return <PopupMenuEntry<String>>[
-            // Subscription Section
-            const PopupMenuItem<String>(
-              value: 'config:manage_subscription',
-              child: Row(
-                children: [
-                  Icon(Icons.payment),
-                  SizedBox(width: 8),
-                  Text('Manage Subscription'),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            // Sort Section
-            const PopupMenuItem<String>(
-              enabled: false,
-              child: Text(
-                'SORT BY',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'sort:signalStrength',
-              child: Row(
-                children: [
-                  if (tradeSignalsProvider.sortBy == 'signalStrength')
-                    Icon(Icons.check, size: 18, color: Colors.green.shade700)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 8),
-                  const Text('Signal Strength'),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'sort:timestamp',
-              child: Row(
-                children: [
-                  if (tradeSignalsProvider.sortBy == 'timestamp')
-                    Icon(Icons.check, size: 18, color: Colors.green.shade700)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 8),
-                  const Text('Recent'),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(),
-            // Interval Section
-            PopupMenuItem<String>(
-              enabled: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'INTERVAL',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        isMarketOpen ? Icons.access_time : Icons.calendar_today,
-                        size: 14,
-                        color: isMarketOpen
-                            ? Colors.green.shade700
-                            : Colors.blue.shade700,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isMarketOpen ? 'Market Open' : 'After Hours',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isMarketOpen
-                              ? Colors.green.shade700
-                              : Colors.blue.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'interval:15m',
-              child: Row(
-                children: [
-                  if (selectedInterval == '15m')
-                    Icon(Icons.check, size: 18, color: Colors.green.shade700)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 8),
-                  const Text('15-min'),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'interval:1h',
-              child: Row(
-                children: [
-                  if (selectedInterval == '1h')
-                    Icon(Icons.check, size: 18, color: Colors.green.shade700)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 8),
-                  const Text('Hourly'),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              value: 'interval:1d',
-              child: Row(
-                children: [
-                  if (selectedInterval == '1d')
-                    Icon(Icons.check, size: 18, color: Colors.green.shade700)
-                  else
-                    const SizedBox(width: 18),
-                  const SizedBox(width: 8),
-                  const Text('Daily'),
-                ],
-              ),
-            ),
-          ];
-        },
-        onSelected: (String value) async {
-          if (widget.user == null || widget.userDocRef == null) return;
+      //     return <PopupMenuEntry<String>>[
+      //       // Subscription Section
+      //       const PopupMenuItem<String>(
+      //         value: 'config:manage_subscription',
+      //         child: Row(
+      //           children: [
+      //             Icon(Icons.payment),
+      //             SizedBox(width: 8),
+      //             Text('Manage Subscription'),
+      //           ],
+      //         ),
+      //       ),
+      //     ];
+      //   },
+      //   onSelected: (String value) async {
+      //     if (widget.user == null || widget.userDocRef == null) return;
 
-          final tradeSignalsProvider = Provider.of<TradeSignalsProvider>(
-            context,
-            listen: false,
-          );
-          if (value.startsWith('config:')) {
-            if (value == 'config:manage_subscription') {
-              if (Platform.isIOS) {
-                final Uri url = Uri.parse(
-                  'https://apps.apple.com/account/subscriptions',
-                );
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url);
-                }
-              } else if (Platform.isAndroid) {
-                final Uri url = Uri.parse(
-                  'https://play.google.com/store/account/subscriptions?sku=trade_signals_monthly&package=com.cidevelop.robinhood_options_mobile',
-                );
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url);
-                }
-              }
-            }
-          } else if (value.startsWith('sort:')) {
-            final sortValue = value.split(':')[1];
-            tradeSignalsProvider.sortBy = sortValue;
-            _tradeSignalsKey.currentState?.refresh();
-          } else if (value.startsWith('interval:')) {
-            final intervalValue = value.split(':')[1];
-            tradeSignalsProvider.setSelectedInterval(intervalValue);
-            _tradeSignalsKey.currentState?.refresh();
-          }
-        },
-      ),
+      //     final tradeSignalsProvider = Provider.of<TradeSignalsProvider>(
+      //       context,
+      //       listen: false,
+      //     );
+      //     if (value.startsWith('config:')) {
+      //       if (value == 'config:manage_subscription') {
+      //         if (Platform.isIOS) {
+      //           final Uri url = Uri.parse(
+      //             'https://apps.apple.com/account/subscriptions',
+      //           );
+      //           if (await canLaunchUrl(url)) {
+      //             await launchUrl(url);
+      //           }
+      //         } else if (Platform.isAndroid) {
+      //           final Uri url = Uri.parse(
+      //             'https://play.google.com/store/account/subscriptions?sku=trade_signals_monthly&package=com.cidevelop.robinhood_options_mobile',
+      //           );
+      //           if (await canLaunchUrl(url)) {
+      //             await launchUrl(url);
+      //           }
+      //         }
+      //       }
+      //     } else if (value.startsWith('interval:')) {
+      //       final intervalValue = value.split(':')[1];
+      //       tradeSignalsProvider.setSelectedInterval(intervalValue);
+      //       _tradeSignalsKey.currentState?.refresh();
+      //     }
+      //   },
+      // ),
     ];
   }
 }

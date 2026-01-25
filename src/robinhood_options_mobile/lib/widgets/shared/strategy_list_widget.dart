@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
@@ -8,6 +9,7 @@ class StrategyListWidget extends StatelessWidget {
   final List<TradeStrategyTemplate> strategies;
   final String searchQuery;
   final Set<String> selectedIndicators;
+  final Map<String, String>? indicatorNames;
   final String
       sortBy; // default, name_asc, name_desc, date_new, date_old, last_used
   final bool allowDelete;
@@ -25,6 +27,7 @@ class StrategyListWidget extends StatelessWidget {
     required this.strategies,
     this.searchQuery = '',
     this.selectedIndicators = const {},
+    this.indicatorNames,
     this.sortBy = 'default',
     this.allowDelete = false,
     required this.onSelect,
@@ -45,7 +48,17 @@ class StrategyListWidget extends StatelessWidget {
       final query = searchQuery.toLowerCase();
       final matchesName = t.name.toLowerCase().contains(query);
       final matchesDesc = t.description.toLowerCase().contains(query);
-      return matchesName || matchesDesc;
+      bool matchesIndicator = false;
+      if (indicatorNames != null) {
+        matchesIndicator = t.config.enabledIndicators.entries.any((entry) {
+          if (entry.value != true) return false;
+          final key = entry.key;
+          final displayName = indicatorNames![key] ?? key;
+          return key.toLowerCase().contains(query) ||
+              displayName.toLowerCase().contains(query);
+        });
+      }
+      return matchesName || matchesDesc || matchesIndicator;
     }).toList();
 
     // Filter by indicators

@@ -2,9 +2,96 @@ import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 
+/// Saved backtest configuration template
+class TradeStrategyTemplate {
+  final String id;
+  final String name;
+  final String description;
+  final TradeStrategyConfig config;
+  final DateTime createdAt;
+  final DateTime? lastUsedAt;
+
+  TradeStrategyTemplate({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.config,
+    required this.createdAt,
+    this.lastUsedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'config': config.toJson(),
+        'createdAt': createdAt.toIso8601String(),
+        'lastUsedAt': lastUsedAt?.toIso8601String(),
+      };
+
+  factory TradeStrategyTemplate.fromJson(Map<String, dynamic> json) =>
+      TradeStrategyTemplate(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        description: json['description'] as String,
+        config: TradeStrategyConfig.fromJson(
+          Map<String, dynamic>.from(json['config'] as Map),
+        ),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        lastUsedAt: json['lastUsedAt'] != null
+            ? DateTime.parse(json['lastUsedAt'] as String)
+            : null,
+      );
+}
+
 /// Pre-built strategy templates for backtesting
 class TradeStrategyDefaults {
   static final List<TradeStrategyTemplate> defaultTemplates = [
+    TradeStrategyTemplate(
+      id: 'default_simple_price_movement',
+      name: 'Simple Price Movement',
+      description:
+          'Basic price action strategy. Buys on bullish candlestick patterns (Engulfing, Hammer, Morning Star) with volume confirmation.',
+      config: TradeStrategyConfig(
+        minSignalStrength: 50.0,
+        requireAllIndicatorsGreen: false,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        initialCapital: 10000.0,
+        enabledIndicators: {
+          'priceMovement': true,
+          'momentum': false,
+          'marketDirection': false,
+          'volume': true,
+          'macd': false,
+          'bollingerBands': false,
+          'stochastic': false,
+          'atr': true, // For risk management
+          'obv': false,
+          'vwap': false,
+          'adx': false,
+          'williamsR': false,
+          'ichimoku': false,
+          'cci': false,
+          'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement':
+              'Detects bullish patterns like Engulfing, Hammer, or Morning Star',
+          'volume': 'Volume spike confirms institutional participation',
+          'atr': 'Calculates volatility-based stops and position sizing',
+        },
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
+        takeProfitPercent: 5.0,
+        stopLossPercent: 2.0,
+        trailingStopEnabled: true,
+        trailingStopPercent: 1.5,
+        maxSectorExposure: 0.20,
+      ),
+      createdAt: DateTime.now(),
+    ),
     TradeStrategyTemplate(
       id: 'default_simple_rsi',
       name: 'Simple RSI',
@@ -16,8 +103,13 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'momentum': true, // RSI
+        },
+        indicatorReasons: {
+          'momentum':
+              'Identifies oversold conditions (RSI < 30) for mean reversion.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -32,6 +124,10 @@ class TradeStrategyDefaults {
         ],
         takeProfitPercent: 5.0,
         stopLossPercent: 2.0,
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
+        trailingStopEnabled: true,
+        trailingStopPercent: 1.5,
       ),
       createdAt: DateTime.now(),
     ),
@@ -46,11 +142,19 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'macd': true,
         },
+        indicatorReasons: {
+          'macd': 'Detects bullish trend reversals via crossover events.',
+        },
         takeProfitPercent: 8.0,
         stopLossPercent: 4.0,
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
+        trailingStopEnabled: true,
+        trailingStopPercent: 2.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -65,11 +169,18 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 10000.0,
+        indicatorReasons: {
+          'bollingerBands':
+              'Signals buy opportunities near the lower band (oversold).',
+        },
         enabledIndicators: {
           'bollingerBands': true,
         },
         takeProfitPercent: 5.0,
         stopLossPercent: 2.0,
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
       ),
       createdAt: DateTime.now(),
     ),
@@ -84,6 +195,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -100,6 +212,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // CCI
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Confirms price is moving in the desired direction.',
+          'momentum': 'RSI indicates strong momentum without being overbought.',
+          'volume': 'High volume validates the strength of the move.',
+          'macd': 'MACD histogram expansion confirms accelerating momentum.',
+          'adx': 'ADX > 20 indicates a strong trending environment.',
+          'cci': 'CCI helps detect the start of a new trend or cyclical turn.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -127,6 +247,8 @@ class TradeStrategyDefaults {
         trailingStopPercent: 3.0,
         riskPerTrade: 0.02,
         enableDynamicPositionSizing: true,
+        enableSectorLimits: true,
+        maxSectorExposure: 0.25,
       ),
       createdAt: DateTime.now(),
     ),
@@ -141,6 +263,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': false,
           'momentum': true, // RSIs
@@ -157,6 +280,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI < 30 indicates oversold conditions.',
+          'bollingerBands':
+              'Price near lower band signals potential mean reversion.',
+          'stochastic': 'Stochastic oscillator confirms oversold momentum.',
+          'williamsR': 'Williams %R confirms extreme price levels.',
+          'cci': 'CCI deviation hints at impending reversal.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -176,6 +307,8 @@ class TradeStrategyDefaults {
         timeBasedExitMinutes: 4320, // 3 days
         riskPerTrade: 0.015,
         enableDynamicPositionSizing: true,
+        rsiExitEnabled: true,
+        rsiExitThreshold: 70.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -190,6 +323,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -206,6 +340,16 @@ class TradeStrategyDefaults {
           'ichimoku': true,
           'cci': false,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action confirms the established trend.',
+          'marketDirection': 'Moving averages provide support in uptrends.',
+          'macd': 'MACD confirms trend strength and direction.',
+          'atr': 'ATR measures volatility for stop-loss placement.',
+          'obv': 'OBV confirms volume backing the trend.',
+          'adx': 'ADX > 25 indicates a strong trend is present.',
+          'ichimoku': 'Ichimoku Cloud establishes the trend baseline.',
+          'parabolicSar': 'Parabolic SAR trails price to protect gains.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -224,6 +368,10 @@ class TradeStrategyDefaults {
         riskPerTrade: 0.015,
         enableDynamicPositionSizing: true,
         trailingStopPercent: 5.0,
+        rsiExitEnabled: true,
+        rsiExitThreshold: 75.0,
+        signalStrengthExitEnabled: true,
+        signalStrengthExitThreshold: 40.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -238,6 +386,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -254,6 +403,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // CCI > 100
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price breakout from consolidation.',
+          'volume': 'Volume spike validates the breakout.',
+          'bollingerBands': 'Band squeeze often precedes explosive moves.',
+          'atr': 'Increased ATR signals volatility expansion.',
+          'vwap': 'Price holding above VWAP confirms intraday bullishness.',
+          'adx': 'Rising ADX confirms the new trend strength.',
+          'cci': 'CCI > 100 identifies the momentum surge.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -281,6 +439,9 @@ class TradeStrategyDefaults {
         riskPerTrade: 0.025,
         enableDynamicPositionSizing: true,
         trailingStopPercent: 2.0,
+        enableVolatilityFilters: true,
+        minVolatility: 0.5,
+        maxVolatility: 3.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -311,6 +472,18 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Short-term price action direction.',
+          'momentum': 'Momentum confirms short-term moves.',
+          'volume': 'Volume ensures sufficient liquidity for scalping.',
+          'stochastic': 'Stochastic oscillator signals rapid reversals.',
+          'atr': 'ATR defines tight stop-loss and profit targets.',
+          'vwap': 'VWAP acts as dynamic support/resistance.',
+          'adx': 'ADX > 20 filters out choppy markets.',
+          'williamsR': 'Williams %R identifies extensive levels quickly.',
+          'cci': 'CCI spots short-term cyclical turns.',
+          'parabolicSar': 'Parabolic SAR manages trailing stops.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -352,6 +525,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -368,6 +542,12 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing stop source
+        },
+        indicatorReasons: {
+          'priceMovement': 'Confirms trend alignment.',
+          'volume': 'Volume validates the trend strength.',
+          'atr': 'ATR assists in sizing and stop placement.',
+          'parabolicSar': 'Parabolic SAR acts as the trailing stop mechanism.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -409,6 +589,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -425,6 +606,18 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Volatility sensitive
           'parabolicSar': true, // Trailing stop
+        },
+        indicatorReasons: {
+          'priceMovement': 'Confirms explosive moves characteristic of crypto.',
+          'momentum': 'RSI > 55 ensures existing momentum.',
+          'volume': 'High volume required for crypto proxy moves.',
+          'macd': 'MACD confirms the breakout momentum.',
+          'bollingerBands': 'Captures volatility expansion.',
+          'atr': 'Manages high volatility risk.',
+          'obv': 'Volume flow precedes price moves.',
+          'adx': 'ADX confirms trend strength.',
+          'cci': 'CCI > 100 filters for high-velocity moves.',
+          'parabolicSar': 'Tight trailing stop for volatile assets.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -461,6 +654,10 @@ class TradeStrategyDefaults {
         stopLossPercent: 8.0, // Wider stop for volatility
         trailingStopEnabled: true,
         trailingStopPercent: 5.0,
+        enableVolatilityFilters: true,
+        minVolatility: 0.5,
+        enableCorrelationChecks: true,
+        maxCorrelation: 0.85,
       ),
       createdAt: DateTime.now(),
     ),
@@ -475,6 +672,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 730)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 50000.0,
         enabledIndicators: {
           'priceMovement': false,
           'momentum': false,
@@ -491,6 +689,11 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'marketDirection':
+              'SMA 50 > SMA 200 confirms the long-term bullish trend.',
+          'volume': 'Volume confirms the validity of the trend.',
         },
         smaPeriodFast: 50,
         smaPeriodSlow: 200,
@@ -525,6 +728,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': false,
           'momentum': false,
@@ -541,6 +745,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Range confirmation
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'bollingerBands': 'Bands provide support/resistance limits.',
+          'stochastic': 'Stochastic oscillations identify range extremities.',
+          'atr': 'Monitor volatility for range stability.',
+          'williamsR': 'Oscillator confirms overextended moves within range.',
+          'cci': 'CCI helps identify cyclical turns within the range.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -581,6 +792,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -597,6 +809,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action must agree with all other signals.',
+          'momentum': 'RSI indicates momentum without overbought readings.',
+          'marketDirection': 'Moving averages confirm the primary trend.',
+          'macd': 'MACD histogram confirms momentum direction.',
+          'adx': 'ADX confirms trend existence.',
         },
         riskPerTrade: 0.02,
         enableDynamicPositionSizing: true,
@@ -634,6 +853,17 @@ class TradeStrategyDefaults {
           'cci': false,
           'parabolicSar': true, // Trailing stop support
         },
+        indicatorReasons: {
+          'priceMovement': 'Ensures price alignment with trade direction.',
+          'momentum': 'RSI indicates healthy momentum.',
+          'marketDirection': 'SMA identifies the broader market trend.',
+          'volume': 'Volume confirms the liquidity and strength.',
+          'bollingerBands': 'Bands provide volatility context.',
+          'stochastic': 'Stochastic oscillator aids entry timing.',
+          'atr': 'Critical for calculating position size and stops.',
+          'vwap': 'VWAP acts as an execution benchmark.',
+          'parabolicSar': 'Primary tool for trailing stop management.',
+        },
         enableDynamicPositionSizing: true,
         riskPerTrade: 0.01, // 1% risk
         atrMultiplier: 2.0, // Stop loss at 2x ATR
@@ -641,6 +871,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 3.0, // Fallback
         trailingStopEnabled: true,
         trailingStopPercent: 2.0,
+        enableDrawdownProtection: true,
+        maxDrawdown: 0.05,
       ),
       createdAt: DateTime.now(),
     ),
@@ -655,6 +887,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'priceMovement': false,
           'momentum': false,
@@ -671,6 +904,12 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Confirm reversal
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'volume': 'Volume confirms the reversal validity.',
+          'macd': 'Histogram flip signals momentum change.',
+          'atr': 'ATR assists in stop-loss calibration.',
+          'cci': 'CCI confirms the reversal momentum.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -702,6 +941,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -718,6 +958,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Breakout strength
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Captures the breakout move.',
+          'volume': 'High volume confirms the breakout validity.',
+          'bollingerBands': 'Identifies the squeeze and subsequent expansion.',
+          'atr': 'Low ATR confirms the pre-breakout squeeze.',
+          'adx': 'Rising ADX confirms the new trend strength.',
+          'cci': 'CCI > 100 signals strong breakout momentum.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -759,6 +1007,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 30)),
         endDate: DateTime.now(),
         interval: '15m',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -775,6 +1024,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Aligns entry with recent price direction.',
+          'marketDirection':
+              'Approves trades only in direction of major trend (SMA).',
+          'volume': 'Ensures liquidity during the pullback.',
+          'vwap': 'Acts as the primary mean-reversion target for entry.',
+          'williamsR': 'Times the entry at the precise oversold moment.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -808,6 +1065,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 7)),
         endDate: DateTime.now(),
         interval: '5m',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -824,6 +1082,18 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Speed
           'parabolicSar': true, // Trailing
+        },
+        indicatorReasons: {
+          'priceMovement': 'Scalping requires immediate price agreement.',
+          'momentum': 'RSI indicates burst capability.',
+          'volume': 'High volume essential for instant execution.',
+          'bollingerBands': 'Volatility expansion triggers entries.',
+          'stochastic': 'Fast oscillator identifying quick pivots.',
+          'atr': 'Measures immediate volatility for stops.',
+          'vwap': 'Intraday anchor relative to price.',
+          'adx': 'ADX confirms trend is strong enough to scalp.',
+          'cci': 'CCI detects the momentum surge velocity.',
+          'parabolicSar': 'Extremely tight trailing stop.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -875,6 +1145,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -891,6 +1162,16 @@ class TradeStrategyDefaults {
           'ichimoku': true, // Trend confirm
           'cci': false,
           'parabolicSar': true, // Trailing
+        },
+        indicatorReasons: {
+          'priceMovement': 'Confirming the sector trend.',
+          'marketDirection': 'SMA crosses signal broad trend changes.',
+          'macd': 'MACD confirms the swing momentum.',
+          'atr': 'Calculates appropriate swing stop distance.',
+          'obv': 'Rising OBV confirms institutional accumulation.',
+          'adx': 'ADX > 25 filters out choppy range-bound periods.',
+          'ichimoku': 'Ichimoku cloud provides support for the swing.',
+          'parabolicSar': 'Protects profits as the swing matures.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -924,6 +1205,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 730)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'priceMovement': false,
           'momentum': false,
@@ -940,6 +1222,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Oversold
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'marketDirection': 'Approves entries only when primary trend is up.',
+          'bollingerBands': 'Lower band touch signals potential value entry.',
+          'stochastic': 'Confirms the dip is oversold.',
+          'williamsR': 'Oscillator confirms deep discount zones.',
+          'cci': 'CCI < -100 filters for statistical anomalies to buy.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -966,6 +1255,8 @@ class TradeStrategyDefaults {
         takeProfitPercent: 6.0,
         stopLossPercent: 4.0, // Wider stop for value
         trailingStopEnabled: false,
+        enableDrawdownProtection: true,
+        maxDrawdown: 0.10,
       ),
       createdAt: DateTime.now(),
     ),
@@ -980,6 +1271,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -996,6 +1288,15 @@ class TradeStrategyDefaults {
           'ichimoku': true,
           'cci': true,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action confirms the breakout.',
+          'marketDirection': 'Trend alignment with moving averages.',
+          'atr': 'ATR manages the stop placement distance.',
+          'adx': 'ADX confirms the trend strength is sufficient.',
+          'ichimoku': 'Cloud breakout is the primary signal.',
+          'cci': 'CCI confirms the breakout momentum.',
+          'parabolicSar': 'Trailing stop protects the new trend profits.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1037,6 +1338,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true, // Screen 3: Execution
           'momentum': false,
@@ -1053,6 +1355,16 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Risk management
+        },
+        indicatorReasons: {
+          'priceMovement': 'Screen 3: Execution trigger on breakout.',
+          'marketDirection': 'Screen 1: Long-term trend direction check.',
+          'macd': 'Screen 1: Momentum alignment with trend.',
+          'stochastic': 'Screen 2: Identifies oversold pullbacks.',
+          'atr': 'Manages risk sizing and stop levels.',
+          'adx': 'Confirms trend presence.',
+          'williamsR': 'Alternative value indicator for Screen 2.',
+          'parabolicSar': 'Trailing stop for trade management.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1085,6 +1397,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '5m',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true, // Break high/low
           'momentum': true, // RSI
@@ -1101,6 +1414,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Momentum burst
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Detects the breakout of the opening range.',
+          'momentum': 'RSI confirms early momentum.',
+          'volume': 'Volume spike validates the breakout move.',
+          'atr': 'Measures morning volatility for risk management.',
+          'vwap': 'VWAP serves as the anchor/support level.',
+          'cci': 'CCI identifies the initial burst of speed.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1142,6 +1463,7 @@ class TradeStrategyDefaults {
             DateTime.now().subtract(const Duration(days: 1095)), // 3 years
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 50000.0,
         enabledIndicators: {
           'priceMovement': true, // Breakout detection
           'momentum': false,
@@ -1158,6 +1480,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing stop
+        },
+        indicatorReasons: {
+          'priceMovement': 'Identifies breakouts to new highs.',
+          'marketDirection': 'Confirms long-term trend direction.',
+          'atr': 'Critical for "N" volatility calculations and stops.',
+          'adx': 'Ensures the trend is strong enough to follow.',
+          'parabolicSar': 'Acts as the mechanical trailing stop.',
         },
         riskPerTrade: 0.02,
         takeProfitPercent: 30.0,
@@ -1180,6 +1509,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -1198,6 +1528,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI < 30 signals extremely oversold conditions.',
+          'bollingerBands':
+              'Lower band touch indicates potential reversal point.',
+          'stochastic': 'Confirms the oversold momentum status.',
+          'adx': 'Lower ADX values imply a range where reversals are likely.',
+          'williamsR': 'Oscillator confirms deep oversold readings.',
+          'cci': 'CCI deviation hints at an imminent snap-back.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1238,6 +1577,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '4h', // Missing interval in defaults
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -1254,6 +1594,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing stops
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action alignment with swing direction.',
+          'momentum': 'Momentum confirms the swing strength.',
+          'marketDirection': 'Moving averages define the swing context.',
+          'macd': 'MACD confirms the momentum behind the swing.',
+          'atr': 'ATR sets adequate stops for 4h volatility.',
+          'adx': 'ADX > 25 confirms the swing integrity.',
+          'parabolicSar': 'Parabolic SAR manages the trailing stop.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1286,6 +1635,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 60)),
         endDate: DateTime.now(),
         interval: '15m',
+        initialCapital: 5000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -1302,6 +1652,18 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Scalper
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Breakout price action is king.',
+          'momentum':
+              'RSI > 55 signals bullish momentum without overextension.',
+          'volume': 'Massive volume validates the move.',
+          'bollingerBands': 'Breakout from band squeeze.',
+          'atr': 'Risk management in high-volatility environment.',
+          'obv': 'Smart money accumulation prior to the move.',
+          'vwap': 'Intraday support/entry anchor.',
+          'adx': 'Strong trend required for runners.',
+          'cci': 'High velocity breakout signal.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1344,6 +1706,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -1360,6 +1723,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price drift direction.',
+          'marketDirection': 'Trend confirmation via SMAs.',
+          'volume': 'Volume confirms the sector move.',
+          'atr': 'ATR accounts for sector volatility.',
+          'obv': 'OBV confirms institutional accumulation in the sector.',
+          'adx': 'ADX measures the strength of the drift.',
+          'parabolicSar': 'Trailing stop protects accumulated drift profits.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1378,6 +1750,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 5.0,
         trailingStopEnabled: true,
         trailingStopPercent: 2.0,
+        rsiExitEnabled: true,
+        rsiExitThreshold: 75.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -1393,6 +1767,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -1411,6 +1786,16 @@ class TradeStrategyDefaults {
           'cci': false,
           'parabolicSar': true, // Trailing stop
         },
+        indicatorReasons: {
+          'priceMovement': 'Upside price action on Inverse ETF.',
+          'momentum': 'Positive momentum on the inverse instrument.',
+          'marketDirection': 'Trend alignment on the inverse ETF.',
+          'volume': 'Volume confirms panic selling (buying of inverse).',
+          'macd': 'MACD crossovers confirm the bearish market turn.',
+          'atr': 'Increased volatility sizing.',
+          'adx': 'Strong trend required for bear market moves.',
+          'parabolicSar': 'Protect gains during volatile bear rallies.',
+        },
         customIndicators: [
           CustomIndicatorConfig(
             id: 'adx_trend_inverse',
@@ -1428,6 +1813,10 @@ class TradeStrategyDefaults {
         stopLossPercent: 6.0,
         trailingStopEnabled: true,
         trailingStopPercent: 3.5,
+        enableVolatilityFilters: true,
+        minVolatility: 0.3,
+        enableDrawdownProtection: true,
+        maxDrawdown: 0.15,
       ),
       createdAt: DateTime.now(),
     ),
@@ -1443,6 +1832,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 10000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -1459,6 +1849,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Impulse
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price reaction to catalyst.',
+          'volume': 'Volume confirms the catalyst impact.',
+          'bollingerBands': 'Volatility expansion post-news.',
+          'atr': 'Manages high event volatility.',
+          'obv': 'Flow indicates informed accumulation.',
+          'adx': 'ADX confirms the new trend strength.',
+          'cci': 'CCI identifies the initial impulse.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1486,6 +1885,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 7.0,
         trailingStopEnabled: true,
         trailingStopPercent: 4.0,
+        enableVolatilityFilters: true,
+        minVolatility: 0.8,
       ),
       createdAt: DateTime.now(),
     ),
@@ -1500,6 +1901,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 60)),
         endDate: DateTime.now(),
         interval: '15m',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true, // Gap Up (Price > prev close implied)
           'momentum': true, // RSI > 60
@@ -1516,6 +1918,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Momentum kick
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Detects the gap up and hold.',
+          'momentum': 'RSI indicates strong buying pressure.',
+          'volume': 'High relative volume validates the gap.',
+          'atr': 'Manages the opening volatility.',
+          'vwap': 'Hold above VWAP confirms bullish control.',
+          'cci': 'CCI signaling a momentum ignition.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1561,6 +1971,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '4h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -1577,6 +1988,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing
+        },
+        indicatorReasons: {
+          'priceMovement': 'Captures the post-event drift.',
+          'volume': 'Volume confirms the persistence of the move.',
+          'macd': 'MACD confirms momentum direction.',
+          'bollingerBands': 'Captures volatility expansion.',
+          'atr': 'Adjusts sizing for post-earnings volatility.',
+          'adx': 'ADX confirms the new trend is sticky.',
+          'parabolicSar': 'Trails the drift to lock in gains.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1610,6 +2030,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 730)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 50000.0,
         enabledIndicators: {
           'priceMovement': false, // Looking for drops
           'momentum': true, // RSI
@@ -1626,6 +2047,16 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI < 25 identifies panic conditions.',
+          'volume': 'High washout volume confirms the bottoming process.',
+          'bollingerBands':
+              'Price well below bands signals statistical extremity.',
+          'stochastic': 'Deep oversold readings support entry.',
+          'atr': 'Accounts for high volatility during panic.',
+          'williamsR': 'Oscillator confirms potential capitulation.',
+          'cci': 'CCI identifies the snap-back potential.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1657,6 +2088,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '4h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': false, // Contrarian
           'momentum': true, // RSI overbought
@@ -1673,6 +2105,18 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI > 80 signals unsustainable buying.',
+          'marketDirection': 'Checks extension from mean (SMA).',
+          'volume': 'Climax volume often marks tops.',
+          'macd': 'MACD confirms momentum is stalling.',
+          'bollingerBands': 'Price outside upper band invites mean reversion.',
+          'stochastic': 'Bearish crossover signals immediate downturn.',
+          'atr': 'Risk management for volatile tops.',
+          'adx': 'Falling ADX signals trend exhaustion.',
+          'williamsR': 'Overbought verification.',
+          'cci': 'Extreme displacement from mean.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1700,6 +2144,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 3.0,
         trailingStopEnabled: true,
         trailingStopPercent: 1.5,
+        rsiExitEnabled: true,
+        rsiExitThreshold: 40.0, // Exit when no longer oversold
       ),
       createdAt: DateTime.now(),
     ),
@@ -1714,6 +2160,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -1730,6 +2177,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action is range-bound prior to breakout.',
+          'marketDirection': 'Flat moving averages confirm consolidation.',
+          'volume': 'Dry volume indicates lack of sellers.',
+          'bollingerBands': 'Band squeeze identifies volatility compression.',
+          'atr': 'Low ATR confirms the quiet period.',
+          'obv': 'Rising OBV amidst flat price signals accumulation.',
+          'adx': 'Low ADX ensures no existing trend filters trades.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1762,6 +2218,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 1095)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 50000.0,
         enabledIndicators: {
           'priceMovement': false, // Bearish
           'momentum': false,
@@ -1778,6 +2235,16 @@ class TradeStrategyDefaults {
           'ichimoku': true, // Cloud confirmation
           'cci': false,
           'parabolicSar': true, // Trailing stop
+        },
+        indicatorReasons: {
+          'marketDirection':
+              'SMA 50 crossing below SMA 200 confirms bear market.',
+          'volume': 'Volume confirms the selling pressure.',
+          'macd': 'MACD negativity confirms bearish momentum.',
+          'atr': 'Adjusts stops for bear market volatility.',
+          'adx': 'ADX confirms the strength of the downtrend.',
+          'ichimoku': 'Price below Cloud confirms resistance.',
+          'parabolicSar': 'Trailing stop mechanism.',
         },
         smaPeriodFast: 50,
         smaPeriodSlow: 200,
@@ -1812,6 +2279,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true, // Key: Candle patterns
           'momentum': false,
@@ -1828,6 +2296,12 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Identifies the Inside Bar consolidation pattern.',
+          'volume': 'High volume required on the breakout candle.',
+          'bollingerBands': 'Bands often squeeze during inside bars.',
+          'atr': 'Calculates the breakout target distance.',
         },
         riskPerTrade: 0.01,
         enableDynamicPositionSizing: true,
@@ -1849,6 +2323,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true, // Momentum
           'momentum': true, // RSI > 60-70 maintained
@@ -1865,6 +2340,17 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Confirms the flag breakout structure.',
+          'momentum': 'RSI indicates sustained buying pressure.',
+          'marketDirection': 'Approves only the strongest uptrends.',
+          'volume': 'Volume analysis validates consolidation vs breakout.',
+          'atr': 'Manages risk in high-beta setups.',
+          'obv': 'Ensures no distribution during the flag.',
+          'adx': 'ADX > 40 confirms a powerhouse trend.',
+          'cci': 'CCI identifies the resumption of the move.',
+          'parabolicSar': 'Trailing stop prevents giving back open profits.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1901,6 +2387,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 7.0,
         trailingStopEnabled: true,
         trailingStopPercent: 5.0,
+        enableVolatilityFilters: true,
+        minVolatility: 0.5, // Needs to move
       ),
       createdAt: DateTime.now(),
     ),
@@ -1915,6 +2403,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '4h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -1931,6 +2420,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing stop
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action aligns with the EMA stack.',
+          'momentum': 'RSI indicates healthy trend momentum.',
+          'marketDirection': 'Moving Average stack defines the trend.',
+          'macd': 'MACD confirms directional strength.',
+          'atr': 'Calculates stop distance for the trend.',
+          'adx': 'ADX confirms trend is strong enough to follow.',
+          'parabolicSar': 'Trailing stop mechanism.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -1988,6 +2486,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 100000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true, // RSI
@@ -2004,6 +2503,16 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Captures the volatility shock.',
+          'momentum': 'RSI surge signals panic buying of vol.',
+          'volume': 'High volume confirms the fear spike.',
+          'macd': 'MACD confirms the momentum shift.',
+          'bollingerBands': 'Breakout above bands confirms the shock.',
+          'atr': 'Adjusts sizing for extreme volatility.',
+          'adx': 'ADX confirms the new volatility trend.',
+          'cci': 'CCI identifies the initial impulse.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2031,6 +2540,8 @@ class TradeStrategyDefaults {
         stopLossPercent: 4.0,
         trailingStopEnabled: true,
         trailingStopPercent: 2.0,
+        enableVolatilityFilters: true,
+        minVolatility: 1.0, // High volatility regime
       ),
       createdAt: DateTime.now(),
     ),
@@ -2056,6 +2567,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 1095)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 50000.0,
         enabledIndicators: {
           'priceMovement': false, // Buying the dip
           'momentum': true, // RSI
@@ -2072,6 +2584,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI < 30 identifies value vs the trend.',
+          'marketDirection': 'Approves entries only when primary trend is up.',
+          'stochastic': 'Stochastic < 20 confirms the dip.',
+          'williamsR': 'Oscillator confirms deep discount zones.',
+          'cci': 'CCI < -100 filters for statistical anomalies.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2098,6 +2617,10 @@ class TradeStrategyDefaults {
         takeProfitPercent: 8.0,
         stopLossPercent: 4.0,
         trailingStopEnabled: false,
+        enableDrawdownProtection: true,
+        maxDrawdown: 0.10,
+        rsiExitEnabled: true,
+        rsiExitThreshold: 60.0,
       ),
       createdAt: DateTime.now(),
     ),
@@ -2113,6 +2636,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 730)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2129,6 +2653,15 @@ class TradeStrategyDefaults {
           'ichimoku': true, // Cloud confirmation
           'cci': false,
           'parabolicSar': true, // Trailing stop
+        },
+        indicatorReasons: {
+          'priceMovement': 'Price action aligns with the macro trend.',
+          'marketDirection': 'SMA crossovers signal major regime changes.',
+          'macd': 'MACD confirms the directional momentum.',
+          'atr': 'Adjusts stops for currency volatility characteristics.',
+          'adx': 'ADX confirms the trend is strong enough to trade.',
+          'ichimoku': 'Cloud checkout validates the long-term trend.',
+          'parabolicSar': 'Trailing stop for trend following.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2162,6 +2695,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '4h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -2178,6 +2712,17 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Momentum
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Aligns with swing direction.',
+          'momentum': 'RSI indicates healthy trend context.',
+          'volume': 'Volume confirms the swing move.',
+          'bollingerBands': 'Bands identify swing low/high zones.',
+          'stochastic': 'Stochastic identifies cycle turning points.',
+          'atr': 'Risk management.',
+          'obv': 'OBV confirms physical buying interest.',
+          'adx': 'ADX ensures the swing is part of a trend.',
+          'cci': 'CCI confirms momentum behind the swing.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2219,6 +2764,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 60)),
         endDate: DateTime.now(),
         interval: '15m',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': false, // Shorting
           'momentum': true, // RSI turning down
@@ -2235,6 +2781,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Tight stop
+        },
+        indicatorReasons: {
+          'momentum': 'RSI reversal signals downside resumption.',
+          'volume': 'Volume spike on rejection confirms resistance.',
+          'stochastic': 'Overbought conditions suggest immediate downside.',
+          'atr': 'Determines tight stop distance above VWAP.',
+          'vwap': 'Acts as the primary resistance level to trade against.',
+          'parabolicSar': 'Trails price closely to protect the short.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2279,6 +2833,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2295,6 +2850,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Aligns with the strong trend.',
+          'marketDirection': 'SMA direction ensures broad trend agreement.',
+          'macd': 'MACD confirms the momentum behind the trend.',
+          'atr': 'Adjusts stops for trend volatility.',
+          'adx': 'ADX > 25 is the gatekeeper against choppy markets.',
+          'parabolicSar': 'Trails the strong trend.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2327,6 +2890,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '1h',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2343,6 +2907,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': true, // Driver
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Breakout price action.',
+          'volume': 'High volume validates the turbo move.',
+          'bollingerBands':
+              'Volatility expansion typically accompanies CCI bursts.',
+          'atr': 'Manages increased volatility risk.',
+          'adx': 'ADX confirms trend acceleration.',
+          'cci': 'CCI > 100 serves as the ignition signal.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2384,6 +2957,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 730)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': false, // Buying dip
           'momentum': false,
@@ -2400,6 +2974,12 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'marketDirection': 'Confirms long-term uptrend context.',
+          'volume': 'Volume analysis critical for MFI calculation.',
+          'atr': 'Risk adjustment for dip volatility.',
+          'obv': 'OBV divergence confirms smart money accumulation.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2431,6 +3011,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 90)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': true,
@@ -2447,6 +3028,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true, // Trailing
+        },
+        indicatorReasons: {
+          'priceMovement': 'Captures the velocity surge.',
+          'momentum': 'ROC acceleration confirms impulse.',
+          'volume': 'High participation validates the move.',
+          'bollingerBands': 'Breakout signals volatility transition.',
+          'atr': 'Manages increased velocity risk.',
+          'adx': 'ADX confirms trend is establishing.',
+          'parabolicSar': 'Trails fast moving prices.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2488,6 +3078,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 180)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2504,6 +3095,13 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Monitors for the eventual expansion.',
+          'volume': 'Volume drying up confirms the squeeze.',
+          'bollingerBands': 'Extremely narrow bands define the strategy.',
+          'atr': 'Low ATR confirms potential energy build-up.',
+          'adx': 'Low ADX signals non-trending consolidation.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2545,6 +3143,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2561,6 +3160,14 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': true,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Aligns with accumulation breakout.',
+          'marketDirection':
+              'Confirming uptrend or neutral (accumulation) bias.',
+          'volume': 'CMF relies heavily on volume/price relationship.',
+          'obv': 'Confirms CMF signals with cumulative volume.',
+          'parabolicSar': 'Trailing stop protects the new trend.',
         },
         customIndicators: [
           CustomIndicatorConfig(
@@ -2593,6 +3200,7 @@ class TradeStrategyDefaults {
         startDate: DateTime.now().subtract(const Duration(days: 365)),
         endDate: DateTime.now(),
         interval: '1d',
+        initialCapital: 25000.0,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -2609,6 +3217,15 @@ class TradeStrategyDefaults {
           'ichimoku': false,
           'cci': false,
           'parabolicSar': false,
+        },
+        indicatorReasons: {
+          'priceMovement': 'Screen 3: Execution on momentum.',
+          'marketDirection': 'Screen 1: Long-term trend direction.',
+          'macd': 'Screen 1: Momentum confirms trend.',
+          'stochastic': 'Screen 2: Identifies pullback areas.',
+          'atr': 'Risk management for stop placement.',
+          'adx': 'Ensures sufficient trend strength.',
+          'williamsR': 'Screen 3: Precision trigger.',
         },
         customIndicators: [
           CustomIndicatorConfig(

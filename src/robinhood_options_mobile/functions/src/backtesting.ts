@@ -696,6 +696,7 @@ async function runBacktestSimulation(params: BacktestParams) {
 
       let indicatorsBuy = 0;
       let indicatorsGreen = true;
+      const buySignalsList: string[] = [];
 
       // Check standard indicators
       for (const indicator of activeIndicators) {
@@ -706,6 +707,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         if (result) {
           if (result.signal === "BUY") {
             indicatorsBuy++;
+            buySignalsList.push(indicator);
           } else {
             indicatorsGreen = false;
           }
@@ -718,6 +720,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         if (result) {
           if (result.signal === "BUY") {
             indicatorsBuy++;
+            buySignalsList.push(customInd.name);
           } else {
             indicatorsGreen = false;
           }
@@ -770,7 +773,9 @@ async function runBacktestSimulation(params: BacktestParams) {
             price: entryPrice,
             quantity,
             commission: 0,
-            reason: `Signal Entry (Strength: ${strength.toFixed(1)}%)`,
+            reason:
+              `Signal Entry (Strength: ${strength.toFixed(1)}% - ` +
+              `${buySignalsList.join(", ")})`,
             signalData: multiIndicatorResult,
           });
         }

@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 
 class TradeSignalNotificationsPage extends StatelessWidget {
   final User user;
@@ -34,6 +35,21 @@ class TradeSignalNotificationsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Notification Settings',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TradeSignalNotificationSettingsWidget(
+                    user: user,
+                    userDocRef: userDocRef,
+                    hideNotificationIcon: true,
+                  ),
+                ),
+              );
+            },
+          ),
           Consumer<TradeSignalNotificationsStore>(
             builder: (context, store, child) {
               if (store.unreadCount == 0) return const SizedBox.shrink();

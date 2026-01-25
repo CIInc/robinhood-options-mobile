@@ -2285,14 +2285,31 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       BrokerageUser user, Instrument instrumentObj) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
-    var resultJson = await getJson(user, instrumentObj.fundamentals);
-    Fundamentals? obj;
+    dynamic resultJson;
     try {
-      obj = Fundamentals.fromJson(resultJson);
-    } on Exception catch (e) {
-      // Format
-      debugPrint('getFundamentals. Error: $e');
-      return Future.value(obj);
+      resultJson = await getJson(user, instrumentObj.fundamentals);
+    } catch (e) {
+      debugPrint('getFundamentals error: $e');
+      try {
+        var res = await getJson(
+            user, "$endpoint/fundamentals/?symbols=${instrumentObj.symbol}");
+        if (res['results'] != null && res['results'].length > 0) {
+          resultJson = res['results'][0];
+        }
+      } catch (e2) {
+        debugPrint('getFundamentals fallback error: $e2');
+      }
+    }
+
+    Fundamentals? obj = Fundamentals();
+    if (resultJson != null) {
+      try {
+        obj = Fundamentals.fromJson(resultJson);
+      } on Exception catch (e) {
+        // Format
+        debugPrint('getFundamentals. Error: $e');
+        return Future.value(obj);
+      }
     }
 
     return obj;

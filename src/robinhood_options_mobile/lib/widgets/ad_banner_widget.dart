@@ -16,9 +16,12 @@ class AdBannerWidget extends StatefulWidget {
   }
 }
 
-class _AdBannerWidget extends State<AdBannerWidget> {
+class _AdBannerWidget extends State<AdBannerWidget> with AutomaticKeepAliveClientMixin {
   late BannerAd _bannerAd;
   bool _bannerReady = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _AdBannerWidget extends State<AdBannerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return _bannerReady
         ? SizedBox(
             width: _bannerAd.size.width.toDouble(),

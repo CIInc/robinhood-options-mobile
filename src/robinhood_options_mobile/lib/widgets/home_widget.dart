@@ -807,7 +807,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 BacktestingWidget(
+                                              user: widget.user,
                                               userDocRef: widget.userDoc,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service,
                                             ),
                                           ),
                                         );

@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/model/backtesting_models.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 
 class StrategyDetailsBottomSheet extends StatelessWidget {
   final TradeStrategyTemplate template;
   final VoidCallback onLoad;
+  final VoidCallback? onSearch;
 
   const StrategyDetailsBottomSheet({
     super.key,
     required this.template,
     required this.onLoad,
+    this.onSearch,
   });
 
-  static void show(BuildContext context, TradeStrategyTemplate template,
-      VoidCallback onLoad) {
+  static void show(
+      BuildContext context, TradeStrategyTemplate template, VoidCallback onLoad,
+      {VoidCallback? onSearch}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -21,6 +24,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
       builder: (context) => StrategyDetailsBottomSheet(
         template: template,
         onLoad: onLoad,
+        onSearch: onSearch,
       ),
     );
   }
@@ -142,6 +146,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
                             _formatIndicatorName(e.key),
                             Icons.check_circle_outline,
                             isAccent: false,
+                            tooltip: config.indicatorReasons[e.key],
                           )),
                   ...config.customIndicators.map((c) => _buildRuleChip(
                         context,
@@ -237,6 +242,17 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
               ),
 
               const SizedBox(height: 32),
+              if (onSearch != null) ...[
+                OutlinedButton.icon(
+                  onPressed: onSearch,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Search Signals'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               FilledButton.icon(
                 onPressed: onLoad,
                 icon: const Icon(Icons.download_rounded),
@@ -266,14 +282,14 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
   }
 
   Widget _buildRuleChip(BuildContext context, String label, IconData? icon,
-      {bool isAccent = true}) {
+      {bool isAccent = true, String? tooltip}) {
     final colorScheme = Theme.of(context).colorScheme;
     final bg = isAccent
         ? colorScheme.secondaryContainer.withValues(alpha: 0.3)
         : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
     final fg = isAccent ? colorScheme.secondary : colorScheme.onSurface;
 
-    return Container(
+    Widget chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
@@ -301,9 +317,24 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
               ),
             ),
           ),
+          if (tooltip != null) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.info_outline,
+                size: 12, color: fg.withValues(alpha: 0.7)),
+          ]
         ],
       ),
     );
+
+    if (tooltip != null && tooltip.isNotEmpty) {
+      return Tooltip(
+        message: tooltip,
+        triggerMode: TooltipTriggerMode.tap,
+        preferBelow: false,
+        child: chip,
+      );
+    }
+    return chip;
   }
 
   String _formatIndicatorName(String key) {

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -11,7 +12,8 @@ import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.
 class MockAgenticTradingProvider extends ChangeNotifier
     implements AgenticTradingProvider {
   @override
-  Map<String, dynamic> config = {'autoTradeEnabled': true};
+  AgenticTradingConfig config = AgenticTradingConfig(
+      strategyConfig: TradeStrategyConfig(), autoTradeEnabled: true);
 
   @override
   bool showAutoTradingVisual = false;
@@ -86,7 +88,7 @@ void main() {
   }
 
   testWidgets('renders nothing when autoTradeEnabled is false', (tester) async {
-    mockProvider.config = {'autoTradeEnabled': false};
+    mockProvider.config.autoTradeEnabled = false;
     await tester.pumpWidget(createWidgetUnderTest());
     expect(find.byType(AutoTradeStatusBadgeWidget), findsOneWidget);
     expect(find.byType(Container),
@@ -94,7 +96,7 @@ void main() {
   });
 
   testWidgets('renders "Auto On" state correctly', (tester) async {
-    mockProvider.config = {'autoTradeEnabled': true};
+    mockProvider.config.autoTradeEnabled = true;
     mockProvider.showAutoTradingVisual = false;
     mockProvider.emergencyStopActivated = false;
     mockProvider.autoTradeCountdownSeconds = 125; // 2:05
@@ -110,10 +112,9 @@ void main() {
   });
 
   testWidgets('renders "Trading" state correctly', (tester) async {
-    mockProvider.config = {
-      'autoTradeEnabled': true,
-      'dailyTradeLimit': 5,
-    };
+    mockProvider.config.autoTradeEnabled = true;
+    mockProvider.config.strategyConfig =
+        TradeStrategyConfig(dailyTradeLimit: 5);
     mockProvider.showAutoTradingVisual = true;
     mockProvider.emergencyStopActivated = false;
     mockProvider.dailyTradeCount = 3;
@@ -127,7 +128,7 @@ void main() {
   });
 
   testWidgets('renders "Stopped" state correctly', (tester) async {
-    mockProvider.config = {'autoTradeEnabled': true};
+    mockProvider.config.autoTradeEnabled = true;
     mockProvider.emergencyStopActivated = true;
 
     await tester.pumpWidget(createWidgetUnderTest());
@@ -139,7 +140,7 @@ void main() {
   });
 
   testWidgets('long press shows emergency stop dialog', (tester) async {
-    mockProvider.config = {'autoTradeEnabled': true};
+    mockProvider.config.autoTradeEnabled = true;
     mockProvider.emergencyStopActivated = false;
 
     await tester.pumpWidget(createWidgetUnderTest());
@@ -153,10 +154,9 @@ void main() {
   });
 
   testWidgets('renders "Done" state when daily limit reached', (tester) async {
-    mockProvider.config = {
-      'autoTradeEnabled': true,
-      'dailyTradeLimit': 5,
-    };
+    mockProvider.config.autoTradeEnabled = true;
+    mockProvider.config.strategyConfig =
+        TradeStrategyConfig(dailyTradeLimit: 5);
     mockProvider.showAutoTradingVisual = false;
     mockProvider.emergencyStopActivated = false;
     mockProvider.dailyTradeCount = 5;

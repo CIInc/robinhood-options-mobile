@@ -11,11 +11,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TradeSignalNotificationSettingsWidget extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
+  final bool hideNotificationIcon;
 
   const TradeSignalNotificationSettingsWidget({
     super.key,
     required this.user,
     required this.userDocRef,
+    this.hideNotificationIcon = false,
   });
 
   @override
@@ -87,31 +89,32 @@ class _TradeSignalNotificationSettingsWidgetState
       appBar: AppBar(
         title: const Text('Trade Signal Notifications'),
         actions: [
-          Consumer<TradeSignalNotificationsStore>(
-            builder: (context, store, child) {
-              return IconButton(
-                icon: Badge(
-                  label: Text(store.unreadCount > 99
-                      ? '99+'
-                      : store.unreadCount.toString()),
-                  isLabelVisible: store.unreadCount > 0,
-                  child: const Icon(Icons.notifications_outlined),
-                ),
-                tooltip: 'Notification History',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TradeSignalNotificationsPage(
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
+          if (!widget.hideNotificationIcon)
+            Consumer<TradeSignalNotificationsStore>(
+              builder: (context, store, child) {
+                return IconButton(
+                  icon: Badge(
+                    label: Text(store.unreadCount > 99
+                        ? '99+'
+                        : store.unreadCount.toString()),
+                    isLabelVisible: store.unreadCount > 0,
+                    child: const Icon(Icons.notifications_outlined),
+                  ),
+                  tooltip: 'Notification History',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TradeSignalNotificationsPage(
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                    );
+                  },
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Revert Changes',

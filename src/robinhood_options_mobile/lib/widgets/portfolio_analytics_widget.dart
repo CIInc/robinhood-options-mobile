@@ -303,7 +303,8 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
     if (symbols.isEmpty) return {};
 
-    var scores = await _esgService.getESGScores(symbols);
+    var scoresList = await _esgService.getESGScores(symbols);
+    var scores = scoresList.whereType<ESGScore>().toList();
 
     // Calculate weighted average
     double totalWeightedScore = 0;

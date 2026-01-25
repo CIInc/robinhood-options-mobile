@@ -1,21 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
+import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 
 class TradingStrategiesPage extends StatefulWidget {
   final Function(TradeStrategyTemplate) onLoadStrategy;
   final TradeStrategyConfig? currentConfig;
   final String? selectedStrategyId;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
 
-  const TradingStrategiesPage(
-      {super.key,
-      required this.onLoadStrategy,
-      this.currentConfig,
-      this.selectedStrategyId});
+  const TradingStrategiesPage({
+    super.key,
+    required this.onLoadStrategy,
+    this.currentConfig,
+    this.selectedStrategyId,
+    this.user,
+    this.userDocRef,
+    this.brokerageUser,
+    this.service,
+  });
 
   @override
   State<TradingStrategiesPage> createState() => _TradingStrategiesPageState();
@@ -25,11 +41,9 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final ItemScrollController _itemScrollController = ItemScrollController();
   String _searchQuery = '';
   String _sortBy =
       'default'; // default, name_asc, name_desc, date_new, date_old
-  bool _hasScrolledToTemplate = false;
 
   final Set<String> _selectedIndicators = {};
 
@@ -219,34 +233,14 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                     .where((t) => !t.id.startsWith('default_'))
                     .toList();
 
-                if (!_hasScrolledToTemplate &&
-                    allTemplates.isNotEmpty &&
-                    widget.selectedStrategyId != null) {
-                  final index = allTemplates
-                      .indexWhere((t) => t.id == widget.selectedStrategyId);
-                  if (index != -1) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_itemScrollController.isAttached) {
-                        _itemScrollController.scrollTo(
-                          index: index,
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                          alignment: 0.1, // Slight offset from top
-                        );
-                      }
-                    });
-                    _hasScrolledToTemplate = true;
-                  }
-                }
-
                 return TabBarView(
                   controller: _tabController,
                   children: [
                     StrategyListWidget(
                       strategies: allTemplates,
                       allowDelete: false,
-                      itemScrollController: _itemScrollController,
                       searchQuery: _searchQuery,
+                      indicatorNames: _indicatorNames,
                       selectedIndicators: _selectedIndicators,
                       sortBy: _sortBy,
                       selectedStrategyId: widget.selectedStrategyId,
@@ -268,6 +262,7 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                       strategies: systemTemplates,
                       allowDelete: false,
                       searchQuery: _searchQuery,
+                      indicatorNames: _indicatorNames,
                       selectedIndicators: _selectedIndicators,
                       sortBy: _sortBy,
                       selectedStrategyId: widget.selectedStrategyId,
@@ -281,6 +276,7 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                       strategies: userTemplates,
                       allowDelete: true,
                       searchQuery: _searchQuery,
+                      indicatorNames: _indicatorNames,
                       selectedIndicators: _selectedIndicators,
                       sortBy: _sortBy,
                       selectedStrategyId: widget.selectedStrategyId,
@@ -557,6 +553,37 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Loaded strategy: ${template.name}')),
       );
+    }, onSearch: () {
+      if (widget.user != null && widget.userDocRef != null) {
+        final initialIndicators = template.config.enabledIndicators.entries
+            .where((e) => e.value)
+            .fold<Map<String, String>>({}, (prev, element) {
+          prev[element.key] =
+              "BUY"; // _indicatorNames[element.key] ?? element.key.toUpperCase();
+          return prev;
+        });
+
+        Navigator.pop(context); // Close sheet
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => TradeSignalsPage(
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                      brokerageUser: widget.brokerageUser,
+                      service: widget.service,
+                      analytics: MyApp.analytics,
+                      observer: MyApp.observer,
+                      generativeService: GenerativeService(),
+                      initialIndicators: initialIndicators,
+                      strategyTemplate: template,
+                    )));
+      } else {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in for signal search.')),
+        );
+      }
     });
   }
 }

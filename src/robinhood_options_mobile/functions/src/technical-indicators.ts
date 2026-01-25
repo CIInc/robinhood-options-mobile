@@ -80,19 +80,61 @@ export function computeEMA(prices: number[], period: number): number | null {
 }
 
 /**
+ * Compute array of EMA values
+ * @param {number[]} prices - Array of prices
+ * @param {number} period - EMA period
+ * @return {(number|null)[]} Array of smoothed EMA values
+ */
+export function computeEMAArray(
+  prices: number[],
+  period: number
+): (number | null)[] {
+  if (!prices || prices.length < period || period <= 0) {
+    return Array(prices.length).fill(null);
+  }
+
+  const result: (number | null)[] = Array(period - 1).fill(null);
+
+  const multiplier = 2 / (period + 1);
+  // Initial SMA
+  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  result.push(ema);
+
+  for (let i = period; i < prices.length; i++) {
+    ema = (prices[i] - ema) * multiplier + ema;
+    result.push(ema);
+  }
+
+  return result;
+}
+
+/**
  * Compute Relative Strength Index (RSI)
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The period for RSI calculation (default 14).
  * @return {number|null} The computed RSI or null if not enough data.
  */
 export function computeRSI(prices: number[], period = 14): number | null {
-  if (!prices || prices.length < period + 1) return null;
+  const arr = computeRSIArray(prices, period);
+  if (arr.length === 0) return null;
+  return arr[arr.length - 1];
+}
+
+/**
+ * Compute array of RSI values
+ * @param {number[]} prices - Array of prices
+ * @param {number} period - RSI period
+ * @return {number[]} Array of RSI values corresponding to prices[period..end]
+ */
+export function computeRSIArray(prices: number[], period = 14): number[] {
+  if (!prices || prices.length < period + 1) return [];
 
   const changes: number[] = [];
   for (let i = 1; i < prices.length; i++) {
     changes.push(prices[i] - prices[i - 1]);
   }
 
+  const rsiValues: number[] = [];
   let gains = 0;
   let losses = 0;
 
@@ -108,24 +150,35 @@ export function computeRSI(prices: number[], period = 14): number | null {
   let avgGain = gains / period;
   let avgLoss = losses / period;
 
+  // First RSI
+  if (avgLoss === 0) {
+    rsiValues.push(100);
+  } else {
+    rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
+  }
+
   // Calculate RSI using smoothed averages
   for (let i = period; i < changes.length; i++) {
     const change = changes[i];
+    let currentGain = 0;
+    let currentLoss = 0;
     if (change > 0) {
-      avgGain = (avgGain * (period - 1) + change) / period;
-      avgLoss = (avgLoss * (period - 1)) / period;
+      currentGain = change;
     } else {
-      avgGain = (avgGain * (period - 1)) / period;
-      avgLoss = (avgLoss * (period - 1) + Math.abs(change)) / period;
+      currentLoss = Math.abs(change);
+    }
+
+    avgGain = (avgGain * (period - 1) + currentGain) / period;
+    avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
+
+    if (avgLoss === 0) {
+      rsiValues.push(100);
+    } else {
+      rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
     }
   }
 
-  if (avgLoss === 0) return 100;
-
-  const rs = avgGain / avgLoss;
-  const rsi = 100 - (100 / (1 + rs));
-
-  return rsi;
+  return rsiValues;
 }
 
 /**
@@ -144,25 +197,35 @@ export function computeMACD(
 ): { macd: number; signal: number; histogram: number } | null {
   if (!prices || prices.length < slowPeriod + signalPeriod) return null;
 
-  const fastEMA = computeEMA(prices, fastPeriod);
-  const slowEMA = computeEMA(prices, slowPeriod);
+  // Optimized computation using arrays O(N) instead of recurring O(N^2)
+  const fastEMAs = computeEMAArray(prices, fastPeriod);
+  const slowEMAs = computeEMAArray(prices, slowPeriod);
 
-  if (!fastEMA || !slowEMA) return null;
+  // We need the sequence of MACD values to compute the Signal line
+  // MACD line is valid where both EMAs are valid.
+  // Slow EMA is the bottleneck, valid from index (slowPeriod - 1).
+  const macdSeries: number[] = [];
 
-  const macdLine = fastEMA - slowEMA;
+  // We align with original prices to pick the last one correctly,
+  // but for computeEMAArray(macdSeries) we need a clean array of numbers.
 
-  // Compute signal line (EMA of MACD values)
-  const macdValues: number[] = [];
-  for (let i = slowPeriod - 1; i < prices.length; i++) {
-    const fEMA = computeEMA(prices.slice(0, i + 1), fastPeriod);
-    const sEMA = computeEMA(prices.slice(0, i + 1), slowPeriod);
-    if (fEMA && sEMA) {
-      macdValues.push(fEMA - sEMA);
+  for (let i = 0; i < prices.length; i++) {
+    const fast = fastEMAs[i];
+    const slow = slowEMAs[i];
+    if (fast !== null && slow !== null) {
+      macdSeries.push(fast - slow);
     }
   }
 
-  const signalLine = computeEMA(macdValues, signalPeriod);
-  if (!signalLine) return null;
+  if (macdSeries.length < signalPeriod) return null;
+
+  const signalLineSeries = computeEMAArray(macdSeries, signalPeriod);
+
+  // Last values
+  const macdLine = macdSeries[macdSeries.length - 1];
+  const signalLine = signalLineSeries[signalLineSeries.length - 1];
+
+  if (signalLine === null) return null;
 
   const histogram = macdLine - signalLine;
 
@@ -205,6 +268,86 @@ export function computeBollingerBands(
 }
 
 /**
+ * Compute array of Stochastic values
+ * @param {number[]} highs - Array of high prices
+ * @param {number[]} lows - Array of low prices
+ * @param {number[]} closes - Array of close prices
+ * @param {number} kPeriod - %K period
+ * @param {number} dPeriod - %D period
+ * @return {Array<{k: number, d: number}|null>} Array of Stochastic values
+ */
+export function computeStochasticArray(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  kPeriod = 14,
+  dPeriod = 3
+): ({ k: number; d: number } | null)[] {
+  if (!highs || !lows || !closes ||
+    highs.length < kPeriod ||
+    lows.length < kPeriod ||
+    closes.length < kPeriod) {
+    return Array(closes.length).fill(null);
+  }
+
+  const result: ({ k: number; d: number } | null)[] =
+    Array(kPeriod - 1).fill(null);
+
+  const kValues: number[] = [];
+
+  // Calculate raw K values for the whole series starting from index kPeriod - 1
+  for (let i = kPeriod - 1; i < closes.length; i++) {
+    const hh = Math.max(...highs.slice(i - kPeriod + 1, i + 1));
+    const ll = Math.min(...lows.slice(i - kPeriod + 1, i + 1));
+    if (hh !== ll) {
+      kValues.push(((closes[i] - ll) / (hh - ll)) * 100);
+    } else {
+      kValues.push(50); // Default to middle if no range
+    }
+  }
+
+  // Now calculate D (SMA of K)
+  // kValues[0] corresponds to index kPeriod - 1
+  // We need dPeriod kValues to calculate first D
+
+  // Align result with input array
+  // result has kPeriod - 1 nulls.
+  // We can calculate D starting from index (kPeriod - 1) + (dPeriod - 1)
+
+  if (kValues.length < dPeriod) {
+    // Fill remaining with nulls or partial K?
+    // Usually we just return nulls if we can't compute D
+    return Array(closes.length).fill(null);
+  }
+
+  // Helper to compute SMA on a slice of K values
+  const getSMA = (arr: number[], idx: number, p: number) => {
+    let sum = 0;
+    for (let j = 0; j < p; j++) {
+      sum += arr[idx - j];
+    }
+    return sum / p;
+  };
+
+  // Before we have enough K values for D, we can either put nulls or just K
+  // Standard practice: D is valid only after dPeriod K values.
+
+  // Add nulls for the gap where D cannot be calculated yet
+  for (let i = 0; i < dPeriod - 1; i++) {
+    result.push(null);
+  }
+
+  // Calculate D for the rest
+  for (let i = dPeriod - 1; i < kValues.length; i++) {
+    const k = kValues[i];
+    const d = getSMA(kValues, i, dPeriod);
+    result.push({ k, d });
+  }
+
+  return result;
+}
+
+/**
  * Compute Stochastic Oscillator
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
@@ -220,39 +363,15 @@ export function computeStochastic(
   kPeriod = 14,
   dPeriod = 3
 ): { k: number; d: number } | null {
-  if (!highs || !lows || !closes ||
-    highs.length < kPeriod ||
-    lows.length < kPeriod ||
-    closes.length < kPeriod) {
-    return null;
-  }
-
-  const recentHighs = highs.slice(-kPeriod);
-  const recentLows = lows.slice(-kPeriod);
-  const currentClose = closes[closes.length - 1];
-
-  const highestHigh = Math.max(...recentHighs);
-  const lowestLow = Math.min(...recentLows);
-
-  if (highestHigh === lowestLow) return null;
-
-  const k = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
-
-  // Compute %D (SMA of %K values)
-  const kValues: number[] = [];
-  for (let i = kPeriod - 1; i < closes.length; i++) {
-    const hh = Math.max(...highs.slice(i - kPeriod + 1, i + 1));
-    const ll = Math.min(...lows.slice(i - kPeriod + 1, i + 1));
-    if (hh !== ll) {
-      kValues.push(((closes[i] - ll) / (hh - ll)) * 100);
-    }
-  }
-
-  if (kValues.length < dPeriod) return { k, d: k };
-
-  const d = kValues.slice(-dPeriod).reduce((a, b) => a + b, 0) / dPeriod;
-
-  return { k, d };
+  const arr = computeStochasticArray(
+    highs,
+    lows,
+    closes,
+    kPeriod,
+    dPeriod
+  );
+  if (arr.length === 0) return null;
+  return arr[arr.length - 1];
 }
 
 /**
@@ -269,14 +388,43 @@ export function computeATR(
   closes: number[],
   period = 14
 ): number | null {
+  const arr = computeATRArray(highs, lows, closes, period);
+  if (arr.length === 0) return null;
+  return arr[arr.length - 1];
+}
+
+/**
+ * Compute array of ATR values
+ * @param {number[]} highs
+ * @param {number[]} lows
+ * @param {number[]} closes
+ * @param {number} period
+ * @return {(number|null)[]} Array of ATR values aligned with inputs
+ */
+export function computeATRArray(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): (number | null)[] {
   if (!highs || !lows || !closes ||
     highs.length < period + 1 ||
     lows.length < period + 1 ||
     closes.length < period + 1) {
-    return null;
+    return Array(closes.length).fill(null);
   }
 
+  const result: (number | null)[] = Array(period).fill(null);
   const trueRanges: number[] = [];
+
+  // Calculate TRs first (start from index 1)
+  // Index 0 has no TR because no prior close.
+  // TR[i] corresponds to candle i
+
+  // First TR logic check:
+  // computeATR loop: for (let i = 1; i < closes.length; i++)
+  // trueRanges has length = closes.length - 1
+
   for (let i = 1; i < closes.length; i++) {
     const high = highs[i];
     const low = lows[i];
@@ -290,17 +438,20 @@ export function computeATR(
     trueRanges.push(tr);
   }
 
-  if (trueRanges.length < period) return null;
-
-  // Initial ATR (simple average of first period TRs)
+  // Initial ATR: average of first 'period' TRs
+  // These TRs correspond to indices 1 to period
   let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  result.push(atr);
 
   // Smoothed ATR
+  // Continue from index = period + 1 (in closes array terms)
+  // which is index 'period' in trueRanges
   for (let i = period; i < trueRanges.length; i++) {
     atr = (atr * (period - 1) + trueRanges[i]) / period;
+    result.push(atr);
   }
 
-  return atr;
+  return result;
 }
 
 /**
@@ -669,58 +820,122 @@ export function detectChartPattern(
     });
   }
 
-  // 2. Double Top / Double Bottom (last two peaks/troughs similar height)
-  const tolerancePct = 0.01; // 1% tolerance
+  // 2. Double Top / Double Bottom
+  const tolerancePct = 0.02; // 2% tolerance for peak/trough height similarity
+
+  // Double Top
   if (peaks.length >= 2) {
-    const a = px(peaks[peaks.length - 2]);
-    const b = px(peaks[peaks.length - 1]);
-    const dblTop = Math.abs(a - b) / ((a + b) / 2) < tolerancePct &&
-      currentPrice < b * 0.985;
-    if (dblTop) {
-      patterns.push({
-        key: "double_top",
-        label: "Double Top",
-        direction: "bearish",
-        confidence: 0.55,
-        details: { peakA: a, peakB: b },
-      });
+    const idxA = peaks[peaks.length - 2];
+    const idxB = peaks[peaks.length - 1];
+    const valA = px(idxA);
+    const valB = px(idxB);
+
+    // Check if peaks are similar in height
+    const similarHeight = Math.abs(valA - valB) / ((valA + valB) / 2) <
+      tolerancePct;
+
+    if (similarHeight) {
+      // Find the neckline (lowest trough between the two peaks)
+      const intervalPrices = windowPrices.slice(idxA, idxB);
+      const neckline = intervalPrices.length > 0 ?
+        Math.min(...intervalPrices) :
+        Number.POSITIVE_INFINITY;
+
+      // Confirmation: Price breaks below neckline
+      const breakdown = currentPrice < neckline * 0.995;
+      // Or forming: Second peak just formed and price dropped slightly
+      const forming = currentPrice < valB * 0.98 && currentPrice > neckline;
+
+      if (breakdown || forming) {
+        patterns.push({
+          key: "double_top",
+          label: "Double Top",
+          direction: "bearish",
+          confidence: breakdown ? 0.7 : 0.5,
+          details: { valA, valB, neckline },
+        });
+      }
     }
   }
+
+  // Double Bottom
   if (troughs.length >= 2) {
-    const a = px(troughs[troughs.length - 2]);
-    const b = px(troughs[troughs.length - 1]);
-    const dblBottom = Math.abs(a - b) / ((a + b) / 2) < tolerancePct &&
-      currentPrice > b * 1.015;
-    if (dblBottom) {
-      patterns.push({
-        key: "double_bottom",
-        label: "Double Bottom",
-        direction: "bullish",
-        confidence: 0.55,
-        details: { troughA: a, troughB: b },
-      });
+    const idxA = troughs[troughs.length - 2];
+    const idxB = troughs[troughs.length - 1];
+    const valA = px(idxA);
+    const valB = px(idxB);
+
+    // Check if troughs are similar in depth
+    const similarOne = Math.abs(valA - valB) / ((valA + valB) / 2) <
+      tolerancePct;
+
+    if (similarOne) {
+      // Find the neckline (highest peak between the two troughs)
+      const intervalPrices = windowPrices.slice(idxA, idxB);
+      const neckline = intervalPrices.length > 0 ?
+        Math.max(...intervalPrices) :
+        Number.NEGATIVE_INFINITY;
+
+      // Confirmation: Price breaks above neckline
+      const breakout = currentPrice > neckline * 1.005;
+      // Or forming: Second trough formed and price rising
+      const forming = currentPrice > valB * 1.02 && currentPrice < neckline;
+
+      if (breakout || forming) {
+        patterns.push({
+          key: "double_bottom",
+          label: "Double Bottom",
+          direction: "bullish",
+          confidence: breakout ? 0.7 : 0.5,
+          details: { valA, valB, neckline },
+        });
+      }
     }
   }
 
-  // 3. Head & Shoulders (3 peaks with middle highest and shoulders similar)
+  // 3. Head & Shoulders
   if (peaks.length >= 3) {
-    const p1 = px(peaks[peaks.length - 3]);
-    const p2 = px(peaks[peaks.length - 2]);
-    const p3 = px(peaks[peaks.length - 1]);
-    const shouldersClose = Math.abs(p1 - p3) / ((p1 + p3) / 2) < 0.02;
-    const headHigher = p2 > p1 * 1.01 && p2 > p3 * 1.01;
-    if (shouldersClose && headHigher && currentPrice < p3 * 0.985) {
-      patterns.push({
-        key: "head_shoulders",
-        label: "Head & Shoulders",
-        direction: "bearish",
-        confidence: 0.6,
-        details: { left: p1, head: p2, right: p3 },
-      });
+    const idx1 = peaks[peaks.length - 3];
+    const idx2 = peaks[peaks.length - 2];
+    const idx3 = peaks[peaks.length - 1];
+    const p1 = px(idx1); // Left Shoulder
+    const p2 = px(idx2); // Head
+    const p3 = px(idx3); // Right Shoulder
+
+    // Head must be higher than shoulders
+    const headHigher = p2 > p1 && p2 > p3;
+    // Shoulders should be roughly level
+    const shouldersLevel = Math.abs(p1 - p3) / ((p1 + p3) / 2) < 0.05;
+
+    if (headHigher && shouldersLevel) {
+      // Neckline: Line connecting the two troughs
+      // Trough 1: between Left Shoulder and Head
+      const t1Slice = windowPrices.slice(idx1, idx2);
+      const t1 = t1Slice.length ? Math.min(...t1Slice) : 0;
+      // Trough 2: between Head and Right Shoulder
+      const t2Slice = windowPrices.slice(idx2, idx3);
+      const t2 = t2Slice.length ? Math.min(...t2Slice) : 0;
+
+      const necklineAvg = (t1 + t2) / 2;
+
+      // Break of neckline
+      const breakdown = currentPrice < Math.min(t1, t2) * 0.99;
+      // Forming right shoulder decline
+      const forming = currentPrice < p3 && currentPrice > necklineAvg;
+
+      if (breakdown || forming) {
+        patterns.push({
+          key: "head_shoulders",
+          label: "Head & Shoulders",
+          direction: "bearish",
+          confidence: breakdown ? 0.75 : 0.55,
+          details: { left: p1, head: p2, right: p3, neckline: necklineAvg },
+        });
+      }
     }
   }
 
-  // 4. Triangles (ascending & descending)
+  // 4. Triangles (ascending, descending, symmetrical)
   /** Detect ascending triangle
    * @return {PatternCandidate|null} Asc triangle or null
    */
@@ -731,7 +946,7 @@ export function detectChartPattern(
     const flatHighs = Math.max(...lastPeaks) - Math.min(...lastPeaks);
     const risingLows = lastTroughs[0] < lastTroughs[1] &&
       lastTroughs[1] < lastTroughs[2];
-    if (flatHighs / ((lastPeaks[0] + lastPeaks[2]) / 2) < 0.01 && risingLows) {
+    if (flatHighs / ((lastPeaks[0] + lastPeaks[2]) / 2) < 0.015 && risingLows) {
       const breakoutPending = currentPrice > lastPeaks[2] * 0.995;
       return {
         key: "ascending_triangle",
@@ -753,8 +968,8 @@ export function detectChartPattern(
     const flatLows = Math.max(...lastTroughs) - Math.min(...lastTroughs);
     const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
       lastPeaks[1] > lastPeaks[2];
-    const lowFlat = flatLows / ((lastTroughs[0] + lastTroughs[2]) / 2) < 0.01 &&
-      fallingHighs;
+    const lowFlat = flatLows / ((lastTroughs[0] + lastTroughs[2]) / 2) <
+      0.015 && fallingHighs;
     if (lowFlat) {
       const breakdownPending = currentPrice < lastTroughs[2] * 1.005;
       return {
@@ -767,49 +982,141 @@ export function detectChartPattern(
     }
     return null;
   }
+  /** Detect symmetrical triangle (coiling)
+   * @return {PatternCandidate|null} Sym triangle or null
+   */
+  function isSymmetricalTriangle(): PatternCandidate | null {
+    if (peaks.length < 3 || troughs.length < 3) return null;
+    const lastPeaks = peaks.slice(-3).map(px);
+    const lastTroughs = troughs.slice(-3).map(px);
+
+    // Peaks descending: P1 > P2 > P3
+    const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
+      lastPeaks[1] > lastPeaks[2];
+    // Troughs ascending: T1 < T2 < T3
+    const risingLows = lastTroughs[0] < lastTroughs[1] &&
+      lastTroughs[1] < lastTroughs[2];
+
+    if (fallingHighs && risingLows) {
+      // Check for potential breakout direction
+      let dir: "bullish" | "bearish" | "neutral" = "neutral";
+      if (currentPrice > lastPeaks[2]) dir = "bullish";
+      else if (currentPrice < lastTroughs[2]) dir = "bearish";
+
+      // If price is squeezing tight (last range < first range * 0.5)
+      const range1 = lastPeaks[0] - lastTroughs[0];
+      const range3 = lastPeaks[2] - lastTroughs[2];
+      const coiling = range3 < range1 * 0.6;
+
+      if (coiling) {
+        return {
+          key: "symmetrical_triangle",
+          label: "Symmetrical Triangle",
+          direction: dir,
+          confidence: dir !== "neutral" ? 0.65 : 0.5,
+          details: { highs: lastPeaks, lows: lastTroughs },
+        };
+      }
+    }
+    return null;
+  }
+
   const asc = isAscendingTriangle();
   if (asc) patterns.push(asc);
   const desc = isDescendingTriangle();
   if (desc) patterns.push(desc);
+  const sym = isSymmetricalTriangle();
+  if (sym) patterns.push(sym);
 
-  // 5. Cup & Handle (retain previous simplified logic)
-  const handleSlice = recentPrices.slice(-10, -5);
-  const handleValid = handleSlice.length > 0;
-  const handleLow = handleValid ?
-    Math.min(...handleSlice) :
-    Number.POSITIVE_INFINITY;
-  const recovering = handleValid &&
-    currentPrice > handleLow * 1.05 &&
-    ma5 > ma10;
-  if (recovering) {
-    patterns.push({
-      key: "cup_handle",
-      label: "Cup & Handle",
-      direction: "bullish",
-      confidence: 0.5,
-      details: { handleLow, currentPrice },
-    });
-  }
+  // 5. Cup & Handle
+  const cupHandleCandidate = (() => {
+    if (windowPrices.length < 45) return null;
+    const len = windowPrices.length;
 
-  // 6. Flag (sharp move followed by tight consolidation)
-  const flagCandidate = (() => {
-    if (recentPrices.length < 15) return null;
-    const firstPart = recentPrices.slice(-15, -7);
-    const secondPart = recentPrices.slice(-7);
-    const movePct = (secondPart[0] - firstPart[0]) / firstPart[0];
-    const consolidationRange = (Math.max(...secondPart) -
-      Math.min(...secondPart)) / secondPart[0];
-    if (Math.abs(movePct) > 0.06 && consolidationRange < 0.015) {
-      const dir: "bullish" | "bearish" = movePct > 0 ? "bullish" : "bearish";
+    // Identify regions for Left Lip, Bottom, Right Lip, and Handle
+    const leftSlice = windowPrices.slice(0, Math.floor(len * 0.4));
+    const midSlice = windowPrices.slice(
+      Math.floor(len * 0.3),
+      Math.floor(len * 0.7)
+    );
+    const rightSlice = windowPrices.slice(
+      Math.floor(len * 0.6),
+      Math.floor(len * 0.9)
+    );
+    const handleSlice = windowPrices.slice(Math.floor(len * 0.85));
+
+    const leftHigh = Math.max(...leftSlice);
+    const midLow = Math.min(...midSlice);
+    const rightHigh = Math.max(...rightSlice);
+    const handleLow = Math.min(...handleSlice);
+
+    // Heuristics: Depth > 2%, Rims within 15%, Handle retrace < 60% of depth
+    const depth = (rightHigh - midLow) / rightHigh;
+    const rimDiff = Math.abs(leftHigh - rightHigh) / rightHigh;
+    const handleRetrace = (rightHigh - handleLow) / (rightHigh - midLow);
+
+    if (depth < 0.02 || rimDiff > 0.15 || midLow >= rightHigh * 0.98) {
+      return null;
+    }
+    if (handleRetrace > 0.6 || handleRetrace < 0.0) return null;
+
+    // Trigger: Breakout or recovery in handle
+    const breakingOut = currentPrice >= rightHigh * 0.99;
+    const recovering = currentPrice > handleLow * 1.01 && ma5 > ma10;
+
+    if (breakingOut || recovering) {
       return {
-        key: "flag",
-        label: dir === "bullish" ? "Bull Flag" : "Bear Flag",
-        direction: dir,
-        confidence: 0.55,
-        details: { movePct, consolidationRange },
+        key: "cup_handle",
+        label: "Cup & Handle",
+        direction: "bullish",
+        confidence: breakingOut ? 0.75 : 0.6,
+        details: { leftHigh, midLow, rightHigh, handleLow },
       } as PatternCandidate;
     }
     return null;
+  })();
+  if (cupHandleCandidate) patterns.push(cupHandleCandidate);
+
+  // 6. Flag (strong trend followed by consolidation)
+  const flagCandidate = (() => {
+    if (windowPrices.length < 20) return null;
+
+    // Use last 20 bars: Pole (0-12) and Flag (13-20)
+    const set = windowPrices.slice(-20);
+    const pole = set.slice(0, 13);
+    const flag = set.slice(13);
+
+    const poleStart = pole[0];
+    const poleEnd = pole[pole.length - 1];
+    const poleMove = (poleEnd - poleStart) / poleStart;
+
+    const flagHigh = Math.max(...flag);
+    const flagLow = Math.min(...flag);
+    const flagRange = (flagHigh - flagLow) / flagLow;
+
+    // 1. Strong Pole Move (>3% absolute)
+    if (Math.abs(poleMove) < 0.03) return null;
+
+    // 2. Tight Flag Consolidation (< 2.5% range)
+    if (flagRange > 0.025) return null;
+
+    // 3. Flag should not retrace more than 50% of the pole
+    const retrace = Math.abs(flag[flag.length - 1] - poleEnd) /
+      Math.abs(poleEnd - poleStart);
+    if (retrace > 0.5) return null;
+
+    // Direction based on pole
+    const dir = poleMove > 0 ? "bullish" : "bearish";
+
+    // Bull Flag: Pole UP, Flag DRIFT/DOWN
+    // Bear Flag: Pole DOWN, Flag DRIFT/UP
+    return {
+      key: "flag",
+      label: dir === "bullish" ? "Bull Flag" : "Bear Flag",
+      direction: dir,
+      confidence: 0.6, // Reasonably high confidence if structure holds
+      details: { poleMove, flagRange, retrace },
+    } as PatternCandidate;
   })();
   if (flagCandidate) patterns.push(flagCandidate);
 
@@ -926,9 +1233,10 @@ export function detectChartPattern(
   return {
     value: 0,
     signal: "HOLD",
-    reason: `No clear pattern. Px ${currentPrice.toFixed(2)}; ` +
-      `MA5 ${ma5.toFixed(2)}, MA10 ${ma10.toFixed(2)}, MA20 ${ma20.toFixed(2)}`,
-    metadata: { ma5, ma10, ma20, slope, patterns },
+    reason: // "No clear pattern.",
+      `No clear pattern. Px ${currentPrice.toFixed(2)}; MA5 ` +
+      `${ma5.toFixed(2)}, MA10 ${ma10.toFixed(2)}, MA20 ${ma20.toFixed(2)}`,
+    metadata: { currentPrice, ma5, ma10, ma20, slope, patterns },
   };
 }
 
@@ -952,9 +1260,10 @@ export function evaluateMomentum(
     };
   }
 
-  const rsi = computeRSI(prices, rsiPeriod);
+  // Optimized to calculate RSI once
+  const rsiSeries = computeRSIArray(prices, rsiPeriod);
 
-  if (rsi === null) {
+  if (rsiSeries.length === 0) {
     return {
       value: null,
       signal: "HOLD",
@@ -962,59 +1271,84 @@ export function evaluateMomentum(
     };
   }
 
+  const rsi = rsiSeries[rsiSeries.length - 1];
+
   // RSI thresholds
   const oversoldThreshold = 30;
   const overboughtThreshold = 70;
   const neutralLower = 40;
   const neutralUpper = 60;
 
-  // Calculate RSI values for divergence detection (need at least 10 periods)
+  // Calculate RSI values for divergence detection (need at least 20 periods)
   let divergenceType: "bullish" | "bearish" | "none" = "none";
   let rsiTrend = 0;
   let priceTrend = 0;
 
-  if (prices.length >= 20) {
-    // Calculate RSI trend over last 10 periods
-    const rsiValues: number[] = [];
-    for (let i = prices.length - 10; i <= prices.length; i++) {
-      const rsiVal = computeRSI(prices.slice(0, i), rsiPeriod);
-      if (rsiVal !== null) rsiValues.push(rsiVal);
+  if (prices.length >= 30) {
+    // RSI Series: indices 0..N correspond to prices[rsiPeriod..end]
+    // already computed above
+
+    // Look at last 30 bars (or fewer)
+    const lookback = 30;
+    const startIdx = Math.max(0, rsiSeries.length - lookback);
+    const recentRSI = rsiSeries.slice(startIdx);
+
+    // Map recentRSI index k to prices index
+    const getPriceIdx = (k: number) => rsiPeriod + startIdx + k;
+
+    // 1. Identify RSI Extrema
+    const rsiPeaks: number[] = [];
+    const rsiTroughs: number[] = [];
+    for (let i = 1; i < recentRSI.length - 1; i++) {
+      if (recentRSI[i] > recentRSI[i - 1] && recentRSI[i] > recentRSI[i + 1]) {
+        rsiPeaks.push(i);
+      }
+      if (recentRSI[i] < recentRSI[i - 1] && recentRSI[i] < recentRSI[i + 1]) {
+        rsiTroughs.push(i);
+      }
     }
 
-    if (rsiValues.length >= 5) {
-      const recentRsi = rsiValues.slice(-3);
-      const olderRsi = rsiValues.slice(0, 3);
-      const recentRsiSum = recentRsi.reduce((a, b) => a + b, 0);
-      const recentRsiAvg = recentRsiSum / recentRsi.length;
-      const olderRsiSum = olderRsi.reduce((a, b) => a + b, 0);
-      const olderRsiAvg = olderRsiSum / olderRsi.length;
-      rsiTrend = recentRsiAvg - olderRsiAvg;
+    // 2. Check Divergence
+    // Bullish Divergence: Price = Lower Lows, RSI = Higher Lows
+    if (rsiTroughs.length >= 2) {
+      const t2 = rsiTroughs[rsiTroughs.length - 1]; // recent
+      const t1 = rsiTroughs[rsiTroughs.length - 2]; // older
+
+      // RSI Higher Low?
+      if (recentRSI[t2] > recentRSI[t1] && recentRSI[t2] < 50) {
+        // Price Lower Low?
+        const p2 = prices[getPriceIdx(t2)];
+        const p1 = prices[getPriceIdx(t1)];
+        if (p2 < p1) {
+          divergenceType = "bullish";
+        }
+      }
     }
 
-    // Calculate price trend over last 10 periods
-    const recentPrices = prices.slice(-5);
-    const olderPrices = prices.slice(-10, -5);
-    const recentPriceSum = recentPrices.reduce((a, b) => a + b, 0);
-    const recentPriceAvg = recentPrices.length > 0 ?
-      recentPriceSum / recentPrices.length : 0;
-    const olderPriceSum = olderPrices.reduce((a, b) => a + b, 0);
-    const olderPriceAvg = olderPrices.length > 0 ?
-      olderPriceSum / olderPrices.length : 0;
+    // Bearish Divergence: Price = Higher Highs, RSI = Lower Highs
+    if (rsiPeaks.length >= 2) {
+      const p2 = rsiPeaks[rsiPeaks.length - 1]; // recent
+      const p1 = rsiPeaks[rsiPeaks.length - 2]; // older
 
-    if (olderPriceAvg !== 0) {
-      priceTrend = ((recentPriceAvg - olderPriceAvg) / olderPriceAvg) * 100;
-    } else {
-      priceTrend = 0;
+      // RSI Lower High?
+      if (recentRSI[p2] < recentRSI[p1] && recentRSI[p2] > 50) {
+        // Price Higher High?
+        const price2 = prices[getPriceIdx(p2)];
+        const price1 = prices[getPriceIdx(p1)];
+        if (price2 > price1) {
+          divergenceType = "bearish";
+        }
+      }
     }
 
-    // Bullish divergence: Price making lower lows, RSI making higher lows
-    if (priceTrend < -1 && rsiTrend > 3 && rsi < 50) {
-      divergenceType = "bullish";
-    }
-    // Bearish divergence: Price making higher highs, RSI making lower highs
-    if (priceTrend > 1 && rsiTrend < -3 && rsi > 50) {
-      divergenceType = "bearish";
-    }
+    // Simplified Trend Fallback (Visual Metadata)
+    const recentAvg = recentRSI.slice(-3).reduce((a, b) => a + b, 0) / 3;
+    const olderAvg = recentRSI.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+    rsiTrend = recentAvg - olderAvg;
+
+    const recentP = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
+    const olderP = prices.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
+    priceTrend = ((recentP - olderP) / olderP) * 100;
   }
 
   // Prioritize divergence signals
@@ -1508,7 +1842,17 @@ export function evaluateStochastic(
     };
   }
 
-  const stoch = computeStochastic(highs, lows, closes, kPeriod, dPeriod);
+  // Optimized to use Array computation once
+  const stochArray = computeStochasticArray(
+    highs,
+    lows,
+    closes,
+    kPeriod,
+    dPeriod
+  );
+
+  const stoch = stochArray[stochArray.length - 1];
+
   if (!stoch) {
     return {
       value: null,
@@ -1523,14 +1867,8 @@ export function evaluateStochastic(
 
   // Detect crossovers
   let prevStoch: { k: number; d: number } | null = null;
-  if (closes.length > kPeriod) {
-    prevStoch = computeStochastic(
-      highs.slice(0, -1),
-      lows.slice(0, -1),
-      closes.slice(0, -1),
-      kPeriod,
-      dPeriod
-    );
+  if (stochArray.length >= 2) {
+    prevStoch = stochArray[stochArray.length - 2];
   }
 
   // Bullish crossover in oversold region
@@ -1617,7 +1955,10 @@ export function evaluateATR(
     };
   }
 
-  const atr = computeATR(highs, lows, closes, period);
+  // Optimized to use O(N) array computation
+  const fullATRSeries = computeATRArray(highs, lows, closes, period);
+  const atr = fullATRSeries[fullATRSeries.length - 1];
+
   if (atr === null) {
     return {
       value: null,
@@ -1629,16 +1970,10 @@ export function evaluateATR(
   const currentPrice = closes[closes.length - 1];
   const atrPercent = (atr / currentPrice) * 100;
 
-  // Compare with historical ATR values
+  // Collect historical ATR values for comparison
   const atrValues: number[] = [];
-  for (let i = period; i < closes.length; i++) {
-    const historicalATR = computeATR(
-      highs.slice(0, i + 1),
-      lows.slice(0, i + 1),
-      closes.slice(0, i + 1),
-      period
-    );
-    if (historicalATR !== null) atrValues.push(historicalATR);
+  for (const val of fullATRSeries) {
+    if (val !== null) atrValues.push(val);
   }
 
   if (atrValues.length < 10) {
@@ -2581,16 +2916,20 @@ export function evaluateAllIndicators(
     }
 
     if (hasZeroVolume) {
+      const v = symbolData.volumes;
       symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
-      symbolData.volumes = validIndices.map((i) => symbolData.volumes![i]);
+      symbolData.volumes = validIndices.map((i) => v[i]);
       if (symbolData.opens && symbolData.opens.length >= limit) {
-        symbolData.opens = validIndices.map((i) => symbolData.opens![i]);
+        const o = symbolData.opens;
+        symbolData.opens = validIndices.map((i) => o[i]);
       }
       if (symbolData.highs && symbolData.highs.length >= limit) {
-        symbolData.highs = validIndices.map((i) => symbolData.highs![i]);
+        const h = symbolData.highs;
+        symbolData.highs = validIndices.map((i) => h[i]);
       }
       if (symbolData.lows && symbolData.lows.length >= limit) {
-        symbolData.lows = validIndices.map((i) => symbolData.lows![i]);
+        const l = symbolData.lows;
+        symbolData.lows = validIndices.map((i) => l[i]);
       }
     }
   }

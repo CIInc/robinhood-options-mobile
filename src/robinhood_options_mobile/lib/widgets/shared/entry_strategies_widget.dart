@@ -14,6 +14,7 @@ class EntryStrategiesWidget extends StatelessWidget {
   final ValueChanged<bool> onRequireStrictEntryChanged;
   final TextEditingController minSignalStrengthController;
   final Map<String, bool> enabledIndicators;
+  final Map<String, String> indicatorReasons;
   final Function(String key, bool value) onToggleIndicator;
   final VoidCallback onToggleAllIndicators;
   final TextEditingController rsiPeriodController;
@@ -75,6 +76,7 @@ class EntryStrategiesWidget extends StatelessWidget {
     required this.onRequireStrictEntryChanged,
     required this.minSignalStrengthController,
     required this.enabledIndicators,
+    this.indicatorReasons = const {},
     required this.onToggleIndicator,
     required this.onToggleAllIndicators,
     required this.rsiPeriodController,
@@ -93,43 +95,26 @@ class EntryStrategiesWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton.icon(
-              icon: Icon(
-                Icons.info_outline,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              label: const Text('Indicator Documentation'),
-              onPressed: () => _showDocumentationDialog(context),
-            ),
-          ],
-        ),
-        _buildSwitchListTile(
-          context,
-          'Strict Entry Mode',
-          'Require ALL enabled indicators to be green',
-          requireAllIndicatorsGreen,
-          onRequireStrictEntryChanged,
-        ),
-        const SizedBox(height: 12),
-        _buildTextField(
-          context,
-          requireAllIndicatorsGreen
-              ? _disabled100Controller
-              : minSignalStrengthController,
-          'Min Signal Strength',
-          suffixText: '%',
-          helperText: 'Minimum confidence score required',
-          enabled: !requireAllIndicatorsGreen,
-        ),
-        const SizedBox(height: 24),
-        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Active Indicators',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                const Text('Active Indicators',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  tooltip: 'Indicator Documentation',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _showDocumentationDialog(context),
+                ),
+              ],
+            ),
             TextButton.icon(
               onPressed: onToggleAllIndicators,
               icon: const Icon(Icons.select_all, size: 16),
@@ -143,7 +128,7 @@ class EntryStrategiesWidget extends StatelessWidget {
         const SizedBox(height: 8),
         ...enabledIndicators.keys
             .map((key) => _buildIndicatorToggle(context, key)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
@@ -170,6 +155,27 @@ class EntryStrategiesWidget extends StatelessWidget {
                   helperText: 'SPY or QQQ'),
             ],
           ),
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          context,
+          'Strict Entry Mode',
+          'Require ALL enabled indicators to be green',
+          requireAllIndicatorsGreen,
+          onRequireStrictEntryChanged,
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          context,
+          requireAllIndicatorsGreen
+              ? _disabled100Controller
+              : minSignalStrengthController,
+          'Min Signal Strength',
+          suffixText: '%',
+          helperText: 'Minimum confidence score required',
+          enabled: !requireAllIndicatorsGreen,
         ),
         const SizedBox(height: 8),
         const Divider(),
@@ -334,14 +340,34 @@ class EntryStrategiesWidget extends StatelessWidget {
             size: 20,
           ),
         ),
-        title: Text(
-          metadata.label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isEnabled
-                ? colorScheme.onSurface
-                : colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                metadata.label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isEnabled
+                      ? colorScheme.onSurface
+                      : colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
+            if (indicatorReasons[key] != null &&
+                indicatorReasons[key]!.isNotEmpty)
+              Tooltip(
+                message: indicatorReasons[key],
+                triggerMode: TooltipTriggerMode.tap,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +381,8 @@ class EntryStrategiesWidget extends StatelessWidget {
         activeThumbColor: colorScheme.primary,
         dense: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: isEnabled ? colorScheme.primary.withValues(alpha: 0.05) : null,
+        tileColor:
+            isEnabled ? colorScheme.primary.withValues(alpha: 0.05) : null,
       ),
     );
   }

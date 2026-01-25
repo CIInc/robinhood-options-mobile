@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -469,19 +470,32 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            formatCurrency.format(selection != null
-                                ? selection!.closePrice
-                                : close),
-                            style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                height: 1.1,
-                                fontFeatures: [
-                                  ui.FontFeature.tabularFigures()
-                                ]),
-                          ),
+                          AnimatedPriceText(
+                              price: selection != null
+                                  ? selection!.closePrice!
+                                  : close,
+                              format: formatCurrency,
+                              style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                  height: 1.1,
+                                  fontFeatures: [
+                                    ui.FontFeature.tabularFigures()
+                                  ])),
+                          // Text(
+                          //   formatCurrency.format(selection != null
+                          //       ? selection!.closePrice
+                          //       : close),
+                          //   style: TextStyle(
+                          //       fontSize: 32,
+                          //       fontWeight: FontWeight.bold,
+                          //       color: textColor,
+                          //       height: 1.1,
+                          //       fontFeatures: [
+                          //         ui.FontFeature.tabularFigures()
+                          //       ]),
+                          // ),
                           const SizedBox(height: 4),
                           Row(
                             children: [

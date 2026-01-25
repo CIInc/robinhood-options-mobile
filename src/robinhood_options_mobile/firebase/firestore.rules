@@ -110,6 +110,11 @@ service cloud.firestore {
       allow create, update: if request.auth.uid != null;
     }
 
+    match /yahoo_data/{doc} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+    }
+
     match /investor_groups/{groupId} {
       // Anyone can read public groups, members can read private groups, invited users can read
       allow read: if resource.data.isPrivate == false || 

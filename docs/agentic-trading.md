@@ -748,18 +748,17 @@ marketIndexSymbol: 'SPY'    // Reference market index
 
 #### Trade Execution
 ```dart
-tradeQuantity: 1            // Shares per trade
 autoTradeEnabled: false     // Master auto-trade switch
-dailyTradeLimit: 5          // Max trades per day
 autoTradeCooldownMinutes: 60 // Minutes between trades
-```
 
-#### Risk Controls
-```dart
-maxPositionSize: 100                // Max shares per position
-maxPortfolioConcentration: 0.5      // Max 50% in single position
-takeProfitPercent: 10.0             // Auto-exit at 10% profit
-stopLossPercent: 5.0                // Auto-exit at 5% loss
+strategyConfig: {
+  tradeQuantity: 1,           // Shares per trade
+  dailyTradeLimit: 5,         // Max trades per day
+  maxPositionSize: 100,       // Max shares per position
+  maxPortfolioConcentration: 0.5, // Max 50% in single position
+  takeProfitPercent: 10.0,    // Auto-exit at 10% profit
+  stopLossPercent: 5.0        // Auto-exit at 5% loss
+}
 ```
 
 #### Indicators

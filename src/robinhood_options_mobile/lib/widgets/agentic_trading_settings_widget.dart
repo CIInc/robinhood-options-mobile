@@ -6,18 +6,23 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/trading_strategies_page.dart';
 import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/exit_strategies_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -67,12 +72,10 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _smaSlowController;
   late TextEditingController _marketIndexController;
   late TextEditingController _trailingStopPercentController;
-  late bool _enableDynamicPositionSizing;
-  late Map<String, bool> _enabledIndicators;
-  late List<ExitStage> _exitStages;
-  late List<TextEditingController> _exitStageProfitControllers;
-  late List<TextEditingController> _exitStageQuantityControllers;
-  late List<CustomIndicatorConfig> _customIndicators;
+  // late bool _enableDynamicPositionSizing;
+  // late Map<String, bool> _enabledIndicators;
+  // late List<ExitStage> _exitStages;
+  // late List<CustomIndicatorConfig> _customIndicators;
   String? _selectedTemplateId;
   late List<String> _symbolFilter;
   String _interval = '1d';
@@ -80,6 +83,7 @@ class _AgenticTradingSettingsWidgetState
   final CarouselController _templateScrollController = CarouselController();
   final ScrollController _intervalScrollController = ScrollController();
   bool _hasScrolledToTemplate = false;
+  // final Map<String, bool> _switchValues = {};
 
   @override
   void initState() {
@@ -118,117 +122,68 @@ class _AgenticTradingSettingsWidgetState
     });
 
     // Initialize controllers from user's config
-    final config = widget.user.agenticTradingConfig?.toJson() ?? {};
-    _selectedTemplateId = config['selectedTemplateId'] as String?;
-    final defaultIndicators = {
-      'priceMovement': true,
-      'momentum': true,
-      'marketDirection': true,
-      'volume': true,
-      'macd': true,
-      'bollingerBands': true,
-      'stochastic': true,
-      'atr': true,
-      'obv': true,
-      'vwap': true,
-      'adx': true,
-      'williamsR': true,
-      'ichimoku': true,
-      'cci': true,
-      'parabolicSar': true,
-    };
-    _enabledIndicators = Map.from(defaultIndicators);
-    if (widget.user.agenticTradingConfig?.enabledIndicators != null) {
-      _enabledIndicators
-          .addAll(widget.user.agenticTradingConfig!.enabledIndicators);
-    }
-    _exitStages = (config['exitStages'] as List<dynamic>?)
-            ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [
-          ExitStage(profitTargetPercent: 5.0, quantityPercent: 0.5),
-          ExitStage(profitTargetPercent: 10.0, quantityPercent: 0.5),
-        ];
+    final config = widget.user.agenticTradingConfig;
+    final strategy = config?.strategyConfig;
 
-    _exitStageProfitControllers = [];
-    _exitStageQuantityControllers = [];
-    _syncExitStageControllers();
+    _selectedTemplateId = config?.tradeStrategyTemplateId;
 
-    _customIndicators = (config['customIndicators'] as List<dynamic>?)
-            ?.map((e) =>
-                CustomIndicatorConfig.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
-    _symbolFilter = (config['symbolFilter'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [];
-    _interval = config['interval'] as String? ?? '1d';
+    _symbolFilter =
+        strategy?.symbolFilter != null ? List.from(strategy!.symbolFilter) : [];
+    _interval = strategy?.interval ?? '1d';
 
     _tradeQuantityController =
-        TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
+        TextEditingController(text: strategy?.tradeQuantity.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
-        text: config['maxPositionSize']?.toString() ?? '100');
+        text: strategy?.maxPositionSize.toString() ?? '100');
     _maxPortfolioConcentrationController = TextEditingController(
-        text: config['maxPortfolioConcentration']?.toString() ?? '50.0');
+        text: strategy?.maxPortfolioConcentration.toString() ?? '50.0');
     _dailyTradeLimitController = TextEditingController(
-        text: config['dailyTradeLimit']?.toString() ?? '5');
+        text: strategy?.dailyTradeLimit.toString() ?? '5');
     _autoTradeCooldownController = TextEditingController(
-        text: config['autoTradeCooldownMinutes']?.toString() ?? '60');
+        text: config?.autoTradeCooldownMinutes.toString() ?? '60');
     _checkIntervalController = TextEditingController(
-        text: config['checkIntervalMinutes']?.toString() ?? '5');
+        text: config?.checkIntervalMinutes.toString() ?? '5');
     _takeProfitPercentController = TextEditingController(
-        text: config['takeProfitPercent']?.toString() ?? '10.0');
+        text: strategy?.takeProfitPercent.toString() ?? '10.0');
     _stopLossPercentController = TextEditingController(
-        text: config['stopLossPercent']?.toString() ?? '5.0');
+        text: strategy?.stopLossPercent.toString() ?? '5.0');
     _trailingStopPercentController = TextEditingController(
-        text: config['trailingStopPercent']?.toString() ?? '3.0');
+        text: strategy?.trailingStopPercent.toString() ?? '3.0');
     _maxSectorExposureController = TextEditingController(
-        text: config['maxSectorExposure']?.toString() ?? '20.0');
+        text: strategy?.maxSectorExposure.toString() ?? '20.0');
     _maxCorrelationController = TextEditingController(
-        text: config['maxCorrelation']?.toString() ?? '0.7');
+        text: strategy?.maxCorrelation.toString() ?? '0.7');
     _minVolatilityController = TextEditingController(
-        text: config['minVolatility']?.toString() ?? '0.0');
+        text: strategy?.minVolatility.toString() ?? '0.0');
     _maxVolatilityController = TextEditingController(
-        text: config['maxVolatility']?.toString() ?? '100.0');
-    _maxDrawdownController = TextEditingController(
-        text: config['maxDrawdown']?.toString() ?? '10.0');
+        text: strategy?.maxVolatility.toString() ?? '100.0');
+    _maxDrawdownController =
+        TextEditingController(text: strategy?.maxDrawdown.toString() ?? '10.0');
     _minSignalStrengthController = TextEditingController(
-        text: config['minSignalStrength']?.toString() ?? '75.0');
+        text: strategy?.minSignalStrength.toString() ?? '75.0');
     _rsiExitThresholdController = TextEditingController(
-        text: config['rsiExitThreshold']?.toString() ?? '80.0');
+        text: strategy?.rsiExitThreshold.toString() ?? '80.0');
     _signalStrengthExitThresholdController = TextEditingController(
-        text: config['signalStrengthExitThreshold']?.toString() ?? '40.0');
+        text: strategy?.signalStrengthExitThreshold.toString() ?? '40.0');
     _timeBasedExitMinutesController = TextEditingController(
-        text: config['timeBasedExitMinutes']?.toString() ?? '0');
+        text: strategy?.timeBasedExitMinutes.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
-        text: config['marketCloseExitMinutes']?.toString() ?? '15');
-    _riskPerTradeController = TextEditingController(
-        text: ((config['riskPerTrade'] as num?)?.toDouble() ?? 0.01)
-            .toString()); // Store as decimal in config, but maybe display as %? Let's keep decimal for now or convert.
-    // Actually, let's display as percentage for user friendliness (e.g. 1.0 for 1%)
-    // But wait, the backend expects decimal (0.01).
-    // Let's stick to what the controller expects. If I put 0.01 in text field, user sees 0.01.
-    // If I want user to type 1 for 1%, I need to convert back and forth.
-    // Let's keep it simple: User enters decimal (e.g. 0.01). Or maybe percentage is better.
-    // The config model says: double riskPerTrade; // Risk per trade as % of account (e.g. 0.01 for 1%)
-    // Let's display as percentage (1.0) and save as decimal (0.01).
-    double riskPerTrade = (config['riskPerTrade'] as num?)?.toDouble() ?? 0.01;
+        text: strategy?.marketCloseExitMinutes.toString() ?? '15');
+
+    double riskPerTrade = strategy?.riskPerTrade ?? 0.01;
     _riskPerTradeController =
         TextEditingController(text: (riskPerTrade * 100).toString());
 
     _atrMultiplierController = TextEditingController(
-        text: config['atrMultiplier']?.toString() ?? '2.0');
+        text: strategy?.atrMultiplier.toString() ?? '2.0');
     _rsiPeriodController =
-        TextEditingController(text: config['rsiPeriod']?.toString() ?? '14');
-    _smaFastController = TextEditingController(
-        text: config['smaPeriodFast']?.toString() ?? '10');
-    _smaSlowController = TextEditingController(
-        text: config['smaPeriodSlow']?.toString() ?? '30');
-    _marketIndexController = TextEditingController(
-        text: config['marketIndexSymbol']?.toString() ?? 'SPY');
-    _enableDynamicPositionSizing =
-        config['enableDynamicPositionSizing'] as bool? ?? false;
+        TextEditingController(text: strategy?.rsiPeriod.toString() ?? '14');
+    _smaFastController =
+        TextEditingController(text: strategy?.smaPeriodFast.toString() ?? '10');
+    _smaSlowController =
+        TextEditingController(text: strategy?.smaPeriodSlow.toString() ?? '30');
+    _marketIndexController =
+        TextEditingController(text: strategy?.marketIndexSymbol ?? 'SPY');
   }
 
   @override
@@ -261,39 +216,7 @@ class _AgenticTradingSettingsWidgetState
     _newSymbolController.dispose();
     _templateScrollController.dispose();
     _intervalScrollController.dispose();
-    for (var c in _exitStageProfitControllers) {
-      c.dispose();
-    }
-    for (var c in _exitStageQuantityControllers) {
-      c.dispose();
-    }
     super.dispose();
-  }
-
-  void _syncExitStageControllers() {
-    // Dipose existing controllers if they exist
-    try {
-      if (_exitStageProfitControllers.isNotEmpty) {
-        for (var c in _exitStageProfitControllers) {
-          c.dispose();
-        }
-      }
-      if (_exitStageQuantityControllers.isNotEmpty) {
-        for (var c in _exitStageQuantityControllers) {
-          c.dispose();
-        }
-      }
-    } catch (_) {
-      // Ignore errors if lists were not yet initialized
-    }
-
-    _exitStageProfitControllers = _exitStages
-        .map((e) =>
-            TextEditingController(text: e.profitTargetPercent.toString()))
-        .toList();
-    _exitStageQuantityControllers = _exitStages
-        .map((e) => TextEditingController(text: e.quantityPercent.toString()))
-        .toList();
   }
 
   Widget _buildNumberField({
@@ -351,11 +274,12 @@ class _AgenticTradingSettingsWidgetState
     double? titleFontSize,
     double? subtitleFontSize = 13,
     EdgeInsetsGeometry? contentPadding = EdgeInsets.zero,
-    ValueChanged<bool>? onChanged,
+    required ValueChanged<bool> onChanged,
+    required bool value,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isEnabled = provider.config[key] as bool? ?? defaultValue;
+    final isEnabled = value;
 
     return Column(
       children: [
@@ -380,23 +304,13 @@ class _AgenticTradingSettingsWidgetState
             ),
           ),
           value: isEnabled,
-          onChanged: (bool value) {
-            if (onChanged != null) {
-              onChanged(value);
-            } else {
-              setState(() {
-                provider.config[key] = value;
-              });
-              _saveSettings();
-            }
-          },
+          onChanged: onChanged,
           activeThumbColor: colorScheme.primary,
           contentPadding: contentPadding,
         ),
         if (isEnabled && extraContent != null)
           SizedBox(
             width: double.infinity,
-            // padding: const EdgeInsets.only(bottom: 16.0),
             child: extraContent,
           ),
       ],
@@ -420,6 +334,89 @@ class _AgenticTradingSettingsWidgetState
     }
   }
 
+  AgenticTradingConfig _createFullConfigFromSettings(
+      AgenticTradingProvider provider,
+      {AgenticTradingConfig? baseConfig}) {
+    final configSource = baseConfig ?? provider.config;
+    final strategySource = configSource.strategyConfig;
+
+    final strategyConfig = TradeStrategyConfig(
+      startDate: DateTime.now().subtract(const Duration(days: 30)),
+      endDate: DateTime.now(),
+      initialCapital: 10000,
+      interval: strategySource.interval,
+      enabledIndicators:
+          Map<String, bool>.from(strategySource.enabledIndicators),
+      tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      takeProfitPercent:
+          double.tryParse(_takeProfitPercentController.text) ?? 10.0,
+      stopLossPercent: double.tryParse(_stopLossPercentController.text) ?? 5.0,
+      trailingStopEnabled: strategySource.trailingStopEnabled,
+      trailingStopPercent:
+          double.tryParse(_trailingStopPercentController.text) ?? 3.0,
+      rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
+      smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
+      marketIndexSymbol: _marketIndexController.text,
+      maxPositionSize: int.tryParse(_maxPositionSizeController.text) ?? 100,
+      maxPortfolioConcentration:
+          double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0,
+      dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
+      minSignalStrength: (strategySource.requireAllIndicatorsGreen)
+          ? 100.0
+          : (double.tryParse(_minSignalStrengthController.text) ?? 75.0),
+      requireAllIndicatorsGreen: strategySource.requireAllIndicatorsGreen,
+      timeBasedExitEnabled: strategySource.timeBasedExitEnabled,
+      timeBasedExitMinutes:
+          int.tryParse(_timeBasedExitMinutesController.text) ?? 30,
+      marketCloseExitEnabled: strategySource.marketCloseExitEnabled,
+      marketCloseExitMinutes:
+          int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
+      enablePartialExits: strategySource.enablePartialExits,
+      exitStages: List.from(strategySource.exitStages),
+      enableDynamicPositionSizing: strategySource.enableDynamicPositionSizing,
+      riskPerTrade:
+          (double.tryParse(_riskPerTradeController.text) ?? 1.0) / 100.0,
+      atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      customIndicators: List.from(strategySource.customIndicators),
+      symbolFilter: List.from(strategySource.symbolFilter),
+      enableSectorLimits: strategySource.enableSectorLimits,
+      maxSectorExposure:
+          double.tryParse(_maxSectorExposureController.text) ?? 20.0,
+      enableCorrelationChecks: strategySource.enableCorrelationChecks,
+      maxCorrelation: double.tryParse(_maxCorrelationController.text) ?? 0.7,
+      enableVolatilityFilters: strategySource.enableVolatilityFilters,
+      minVolatility: double.tryParse(_minVolatilityController.text) ?? 0.0,
+      maxVolatility: double.tryParse(_maxVolatilityController.text) ?? 100.0,
+      enableDrawdownProtection: strategySource.enableDrawdownProtection,
+      maxDrawdown: double.tryParse(_maxDrawdownController.text) ?? 10.0,
+      rsiExitEnabled: strategySource.rsiExitEnabled,
+      rsiExitThreshold:
+          double.tryParse(_rsiExitThresholdController.text) ?? 80.0,
+      signalStrengthExitEnabled: strategySource.signalStrengthExitEnabled,
+      signalStrengthExitThreshold:
+          double.tryParse(_signalStrengthExitThresholdController.text) ?? 40.0,
+    );
+
+    return AgenticTradingConfig(
+      strategyConfig: strategyConfig,
+      autoTradeEnabled: configSource.autoTradeEnabled,
+      autoTradeCooldownMinutes:
+          int.tryParse(_autoTradeCooldownController.text) ?? 60,
+      checkIntervalMinutes: int.tryParse(_checkIntervalController.text) ?? 5,
+      allowPreMarketTrading: configSource.allowPreMarketTrading,
+      allowAfterHoursTrading: configSource.allowAfterHoursTrading,
+      notifyOnBuy: configSource.notifyOnBuy,
+      notifyOnTakeProfit: configSource.notifyOnTakeProfit,
+      notifyOnStopLoss: configSource.notifyOnStopLoss,
+      notifyOnEmergencyStop: configSource.notifyOnEmergencyStop,
+      notifyDailySummary: configSource.notifyDailySummary,
+      paperTradingMode: configSource.paperTradingMode,
+      requireApproval: configSource.requireApproval,
+      tradeStrategyTemplateId: _selectedTemplateId,
+    );
+  }
+
   void _saveSettings() async {
     // Only validate, don't show snackbar for auto-saves
     if (!_formKey.currentState!.validate()) {
@@ -432,105 +429,11 @@ class _AgenticTradingSettingsWidgetState
 
       // Force paper trading mode if no brokerage service is linked
       if (widget.service == null) {
-        agenticTradingProvider.config['paperTradingMode'] = true;
+        // _switchValues['paperTradingMode'] = true; // Use provider directly
       }
 
-      final newConfig = {
-        'selectedTemplateId': _selectedTemplateId,
-        'interval': _interval,
-        'smaPeriodFast': int.tryParse(_smaFastController.text) ?? 10,
-        'smaPeriodSlow': int.tryParse(_smaSlowController.text) ?? 30,
-        'tradeQuantity': int.parse(_tradeQuantityController.text),
-        'maxPositionSize': int.parse(_maxPositionSizeController.text),
-        'maxPortfolioConcentration':
-            double.parse(_maxPortfolioConcentrationController.text),
-        'rsiPeriod': int.tryParse(_rsiPeriodController.text) ?? 14,
-        'marketIndexSymbol': _marketIndexController.text,
-        'enabledIndicators': _enabledIndicators,
-        'autoTradeEnabled':
-            agenticTradingProvider.config['autoTradeEnabled'] ?? false,
-        'dailyTradeLimit': int.parse(_dailyTradeLimitController.text),
-        'autoTradeCooldownMinutes':
-            int.parse(_autoTradeCooldownController.text),
-        'checkIntervalMinutes': int.parse(_checkIntervalController.text),
-        'takeProfitPercent': double.parse(_takeProfitPercentController.text),
-        'stopLossPercent': double.parse(_stopLossPercentController.text),
-        'allowPreMarketTrading':
-            agenticTradingProvider.config['allowPreMarketTrading'] ?? false,
-        'allowAfterHoursTrading':
-            agenticTradingProvider.config['allowAfterHoursTrading'] ?? false,
-        // Push Notification Preferences
-        'notifyOnBuy': agenticTradingProvider.config['notifyOnBuy'] ?? true,
-        'notifyOnTakeProfit':
-            agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
-        'notifyOnStopLoss':
-            agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
-        'notifyOnEmergencyStop':
-            agenticTradingProvider.config['notifyOnEmergencyStop'] ?? true,
-        'notifyDailySummary':
-            agenticTradingProvider.config['notifyDailySummary'] ?? false,
-        // Trailing Stop Settings
-        'trailingStopEnabled':
-            agenticTradingProvider.config['trailingStopEnabled'] ?? false,
-        'trailingStopPercent':
-            agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
-        // Partial Exits
-        'enablePartialExits':
-            agenticTradingProvider.config['enablePartialExits'] ?? false,
-        'exitStages': _exitStages.map((e) => e.toJson()).toList(),
-        'customIndicators': _customIndicators.map((e) => e.toJson()).toList(),
-        // Time-Based Exits
-        'timeBasedExitEnabled':
-            agenticTradingProvider.config['timeBasedExitEnabled'] ?? false,
-        'timeBasedExitMinutes':
-            int.tryParse(_timeBasedExitMinutesController.text) ?? 60,
-        'marketCloseExitEnabled':
-            agenticTradingProvider.config['marketCloseExitEnabled'] ?? false,
-        'marketCloseExitMinutes':
-            int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
-        // Technical Exits
-        'rsiExitEnabled':
-            agenticTradingProvider.config['rsiExitEnabled'] ?? false,
-        'rsiExitThreshold':
-            double.tryParse(_rsiExitThresholdController.text) ?? 80.0,
-        'signalStrengthExitEnabled':
-            agenticTradingProvider.config['signalStrengthExitEnabled'] ?? false,
-        'signalStrengthExitThreshold':
-            double.tryParse(_signalStrengthExitThresholdController.text) ??
-                40.0,
-        // Paper Trading Mode
-        'paperTradingMode':
-            agenticTradingProvider.config['paperTradingMode'] ?? false,
-        'requireApproval':
-            agenticTradingProvider.config['requireApproval'] ?? true,
-        // Advanced Risk Controls
-        'enableSectorLimits':
-            agenticTradingProvider.config['enableSectorLimits'] ?? false,
-        'maxSectorExposure':
-            double.tryParse(_maxSectorExposureController.text) ?? 20.0,
-        'enableCorrelationChecks':
-            agenticTradingProvider.config['enableCorrelationChecks'] ?? false,
-        'maxCorrelation':
-            double.tryParse(_maxCorrelationController.text) ?? 0.7,
-        'enableVolatilityFilters':
-            agenticTradingProvider.config['enableVolatilityFilters'] ?? false,
-        'minVolatility': double.tryParse(_minVolatilityController.text) ?? 0.0,
-        'maxVolatility':
-            double.tryParse(_maxVolatilityController.text) ?? 100.0,
-        'enableDrawdownProtection':
-            agenticTradingProvider.config['enableDrawdownProtection'] ?? false,
-        'minSignalStrength':
-            double.tryParse(_minSignalStrengthController.text) ?? 75.0,
-        'requireAllIndicatorsGreen':
-            agenticTradingProvider.config['requireAllIndicatorsGreen'] ?? true,
-        'maxDrawdown': double.tryParse(_maxDrawdownController.text) ?? 10.0,
-        // Dynamic Position Sizing
-        'enableDynamicPositionSizing': _enableDynamicPositionSizing,
-        'riskPerTrade': (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
-            100.0, // Convert % to decimal
-        'atrMultiplier': double.tryParse(_atrMultiplierController.text) ?? 2.0,
-        'symbolFilter': _symbolFilter,
-      };
+      final newConfig = _createFullConfigFromSettings(agenticTradingProvider);
+
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
 
       // Update local user object to ensure persistence when navigating back/forth
@@ -539,11 +442,9 @@ class _AgenticTradingSettingsWidgetState
         // Can't easily update fields in place, so recreate.
         // Note: Using setState isn't strictly required for *this* widget since we already have the state,
         // but it's good for consistency if we used widget.user in build.
-        widget.user.agenticTradingConfig =
-            AgenticTradingConfig.fromJson(newConfig);
+        widget.user.agenticTradingConfig = newConfig;
       } else {
-        widget.user.agenticTradingConfig =
-            AgenticTradingConfig.fromJson(newConfig);
+        widget.user.agenticTradingConfig = newConfig;
       }
     } catch (e) {
       debugPrint('Error auto-saving settings: $e');
@@ -555,7 +456,7 @@ class _AgenticTradingSettingsWidgetState
     final brokerageUserStore =
         Provider.of<BrokerageUserStore>(context, listen: false);
     final accountStore = Provider.of<AccountStore>(context, listen: false);
-    final isPaperMode = provider.config['paperTradingMode'] as bool? ?? false;
+    final isPaperMode = provider.config.paperTradingMode;
 
     if (!isPaperMode && brokerageUserStore.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -594,10 +495,17 @@ class _AgenticTradingSettingsWidgetState
     );
 
     if (result != null) {
-      setState(() {
-        _customIndicators.add(result);
-      });
-      _saveSettings();
+      final provider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final newIndicators = List<CustomIndicatorConfig>.from(
+          provider.config.strategyConfig.customIndicators)
+        ..add(result);
+
+      final newConfig = _createFullConfigFromSettings(provider,
+          baseConfig: provider.config.copyWith(
+              strategyConfig: provider.config.strategyConfig
+                  .copyWith(customIndicators: newIndicators)));
+      provider.updateConfig(newConfig, widget.userDocRef);
     }
   }
 
@@ -610,34 +518,41 @@ class _AgenticTradingSettingsWidgetState
     );
 
     if (result != null) {
-      setState(() {
-        final index = _customIndicators.indexWhere((i) => i.id == indicator.id);
-        if (index != -1) {
-          _customIndicators[index] = result;
-        }
-      });
-      _saveSettings();
+      final provider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final newIndicators = List<CustomIndicatorConfig>.from(
+          provider.config.strategyConfig.customIndicators);
+      final index = newIndicators.indexWhere((i) => i.id == indicator.id);
+      if (index != -1) {
+        newIndicators[index] = result;
+        final newConfig = _createFullConfigFromSettings(provider,
+            baseConfig: provider.config.copyWith(
+                strategyConfig: provider.config.strategyConfig
+                    .copyWith(customIndicators: newIndicators)));
+        provider.updateConfig(newConfig, widget.userDocRef);
+      }
     }
   }
 
   void _removeCustomIndicator(CustomIndicatorConfig indicator) {
-    setState(() {
-      _customIndicators.removeWhere((i) => i.id == indicator.id);
-    });
-    _saveSettings();
+    final provider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final newIndicators = List<CustomIndicatorConfig>.from(
+        provider.config.strategyConfig.customIndicators)
+      ..removeWhere((i) => i.id == indicator.id);
+
+    final newConfig = _createFullConfigFromSettings(provider,
+        baseConfig: provider.config.copyWith(
+            strategyConfig: provider.config.strategyConfig
+                .copyWith(customIndicators: newIndicators)));
+    provider.updateConfig(newConfig, widget.userDocRef);
   }
 
   void _loadFromTemplate(TradeStrategyTemplate template) {
-    final provider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-
     setState(() {
       _selectedTemplateId = template.id;
       _hasScrolledToTemplate = false;
       _interval = template.config.interval;
-      // Update local state variables
-      _enabledIndicators =
-          Map<String, bool>.from(template.config.enabledIndicators);
 
       _takeProfitPercentController.text =
           template.config.takeProfitPercent.toString();
@@ -656,68 +571,41 @@ class _AgenticTradingSettingsWidgetState
       _marketCloseExitMinutesController.text =
           template.config.marketCloseExitMinutes.toString();
 
-      _enableDynamicPositionSizing =
-          template.config.enableDynamicPositionSizing;
       _riskPerTradeController.text =
           (template.config.riskPerTrade * 100).toString();
       _atrMultiplierController.text = template.config.atrMultiplier.toString();
 
-      _exitStages = List.from(template.config.exitStages);
-      _syncExitStageControllers();
-      _customIndicators = List.from(template.config.customIndicators);
-      // Only apply symbol filter if the template has one, otherwise keep current
-      // if (template.config.symbolFilter.isNotEmpty) {
       _symbolFilter = List.from(template.config.symbolFilter);
-      // }
-
-      // We don't load initialCapital, tradeQuantity (keep user pref), etc.
-      // But we load risk params if they exist in template
-
-      // Update provider config map
-      provider.config['selectedTemplateId'] = template.id;
-      provider.config['enabledIndicators'] = _enabledIndicators;
-      provider.config['takeProfitPercent'] = template.config.takeProfitPercent;
-      provider.config['stopLossPercent'] = template.config.stopLossPercent;
-      provider.config['trailingStopEnabled'] =
-          template.config.trailingStopEnabled;
-      provider.config['trailingStopPercent'] =
-          template.config.trailingStopPercent;
-      provider.config['rsiPeriod'] = template.config.rsiPeriod;
-      provider.config['smaPeriodFast'] = template.config.smaPeriodFast;
-      provider.config['smaPeriodSlow'] = template.config.smaPeriodSlow;
-      provider.config['marketIndexSymbol'] = template.config.marketIndexSymbol;
-      provider.config['minSignalStrength'] =
-          template.config.requireAllIndicatorsGreen
-              ? 100.0
-              : template.config.minSignalStrength;
-      provider.config['requireAllIndicatorsGreen'] =
-          template.config.requireAllIndicatorsGreen;
-      provider.config['timeBasedExitEnabled'] =
-          template.config.timeBasedExitEnabled;
-      provider.config['timeBasedExitMinutes'] =
-          template.config.timeBasedExitMinutes;
-      provider.config['marketCloseExitEnabled'] =
-          template.config.marketCloseExitEnabled;
-      provider.config['marketCloseExitMinutes'] =
-          template.config.marketCloseExitMinutes;
-      provider.config['enablePartialExits'] =
-          template.config.enablePartialExits;
-      provider.config['enableDynamicPositionSizing'] =
-          template.config.enableDynamicPositionSizing;
-      provider.config['riskPerTrade'] = template.config.riskPerTrade;
-      provider.config['atrMultiplier'] = template.config.atrMultiplier;
-      provider.config['interval'] = template.config.interval;
-      _interval = template.config.interval;
-
-      // Complex objects need to be serialized for the map
-      provider.config['exitStages'] =
-          _exitStages.map((e) => e.toJson()).toList();
-      provider.config['customIndicators'] =
-          _customIndicators.map((e) => e.toJson()).toList();
-      provider.config['symbolFilter'] = _symbolFilter;
     });
 
-    _saveSettings();
+    final provider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+
+    final baseStrategy = provider.config.strategyConfig.copyWith(
+      enabledIndicators: template.config.enabledIndicators,
+      customIndicators: template.config.customIndicators,
+      exitStages: template.config.exitStages,
+      trailingStopEnabled: template.config.trailingStopEnabled,
+      requireAllIndicatorsGreen: template.config.requireAllIndicatorsGreen,
+      timeBasedExitEnabled: template.config.timeBasedExitEnabled,
+      marketCloseExitEnabled: template.config.marketCloseExitEnabled,
+      enablePartialExits: template.config.enablePartialExits,
+      enableDynamicPositionSizing: template.config.enableDynamicPositionSizing,
+      enableSectorLimits: template.config.enableSectorLimits,
+      enableCorrelationChecks: template.config.enableCorrelationChecks,
+      enableVolatilityFilters: template.config.enableVolatilityFilters,
+      enableDrawdownProtection: template.config.enableDrawdownProtection,
+      rsiExitEnabled: template.config.rsiExitEnabled,
+      signalStrengthExitEnabled: template.config.signalStrengthExitEnabled,
+      interval: template.config.interval,
+      symbolFilter: _symbolFilter,
+    );
+
+    final newConfig = _createFullConfigFromSettings(provider,
+        baseConfig: provider.config.copyWith(
+            strategyConfig: baseStrategy, selectedTemplateId: template.id));
+
+    provider.updateConfig(newConfig, widget.userDocRef);
   }
 
   void _showSaveTemplateDialog(BuildContext context) {
@@ -904,41 +792,61 @@ class _AgenticTradingSettingsWidgetState
 
   TradeStrategyConfig _createConfigFromCurrentSettings(
       AgenticTradingProvider provider) {
-    final config = provider.config;
+    // We use provider config + controllers
+    final strategySource = provider.config.strategyConfig;
     return TradeStrategyConfig(
       startDate: DateTime.now().subtract(const Duration(days: 30)),
       endDate: DateTime.now(),
       initialCapital: 10000,
       interval: _interval,
-      enabledIndicators: Map<String, bool>.from(_enabledIndicators),
+      enabledIndicators:
+          Map<String, bool>.from(strategySource.enabledIndicators),
       takeProfitPercent:
           double.tryParse(_takeProfitPercentController.text) ?? 10.0,
       stopLossPercent: double.tryParse(_stopLossPercentController.text) ?? 5.0,
-      trailingStopEnabled: config['trailingStopEnabled'] ?? false,
+      trailingStopEnabled: strategySource.trailingStopEnabled,
       trailingStopPercent:
           double.tryParse(_trailingStopPercentController.text) ?? 3.0,
-      rsiPeriod: config['rsiPeriod'] ?? 14,
-      smaPeriodFast: config['smaPeriodFast'] ?? 10,
-      smaPeriodSlow: config['smaPeriodSlow'] ?? 30,
-      marketIndexSymbol: config['marketIndexSymbol'] ?? 'SPY',
+      rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
+      smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
+      marketIndexSymbol: _marketIndexController.text,
       minSignalStrength:
           double.tryParse(_minSignalStrengthController.text) ?? 50.0,
-      requireAllIndicatorsGreen: config['requireAllIndicatorsGreen'] ?? false,
-      timeBasedExitEnabled: config['timeBasedExitEnabled'] ?? false,
+      requireAllIndicatorsGreen: strategySource.requireAllIndicatorsGreen,
+      timeBasedExitEnabled: strategySource.timeBasedExitEnabled,
       timeBasedExitMinutes:
           int.tryParse(_timeBasedExitMinutesController.text) ?? 0,
-      marketCloseExitEnabled: config['marketCloseExitEnabled'] ?? false,
+      marketCloseExitEnabled: strategySource.marketCloseExitEnabled,
       marketCloseExitMinutes:
           int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
-      enablePartialExits: config['enablePartialExits'] ?? false,
-      exitStages: List.from(_exitStages),
-      enableDynamicPositionSizing: _enableDynamicPositionSizing,
+      enablePartialExits: strategySource.enablePartialExits,
+      exitStages: List.from(strategySource.exitStages),
+      enableDynamicPositionSizing: strategySource.enableDynamicPositionSizing,
       riskPerTrade: (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
           100.0, // Convert % to decimal
       atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
-      customIndicators: List.from(_customIndicators),
+      customIndicators: List.from(strategySource.customIndicators),
       symbolFilter: List.from(_symbolFilter),
       tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      // Risk Controls
+      enableSectorLimits: strategySource.enableSectorLimits,
+      maxSectorExposure:
+          double.tryParse(_maxSectorExposureController.text) ?? 20.0,
+      enableCorrelationChecks: strategySource.enableCorrelationChecks,
+      maxCorrelation: double.tryParse(_maxCorrelationController.text) ?? 0.7,
+      enableVolatilityFilters: strategySource.enableVolatilityFilters,
+      minVolatility: double.tryParse(_minVolatilityController.text) ?? 0.0,
+      maxVolatility: double.tryParse(_maxVolatilityController.text) ?? 100.0,
+      enableDrawdownProtection: strategySource.enableDrawdownProtection,
+      maxDrawdown: double.tryParse(_maxDrawdownController.text) ?? 10.0,
+      // Technical Exits
+      rsiExitEnabled: strategySource.rsiExitEnabled,
+      rsiExitThreshold:
+          double.tryParse(_rsiExitThresholdController.text) ?? 80.0,
+      signalStrengthExitEnabled: strategySource.signalStrengthExitEnabled,
+      signalStrengthExitThreshold:
+          double.tryParse(_signalStrengthExitThresholdController.text) ?? 40.0,
     );
   }
 
@@ -1090,6 +998,13 @@ class _AgenticTradingSettingsWidgetState
                       final agenticProvider =
                           Provider.of<AgenticTradingProvider>(context,
                               listen: false);
+                      final brokerageUserStore =
+                          Provider.of<BrokerageUserStore>(context,
+                              listen: false);
+                      final brokerageUser = brokerageUserStore.items.isNotEmpty
+                          ? brokerageUserStore
+                              .items[brokerageUserStore.currentUserIndex]
+                          : null;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1097,7 +1012,11 @@ class _AgenticTradingSettingsWidgetState
                             currentConfig: _createConfigFromCurrentSettings(
                                 agenticProvider),
                             selectedStrategyId: _selectedTemplateId,
-                            onLoadStrategy: (template) {
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                            brokerageUser: brokerageUser,
+                            service: widget.service,
+                            onLoadStrategy: (TradeStrategyTemplate template) {
                               _loadFromTemplate(template);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1160,6 +1079,43 @@ class _AgenticTradingSettingsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Loaded strategy: ${template.name}')),
       );
+    }, onSearch: () {
+      final brokerageUserStore =
+          Provider.of<BrokerageUserStore>(context, listen: false);
+      final brokerageUser = brokerageUserStore.items.isNotEmpty
+          ? brokerageUserStore.items[brokerageUserStore.currentUserIndex]
+          : null;
+
+      if (brokerageUser == null) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please log in for signal search.')),
+        );
+        return;
+      }
+
+      final initialIndicators = template.config.enabledIndicators.entries
+          .where((e) => e.value)
+          .fold<Map<String, String>>({}, (prev, element) {
+        prev[element.key] = "BUY";
+        return prev;
+      });
+
+      Navigator.pop(context); // Close sheet
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => TradeSignalsPage(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    brokerageUser: brokerageUser,
+                    service: widget.service,
+                    analytics: MyApp.analytics,
+                    observer: MyApp.observer,
+                    generativeService: GenerativeService(),
+                    initialIndicators: initialIndicators,
+                    strategyTemplate: template,
+                  )));
     });
   }
 
@@ -1539,8 +1495,7 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildStatusHeader(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isEnabled =
-        agenticTradingProvider.config['autoTradeEnabled'] as bool? ?? false;
+    final isEnabled = agenticTradingProvider.config.autoTradeEnabled;
 
     // Determine strategy display name
     String strategyDisplay =
@@ -1713,9 +1668,8 @@ class _AgenticTradingSettingsWidgetState
                       onChanged: (bool value) async {
                         // Safety Check when Enabling
                         if (value && !isEnabled) {
-                          final isPaperMode = agenticTradingProvider
-                                  .config['paperTradingMode'] as bool? ??
-                              false;
+                          final isPaperMode =
+                              agenticTradingProvider.config.paperTradingMode;
 
                           if (!isPaperMode) {
                             final confirm = await showDialog<bool>(
@@ -1773,21 +1727,22 @@ class _AgenticTradingSettingsWidgetState
                           if (confirm != true) return;
                         }
 
-                        setState(() {
-                          agenticTradingProvider.config['autoTradeEnabled'] =
-                              value;
-                          if (value) {
-                            final checkInterval =
-                                int.tryParse(_checkIntervalController.text) ??
-                                    5;
-                            final nextTradeTime = DateTime.now()
-                                .add(Duration(minutes: checkInterval));
-                            final countdownSeconds = checkInterval * 60;
-                            agenticTradingProvider.updateAutoTradeCountdown(
-                                nextTradeTime, countdownSeconds);
-                          }
-                        });
-                        _saveSettings();
+                        if (value) {
+                          final checkInterval =
+                              int.tryParse(_checkIntervalController.text) ?? 5;
+                          final nextTradeTime = DateTime.now()
+                              .add(Duration(minutes: checkInterval));
+                          final countdownSeconds = checkInterval * 60;
+                          agenticTradingProvider.updateAutoTradeCountdown(
+                              nextTradeTime, countdownSeconds);
+                        }
+
+                        final newConfig = _createFullConfigFromSettings(
+                            agenticTradingProvider,
+                            baseConfig: agenticTradingProvider.config
+                                .copyWith(autoTradeEnabled: value));
+                        agenticTradingProvider.updateConfig(
+                            newConfig, widget.userDocRef);
                       },
                     ),
                   ],
@@ -1873,11 +1828,9 @@ class _AgenticTradingSettingsWidgetState
                           children: [
                             _buildSummaryItem(
                               context,
-                              'Strategy (${_enabledIndicators.values.where((e) => e).length + _customIndicators.length})',
-                              (agenticTradingProvider.config[
-                                              'requireAllIndicatorsGreen']
-                                          as bool? ??
-                                      true)
+                              'Strategy (${agenticTradingProvider.config.strategyConfig.enabledIndicators.values.where((e) => e).length + agenticTradingProvider.config.strategyConfig.customIndicators.length})',
+                              (agenticTradingProvider.config.strategyConfig
+                                      .requireAllIndicatorsGreen)
                                   ? 'All Green'
                                   : 'Min ${_minSignalStrengthController.text}%',
                               Icons.psychology,
@@ -1886,7 +1839,7 @@ class _AgenticTradingSettingsWidgetState
                             _buildSummaryItem(
                               context,
                               'Take Profit',
-                              '${agenticTradingProvider.config['takeProfitPercent'] ?? 10}%',
+                              '${agenticTradingProvider.config.strategyConfig.takeProfitPercent}%',
                               Icons.trending_up,
                               valueColor: Colors.green,
                             ),
@@ -1894,7 +1847,7 @@ class _AgenticTradingSettingsWidgetState
                             _buildSummaryItem(
                               context,
                               'Stop Loss',
-                              '${agenticTradingProvider.config['stopLossPercent'] ?? 5}%',
+                              '${agenticTradingProvider.config.strategyConfig.stopLossPercent}%',
                               Icons.trending_down,
                               valueColor: Colors.red,
                             ),
@@ -2073,10 +2026,8 @@ class _AgenticTradingSettingsWidgetState
                                       value: 1.0 -
                                           (agenticTradingProvider
                                                   .autoTradeCountdownSeconds /
-                                              ((agenticTradingProvider.config[
-                                                              'checkIntervalMinutes']
-                                                          as int? ??
-                                                      5) *
+                                              (agenticTradingProvider.config
+                                                      .checkIntervalMinutes *
                                                   60)),
                                       minHeight: 6,
                                       backgroundColor: colorScheme
@@ -2089,6 +2040,12 @@ class _AgenticTradingSettingsWidgetState
                                 ],
                               ),
                             const SizedBox(height: 12),
+                            // if (agenticTradingProvider
+                            //     .activityLog.isNotEmpty) ...[
+                            _buildActivityLog(
+                                context, agenticTradingProvider, colorScheme),
+                            // ],
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Expanded(
@@ -2124,12 +2081,6 @@ class _AgenticTradingSettingsWidgetState
                                 ),
                               ],
                             ),
-                            // if (agenticTradingProvider
-                            //     .activityLog.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            _buildActivityLog(
-                                context, agenticTradingProvider, colorScheme),
-                            // ],
                           ],
                         ),
                     ],
@@ -2412,7 +2363,7 @@ class _AgenticTradingSettingsWidgetState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Symbol Filter (Whitelist)',
+          'Symbol Filter',
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: 4),
@@ -2493,17 +2444,13 @@ class _AgenticTradingSettingsWidgetState
         Container(
           decoration: BoxDecoration(
             color: (widget.service == null ||
-                    (agenticTradingProvider.config['paperTradingMode']
-                            as bool? ??
-                        false))
+                    (agenticTradingProvider.config.paperTradingMode))
                 ? Colors.blue.withValues(alpha: 0.1)
                 : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: (widget.service == null ||
-                      (agenticTradingProvider.config['paperTradingMode']
-                              as bool? ??
-                          false))
+                      (agenticTradingProvider.config.paperTradingMode))
                   ? Colors.blue.withValues(alpha: 0.5)
                   : Colors.transparent,
               width: 2,
@@ -2521,9 +2468,7 @@ class _AgenticTradingSettingsWidgetState
                 ),
                 const SizedBox(width: 8),
                 if (widget.service == null ||
-                    (agenticTradingProvider.config['paperTradingMode']
-                            as bool? ??
-                        false))
+                    (agenticTradingProvider.config.paperTradingMode))
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -2552,17 +2497,83 @@ class _AgenticTradingSettingsWidgetState
             ),
             value: widget.service == null
                 ? true
-                : (agenticTradingProvider.config['paperTradingMode'] as bool? ??
-                    false),
+                : (agenticTradingProvider.config.paperTradingMode),
             onChanged: widget.service == null
                 ? null
                 : (value) {
-                    setState(() {
-                      agenticTradingProvider.config['paperTradingMode'] = value;
-                    });
-                    _saveSettings();
+                    final newConfig = _createFullConfigFromSettings(
+                        agenticTradingProvider,
+                        baseConfig: agenticTradingProvider.config
+                            .copyWith(paperTradingMode: value));
+                    agenticTradingProvider.updateConfig(
+                        newConfig, widget.userDocRef);
                   },
             activeThumbColor: Colors.blue,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: (agenticTradingProvider.config.requireApproval)
+                ? Colors.amber.withValues(alpha: 0.1)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: (agenticTradingProvider.config.requireApproval)
+                  ? Colors.amber.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: SwitchListTile(
+            title: Row(
+              children: [
+                const Text(
+                  'Require Approval',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (agenticTradingProvider.config.requireApproval)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.amber[800],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'REVIEW',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            subtitle: const Text(
+              'Review trades before execution',
+              style: TextStyle(fontSize: 12),
+            ),
+            value: agenticTradingProvider.config.requireApproval,
+            onChanged: (value) {
+              final newConfig = _createFullConfigFromSettings(
+                  agenticTradingProvider,
+                  baseConfig: agenticTradingProvider.config
+                      .copyWith(requireApproval: value));
+              agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+            },
+            activeThumbColor: Colors.amber[800],
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 4.0,
@@ -2625,6 +2636,15 @@ class _AgenticTradingSettingsWidgetState
           suffixText: 'min',
         ),
         const SizedBox(height: 16),
+        _buildNumberField(
+          controller: _autoTradeCooldownController,
+          label: 'Cooldown Period (minutes)',
+          helperText: 'Minimum time between trades',
+          icon: Icons.timer,
+          min: 1,
+          suffixText: 'min',
+        ),
+        const SizedBox(height: 16),
         // Extended Trading Hours Section
         Row(
           children: [
@@ -2664,6 +2684,15 @@ class _AgenticTradingSettingsWidgetState
                   horizontal: 16.0,
                   vertical: 4.0,
                 ),
+                value: agenticTradingProvider.config.allowPreMarketTrading,
+                onChanged: (val) {
+                  final newConfig = _createFullConfigFromSettings(
+                      agenticTradingProvider,
+                      baseConfig: agenticTradingProvider.config
+                          .copyWith(allowPreMarketTrading: val));
+                  agenticTradingProvider.updateConfig(
+                      newConfig, widget.userDocRef);
+                },
               ),
               _buildSwitchListTile(
                 'allowAfterHoursTrading',
@@ -2677,6 +2706,15 @@ class _AgenticTradingSettingsWidgetState
                   horizontal: 16.0,
                   vertical: 4.0,
                 ),
+                value: agenticTradingProvider.config.allowAfterHoursTrading,
+                onChanged: (val) {
+                  final newConfig = _createFullConfigFromSettings(
+                      agenticTradingProvider,
+                      baseConfig: agenticTradingProvider.config
+                          .copyWith(allowAfterHoursTrading: val));
+                  agenticTradingProvider.updateConfig(
+                      newConfig, widget.userDocRef);
+                },
               ),
             ],
           ),
@@ -2723,14 +2761,8 @@ class _AgenticTradingSettingsWidgetState
       title: 'Risk Management',
       icon: Icons.security,
       children: [
-        _buildSwitchListTile(
-          'requireApproval',
-          'Require Approval',
-          'Review trades before execution',
-          agenticTradingProvider,
-          defaultValue: false,
-        ),
-        const SizedBox(height: 16),
+        Text('Position Sizing', style: Theme.of(context).textTheme.bodyLarge),
+        const SizedBox(height: 12),
         _buildNumberField(
           controller: _tradeQuantityController,
           label: 'Trade Quantity',
@@ -2738,53 +2770,16 @@ class _AgenticTradingSettingsWidgetState
           icon: Icons.shopping_cart,
           min: 1,
         ),
-        const SizedBox(height: 16),
-        _buildNumberField(
-          controller: _maxPositionSizeController,
-          label: 'Max Position Size',
-          helperText: 'Maximum shares for any position',
-          icon: Icons.horizontal_rule,
-          min: 1,
-        ),
-        const SizedBox(height: 16),
-        _buildNumberField(
-          controller: _maxPortfolioConcentrationController,
-          label: 'Max Portfolio Concentration %',
-          helperText: 'Max percentage of portfolio',
-          icon: Icons.pie_chart,
-          isDecimal: true,
-          min: 0,
-          max: 100,
-          suffixText: '%',
-        ),
-        const SizedBox(height: 16),
-        _buildNumberField(
-          controller: _dailyTradeLimitController,
-          label: 'Daily Trade Limit',
-          helperText: 'Maximum trades per day',
-          icon: Icons.calendar_today,
-          min: 1,
-        ),
-        const SizedBox(height: 16),
-        _buildNumberField(
-          controller: _autoTradeCooldownController,
-          label: 'Cooldown Period (minutes)',
-          helperText: 'Minimum time between trades',
-          icon: Icons.timer,
-          min: 1,
-          suffixText: 'min',
-        ),
-        const SizedBox(height: 16),
-        const Divider(),
-        const SizedBox(height: 8),
-        Text(
-          'Dynamic Position Sizing',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: colorScheme.primary,
-          ),
-        ),
+        // const Divider(),
+        // const SizedBox(height: 8),
+        // Text(
+        //   'Dynamic Position Sizing',
+        //   style: TextStyle(
+        //     fontSize: 14,
+        //     fontWeight: FontWeight.bold,
+        //     color: colorScheme.primary,
+        //   ),
+        // ),
         const SizedBox(height: 12),
         _buildSwitchListTile(
           'enableDynamicPositionSizing',
@@ -2792,11 +2787,15 @@ class _AgenticTradingSettingsWidgetState
           'Adjust trade size based on ATR volatility',
           agenticTradingProvider,
           defaultValue: false,
+          value: agenticTradingProvider
+              .config.strategyConfig.enableDynamicPositionSizing,
           onChanged: (value) {
-            setState(() {
-              _enableDynamicPositionSizing = value;
-            });
-            _saveSettings();
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableDynamicPositionSizing: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: Column(
             children: [
@@ -2827,6 +2826,38 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 8),
+        Text('Safety Limits', style: Theme.of(context).textTheme.bodyLarge),
+        const SizedBox(height: 12),
+        // const SizedBox(height: 16),
+        _buildNumberField(
+          controller: _maxPositionSizeController,
+          label: 'Max Position Size',
+          helperText: 'Maximum shares for any position',
+          icon: Icons.horizontal_rule,
+          min: 1,
+        ),
+        const SizedBox(height: 16),
+        _buildNumberField(
+          controller: _maxPortfolioConcentrationController,
+          label: 'Max Portfolio Concentration %',
+          helperText: 'Max percentage of portfolio',
+          icon: Icons.pie_chart,
+          isDecimal: true,
+          min: 0,
+          max: 100,
+          suffixText: '%',
+        ),
+        const SizedBox(height: 16),
+        _buildNumberField(
+          controller: _dailyTradeLimitController,
+          label: 'Daily Trade Limit',
+          helperText: 'Maximum trades per day',
+          icon: Icons.calendar_today,
+          min: 1,
+        ),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
         Text(
           'Advanced Controls',
           style: TextStyle(
@@ -2842,6 +2873,16 @@ class _AgenticTradingSettingsWidgetState
           'Limit exposure to specific sectors',
           agenticTradingProvider,
           defaultValue: false,
+          value:
+              agenticTradingProvider.config.strategyConfig.enableSectorLimits,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableSectorLimits: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
           extraContent: TextFormField(
             controller: _maxSectorExposureController,
             decoration: InputDecoration(
@@ -2873,6 +2914,16 @@ class _AgenticTradingSettingsWidgetState
           'Avoid highly correlated positions',
           agenticTradingProvider,
           defaultValue: false,
+          value: agenticTradingProvider
+              .config.strategyConfig.enableCorrelationChecks,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableCorrelationChecks: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
           extraContent: TextFormField(
             controller: _maxCorrelationController,
             decoration: InputDecoration(
@@ -2904,6 +2955,16 @@ class _AgenticTradingSettingsWidgetState
           'Filter trades based on volatility (IV Rank)',
           agenticTradingProvider,
           defaultValue: false,
+          value: agenticTradingProvider
+              .config.strategyConfig.enableVolatilityFilters,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableVolatilityFilters: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
           extraContent: Row(
             children: [
               Expanded(
@@ -2952,6 +3013,16 @@ class _AgenticTradingSettingsWidgetState
           'Stop trading if drawdown exceeds limit',
           agenticTradingProvider,
           defaultValue: false,
+          value: agenticTradingProvider
+              .config.strategyConfig.enableDrawdownProtection,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableDrawdownProtection: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
           extraContent: TextFormField(
             controller: _maxDrawdownController,
             decoration: InputDecoration(
@@ -2981,470 +3052,90 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildExitStrategies(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
-    final colorScheme = Theme.of(context).colorScheme;
     return _buildSection(
       context: context,
       title: 'Exit Strategies',
-      icon: Icons.exit_to_app,
+      icon: Icons.logout, // exit_to_app,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _takeProfitPercentController,
-                decoration: InputDecoration(
-                  labelText: 'Take Profit %',
-                  helperText: 'Sell when gains > %',
-                  prefixIcon: const Icon(Icons.trending_up),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  filled: true,
-                  fillColor: colorScheme.surface,
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => _saveSettings(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Required';
-                  }
-                  final parsed = double.tryParse(value);
-                  if (parsed == null || parsed <= 0) {
-                    return '> 0';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: _stopLossPercentController,
-                decoration: InputDecoration(
-                  labelText: 'Stop Loss %',
-                  helperText: 'Sell when loss > %',
-                  prefixIcon: const Icon(Icons.warning),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  filled: true,
-                  fillColor: colorScheme.surface,
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => _saveSettings(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Required';
-                  }
-                  final parsed = double.tryParse(value);
-                  if (parsed == null || parsed <= 0) {
-                    return '> 0';
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'trailingStopEnabled',
-          'Trailing Stop Loss',
-          'Trail a stop below the highest price since entry',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _trailingStopPercentController,
-                    decoration: InputDecoration(
-                      labelText: 'Trailing Stop %',
-                      helperText: 'Sell if price falls by this % from the peak',
-                      prefixIcon: const Icon(Icons.percent),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    validator: (value) {
-                      final v = double.tryParse(value ?? '');
-                      if (v == null || v <= 0 || v > 50) {
-                        return 'Enter a percent between 0 and 50';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      final v = double.tryParse(value);
-                      if (v != null) {
-                        agenticTradingProvider.config['trailingStopPercent'] =
-                            v;
-                        _saveSettings();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'enablePartialExits',
-          'Partial Exits',
-          'Take profit in stages (e.g. 50% at +5%, 50% at +10%)',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Column(
-            children: [
-              if (_exitStages.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'No exit stages configured. Add a stage to take profit incrementally.',
-                    style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
-                      fontStyle: FontStyle.italic,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ...List.generate(_exitStages.length, (index) {
-                final stage = _exitStages[index];
-                // Safety check for controllers
-                if (index >= _exitStageProfitControllers.length) {
-                  return const SizedBox.shrink();
-                }
-                final profitController = _exitStageProfitControllers[index];
-                final quantityController = _exitStageQuantityControllers[index];
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outline
-                          .withValues(alpha: 0.1),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Stage ${index + 1}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _exitStages.removeAt(index);
-                                _exitStageProfitControllers[index].dispose();
-                                _exitStageProfitControllers.removeAt(index);
-                                _exitStageQuantityControllers[index].dispose();
-                                _exitStageQuantityControllers.removeAt(index);
-                              });
-                              _saveSettings();
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Icon(
-                                Icons.close,
-                                size: 18,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: profitController,
-                              decoration: InputDecoration(
-                                labelText: 'Profit Target',
-                                suffixText: '%',
-                                prefixIcon:
-                                    const Icon(Icons.trending_up, size: 16),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                isDense: true,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              onChanged: (value) {
-                                final val = double.tryParse(value);
-                                if (val != null) {
-                                  setState(() {
-                                    _exitStages[index] = ExitStage(
-                                      profitTargetPercent: val,
-                                      quantityPercent: stage.quantityPercent,
-                                    );
-                                  });
-                                  _saveSettings();
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: quantityController,
-                              decoration: InputDecoration(
-                                labelText: 'Sell Amount',
-                                suffixText: '%',
-                                prefixIcon:
-                                    const Icon(Icons.pie_chart, size: 16),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                isDense: true,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              onChanged: (value) {
-                                final val = double.tryParse(value);
-                                if (val != null) {
-                                  setState(() {
-                                    _exitStages[index] = ExitStage(
-                                      profitTargetPercent:
-                                          stage.profitTargetPercent,
-                                      quantityPercent: val / 100.0,
-                                    );
-                                  });
-                                  _saveSettings();
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}% of position when profit reaches ${stage.profitTargetPercent}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      final newStage = ExitStage(
-                          profitTargetPercent: _exitStages.isEmpty ? 5.0 : 10.0,
-                          quantityPercent: 0.5);
-                      _exitStages.add(newStage);
-                      _exitStageProfitControllers.add(TextEditingController(
-                          text: newStage.profitTargetPercent.toString()));
-                      _exitStageQuantityControllers.add(TextEditingController(
-                          text: (newStage.quantityPercent * 100).toString()));
-                    });
-                    _saveSettings();
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Exit Stage'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 40),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'timeBasedExitEnabled',
-          'Time-Based Exits',
-          'Auto-close positions after a set time',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _timeBasedExitMinutesController,
-                    decoration: InputDecoration(
-                      labelText: 'Exit After (minutes)',
-                      helperText: 'Close position after X minutes',
-                      prefixIcon: const Icon(Icons.timer),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => _saveSettings(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a value';
-                      }
-                      final parsed = int.tryParse(value);
-                      if (parsed == null || parsed < 0) {
-                        return 'Must be >= 0';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'marketCloseExitEnabled',
-          'Exit at Market Close',
-          'Auto-close positions before market close',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _marketCloseExitMinutesController,
-                    decoration: InputDecoration(
-                      labelText: 'Minutes Before Close',
-                      helperText: 'Close X minutes before 4:00 PM ET',
-                      prefixIcon: const Icon(Icons.schedule),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => _saveSettings(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a value';
-                      }
-                      final parsed = int.tryParse(value);
-                      if (parsed == null || parsed < 0) {
-                        return 'Must be >= 0';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'rsiExitEnabled',
-          'RSI Overbought Exit',
-          'Exit if RSI exceeds threshold',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _rsiExitThresholdController,
-                    decoration: InputDecoration(
-                      labelText: 'RSI Threshold',
-                      helperText: 'Close if RSI > X (e.g. 70 or 80)',
-                      prefixIcon: const Icon(Icons.show_chart),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => _saveSettings(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSwitchListTile(
-          'signalStrengthExitEnabled',
-          'Weak Signal Exit',
-          'Exit if Signal Strength drops below threshold',
-          agenticTradingProvider,
-          defaultValue: false,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _signalStrengthExitThresholdController,
-                    decoration: InputDecoration(
-                      labelText: 'Min Signal Strength',
-                      helperText: 'Close if Strength < X (e.g. 30)',
-                      prefixIcon: const Icon(Icons.signal_cellular_alt),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      filled: true,
-                      fillColor: colorScheme.surface,
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => _saveSettings(),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        ExitStrategiesWidget(
+          takeProfitController: _takeProfitPercentController,
+          stopLossController: _stopLossPercentController,
+          trailingStopController: _trailingStopPercentController,
+          timeBasedExitController: _timeBasedExitMinutesController,
+          marketCloseExitController: _marketCloseExitMinutesController,
+          rsiExitThresholdController: _rsiExitThresholdController,
+          signalStrengthExitThresholdController:
+              _signalStrengthExitThresholdController,
+          trailingStopEnabled:
+              agenticTradingProvider.config.strategyConfig.trailingStopEnabled,
+          timeBasedExitEnabled:
+              agenticTradingProvider.config.strategyConfig.timeBasedExitEnabled,
+          marketCloseExitEnabled: agenticTradingProvider
+              .config.strategyConfig.marketCloseExitEnabled,
+          partialExitsEnabled:
+              agenticTradingProvider.config.strategyConfig.enablePartialExits,
+          rsiExitEnabled:
+              agenticTradingProvider.config.strategyConfig.rsiExitEnabled,
+          signalStrengthExitEnabled: agenticTradingProvider
+              .config.strategyConfig.signalStrengthExitEnabled,
+          exitStages: agenticTradingProvider.config.strategyConfig.exitStages,
+          onTrailingStopChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(trailingStopEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onTimeBasedExitChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(timeBasedExitEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onMarketCloseExitChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(marketCloseExitEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onPartialExitsChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enablePartialExits: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onRsiExitChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(rsiExitEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onSignalStrengthExitChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(signalStrengthExitEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onExitStagesChanged: (stages) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(exitStages: stages)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onSettingsChanged: _saveSettings,
         ),
       ],
     );
@@ -3461,43 +3152,55 @@ class _AgenticTradingSettingsWidgetState
       initiallyExpanded: initiallyExpanded,
       children: [
         EntryStrategiesWidget(
-          requireAllIndicatorsGreen:
-              agenticTradingProvider.config['requireAllIndicatorsGreen'] ??
-                  true,
+          requireAllIndicatorsGreen: agenticTradingProvider
+              .config.strategyConfig.requireAllIndicatorsGreen,
           onRequireStrictEntryChanged: (value) {
-            setState(() {
-              agenticTradingProvider.config['requireAllIndicatorsGreen'] =
-                  value;
-              // If strict mode is enabled, set min signal strength to 100
-              if (value) {
-                agenticTradingProvider.config['minSignalStrength'] = 100;
-                _minSignalStrengthController.text = '100';
-              }
-            });
-            _saveSettings();
+            if (value) {
+              _minSignalStrengthController.text = '100';
+            }
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(requireAllIndicatorsGreen: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           minSignalStrengthController: _minSignalStrengthController,
-          enabledIndicators: _enabledIndicators,
+          enabledIndicators:
+              agenticTradingProvider.config.strategyConfig.enabledIndicators,
+          indicatorReasons:
+              agenticTradingProvider.config.strategyConfig.indicatorReasons,
           onToggleIndicator: (key, value) {
-            setState(() {
-              _enabledIndicators[key] = value;
-            });
-            _saveSettings();
+            final currentIndicators = Map<String, bool>.from(
+                agenticTradingProvider.config.strategyConfig.enabledIndicators);
+            currentIndicators[key] = value;
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enabledIndicators: currentIndicators)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onToggleAllIndicators: () {
-            setState(() {
-              final allEnabled = _enabledIndicators.values.every((e) => e);
-              for (var key in _enabledIndicators.keys) {
-                _enabledIndicators[key] = !allEnabled;
-              }
-            });
-            _saveSettings();
+            final currentIndicators = Map<String, bool>.from(
+                agenticTradingProvider.config.strategyConfig.enabledIndicators);
+            final allEnabled = currentIndicators.values.every((e) => e);
+            for (var key in currentIndicators.keys) {
+              currentIndicators[key] = !allEnabled;
+            }
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enabledIndicators: currentIndicators)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           rsiPeriodController: _rsiPeriodController,
           smaFastController: _smaFastController,
           smaSlowController: _smaSlowController,
           marketIndexController: _marketIndexController,
-          customIndicators: _customIndicators,
+          customIndicators:
+              agenticTradingProvider.config.strategyConfig.customIndicators,
           onAddCustomIndicator: _addCustomIndicator,
           onEditCustomIndicator: _editCustomIndicator,
           onRemoveCustomIndicator: _removeCustomIndicator,
@@ -3518,24 +3221,56 @@ class _AgenticTradingSettingsWidgetState
           'Notify on Buy Orders',
           'Get notified when auto-trade executes a buy',
           agenticTradingProvider,
+          value: agenticTradingProvider.config.notifyOnBuy,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig:
+                    agenticTradingProvider.config.copyWith(notifyOnBuy: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
         ),
         _buildSwitchListTile(
           'notifyOnTakeProfit',
           'Notify on Take Profit',
           'Get notified when take profit target is hit',
           agenticTradingProvider,
+          value: agenticTradingProvider.config.notifyOnTakeProfit,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config
+                    .copyWith(notifyOnTakeProfit: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
         ),
         _buildSwitchListTile(
           'notifyOnStopLoss',
           'Notify on Stop Loss',
           'Get notified when stop loss is triggered',
           agenticTradingProvider,
+          value: agenticTradingProvider.config.notifyOnStopLoss,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config
+                    .copyWith(notifyOnStopLoss: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
         ),
         _buildSwitchListTile(
           'notifyOnEmergencyStop',
           'Notify on Emergency Stop',
           'Get notified when emergency stop is activated',
           agenticTradingProvider,
+          value: agenticTradingProvider.config.notifyOnEmergencyStop,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config
+                    .copyWith(notifyOnEmergencyStop: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
         ),
         _buildSwitchListTile(
           'notifyDailySummary',
@@ -3543,6 +3278,14 @@ class _AgenticTradingSettingsWidgetState
           'Receive end-of-day trading summary',
           agenticTradingProvider,
           defaultValue: false,
+          value: agenticTradingProvider.config.notifyDailySummary,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config
+                    .copyWith(notifyDailySummary: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
           extraContent: Align(
             alignment: Alignment.centerLeft,
             child: ElevatedButton.icon(
@@ -3596,121 +3339,77 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // Create config from current settings
+              final config =
+                  _createFullConfigFromSettings(agenticTradingProvider);
+              final brokerageUserStore =
+                  Provider.of<BrokerageUserStore>(context, listen: false);
+              final brokerageUser = brokerageUserStore.items.isNotEmpty
+                  ? brokerageUserStore
+                      .items[brokerageUserStore.currentUserIndex]
+                  : null;
+
+              if (brokerageUser == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Please log in for signal search.')),
+                );
+                return;
+              }
+
+              final initialIndicators = config
+                  .strategyConfig.enabledIndicators.entries
+                  .where((e) => e.value)
+                  .fold<Map<String, String>>({}, (prev, element) {
+                prev[element.key] = "BUY";
+                return prev;
+              });
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TradeSignalsPage(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    brokerageUser: brokerageUser,
+                    service: widget.service,
+                    analytics: MyApp.analytics,
+                    observer: MyApp.observer,
+                    generativeService: GenerativeService(),
+                    initialIndicators: initialIndicators,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.search),
+            label: const Text('Search Matching Signals'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () {
               // Create config from current settings
-              final configMap = {
-                'smaPeriodFast':
-                    agenticTradingProvider.config['smaPeriodFast'] ?? 10,
-                'smaPeriodSlow':
-                    agenticTradingProvider.config['smaPeriodSlow'] ?? 30,
-                'tradeQuantity':
-                    int.tryParse(_tradeQuantityController.text) ?? 1,
-                'maxPositionSize':
-                    int.tryParse(_maxPositionSizeController.text) ?? 100,
-                'maxPortfolioConcentration': double.tryParse(
-                        _maxPortfolioConcentrationController.text) ??
-                    0.5,
-                'rsiPeriod': agenticTradingProvider.config['rsiPeriod'] ?? 14,
-                'marketIndexSymbol':
-                    agenticTradingProvider.config['marketIndexSymbol'] ?? 'SPY',
-                'enabledIndicators': _enabledIndicators,
-                'autoTradeEnabled':
-                    agenticTradingProvider.config['autoTradeEnabled'] ?? false,
-                'dailyTradeLimit':
-                    int.tryParse(_dailyTradeLimitController.text) ?? 5,
-                'autoTradeCooldownMinutes':
-                    int.tryParse(_autoTradeCooldownController.text) ?? 60,
-                'takeProfitPercent':
-                    double.tryParse(_takeProfitPercentController.text) ?? 10.0,
-                'stopLossPercent':
-                    double.tryParse(_stopLossPercentController.text) ?? 5.0,
-                'allowPreMarketTrading':
-                    agenticTradingProvider.config['allowPreMarketTrading'] ??
-                        false,
-                'allowAfterHoursTrading':
-                    agenticTradingProvider.config['allowAfterHoursTrading'] ??
-                        false,
-                'notifyOnBuy':
-                    agenticTradingProvider.config['notifyOnBuy'] ?? true,
-                'notifyOnTakeProfit':
-                    agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
-                'notifyOnStopLoss':
-                    agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
-                'notifyOnEmergencyStop':
-                    agenticTradingProvider.config['notifyOnEmergencyStop'] ??
-                        true,
-                'notifyDailySummary':
-                    agenticTradingProvider.config['notifyDailySummary'] ??
-                        false,
-                'trailingStopEnabled':
-                    agenticTradingProvider.config['trailingStopEnabled'] ??
-                        false,
-                'trailingStopPercent':
-                    agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
-                'enablePartialExits':
-                    agenticTradingProvider.config['enablePartialExits'] ??
-                        false,
-                'exitStages': _exitStages.map((e) => e.toJson()).toList(),
-                'customIndicators':
-                    _customIndicators.map((e) => e.toJson()).toList(),
-                'timeBasedExitEnabled':
-                    agenticTradingProvider.config['timeBasedExitEnabled'] ??
-                        false,
-                'timeBasedExitMinutes':
-                    int.tryParse(_timeBasedExitMinutesController.text) ?? 30,
-                'marketCloseExitEnabled':
-                    agenticTradingProvider.config['marketCloseExitEnabled'] ??
-                        false,
-                'marketCloseExitMinutes':
-                    int.tryParse(_marketCloseExitMinutesController.text) ?? 15,
-                'paperTradingMode':
-                    agenticTradingProvider.config['paperTradingMode'] ?? false,
-                'requireApproval':
-                    agenticTradingProvider.config['requireApproval'] ?? true,
-                'enableSectorLimits':
-                    agenticTradingProvider.config['enableSectorLimits'] ??
-                        false,
-                'maxSectorExposure':
-                    double.tryParse(_maxSectorExposureController.text) ?? 0.2,
-                'enableCorrelationChecks':
-                    agenticTradingProvider.config['enableCorrelationChecks'] ??
-                        false,
-                'maxCorrelation':
-                    double.tryParse(_maxCorrelationController.text) ?? 0.7,
-                'enableVolatilityFilters':
-                    agenticTradingProvider.config['enableVolatilityFilters'] ??
-                        false,
-                'minVolatility':
-                    double.tryParse(_minVolatilityController.text) ?? 0.0,
-                'maxVolatility':
-                    double.tryParse(_maxVolatilityController.text) ?? 100.0,
-                'enableDrawdownProtection':
-                    agenticTradingProvider.config['enableDrawdownProtection'] ??
-                        false,
-                'maxDrawdown':
-                    double.tryParse(_maxDrawdownController.text) ?? 10.0,
-                'minSignalStrength':
-                    double.tryParse(_minSignalStrengthController.text) ?? 70.0,
-                'requireAllIndicatorsGreen': agenticTradingProvider
-                        .config['requireAllIndicatorsGreen'] ??
-                    false,
-                'enableDynamicPositionSizing': _enableDynamicPositionSizing,
-                'riskPerTrade':
-                    (double.tryParse(_riskPerTradeController.text) ?? 1.0) /
-                        100.0,
-                'atrMultiplier':
-                    double.tryParse(_atrMultiplierController.text) ?? 2.0,
-                'symbolFilter': _symbolFilter,
-              };
-
-              final config = AgenticTradingConfig.fromJson(configMap);
+              final config =
+                  _createFullConfigFromSettings(agenticTradingProvider);
+              final brokerageUserStore =
+                  Provider.of<BrokerageUserStore>(context, listen: false);
+              final brokerageUser = brokerageUserStore.items.isNotEmpty
+                  ? brokerageUserStore
+                      .items[brokerageUserStore.currentUserIndex]
+                  : null;
 
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => BacktestingWidget(
+                    user: widget.user,
                     userDocRef: widget.userDocRef,
+                    brokerageUser: brokerageUser,
+                    service: widget.service,
                     prefilledConfig: config,
                   ),
                 ),

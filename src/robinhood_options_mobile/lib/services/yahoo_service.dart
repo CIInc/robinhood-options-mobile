@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
@@ -667,21 +668,25 @@ class YahooService {
       String interval = "1d"}) async {
     var url =
         "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
-    var entryJson = await getJson(url);
+    var entryJson = await getCachedJson(url,
+        cacheKey: 'marketIndexHistoricals_${symbol}_${range}_${interval}',
+        ttl: const Duration(hours: 4));
     return entryJson;
   }
 
   Future<dynamic> getESGScores(String symbol) async {
     var url =
         "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
-    var responseJson = await getJson(url);
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'esgScores_$symbol', ttl: const Duration(days: 30));
     return responseJson;
   }
 
   Future<dynamic> getAssetProfile(String symbol) async {
     var url =
         "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
-    var responseJson = await getJson(url);
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'assetProfile_$symbol', ttl: const Duration(days: 30));
     return responseJson;
   }
 
@@ -811,6 +816,79 @@ class YahooService {
     return responseJson;
   }
 
+  Future<dynamic> getCachedJson(String url,
+      {required String cacheKey,
+      Duration ttl = const Duration(days: 7)}) async {
+    final docRef =
+        FirebaseFirestore.instance.collection('yahoo_data').doc(cacheKey);
+
+    try {
+      final docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        if (data != null && data.containsKey('lastUpdated')) {
+          final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
+          if (DateTime.now().difference(lastUpdated) < ttl &&
+              data['data'] != null) {
+            // debugPrint("Using cached data for $cacheKey");
+            return data['data'];
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error reading cache for $cacheKey: $e");
+    }
+
+    try {
+      final responseJson = await getJson(url);
+      if (responseJson != null) {
+        // Cache the result
+        try {
+          // If the JSON is too large, Firestore might reject it (1MB limit).
+          // But Yahoo Finance responses for these endpoints are usually small.
+          await docRef.set({
+            'data': responseJson,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint("Error writing cache for $cacheKey: $e");
+        }
+      }
+      return responseJson;
+    } catch (e) {
+      if (e.toString().contains('Failed to load data: 401')) {
+        // Invalidate crumb and retry once
+        _crumb = null;
+        debugPrint("Retrying after invalidating crumb for $cacheKey");
+        final responseJson = await getJson(url);
+        // Cache the result
+        try {
+          await docRef.set({
+            'data': responseJson,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint("Error writing cache for $cacheKey: $e");
+        }
+        return responseJson;
+      } else if (e.toString().contains('Failed to load data: 404')) {
+        // Return empty data for 404 errors
+        debugPrint("Received 404 for $cacheKey, returning empty data.");
+        // Cache the result
+        try {
+          await docRef.set({
+            'data': {},
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint("Error writing cache for $cacheKey: $e");
+        }
+        return {};
+      }
+      rethrow;
+    }
+  }
+
   Future<dynamic> getJson(String url) async {
     if (_crumb == null) {
       await _fetchCrumb();
@@ -930,7 +1008,9 @@ class YahooService {
     try {
       final url =
           "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
-      final jsonResponse = await getJson(url);
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'institutionalOwnership_$symbol',
+          ttl: const Duration(days: 7));
 
       if (jsonResponse['quoteSummary'] != null &&
           jsonResponse['quoteSummary']['result'] != null) {
@@ -1005,7 +1085,9 @@ class YahooService {
     try {
       final url =
           "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
-      final jsonResponse = await getJson(url);
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'insiderTransactions_$symbol',
+          ttl: const Duration(days: 1));
 
       if (jsonResponse['quoteSummary'] != null &&
           jsonResponse['quoteSummary']['result'] != null) {

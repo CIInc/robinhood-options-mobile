@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -17,20 +18,33 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_indicator_page.dart';
 import 'package:robinhood_options_mobile/widgets/shared/entry_strategies_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/exit_strategies_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/backtest_optimization_tab.dart';
 
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
+
 /// Main backtesting interface widget
 class BacktestingWidget extends StatefulWidget {
+  final User? user;
   final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final String? prefilledSymbol;
   final AgenticTradingConfig? prefilledConfig;
   final TradeStrategyConfig? prefilledStrategyConfig;
 
   const BacktestingWidget(
       {super.key,
+      this.user,
       this.userDocRef,
+      this.brokerageUser,
+      this.service,
       this.prefilledSymbol,
       this.prefilledConfig,
       this.prefilledStrategyConfig});
@@ -81,20 +95,30 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
         children: [
           BacktestRunTab(
             key: _runTabKey,
+            user: widget.user,
             userDocRef: widget.userDocRef,
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
             tabController: _tabController,
             prefilledSymbol: widget.prefilledSymbol,
             prefilledConfig: widget.prefilledConfig,
             prefilledStrategyConfig: widget.prefilledStrategyConfig,
           ),
           _BacktestHistoryTab(
+            user: widget.user,
             userDocRef: widget.userDocRef,
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
             runTabKey: _runTabKey,
             tabController: _tabController,
           ),
           _BacktestTemplatesTab(
             tabController: _tabController,
             runTabKey: _runTabKey,
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+            brokerageUser: widget.brokerageUser,
+            service: widget.service,
           ),
         ],
       ),
@@ -104,7 +128,10 @@ class _BacktestingWidgetState extends State<BacktestingWidget>
 
 /// Tab for running new backtests
 class BacktestRunTab extends StatefulWidget {
+  final User? user;
   final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final TabController? tabController;
   final String? prefilledSymbol;
   final AgenticTradingConfig? prefilledConfig;
@@ -112,7 +139,10 @@ class BacktestRunTab extends StatefulWidget {
 
   const BacktestRunTab({
     super.key,
+    this.user,
     this.userDocRef,
+    this.brokerageUser,
+    this.service,
     this.tabController,
     this.prefilledSymbol,
     this.prefilledConfig,
@@ -142,6 +172,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   final _marketCloseExitController = TextEditingController(text: '15');
   final _riskPerTradeController = TextEditingController(text: '1.0');
   final _atrMultiplierController = TextEditingController(text: '2.0');
+  final _rsiExitThresholdController = TextEditingController(text: '70');
+  final _signalStrengthExitThresholdController =
+      TextEditingController(text: '30');
 
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 365));
   DateTime _endDate = DateTime.now();
@@ -156,26 +189,29 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   bool _marketCloseExitEnabled = false;
   bool _enablePartialExits = false;
   bool _enableDynamicPositionSizing = true;
+  bool _rsiExitEnabled = false;
+  bool _signalStrengthExitEnabled = false;
   List<ExitStage> _exitStages = [];
   List<CustomIndicatorConfig> _customIndicators = [];
 
   final Map<String, bool> _enabledIndicators = {
-    'priceMovement': true,
-    'momentum': true,
-    'marketDirection': true,
-    'volume': true,
-    'macd': true,
-    'bollingerBands': true,
-    'stochastic': true,
-    'atr': true,
-    'obv': true,
-    'vwap': true,
-    'adx': true,
-    'williamsR': true,
-    'ichimoku': true,
-    'cci': true,
-    'parabolicSar': true,
+    'priceMovement': false,
+    'momentum': false,
+    'marketDirection': false,
+    'volume': false,
+    'macd': false,
+    'bollingerBands': false,
+    'stochastic': false,
+    'atr': false,
+    'obv': false,
+    'vwap': false,
+    'adx': false,
+    'williamsR': false,
+    'ichimoku': false,
+    'cci': false,
+    'parabolicSar': false,
   };
+  final Map<String, String> _indicatorReasons = {};
 
   @override
   void initState() {
@@ -186,31 +222,50 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
     if (widget.prefilledConfig != null) {
       final config = widget.prefilledConfig!;
-      _tradeQuantityController.text = config.tradeQuantity.toString();
-      _takeProfitController.text = config.takeProfitPercent.toString();
-      _stopLossController.text = config.stopLossPercent.toString();
-      _trailingStopEnabled = config.trailingStopEnabled;
-      _trailingStopController.text = config.trailingStopPercent.toString();
-      _rsiPeriodController.text = config.rsiPeriod.toString();
-      _smaFastController.text = config.smaPeriodFast.toString();
-      _smaSlowController.text = config.smaPeriodSlow.toString();
-      _marketIndexController.text = config.marketIndexSymbol;
-      _enabledIndicators.addAll(config.enabledIndicators);
+      _tradeQuantityController.text =
+          config.strategyConfig.tradeQuantity.toString();
+      _takeProfitController.text =
+          config.strategyConfig.takeProfitPercent.toString();
+      _stopLossController.text =
+          config.strategyConfig.stopLossPercent.toString();
+      _trailingStopEnabled = config.strategyConfig.trailingStopEnabled;
+      _trailingStopController.text =
+          config.strategyConfig.trailingStopPercent.toString();
+      _rsiPeriodController.text = config.strategyConfig.rsiPeriod.toString();
+      _smaFastController.text = config.strategyConfig.smaPeriodFast.toString();
+      _smaSlowController.text = config.strategyConfig.smaPeriodSlow.toString();
+      _marketIndexController.text = config.strategyConfig.marketIndexSymbol;
+      _enabledIndicators.addAll(config.strategyConfig.enabledIndicators);
+      _indicatorReasons.addAll(config.strategyConfig.indicatorReasons);
 
       // Advanced Init
-      _minSignalStrengthController.text = config.minSignalStrength.toString();
-      _requireAllIndicatorsGreen = config.requireAllIndicatorsGreen;
-      _timeBasedExitEnabled = config.timeBasedExitEnabled;
-      _timeBasedExitController.text = config.timeBasedExitMinutes.toString();
-      _marketCloseExitEnabled = config.marketCloseExitEnabled;
+      _minSignalStrengthController.text =
+          config.strategyConfig.minSignalStrength.toString();
+      _requireAllIndicatorsGreen =
+          config.strategyConfig.requireAllIndicatorsGreen;
+      _timeBasedExitEnabled = config.strategyConfig.timeBasedExitEnabled;
+      _timeBasedExitController.text =
+          config.strategyConfig.timeBasedExitMinutes.toString();
+      _marketCloseExitEnabled = config.strategyConfig.marketCloseExitEnabled;
       _marketCloseExitController.text =
-          config.marketCloseExitMinutes.toString();
-      _enablePartialExits = config.enablePartialExits;
-      _enableDynamicPositionSizing = config.enableDynamicPositionSizing;
-      _riskPerTradeController.text = (config.riskPerTrade * 100).toString();
-      _atrMultiplierController.text = config.atrMultiplier.toString();
-      _exitStages = List.from(config.exitStages);
-      _customIndicators = List.from(config.customIndicators);
+          config.strategyConfig.marketCloseExitMinutes.toString();
+      _enablePartialExits = config.strategyConfig.enablePartialExits;
+      _enableDynamicPositionSizing =
+          config.strategyConfig.enableDynamicPositionSizing;
+      _riskPerTradeController.text =
+          (config.strategyConfig.riskPerTrade * 100).toString();
+      _atrMultiplierController.text =
+          config.strategyConfig.atrMultiplier.toString();
+      _exitStages = List.from(config.strategyConfig.exitStages);
+      _customIndicators = List.from(config.strategyConfig.customIndicators);
+
+      _rsiExitEnabled = config.strategyConfig.rsiExitEnabled;
+      _rsiExitThresholdController.text =
+          config.strategyConfig.rsiExitThreshold.toString();
+      _signalStrengthExitEnabled =
+          config.strategyConfig.signalStrengthExitEnabled;
+      _signalStrengthExitThresholdController.text =
+          config.strategyConfig.signalStrengthExitThreshold.toString();
     }
 
     if (widget.prefilledStrategyConfig != null) {
@@ -241,8 +296,14 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _exitStages = List.from(config.exitStages);
       _customIndicators = List.from(config.customIndicators);
 
-      _startDate = config.startDate;
-      _endDate = config.endDate;
+      _rsiExitEnabled = config.rsiExitEnabled;
+      _rsiExitThresholdController.text = config.rsiExitThreshold.toString();
+      _signalStrengthExitEnabled = config.signalStrengthExitEnabled;
+      _signalStrengthExitThresholdController.text =
+          config.signalStrengthExitThreshold.toString();
+
+      if (config.startDate != null) _startDate = config.startDate!;
+      if (config.endDate != null) _endDate = config.endDate!;
       _interval = config.interval;
 
       _enabledIndicators.clear();
@@ -267,6 +328,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     _marketCloseExitController.dispose();
     _riskPerTradeController.dispose();
     _atrMultiplierController.dispose();
+    _rsiExitThresholdController.dispose();
+    _signalStrengthExitThresholdController.dispose();
     super.dispose();
   }
 
@@ -288,6 +351,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _marketCloseExitController.text = '15';
       _riskPerTradeController.text = '1.0';
       _atrMultiplierController.text = '2.0';
+      _rsiExitThresholdController.text = '70';
+      _signalStrengthExitThresholdController.text = '30';
 
       _startDate = DateTime.now().subtract(const Duration(days: 365));
       _endDate = DateTime.now();
@@ -298,6 +363,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _marketCloseExitEnabled = false;
       _enablePartialExits = false;
       _enableDynamicPositionSizing = false;
+      _rsiExitEnabled = false;
+      _signalStrengthExitEnabled = false;
       _exitStages.clear();
 
       // Reset indicators
@@ -351,6 +418,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       riskPerTrade:
           (double.tryParse(_riskPerTradeController.text) ?? 1.0) / 100.0,
       atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      rsiExitEnabled: _rsiExitEnabled,
+      rsiExitThreshold:
+          double.tryParse(_rsiExitThresholdController.text) ?? 70.0,
+      signalStrengthExitEnabled: _signalStrengthExitEnabled,
+      signalStrengthExitThreshold:
+          double.tryParse(_signalStrengthExitThresholdController.text) ?? 30.0,
       exitStages: List.from(_exitStages),
       customIndicators: List.from(_customIndicators),
     );
@@ -359,7 +432,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   void loadConfig(TradeStrategyConfig config) {
     setState(() {
       _symbolController.text = config.symbolFilter.join(', ');
-      _initialCapitalController.text = config.initialCapital.toString();
+      _initialCapitalController.text =
+          (config.initialCapital ?? 10000.0).toString();
       _tradeQuantityController.text = config.tradeQuantity.toString();
       _takeProfitController.text = config.takeProfitPercent.toString();
       _stopLossController.text = config.stopLossPercent.toString();
@@ -368,8 +442,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _smaFastController.text = config.smaPeriodFast.toString();
       _smaSlowController.text = config.smaPeriodSlow.toString();
       _marketIndexController.text = config.marketIndexSymbol;
-      _startDate = config.startDate;
-      _endDate = config.endDate;
+      if (config.startDate != null) _startDate = config.startDate!;
+      if (config.endDate != null) _endDate = config.endDate!;
       _interval = config.interval;
       _trailingStopEnabled = config.trailingStopEnabled;
       _enabledIndicators.clear();
@@ -388,6 +462,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _atrMultiplierController.text = config.atrMultiplier.toString();
       _exitStages = List.from(config.exitStages);
       _customIndicators = List.from(config.customIndicators);
+
+      _rsiExitEnabled = config.rsiExitEnabled;
+      _rsiExitThresholdController.text = config.rsiExitThreshold.toString();
+      _signalStrengthExitEnabled = config.signalStrengthExitEnabled;
+      _signalStrengthExitThresholdController.text =
+          config.signalStrengthExitThreshold.toString();
     });
 
     // Switch to Run tab
@@ -404,7 +484,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _loadedTemplate = template;
       _symbolController.text = template.config.symbolFilter.join(', ');
       _initialCapitalController.text =
-          template.config.initialCapital.toString();
+          (template.config.initialCapital ?? 10000.0).toString();
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
       _takeProfitController.text = template.config.takeProfitPercent.toString();
       _stopLossController.text = template.config.stopLossPercent.toString();
@@ -414,12 +494,18 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _smaFastController.text = template.config.smaPeriodFast.toString();
       _smaSlowController.text = template.config.smaPeriodSlow.toString();
       _marketIndexController.text = template.config.marketIndexSymbol;
-      _startDate = template.config.startDate;
-      _endDate = template.config.endDate;
+      if (template.config.startDate != null) {
+        _startDate = template.config.startDate!;
+      }
+      if (template.config.endDate != null) {
+        _endDate = template.config.endDate!;
+      }
       _interval = template.config.interval;
       _trailingStopEnabled = template.config.trailingStopEnabled;
       _enabledIndicators.clear();
       _enabledIndicators.addAll(template.config.enabledIndicators);
+      _indicatorReasons.clear();
+      _indicatorReasons.addAll(template.config.indicatorReasons);
 
       _minSignalStrengthController.text =
           template.config.requireAllIndicatorsGreen
@@ -440,6 +526,13 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _atrMultiplierController.text = template.config.atrMultiplier.toString();
       _exitStages = List.from(template.config.exitStages);
       _customIndicators = List.from(template.config.customIndicators);
+
+      _rsiExitEnabled = template.config.rsiExitEnabled;
+      _rsiExitThresholdController.text =
+          template.config.rsiExitThreshold.toString();
+      _signalStrengthExitEnabled = template.config.signalStrengthExitEnabled;
+      _signalStrengthExitThresholdController.text =
+          template.config.signalStrengthExitThreshold.toString();
     });
   }
 
@@ -883,6 +976,12 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       riskPerTrade:
           (double.tryParse(_riskPerTradeController.text) ?? 1.0) / 100.0,
       atrMultiplier: double.tryParse(_atrMultiplierController.text) ?? 2.0,
+      rsiExitEnabled: _rsiExitEnabled,
+      rsiExitThreshold:
+          double.tryParse(_rsiExitThresholdController.text) ?? 70.0,
+      signalStrengthExitEnabled: _signalStrengthExitEnabled,
+      signalStrengthExitThreshold:
+          double.tryParse(_signalStrengthExitThresholdController.text) ?? 30.0,
       exitStages: _exitStages,
       customIndicators: _customIndicators,
     );
@@ -907,7 +1006,10 @@ class BacktestRunTabState extends State<BacktestRunTab> {
         MaterialPageRoute(
           builder: (context) => _BacktestResultPage(
               result: result,
+              user: widget.user,
               userDocRef: widget.userDocRef,
+              brokerageUser: widget.brokerageUser,
+              service: widget.service,
               onApplyConfig: (config) {
                 loadConfig(config);
                 Navigator.pop(context);
@@ -1024,6 +1126,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                       },
                       minSignalStrengthController: _minSignalStrengthController,
                       enabledIndicators: _enabledIndicators,
+                      indicatorReasons: _indicatorReasons,
                       onToggleIndicator: (key, val) =>
                           setState(() => _enabledIndicators[key] = val),
                       onToggleAllIndicators: () {
@@ -1050,72 +1153,36 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                   icon: Icons.logout,
                   initiallyExpanded: true,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            _takeProfitController,
-                            'Take Profit',
-                            suffixText: '%',
-                            prefixIcon: Icons.trending_up,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildTextField(
-                            _stopLossController,
-                            'Stop Loss',
-                            suffixText: '%',
-                            prefixIcon: Icons.trending_down,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchListTile(
-                      'Trailing Stop',
-                      'Dynamically adjust stop price',
-                      _trailingStopEnabled,
-                      (val) => setState(() => _trailingStopEnabled = val),
-                    ),
-                    if (_trailingStopEnabled) ...[
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        _trailingStopController,
-                        'Trailing Stop Distance',
-                        suffixText: '%',
-                        prefixIcon: Icons.show_chart,
-                      ),
-                    ],
-                    const Divider(height: 24),
-                    _buildSwitchListTile(
-                      'Time-Based Hard Stop',
-                      'Close trade after fixed duration',
-                      _timeBasedExitEnabled,
-                      (val) => setState(() => _timeBasedExitEnabled = val),
-                    ),
-                    if (_timeBasedExitEnabled) ...[
-                      const SizedBox(height: 8),
-                      _buildTextField(_timeBasedExitController, 'Max Hold Time',
-                          suffixText: 'min'),
-                    ],
-                    _buildSwitchListTile(
-                      'Market Close Exit',
-                      'Close positions before market close',
-                      _marketCloseExitEnabled,
-                      (val) => setState(() => _marketCloseExitEnabled = val),
-                    ),
-                    if (_marketCloseExitEnabled) ...[
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                          _marketCloseExitController, 'Mins Before Close',
-                          suffixText: 'min'),
-                    ],
-                    _buildSwitchListTile(
-                      'Partial Exits',
-                      'Scale out at defined profit levels',
-                      _enablePartialExits,
-                      (val) => setState(() => _enablePartialExits = val),
+                    ExitStrategiesWidget(
+                      takeProfitController: _takeProfitController,
+                      stopLossController: _stopLossController,
+                      trailingStopController: _trailingStopController,
+                      timeBasedExitController: _timeBasedExitController,
+                      marketCloseExitController: _marketCloseExitController,
+                      rsiExitThresholdController: _rsiExitThresholdController,
+                      signalStrengthExitThresholdController:
+                          _signalStrengthExitThresholdController,
+                      trailingStopEnabled: _trailingStopEnabled,
+                      timeBasedExitEnabled: _timeBasedExitEnabled,
+                      marketCloseExitEnabled: _marketCloseExitEnabled,
+                      partialExitsEnabled: _enablePartialExits,
+                      rsiExitEnabled: _rsiExitEnabled,
+                      signalStrengthExitEnabled: _signalStrengthExitEnabled,
+                      exitStages: _exitStages,
+                      onTrailingStopChanged: (val) =>
+                          setState(() => _trailingStopEnabled = val),
+                      onTimeBasedExitChanged: (val) =>
+                          setState(() => _timeBasedExitEnabled = val),
+                      onMarketCloseExitChanged: (val) =>
+                          setState(() => _marketCloseExitEnabled = val),
+                      onPartialExitsChanged: (val) =>
+                          setState(() => _enablePartialExits = val),
+                      onRsiExitChanged: (val) =>
+                          setState(() => _rsiExitEnabled = val),
+                      onSignalStrengthExitChanged: (val) =>
+                          setState(() => _signalStrengthExitEnabled = val),
+                      onExitStagesChanged: (stages) =>
+                          setState(() => _exitStages = stages),
                     ),
                   ],
                 ),
@@ -1276,12 +1343,18 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 /// Detail page showing backtest results
 class _BacktestResultPage extends StatefulWidget {
   final BacktestResult result;
+  final User? user;
   final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final Function(TradeStrategyConfig)? onApplyConfig;
 
   const _BacktestResultPage({
     required this.result,
+    this.user,
     this.userDocRef,
+    this.brokerageUser,
+    this.service,
     this.onApplyConfig,
   });
 
@@ -1436,7 +1509,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     final defaultName = widget.result.templateName ??
         '$symbolDisplay ${widget.result.config.interval} Strategy';
     final defaultDescription =
-        '$symbolDisplay backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
+        '$symbolDisplay backtest from ${widget.result.config.startDate != null ? dateFormat.format(widget.result.config.startDate!) : 'N/A'} to ${widget.result.config.endDate != null ? dateFormat.format(widget.result.config.endDate!) : 'N/A'} '
         '(${widget.result.totalTrades} trades, ${(widget.result.winRate * 100).toStringAsFixed(1)}% win rate)';
 
     final nameController = TextEditingController(text: defaultName);
@@ -1639,7 +1712,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
                   softWrap: false,
                   style: const TextStyle(fontSize: 16)),
               Text(
-                '${_getSymbolDisplay(widget.result.config.symbolFilter)} · ${DateFormat('MMM dd, yyyy').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
+                '${_getSymbolDisplay(widget.result.config.symbolFilter)} · ${widget.result.config.startDate != null ? DateFormat('MMM dd, yyyy').format(widget.result.config.startDate!) : 'N/A'} - ${widget.result.config.endDate != null ? DateFormat('MMM dd, yyyy').format(widget.result.config.endDate!) : 'N/A'}',
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
@@ -1796,6 +1869,9 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
       context,
       MaterialPageRoute(
         builder: (context) => BacktestingWidget(
+          user: widget.user,
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
           prefilledStrategyConfig: widget.result.config,
           userDocRef: widget.userDocRef,
         ),
@@ -1859,7 +1935,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
     final shareText = '''
 📊 Backtest Results - $symbolDisplay$templateDisplay
 
-📅 Period: ${dateFormat.format(widget.result.config.startDate)} - ${dateFormat.format(widget.result.config.endDate)}
+📅 Period: ${widget.result.config.startDate != null ? dateFormat.format(widget.result.config.startDate!) : 'N/A'} - ${widget.result.config.endDate != null ? dateFormat.format(widget.result.config.endDate!) : 'N/A'}
 ⏱️ Interval: ${widget.result.config.interval}
 
 💰 Performance:
@@ -1882,7 +1958,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
 • Max Drawdown: ${widget.result.maxDrawdownPercent.toStringAsFixed(2)}% (\$${widget.result.maxDrawdown.toStringAsFixed(2)})
 
 ⚙️ Configuration:
-• Initial Capital: \$${widget.result.config.initialCapital.toStringAsFixed(2)}
+• Initial Capital: \$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(2)}
 • Trade Quantity: ${widget.result.config.tradeQuantity}
 • Take Profit: ${widget.result.config.takeProfitPercent}%
 • Stop Loss: ${widget.result.config.stopLossPercent}%
@@ -1915,7 +1991,7 @@ Generated by RealizeAlpha
       eomEquity[key] = equity; // Overwrite to keep the last one
     }
 
-    double prevEquity = widget.result.config.initialCapital;
+    double prevEquity = widget.result.config.initialCapital ?? 10000.0;
     final sortedKeys = eomEquity.keys.toList()..sort();
 
     for (final key in sortedKeys) {
@@ -1939,7 +2015,7 @@ Generated by RealizeAlpha
     if (widget.result.equityCurve.isEmpty) return 0.0;
 
     final returns = <double>[];
-    double prevEquity = widget.result.config.initialCapital;
+    double prevEquity = widget.result.config.initialCapital ?? 10000.0;
 
     for (final point in widget.result.equityCurve) {
       final equity = (point['equity'] as num).toDouble();
@@ -2129,19 +2205,24 @@ Generated by RealizeAlpha
 
   Widget _buildOverviewTab(ColorScheme colorScheme, bool isProfit) {
     // Calculate CAGR
-    final durationDays = widget.result.config.endDate
-        .difference(widget.result.config.startDate)
-        .inDays;
+    int durationDays = 0;
+    if (widget.result.config.endDate != null &&
+        widget.result.config.startDate != null) {
+      durationDays = widget.result.config.endDate!
+          .difference(widget.result.config.startDate!)
+          .inDays;
+    }
     final years = durationDays / 365.25;
     double? cagr;
+    final initialCapital = widget.result.config.initialCapital ?? 10000.0;
+
     if (years > 0) {
-      final endingValue =
-          widget.result.config.initialCapital + widget.result.totalReturn;
-      if (widget.result.config.initialCapital > 0 && endingValue > 0) {
+      final endingValue = initialCapital + widget.result.totalReturn;
+      if (initialCapital > 0 && endingValue > 0) {
         // formula: (End / Start) ^ (1 / Years) - 1
-        cagr = (dart_math.pow(endingValue / widget.result.config.initialCapital,
-                1 / years) as double) -
-            1;
+        cagr =
+            (dart_math.pow(endingValue / initialCapital, 1 / years) as double) -
+                1;
       }
     }
 
@@ -2489,7 +2570,7 @@ Generated by RealizeAlpha
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildStatChip('Start',
-                      '\$${widget.result.config.initialCapital.toStringAsFixed(0)}'),
+                      '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(0)}'),
                   Icon(
                     Icons.trending_up,
                     size: 20,
@@ -2714,10 +2795,11 @@ Generated by RealizeAlpha
                           // This assumes we have access to original start capital or similar for calculation.
                           // But wait, point.equity is just a number.
                           // We can recalculate change percent if needed or just hide it for Drawdown mode.
-                          '${((point.equity - widget.result.config.initialCapital) / widget.result.config.initialCapital * 100).toStringAsFixed(2)}%',
+                          '${((point.equity - (widget.result.config.initialCapital ?? 10000.0)) / (widget.result.config.initialCapital ?? 10000.0) * 100).toStringAsFixed(2)}%',
                           style: TextStyle(
                             color: (point.equity -
-                                        widget.result.config.initialCapital) >=
+                                        (widget.result.config.initialCapital ??
+                                            10000.0)) >=
                                     0
                                 ? Colors.green
                                 : Colors.red,
@@ -2760,7 +2842,7 @@ Generated by RealizeAlpha
                           : "Multi"),
                   _buildDetailRow('Interval', widget.result.config.interval),
                   _buildDetailRow('Initial Capital',
-                      '\$${widget.result.config.initialCapital.toStringAsFixed(2)}'),
+                      '\$${(widget.result.config.initialCapital ?? 10000.0).toStringAsFixed(2)}'),
                   _buildDetailRow('Trade Quantity',
                       '${widget.result.config.tradeQuantity} shares'),
                   _buildDetailRow(
@@ -3248,12 +3330,18 @@ Generated by RealizeAlpha
 
 /// Tab showing backtest history
 class _BacktestHistoryTab extends StatefulWidget {
+  final User? user;
   final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final GlobalKey<BacktestRunTabState>? runTabKey;
   final TabController? tabController;
 
   const _BacktestHistoryTab({
+    this.user,
     this.userDocRef,
+    this.brokerageUser,
+    this.service,
     this.runTabKey,
     this.tabController,
   });
@@ -3307,11 +3395,13 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
               (_filterType == 'Loss' && !isProfit);
 
           final matchesDate = (_filterStartDate == null ||
-                  result.config.startDate.isAfter(
-                      _filterStartDate!.subtract(const Duration(days: 1)))) &&
+                  (result.config.startDate != null &&
+                      result.config.startDate!.isAfter(_filterStartDate!
+                          .subtract(const Duration(days: 1))))) &&
               (_filterEndDate == null ||
-                  result.config.endDate
-                      .isBefore(_filterEndDate!.add(const Duration(days: 1))));
+                  (result.config.endDate != null &&
+                      result.config.endDate!.isBefore(
+                          _filterEndDate!.add(const Duration(days: 1)))));
 
           return matchesSearch && matchesFilter && matchesDate;
         }).toList();
@@ -3615,7 +3705,10 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                             MaterialPageRoute(
                               builder: (context) => _BacktestResultPage(
                                 result: result,
+                                user: widget.user,
                                 userDocRef: widget.userDocRef,
+                                brokerageUser: widget.brokerageUser,
+                                service: widget.service,
                                 onApplyConfig: (config) {
                                   if (widget.runTabKey?.currentState != null) {
                                     widget.runTabKey!.currentState!
@@ -3704,7 +3797,7 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '${DateFormat('MMM dd, yyyy').format(result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(result.config.endDate)}',
+                                          '${result.config.startDate != null ? DateFormat('MMM dd, yyyy').format(result.config.startDate!) : 'N/A'} - ${result.config.endDate != null ? DateFormat('MMM dd, yyyy').format(result.config.endDate!) : 'N/A'}',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
@@ -3780,14 +3873,43 @@ class _BacktestHistoryTabState extends State<_BacktestHistoryTab> {
 class _BacktestTemplatesTab extends StatefulWidget {
   final TabController? tabController;
   final GlobalKey<BacktestRunTabState>? runTabKey;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
 
-  const _BacktestTemplatesTab({this.tabController, this.runTabKey});
+  const _BacktestTemplatesTab({
+    this.tabController,
+    this.runTabKey,
+    this.user,
+    this.userDocRef,
+    this.brokerageUser,
+    this.service,
+  });
 
   @override
   State<_BacktestTemplatesTab> createState() => _BacktestTemplatesTabState();
 }
 
 class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
+  static const Map<String, String> _indicatorNames = {
+    'priceMovement': 'Price Movement',
+    'momentum': 'RSI',
+    'marketDirection': 'Market Direction',
+    'volume': 'Volume',
+    'macd': 'MACD',
+    'bollingerBands': 'Bollinger Bands',
+    'stochastic': 'Stochastic',
+    'atr': 'ATR',
+    'obv': 'OBV',
+    'vwap': 'VWAP',
+    'adx': 'ADX',
+    'williamsR': 'Williams %R',
+    'ichimoku': 'Ichimoku',
+    'cci': 'CCI',
+    'parabolicSar': 'Parabolic SAR',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Consumer<BacktestingProvider>(
@@ -3808,10 +3930,10 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
         return StrategyListWidget(
           strategies: provider.templates,
           allowDelete: true,
-          onSelect: (template) {
+          onSelect: (TradeStrategyTemplate template) {
             _showTemplateDetailsSheet(context, template);
           },
-          onDelete: (template) async {
+          onDelete: (TradeStrategyTemplate template) async {
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (BuildContext dialogContext) {
@@ -3877,6 +3999,38 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
             SnackBar(
               content: Text('Loaded template: ${template.name}'),
             ),
+          );
+        }
+      },
+      onSearch: () {
+        if (widget.user != null && widget.userDocRef != null) {
+          final initialIndicators = template.config.enabledIndicators.entries
+              .where((e) => e.value)
+              .fold<Map<String, String>>({}, (prev, element) {
+            prev[element.key] = "BUY";
+            // _indicatorNames[element.key] ?? element.key.toUpperCase();
+            return prev;
+          });
+
+          Navigator.pop(context); // Close sheet
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => TradeSignalsPage(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        brokerageUser: widget.brokerageUser,
+                        service: widget.service,
+                        analytics: MyApp.analytics,
+                        observer: MyApp.observer,
+                        generativeService: GenerativeService(),
+                        initialIndicators: initialIndicators,
+                        strategyTemplate: template,
+                      )));
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please log in for signal search.')),
           );
         }
       },

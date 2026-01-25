@@ -177,6 +177,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     var now = DateTime.now();
     var projectedDividendMap = <DateTime, double>{};
     var projectedInterestMap = <DateTime, double>{};
+    var projectedTransactionList = <Map<String, dynamic>>[];
     for (int i = 1; i <= 12 * projectionYears; i++) {
       var d = DateTime(now.year, now.month + i, 1);
       projectedDividendMap[d] = 0.0;
@@ -247,6 +248,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           double totalPositionIncome = 0;
           bool reinvest = transactionFilters.contains('reinvest_projected');
 
+          void addProjectedTx(DateTime date, double payment) {
+            projectedTransactionList.add({
+              "instrumentObj": position.instrumentObj,
+              "amount": payment.toString(),
+              "rate": (payment / position.quantity!).toString(),
+              "position": position.quantity.toString(),
+              "payable_date": date.toIso8601String(),
+              "state": "projected",
+            });
+          }
+
           if (frequency == 'weekly') {
             double periodYield = yield / 52;
             if (lastPaymentDate != null) {
@@ -260,6 +272,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       (projectedDividendMap[key] ?? 0) + payment;
                 }
                 totalPositionIncome += payment;
+                addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             } else {
@@ -269,6 +282,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 projectedDividendMap[key] =
                     (projectedDividendMap[key] ?? 0) + payment;
                 totalPositionIncome += payment;
+                addProjectedTx(key, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             }
@@ -279,6 +293,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               projectedDividendMap[key] =
                   (projectedDividendMap[key] ?? 0) + payment;
               totalPositionIncome += payment;
+              addProjectedTx(key, payment);
               if (reinvest) currentMarketValue += payment;
             }
           } else if (frequency == 'quarterly') {
@@ -295,6 +310,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       (projectedDividendMap[key] ?? 0) + payment;
                 }
                 totalPositionIncome += payment;
+                addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             } else {
@@ -304,6 +320,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 projectedDividendMap[key] =
                     (projectedDividendMap[key] ?? 0) + payment;
                 totalPositionIncome += payment;
+                addProjectedTx(key, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             }
@@ -321,6 +338,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       (projectedDividendMap[key] ?? 0) + payment;
                 }
                 totalPositionIncome += payment;
+                addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             } else {
@@ -330,6 +348,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 projectedDividendMap[key] =
                     (projectedDividendMap[key] ?? 0) + payment;
                 totalPositionIncome += payment;
+                addProjectedTx(key, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             }
@@ -347,6 +366,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       (projectedDividendMap[key] ?? 0) + payment;
                 }
                 totalPositionIncome += payment;
+                addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             } else {
@@ -356,6 +376,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 projectedDividendMap[key] =
                     (projectedDividendMap[key] ?? 0) + payment;
                 totalPositionIncome += payment;
+                addProjectedTx(key, payment);
                 if (reinvest) currentMarketValue += payment;
               }
             }
@@ -476,7 +497,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             .toList() ??
         [];
 
-    var incomeTransactions = (dividendItems + interestItems)
+    var incomeTransactions = (dividendItems +
+            interestItems +
+            (transactionFilters.contains("projected")
+                ? projectedTransactionList
+                : []))
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
@@ -1918,6 +1943,9 @@ class IncomeTransactionTile extends StatelessWidget {
   });
 
   Color _amountColor(BuildContext context, double amount) {
+    if (transaction["state"] == "projected") {
+      return Theme.of(context).disabledColor;
+    }
     return amount == 0
         ? Theme.of(context).textTheme.bodyLarge!.color!
         : amount > 0

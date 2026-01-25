@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -109,7 +110,7 @@ class InstrumentWidget extends StatefulWidget {
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
-  Future<ESGScore>? _esgFuture;
+  Future<ESGScore?>? _esgFuture;
   final ESGService _esgService = ESGService();
   Future<InstitutionalOwnership?>? _institutionalOwnershipFuture;
   final YahooService _yahooService = YahooService();
@@ -146,15 +147,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
   // Controls whether all similar instruments are shown or only the first 5.
-  bool _showAllSimilar = false;
-  bool _showAllPositionOrders = false;
-  bool _showAllNews = false;
-  bool _showAllEarnings = false;
+  final ValueNotifier<bool> _showAllSimilarNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _showAllPositionOrdersNotifier =
+      ValueNotifier(false);
+  final ValueNotifier<bool> _showAllNewsNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _showAllEarningsNotifier = ValueNotifier(false);
   // Controls visibility of AI reasoning details in trade signals
-  bool _showAIReasoning = false;
+  final ValueNotifier<bool> _showAIReasoningNotifier =
+      ValueNotifier<bool>(false);
   // Controls visibility of technical indicators details
-  bool _showTechnicalDetails = false;
-  bool _showAllLists = false;
+  final ValueNotifier<bool> _showTechnicalDetailsNotifier =
+      ValueNotifier(false);
+  // Controls visibility of expanded metadata
+  final ValueNotifier<Set<String>> _expandedIndicatorsNotifier =
+      ValueNotifier({});
+  final ValueNotifier<bool> _showAllListsNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isGeneratingSignalNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _isAssessingRiskNotifier = ValueNotifier(false);
 
   Timer? refreshTriggerTime;
   final GlobalKey tradeSignalKey = GlobalKey();
@@ -387,7 +396,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     super.initState();
 
     if (widget.scrollToTradeSignal) {
-      _showTechnicalDetails = true;
+      _showTechnicalDetailsNotifier.value = true;
     }
 
     if (widget.scrollToTradeSignal) {
@@ -417,6 +426,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   void dispose() {
     _stopRefreshTimer();
+    _showAIReasoningNotifier.dispose();
+    _showAllSimilarNotifier.dispose();
+    _showAllPositionOrdersNotifier.dispose();
+    _showAllNewsNotifier.dispose();
+    _showAllEarningsNotifier.dispose();
+    _showTechnicalDetailsNotifier.dispose();
+    _expandedIndicatorsNotifier.dispose();
+    _showAllListsNotifier.dispose();
+    _isGeneratingSignalNotifier.dispose();
+    _isAssessingRiskNotifier.dispose();
     super.dispose();
   }
 
@@ -430,6 +449,202 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   /// Returns a map containing:
   /// - 'cash': The available portfolio cash from the account
   /// - For each position: symbol -> {quantity, price} or just quantity if price unavailable
+  Future<void> _generateTradeSignal(BuildContext context) async {
+    if (_isGeneratingSignalNotifier.value) return;
+
+    _isGeneratingSignalNotifier.value = true;
+
+    try {
+      final portfolioState = _buildPortfolioState(context);
+      final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
+          widget.instrument.quoteObj?.lastTradePrice;
+
+      if (price == null) {
+        throw Exception('Unable to fetch current price');
+      }
+
+      // Generate new signal via initiateTradeProposal
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      await tradeSignalsProvider.initiateTradeProposal(
+        symbol: widget.instrument.symbol,
+        currentPrice: price,
+        portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
+      );
+
+      // Wait briefly to ensure Firestore write has completed
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Refresh the signal from Firestore
+      await Provider.of<TradeSignalsProvider>(context, listen: false)
+          .fetchTradeSignal(widget.instrument.symbol);
+
+      if (mounted) {
+        Scrollable.ensureVisible(tradeSignalKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.0);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trade signal generated successfully!'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating signal: $e'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        _isGeneratingSignalNotifier.value = false;
+      }
+    }
+  }
+
+  Future<void> _runRiskAssessment(
+      Map<String, dynamic> signal, String signalType) async {
+    if (_isAssessingRiskNotifier.value) return;
+
+    _isAssessingRiskNotifier.value = true;
+
+    try {
+      final proposal = {
+        'symbol': widget.instrument.symbol,
+        'action': signalType,
+        'quantity': signal['proposal']?['quantity'] ?? 1,
+        'price': signal['proposal']?['price'] ?? 0,
+      };
+
+      final portfolioState = _buildPortfolioState(context);
+
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final result = await tradeSignalsProvider.assessTradeRisk(
+        proposal: proposal,
+        portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
+      );
+
+      // Update assessment in the signal and refresh UI
+      signal['assessment'] = result;
+      if (mounted) {
+        setState(() {});
+      }
+
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  result['approved']
+                      ? Icons.check_circle_outline
+                      : Icons.error_outline,
+                  color: result['approved'] ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    result['approved']
+                        ? 'Risk Assessment Passed'
+                        : 'Risk Assessment Failed',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: result['approved']
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Status:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        result['approved'] ? 'Approved' : 'Rejected',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: result['approved']
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (result['reason'] != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Reason:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    result['reason'],
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error running risk assessment: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        _isAssessingRiskNotifier.value = false;
+      }
+    }
+  }
+
   Map<String, dynamic> _buildPortfolioState(BuildContext context) {
     // Get actual portfolio cash from account (same as Home widget)
     double cash = 0.0;
@@ -471,6 +686,248 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     return portfolioState;
+  }
+
+  Future<void> _generateAIContent(
+      GenerativeProvider provider, String key, String promptText) async {
+    provider.startGenerating(key);
+    try {
+      var prompt = Prompt(
+        key: key,
+        title: 'AI Insight',
+        prompt: promptText,
+      );
+      // Using null for stores as we don't need portfolio context for symbol specific analysis usually,
+      var response = await widget.generativeService.generateContentFromServer(
+          prompt, null, null, null // Pass nulls for stores
+          );
+      provider.setGenerativeResponse(key, response);
+    } catch (e) {
+      provider.setGenerativeResponse(
+          key, "Failed to generate insight. Please try again.");
+    }
+  }
+
+  Widget _buildAIInsights(BuildContext context) {
+    return Consumer<GenerativeProvider>(
+        builder: (context, generativeProvider, child) {
+      final summaryKey = 'insight-${widget.instrument.symbol}-summary';
+      final sentimentKey = 'insight-${widget.instrument.symbol}-sentiment';
+      final newsKey = 'insight-${widget.instrument.symbol}-news';
+      final keyLevelsKey = 'insight-${widget.instrument.symbol}-key-levels';
+      final strategyKey = 'insight-${widget.instrument.symbol}-strategy';
+
+      // Check if we are currently generating for this instrument
+      final isGeneratingSummary = generativeProvider.generating &&
+          generativeProvider.generatingPrompt == summaryKey;
+      final isGeneratingSentiment = generativeProvider.generating &&
+          generativeProvider.generatingPrompt == sentimentKey;
+      final isGeneratingNews = generativeProvider.generating &&
+          generativeProvider.generatingPrompt == newsKey;
+      final isGeneratingKeyLevels = generativeProvider.generating &&
+          generativeProvider.generatingPrompt == keyLevelsKey;
+      final isGeneratingStrategy = generativeProvider.generating &&
+          generativeProvider.generatingPrompt == strategyKey;
+
+      if (!generativeProvider.promptResponses.containsKey(summaryKey) &&
+          !generativeProvider.promptResponses.containsKey(sentimentKey) &&
+          !generativeProvider.promptResponses.containsKey(newsKey) &&
+          !generativeProvider.promptResponses.containsKey(keyLevelsKey) &&
+          !generativeProvider.promptResponses.containsKey(strategyKey) &&
+          !isGeneratingSummary &&
+          !isGeneratingSentiment &&
+          !isGeneratingNews &&
+          !isGeneratingKeyLevels &&
+          !isGeneratingStrategy) {
+        // Collapsed state visualization or just existing state
+      }
+
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Card(
+            elevation: 0,
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ExpansionTile(
+              leading: Icon(Icons.auto_awesome,
+                  color: Theme.of(context).colorScheme.primary),
+              title: const Text('AI Market Insights',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Analysis & Trade Ideas'),
+              initiallyExpanded: generativeProvider.promptResponses
+                      .containsKey(summaryKey) ||
+                  generativeProvider.promptResponses
+                      .containsKey(sentimentKey) ||
+                  generativeProvider.promptResponses.containsKey(newsKey) ||
+                  generativeProvider.promptResponses
+                      .containsKey(keyLevelsKey) ||
+                  generativeProvider.promptResponses.containsKey(strategyKey),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8.0,
+                        runSpacing: 8.0,
+                        children: [
+                          ActionChip(
+                            avatar: isGeneratingSummary
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.summarize, size: 16),
+                            label: const Text('Summary'),
+                            onPressed: () async {
+                              if (isGeneratingSummary) return;
+                              await _generateAIContent(
+                                  generativeProvider,
+                                  summaryKey,
+                                  'Tell me about ${widget.instrument.symbol} and its recent performance in markdown format. Keep it concise.');
+                            },
+                          ),
+                          ActionChip(
+                            avatar: isGeneratingSentiment
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.bar_chart, size: 16),
+                            label: const Text('Sentiment'),
+                            onPressed: () async {
+                              if (isGeneratingSentiment) return;
+                              await _generateAIContent(
+                                  generativeProvider,
+                                  sentimentKey,
+                                  'Analyze the market sentiment for ${widget.instrument.symbol}. Include bullish and bearish factors.');
+                            },
+                          ),
+                          ActionChip(
+                            avatar: isGeneratingKeyLevels
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.layers, size: 16),
+                            label: const Text('Key Levels'),
+                            onPressed: () async {
+                              if (isGeneratingKeyLevels) return;
+                              await _generateAIContent(
+                                  generativeProvider,
+                                  keyLevelsKey,
+                                  'Identify key support and resistance levels for ${widget.instrument.symbol} based on recent price action.');
+                            },
+                          ),
+                          ActionChip(
+                            avatar: isGeneratingStrategy
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.lightbulb, size: 16),
+                            label: const Text('Strategy'),
+                            onPressed: () async {
+                              if (isGeneratingStrategy) return;
+                              await _generateAIContent(
+                                  generativeProvider,
+                                  strategyKey,
+                                  'Suggest an options trading strategy for ${widget.instrument.symbol} given the current market conditions.');
+                            },
+                          ),
+                          ActionChip(
+                            avatar: isGeneratingNews
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.newspaper, size: 16),
+                            label: const Text('News Analysis'),
+                            onPressed: () async {
+                              if (isGeneratingNews) return;
+                              await _generateAIContent(
+                                  generativeProvider,
+                                  newsKey,
+                                  'Analyze the latest news for ${widget.instrument.symbol} and explain why it is moving. Be concise.');
+                            },
+                          ),
+                          ActionChip(
+                            avatar: const Icon(Icons.chat, size: 16),
+                            label: const Text('Ask Assistant'),
+                            onPressed: () =>
+                                _openAIChat(context, widget.instrument),
+                          ),
+                        ],
+                      ),
+                      if (generativeProvider.promptResponses[summaryKey] !=
+                          null) ...[
+                        const Divider(),
+                        const Text("Summary",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        MarkdownBody(
+                            data: generativeProvider
+                                .promptResponses[summaryKey]!),
+                      ],
+                      if (generativeProvider.promptResponses[sentimentKey] !=
+                          null) ...[
+                        const Divider(),
+                        const Text("Sentiment",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        MarkdownBody(
+                            data: generativeProvider
+                                .promptResponses[sentimentKey]!),
+                      ],
+                      if (generativeProvider.promptResponses[keyLevelsKey] !=
+                          null) ...[
+                        const Divider(),
+                        const Text("Key Levels",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        MarkdownBody(
+                            data: generativeProvider
+                                .promptResponses[keyLevelsKey]!),
+                      ],
+                      if (generativeProvider.promptResponses[strategyKey] !=
+                          null) ...[
+                        const Divider(),
+                        const Text("Strategy Suggestion",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        MarkdownBody(
+                            data: generativeProvider
+                                .promptResponses[strategyKey]!),
+                      ],
+                      if (generativeProvider.promptResponses[newsKey] !=
+                          null) ...[
+                        const Divider(),
+                        const Text("News Analysis",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        MarkdownBody(
+                            data: generativeProvider.promptResponses[newsKey]!),
+                      ],
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -595,7 +1052,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: CustomScrollView(slivers: [
           SliverLayoutBuilder(
             builder: (BuildContext context, constraints) {
-              const expandedHeight = 180.0;
+              const expandedHeight = 140.0; // 1800
               final scrolled =
                   math.min(expandedHeight, constraints.scrollOffset) /
                       expandedHeight;
@@ -610,7 +1067,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       opacity: opacity,
                       child: headerTitle(instrument, quoteStore));
                 }),
-                expandedHeight: 240, // 280.0,
+                expandedHeight: 140, // 240 // 280.0,
                 floating: false,
                 snap: false,
                 pinned: true,
@@ -736,82 +1193,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               );
             },
           ),
-          Consumer2<InstrumentHistoricalsStore, GenerativeProvider>(builder:
-              (context, instrumentHistoricalsStore, generativeProvider, child) {
-            return const SliverToBoxAdapter(child: SizedBox.shrink());
-
-            // return SliverToBoxAdapter(
-            //   child: Column(children: [
-            //     // ListTile(
-            //     //   title: const Text(
-            //     //     "Assistant",
-            //     //     style: TextStyle(fontSize: 19.0),
-            //     //   ),
-            //     // ),
-            //     ListTile(
-            //       title: Text(
-            //         "Insight",
-            //         style: TextStyle(fontSize: listTileTitleFontSize),
-            //       ),
-            //       trailing: Wrap(
-            //         children: [
-            //           TextButton.icon(
-            //               onPressed: () async {
-            //                 generativeProvider
-            //                     .setGenerativePrompt('portfolio-summary');
-            //                 await widget.generativeService
-            //                     .generatePortfolioContent(
-            //                         widget.generativeService.prompts
-            //                             .firstWhere((p) =>
-            //                                 p.key == 'portfolio-summary'),
-            //                         stockPositionStore,
-            //                         optionPositionStore,
-            //                         forexHoldingStore,
-            //                         generativeProvider);
-            //               },
-            //               label: Text("Summary"),
-            //               icon: generativeProvider.generating &&
-            //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
-            //                               generativeProvider.promptResponses['portfolio-summary'] == null
-            //                   ? CircularProgressIndicator.adaptive()
-            //                   : const Icon(Icons.summarize)),
-            //           TextButton.icon(
-            //               onPressed: () async {
-            //                 generativeProvider.setGenerativePrompt(
-            //                     'portfolio-recommendations');
-            //                 await widget.generativeService
-            //                     .generatePortfolioContent(
-            //                         widget.generativeService.prompts
-            //                             .firstWhere((p) =>
-            //                                 p.key ==
-            //                                 'portfolio-recommendations'),
-            //                         stockPositionStore,
-            //                         optionPositionStore,
-            //                         forexHoldingStore,
-            //                         generativeProvider);
-            //               },
-            //               label: Text("Recommendations"),
-            //               icon: generativeProvider.generating &&
-            //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
-            //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
-            //                   ? CircularProgressIndicator.adaptive()
-            //                   : const Icon(Icons.recommend)),
-            //         ],
-            //       ),
-            //     ),
-            //     if (generativeProvider.promptResponses != null) ...[
-            //       Padding(
-            //         padding: const EdgeInsets.all(8.0),
-            //         child: Card(
-            //             child: SizedBox(
-            //                 height: 280,
-            //                 child: Markdown(
-            //                     data: generativeProvider.response!))),
-            //       ),
-            //     ],
-            //   ]),
-            // );
-          }),
+          if (auth.currentUser != null) _buildAIInsights(context),
           SliverToBoxAdapter(
               child: Stack(children: [
             if (done == false) ...[
@@ -964,6 +1346,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             SliverToBoxAdapter(
               child: Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
                 child: InkWell(
                   onTap: () {
                     Navigator.push(
@@ -2216,141 +2612,142 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       pastEarning = earnings[earnings.length - 2];
     }
 
-    final displayCount = _showAllEarnings
-        ? earnings.length
-        : (earnings.length > 3 ? 3 : earnings.length);
-    // Show the last 3 items (most recent) if collapsed, but keep chronological order?
-    // Or just show the first 3?
-    // If the list is chronological, showing first 3 shows oldest.
-    // If we want to show recent, we should probably show the *last* 3.
-    // But "Show All" usually expands down.
-    // Let's reverse the list to show newest first, which is better for "Show Less".
-    // var displayEarnings = List.from(earnings.reversed);
-    // displayEarnings = displayEarnings.take(displayCount).toList();
-    // Actually, let's stick to the existing order to avoid confusion, just limit the count.
-    final displayEarnings = earnings.take(displayCount).toList();
-
     return SliverToBoxAdapter(
-      child: Column(
-        children: [
-          const ListTile(
-            title: Text(
-              "Earnings",
-              style: TextStyle(fontSize: 20),
-            ),
-          ),
-          Card(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (var earning in displayEarnings) ...[
-                  ListTile(
-                      title: Text(
-                        "${earning!["year"]} Q${earning!["quarter"]}",
-                        style: const TextStyle(fontSize: 18.0),
-                        //overflow: TextOverflow.visible
-                      ),
-                      subtitle: Text(
-                          earning!["report"] != null
-                              ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
-                              : "",
-                          style: const TextStyle(fontSize: 14)),
-                      trailing: (earning!["eps"]["estimate"] != null ||
-                              earning!["eps"]["actual"] != null)
-                          ? Wrap(spacing: 10.0, children: [
-                              if (earning!["eps"]["estimate"] != null) ...[
-                                Column(
-                                  children: [
-                                    const Text("Estimate",
-                                        style: TextStyle(fontSize: 11)),
-                                    Text(
-                                        formatCurrency.format(double.parse(
-                                            earning!["eps"]["estimate"])),
-                                        style: const TextStyle(fontSize: 18)),
-                                  ],
-                                )
-                              ],
-                              if (earning!["eps"]["actual"] != null) ...[
-                                Column(children: [
-                                  const Text("Actual",
-                                      style: TextStyle(fontSize: 11)),
-                                  Text(
-                                      formatCurrency.format(double.parse(
-                                          earning!["eps"]["actual"])),
-                                      style: const TextStyle(fontSize: 18))
-                                ])
-                              ]
-                            ])
-                          : null),
-                  if (earning!["call"] != null &&
-                      ((pastEarning["year"] == earning!["year"] &&
-                              pastEarning["quarter"] == earning!["quarter"]) ||
-                          (futureEarning["year"] == earning!["year"] &&
-                              futureEarning["quarter"] ==
-                                  earning!["quarter"]))) ...[
-                    if (!earning!["report"]["verified"]) ...[
-                      ListTile(
-                        title: Text(
-                            "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                            style: const TextStyle(fontSize: 18)),
-                        subtitle: Text(
-                            formatLongDate.format(DateTime.parse(earning![
-                                    "call"][
-                                "datetime"])), // ${earning!["report"]["timing"]}",
-                            style: const TextStyle(fontSize: 16)),
-                      ),
+      child: ValueListenableBuilder<bool>(
+          valueListenable: _showAllEarningsNotifier,
+          builder: (context, showAllEarnings, child) {
+            final displayCount = showAllEarnings
+                ? earnings.length
+                : (earnings.length > 3 ? 3 : earnings.length);
+            final displayEarnings = earnings.take(displayCount).toList();
+
+            return Column(
+              children: [
+                const ListTile(
+                  title: Text(
+                    "Earnings",
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
+                Card(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      for (var earning in displayEarnings) ...[
+                        ListTile(
+                            title: Text(
+                              "${earning!["year"]} Q${earning!["quarter"]}",
+                              style: const TextStyle(fontSize: 18.0),
+                              //overflow: TextOverflow.visible
+                            ),
+                            subtitle: Text(
+                                earning!["report"] != null
+                                    ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
+                                    : "",
+                                style: const TextStyle(fontSize: 14)),
+                            trailing: (earning!["eps"]["estimate"] != null ||
+                                    earning!["eps"]["actual"] != null)
+                                ? Wrap(spacing: 10.0, children: [
+                                    if (earning!["eps"]["estimate"] !=
+                                        null) ...[
+                                      Column(
+                                        children: [
+                                          const Text("Estimate",
+                                              style: TextStyle(fontSize: 11)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.parse(earning!["eps"]
+                                                      ["estimate"])),
+                                              style: const TextStyle(
+                                                  fontSize: 18)),
+                                        ],
+                                      )
+                                    ],
+                                    if (earning!["eps"]["actual"] != null) ...[
+                                      Column(children: [
+                                        const Text("Actual",
+                                            style: TextStyle(fontSize: 11)),
+                                        Text(
+                                            formatCurrency.format(double.parse(
+                                                earning!["eps"]["actual"])),
+                                            style:
+                                                const TextStyle(fontSize: 18))
+                                      ])
+                                    ]
+                                  ])
+                                : null),
+                        if (earning!["call"] != null &&
+                            ((pastEarning["year"] == earning!["year"] &&
+                                    pastEarning["quarter"] ==
+                                        earning!["quarter"]) ||
+                                (futureEarning["year"] == earning!["year"] &&
+                                    futureEarning["quarter"] ==
+                                        earning!["quarter"]))) ...[
+                          if (!earning!["report"]["verified"]) ...[
+                            ListTile(
+                              title: Text(
+                                  "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                                  style: const TextStyle(fontSize: 18)),
+                              subtitle: Text(
+                                  formatLongDate.format(DateTime.parse(earning![
+                                          "call"][
+                                      "datetime"])), // ${earning!["report"]["timing"]}",
+                                  style: const TextStyle(fontSize: 16)),
+                            ),
+                          ],
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: <Widget>[
+                                if (earning!["call"]["replay_url"] != null) ...[
+                                  TextButton(
+                                    child: const Text('LISTEN TO REPLAY'),
+                                    onPressed: () async {
+                                      var url = earning!["call"]["replay_url"];
+                                      var uri = Uri.parse(url);
+                                      await canLaunchUrl(uri)
+                                          ? await launchUrl(uri)
+                                          : throw 'Could not launch $url';
+                                    },
+                                  ),
+                                ],
+                                if (earning!["call"]["broadcast_url"] !=
+                                    null) ...[
+                                  Container(width: 50),
+                                  TextButton(
+                                    child: const Text('LISTEN TO BROADCAST'),
+                                    onPressed: () async {
+                                      var url =
+                                          earning!["call"]["broadcast_url"];
+                                      var uri = Uri.parse(url);
+                                      await canLaunchUrl(uri)
+                                          ? await launchUrl(uri)
+                                          : throw 'Could not launch $url';
+                                    },
+                                  ),
+                                ],
+                              ])
+                        ],
+                      ],
                     ],
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: <Widget>[
-                          if (earning!["call"]["replay_url"] != null) ...[
-                            TextButton(
-                              child: const Text('LISTEN TO REPLAY'),
-                              onPressed: () async {
-                                var url = earning!["call"]["replay_url"];
-                                var uri = Uri.parse(url);
-                                await canLaunchUrl(uri)
-                                    ? await launchUrl(uri)
-                                    : throw 'Could not launch $url';
-                              },
-                            ),
-                          ],
-                          if (earning!["call"]["broadcast_url"] != null) ...[
-                            Container(width: 50),
-                            TextButton(
-                              child: const Text('LISTEN TO BROADCAST'),
-                              onPressed: () async {
-                                var url = earning!["call"]["broadcast_url"];
-                                var uri = Uri.parse(url);
-                                await canLaunchUrl(uri)
-                                    ? await launchUrl(uri)
-                                    : throw 'Could not launch $url';
-                              },
-                            ),
-                          ],
-                        ])
-                  ],
-                ],
+                  ),
+                ),
+                if (earnings.length > 3)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                        onPressed: () {
+                          _showAllEarningsNotifier.value = !showAllEarnings;
+                        },
+                        icon: Icon(showAllEarnings
+                            ? Icons.expand_less
+                            : Icons.expand_more),
+                        label: Text(showAllEarnings
+                            ? 'Show Less'
+                            : 'Show All (${earnings.length})')),
+                  )
               ],
-            ),
-          ),
-          if (earnings.length > 3)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllEarnings = !_showAllEarnings;
-                    });
-                  },
-                  icon: Icon(
-                      _showAllEarnings ? Icons.expand_less : Icons.expand_more),
-                  label: Text(_showAllEarnings
-                      ? 'Show Less'
-                      : 'Show All (${earnings.length})')),
-            )
-        ],
-      ),
+            );
+          }),
     );
   }
 
@@ -2511,113 +2908,125 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildSimilarWidget(Instrument instrument) {
     final similar = instrument.similarObj!;
-    final displayCount = _showAllSimilar
-        ? similar.length
-        : (similar.length > 3 ? 3 : similar.length);
 
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Similar",
-            style: TextStyle(fontSize: 20),
-          ),
-        )
-      ])),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return Card(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: Hero(
-                    tag: 'logo_${similar[index]["symbol"]}',
-                    child: similar[index]["logo_url"] != null
-                        ? Image.network(
-                            similar[index]["logo_url"]
-                                .toString()
-                                .replaceAll("https:////", "https://"),
-                            width: 50,
-                            height: 50,
-                            errorBuilder: (BuildContext context,
-                                Object exception, StackTrace? stackTrace) {
-                              return CircleAvatar(
-                                  radius: 25,
-                                  child: Text(
-                                    similar[index]["symbol"],
-                                    overflow: TextOverflow.fade,
-                                    maxLines: 1,
-                                  ));
+        child: ValueListenableBuilder<bool>(
+            valueListenable: _showAllSimilarNotifier,
+            builder: (context, showAllSimilar, child) {
+              final displayCount = showAllSimilar
+                  ? similar.length
+                  : (similar.length > 3 ? 3 : similar.length);
+              return ShrinkWrappingViewport(
+                  offset: ViewportOffset.zero(),
+                  slivers: [
+                    const SliverToBoxAdapter(
+                        child: Column(children: [
+                      ListTile(
+                        title: Text(
+                          "Similar",
+                          style: TextStyle(fontSize: 20),
+                        ),
+                      )
+                    ])),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                        return Card(
+                            child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            ListTile(
+                              leading: Hero(
+                                  tag: 'logo_${similar[index]["symbol"]}',
+                                  child: similar[index]["logo_url"] != null
+                                      ? Image.network(
+                                          similar[index]["logo_url"]
+                                              .toString()
+                                              .replaceAll(
+                                                  "https:////", "https://"),
+                                          width: 50,
+                                          height: 50,
+                                          errorBuilder: (BuildContext context,
+                                              Object exception,
+                                              StackTrace? stackTrace) {
+                                            return CircleAvatar(
+                                                radius: 25,
+                                                child: Text(
+                                                  similar[index]["symbol"],
+                                                  overflow: TextOverflow.fade,
+                                                  maxLines: 1,
+                                                ));
+                                          },
+                                        )
+                                      : CircleAvatar(
+                                          radius: 25,
+                                          child: Text(
+                                            similar[index]["symbol"],
+                                            overflow: TextOverflow.fade,
+                                            maxLines: 1,
+                                          ))),
+                              title: Text(
+                                "${similar[index]["symbol"]}",
+                              ),
+                              subtitle: Text("${similar[index]["name"]}"),
+                              onTap: () async {
+                                var similarInstruments = await widget.service
+                                    .getInstrumentsByIds(
+                                        widget.brokerageUser,
+                                        Provider.of<InstrumentStore>(context,
+                                            listen: false),
+                                        [similar[index]["instrument_id"]]);
+                                if (similar[index]["logo_url"] != null &&
+                                    similar[index]["logo_url"] !=
+                                        similarInstruments[0].logoUrl &&
+                                    auth.currentUser != null) {
+                                  similarInstruments[0].logoUrl = similar[index]
+                                          ["logo_url"]
+                                      .toString()
+                                      .replaceAll("https:////", "https://");
+                                  await _firestoreService
+                                      .upsertInstrument(similarInstruments[0]);
+                                }
+                                if (context.mounted) {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              InstrumentWidget(
+                                                widget.brokerageUser,
+                                                widget.service,
+                                                similarInstruments[0],
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                generativeService:
+                                                    widget.generativeService,
+                                                user: widget.user,
+                                                userDocRef: widget.userDocRef,
+                                              )));
+                                }
+                              },
+                            ),
+                          ],
+                        ));
+                      }, childCount: displayCount),
+                    ),
+                    if (similar.length > 5)
+                      SliverToBoxAdapter(
+                          child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                            onPressed: () {
+                              _showAllSimilarNotifier.value = !showAllSimilar;
                             },
-                          )
-                        : CircleAvatar(
-                            radius: 25,
-                            child: Text(
-                              similar[index]["symbol"],
-                              overflow: TextOverflow.fade,
-                              maxLines: 1,
-                            ))),
-                title: Text(
-                  "${similar[index]["symbol"]}",
-                ),
-                subtitle: Text("${similar[index]["name"]}"),
-                onTap: () async {
-                  var similarInstruments = await widget.service
-                      .getInstrumentsByIds(
-                          widget.brokerageUser,
-                          Provider.of<InstrumentStore>(context, listen: false),
-                          [similar[index]["instrument_id"]]);
-                  if (similar[index]["logo_url"] != null &&
-                      similar[index]["logo_url"] !=
-                          similarInstruments[0].logoUrl &&
-                      auth.currentUser != null) {
-                    similarInstruments[0].logoUrl = similar[index]["logo_url"]
-                        .toString()
-                        .replaceAll("https:////", "https://");
-                    await _firestoreService
-                        .upsertInstrument(similarInstruments[0]);
-                  }
-                  if (context.mounted) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => InstrumentWidget(
-                                  widget.brokerageUser,
-                                  widget.service,
-                                  similarInstruments[0],
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                  generativeService: widget.generativeService,
-                                  user: widget.user,
-                                  userDocRef: widget.userDocRef,
-                                )));
-                  }
-                },
-              ),
-            ],
-          ));
-        }, childCount: displayCount),
-      ),
-      if (similar.length > 5)
-        SliverToBoxAdapter(
-            child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _showAllSimilar = !_showAllSimilar;
-                });
-              },
-              icon:
-                  Icon(_showAllSimilar ? Icons.expand_less : Icons.expand_more),
-              label: Text(_showAllSimilar
-                  ? 'Show Less'
-                  : 'Show All (${similar.length})')),
-        ))
-    ]));
+                            icon: Icon(showAllSimilar
+                                ? Icons.expand_less
+                                : Icons.expand_more),
+                            label: Text(showAllSimilar
+                                ? 'Show Less'
+                                : 'Show All (${similar.length})')),
+                      ))
+                  ]);
+            }));
   }
 
   void _showCreateListDialog(Function onListCreated) {
@@ -2811,76 +3220,84 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final userLists = lists.where((l) => l["owner_type"] == "custom").toList();
     final rhLists = lists.where((l) => l["owner_type"] != "custom").toList();
 
-    final rhDisplayCount = _showAllLists
-        ? rhLists.length
-        : (rhLists.length > 3 ? 3 : rhLists.length);
-
-    List<Widget> slivers = [];
-
-    slivers.add(SliverToBoxAdapter(
-        child: Column(children: [
-      ListTile(
-        title: const Text(
-          "Lists",
-          style: TextStyle(fontSize: 20),
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.playlist_add),
-          onPressed: _showAddToListDialog,
-        ),
-      )
-    ])));
-
-    if (userLists.isNotEmpty) {
-      if (rhLists.isNotEmpty) {
-        slivers.add(const SliverToBoxAdapter(
-            child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Text("Your Lists",
-                    style: TextStyle(fontWeight: FontWeight.bold)))));
-      }
-      slivers.add(SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return _buildListItem(userLists[index]);
-        }, childCount: userLists.length),
-      ));
-    }
-
-    if (rhLists.isNotEmpty) {
-      if (userLists.isNotEmpty) {
-        slivers.add(const SliverToBoxAdapter(
-            child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Text("Robinhood Lists",
-                    style: TextStyle(fontWeight: FontWeight.bold)))));
-      }
-      slivers.add(SliverList(
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return _buildListItem(rhLists[index]);
-        }, childCount: rhDisplayCount),
-      ));
-
-      if (rhLists.length > 3) {
-        slivers.add(SliverToBoxAdapter(
-            child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _showAllLists = !_showAllLists;
-                });
-              },
-              icon: Icon(_showAllLists ? Icons.expand_less : Icons.expand_more),
-              label: Text(_showAllLists
-                  ? 'Show Less'
-                  : 'Show All (${rhLists.length})')),
-        )));
-      }
-    }
-
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(
-            offset: ViewportOffset.zero(), slivers: slivers));
+      child: ValueListenableBuilder<bool>(
+          valueListenable: _showAllListsNotifier,
+          builder: (context, showAllLists, child) {
+            final rhDisplayCount = showAllLists
+                ? rhLists.length
+                : (rhLists.length > 3 ? 3 : rhLists.length);
+
+            List<Widget> slivers = [];
+
+            slivers.add(SliverToBoxAdapter(
+                child: Column(children: [
+              ListTile(
+                title: const Text(
+                  "Lists",
+                  style: TextStyle(fontSize: 20),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.playlist_add),
+                  onPressed: _showAddToListDialog,
+                ),
+              )
+            ])));
+
+            if (userLists.isNotEmpty) {
+              if (rhLists.isNotEmpty) {
+                slivers.add(const SliverToBoxAdapter(
+                    child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 4.0),
+                        child: Text("Your Lists",
+                            style: TextStyle(fontWeight: FontWeight.bold)))));
+              }
+              slivers.add(SliverList(
+                delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  return _buildListItem(userLists[index]);
+                }, childCount: userLists.length),
+              ));
+            }
+
+            if (rhLists.isNotEmpty) {
+              if (userLists.isNotEmpty) {
+                slivers.add(const SliverToBoxAdapter(
+                    child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 4.0),
+                        child: Text("Robinhood Lists",
+                            style: TextStyle(fontWeight: FontWeight.bold)))));
+              }
+              slivers.add(SliverList(
+                delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  return _buildListItem(rhLists[index]);
+                }, childCount: rhDisplayCount),
+              ));
+
+              if (rhLists.length > 3) {
+                slivers.add(SliverToBoxAdapter(
+                    child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                      onPressed: () {
+                        _showAllListsNotifier.value = !showAllLists;
+                      },
+                      icon: Icon(
+                          showAllLists ? Icons.expand_less : Icons.expand_more),
+                      label: Text(showAllLists
+                          ? 'Show Less'
+                          : 'Show All (${rhLists.length})')),
+                )));
+              }
+            }
+
+            return ShrinkWrappingViewport(
+                offset: ViewportOffset.zero(), slivers: slivers);
+          }),
+    );
   }
 
   Widget _buildListItem(dynamic list) {
@@ -2934,71 +3351,74 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildNewsWidget(Instrument instrument) {
     final news = instrument.newsObj!;
-    final displayCount =
-        _showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
 
     return SliverToBoxAdapter(
-      child: Column(
-        children: [
-          const ListTile(
-            title: Text(
-              "News",
-              style: TextStyle(fontSize: 20),
-            ),
-          ),
-          ListView.builder(
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: displayCount,
-            itemBuilder: (BuildContext context, int index) {
-              return Card(
-                  child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ListTile(
-                    leading: news[index]["preview_image_url"] != null &&
-                            news[index]["preview_image_url"]
-                                .toString()
-                                .isNotEmpty
-                        ? Image.network(news[index]["preview_image_url"],
-                            width: 96, height: 56)
-                        : const SizedBox(width: 96, height: 56),
-                    title: Text(
-                      "${news[index]["title"]}",
-                    ), //style: TextStyle(fontSize: 17.0)),
-                    subtitle: Text(
-                        "Published ${formatDate.format(DateTime.parse(news[index]["published_at"]!))} by ${news[index]["source"]}"),
-                    isThreeLine: true,
-                    onTap: () async {
-                      var url = news[index]["url"];
-                      var uri = Uri.parse(url);
-                      await canLaunchUrl(uri)
-                          ? await launchUrl(uri)
-                          : throw 'Could not launch $url';
-                    },
+      child: ValueListenableBuilder<bool>(
+          valueListenable: _showAllNewsNotifier,
+          builder: (context, showAllNews, child) {
+            final displayCount =
+                showAllNews ? news.length : (news.length > 3 ? 3 : news.length);
+            return Column(
+              children: [
+                const ListTile(
+                  title: Text(
+                    "News",
+                    style: TextStyle(fontSize: 20),
                   ),
-                ],
-              ));
-            },
-          ),
-          if (news.length > 3)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllNews = !_showAllNews;
-                    });
+                ),
+                ListView.builder(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayCount,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          leading: news[index]["preview_image_url"] != null &&
+                                  news[index]["preview_image_url"]
+                                      .toString()
+                                      .isNotEmpty
+                              ? Image.network(news[index]["preview_image_url"],
+                                  width: 96, height: 56)
+                              : const SizedBox(width: 96, height: 56),
+                          title: Text(
+                            "${news[index]["title"]}",
+                          ), //style: TextStyle(fontSize: 17.0)),
+                          subtitle: Text(
+                              "Published ${formatDate.format(DateTime.parse(news[index]["published_at"]!))} by ${news[index]["source"]}"),
+                          isThreeLine: true,
+                          onTap: () async {
+                            var url = news[index]["url"];
+                            var uri = Uri.parse(url);
+                            await canLaunchUrl(uri)
+                                ? await launchUrl(uri)
+                                : throw 'Could not launch $url';
+                          },
+                        ),
+                      ],
+                    ));
                   },
-                  icon: Icon(
-                      _showAllNews ? Icons.expand_less : Icons.expand_more),
-                  label: Text(_showAllNews
-                      ? 'Show Less'
-                      : 'Show All (${news.length})')),
-            )
-        ],
-      ),
+                ),
+                if (news.length > 3)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                        onPressed: () {
+                          _showAllNewsNotifier.value = !showAllNews;
+                        },
+                        icon: Icon(showAllNews
+                            ? Icons.expand_less
+                            : Icons.expand_more),
+                        label: Text(showAllNews
+                            ? 'Show Less'
+                            : 'Show All (${news.length})')),
+                  )
+              ],
+            );
+          }),
     );
   }
 
@@ -3020,86 +3440,102 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     filteredPositionOrders.sort((a, b) =>
         (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
 
-    final displayCount = _showAllPositionOrders
-        ? filteredPositionOrders.length
-        : (filteredPositionOrders.length > 3
-            ? 3
-            : filteredPositionOrders.length);
-
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-            title: const Text(
-              "Position Orders",
-              style: TextStyle(fontSize: 20.0),
-            ),
-            subtitle: Text(
-                "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-            trailing: IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    constraints: const BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            // tileColor: Theme.of(context).colorScheme.primary,
-                            leading: const Icon(Icons.filter_list),
-                            title: const Text(
-                              "Filter Position Orders",
-                              style: TextStyle(
-                                  fontSize: 20.0, fontWeight: FontWeight.bold),
-                            ),
-                            /*
+        child: ValueListenableBuilder<bool>(
+            valueListenable: _showAllPositionOrdersNotifier,
+            builder: (context, showAllPositionOrders, child) {
+              final displayCount = showAllPositionOrders
+                  ? filteredPositionOrders.length
+                  : (filteredPositionOrders.length > 3
+                      ? 3
+                      : filteredPositionOrders.length);
+              return ShrinkWrappingViewport(
+                  offset: ViewportOffset.zero(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                        child: Column(children: [
+                      ListTile(
+                          title: const Text(
+                            "Position Orders",
+                            style: TextStyle(fontSize: 20.0),
+                          ),
+                          subtitle: Text(
+                              "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+                          trailing: IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 260),
+                                  builder: (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context).colorScheme.primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Position Orders",
+                                            style: TextStyle(
+                                                fontSize: 20.0,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                          ),
-                          orderFilterWidget,
-                        ],
-                      );
-                    },
-                  );
-                })),
-      ])),
-      SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return Card(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: CircleAvatar(
-                    //backgroundImage: AssetImage(user.profilePicture),
-                    child: Text(
-                        '${filteredPositionOrders[index].quantity!.round()}',
-                        style: const TextStyle(fontSize: 18))),
-                title: Text(
-                    "${filteredPositionOrders[index].side == "buy" ? "Buy" : filteredPositionOrders[index].side == "sell" ? "Sell" : filteredPositionOrders[index].side} ${filteredPositionOrders[index].quantity} at \$${filteredPositionOrders[index].averagePrice != null ? formatCompactNumber.format(filteredPositionOrders[index].averagePrice) : (filteredPositionOrders[index].price != null ? formatCompactNumber.format(filteredPositionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
-                subtitle: Text(
-                    "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}${filteredPositionOrders[index].trailingPeg != null ? "\nTrailing: ${filteredPositionOrders[index].trailingPeg!['percentage'] != null ? "${filteredPositionOrders[index].trailingPeg!['percentage']}%" : (filteredPositionOrders[index].trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(filteredPositionOrders[index].trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}"),
-                trailing: Wrap(spacing: 8, children: [
-                  Text(
-                    (filteredPositionOrders[index].side == "sell" ? "+" : "-") +
-                        (filteredPositionOrders[index].averagePrice != null
-                            ? formatCurrency.format(
-                                filteredPositionOrders[index].averagePrice! *
-                                    filteredPositionOrders[index].quantity!)
-                            : ""),
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.right,
-                  )
-                ]),
+                                        ),
+                                        orderFilterWidget,
+                                      ],
+                                    );
+                                  },
+                                );
+                              })),
+                    ])),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                        return Card(
+                            child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            ListTile(
+                              leading: CircleAvatar(
+                                  //backgroundImage: AssetImage(user.profilePicture),
+                                  child: Text(
+                                      '${filteredPositionOrders[index].quantity!.round()}',
+                                      style: const TextStyle(fontSize: 18))),
+                              title: Text(
+                                  "${filteredPositionOrders[index].side == "buy" ? "Buy" : filteredPositionOrders[index].side == "sell" ? "Sell" : filteredPositionOrders[index].side} ${filteredPositionOrders[index].quantity} at \$${filteredPositionOrders[index].averagePrice != null ? formatCompactNumber.format(filteredPositionOrders[index].averagePrice) : (filteredPositionOrders[index].price != null ? formatCompactNumber.format(filteredPositionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
+                              subtitle: Text(
+                                  "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}${filteredPositionOrders[index].trailingPeg != null ? "\nTrailing: ${filteredPositionOrders[index].trailingPeg!['percentage'] != null ? "${filteredPositionOrders[index].trailingPeg!['percentage']}%" : (filteredPositionOrders[index].trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(filteredPositionOrders[index].trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}"),
+                              trailing: Wrap(spacing: 8, children: [
+                                Text(
+                                  (filteredPositionOrders[index].side == "sell"
+                                          ? "+"
+                                          : "-") +
+                                      (filteredPositionOrders[index]
+                                                  .averagePrice !=
+                                              null
+                                          ? formatCurrency.format(
+                                              filteredPositionOrders[index]
+                                                      .averagePrice! *
+                                                  filteredPositionOrders[index]
+                                                      .quantity!)
+                                          : ""),
+                                  style: const TextStyle(fontSize: 18.0),
+                                  textAlign: TextAlign.right,
+                                )
+                              ]),
 
-                /*Wrap(
+                              /*Wrap(
             spacing: 12,
             children: [
               Column(children: [
@@ -3130,50 +3566,52 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               )
             ],
           ),*/
-                //isThreeLine: true,
-                onTap: () {
-                  filteredPositionOrders[index].instrumentObj =
-                      widget.instrument;
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PositionOrderWidget(
-                                widget.brokerageUser,
-                                widget.service,
-                                filteredPositionOrders[index],
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                generativeService: widget.generativeService,
-                                user: widget.user,
-                                userDocRef: widget.userDocRef,
-                              )));
-                },
-              ),
-            ],
-          ));
+                              //isThreeLine: true,
+                              onTap: () {
+                                filteredPositionOrders[index].instrumentObj =
+                                    widget.instrument;
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            PositionOrderWidget(
+                                              widget.brokerageUser,
+                                              widget.service,
+                                              filteredPositionOrders[index],
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              user: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                            )));
+                              },
+                            ),
+                          ],
+                        ));
 
-          //if (positionOrders.length > index) {
-          //}
-        }, childCount: displayCount),
-      ),
-      if (filteredPositionOrders.length > 3)
-        SliverToBoxAdapter(
-            child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _showAllPositionOrders = !_showAllPositionOrders;
-                });
-              },
-              icon: Icon(_showAllPositionOrders
-                  ? Icons.expand_less
-                  : Icons.expand_more),
-              label: Text(_showAllPositionOrders
-                  ? 'Show Less'
-                  : 'Show All (${filteredPositionOrders.length})')),
-        ))
-    ]));
+                        //if (positionOrders.length > index) {
+                        //}
+                      }, childCount: displayCount),
+                    ),
+                    if (filteredPositionOrders.length > 3)
+                      SliverToBoxAdapter(
+                          child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                            onPressed: () {
+                              _showAllPositionOrdersNotifier.value =
+                                  !showAllPositionOrders;
+                            },
+                            icon: Icon(showAllPositionOrders
+                                ? Icons.expand_less
+                                : Icons.expand_more),
+                            label: Text(showAllPositionOrders
+                                ? 'Show Less'
+                                : 'Show All (${filteredPositionOrders.length})')),
+                      ))
+                  ]);
+            }));
   }
 
   Widget get openClosedFilterWidget {
@@ -3583,9 +4021,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return Consumer<AgenticTradingProvider>(
       builder: (context, agenticProvider, child) {
-        final enabledIndicators = agenticProvider.config['enabledIndicators']
-                as Map<String, dynamic>? ??
-            {};
+        final enabledIndicators =
+            agenticProvider.config.strategyConfig.enabledIndicators;
         final enabledCount =
             enabledIndicators.values.where((v) => v == true).length;
 
@@ -3681,404 +4118,426 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ? (isDark ? Colors.red.shade700 : Colors.red.shade200)
                 : (isDark ? Colors.orange.shade700 : Colors.orange.shade200);
 
-        return Container(
-          margin: const EdgeInsets.only(top: 12.0),
-          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.grey.shade900.withValues(alpha: 0.5)
-                : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: borderColor,
-              width: 2,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _showTechnicalDetails = !_showTechnicalDetails;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.analytics_outlined,
-                        size: 20,
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade700,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        return ValueListenableBuilder<bool>(
+            valueListenable: _showTechnicalDetailsNotifier,
+            builder: (context, showTechnicalDetails, child) {
+              return Container(
+                margin: const EdgeInsets.only(top: 12.0),
+                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.grey.shade900.withValues(alpha: 0.5)
+                      : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        _showTechnicalDetailsNotifier.value =
+                            !showTechnicalDetails;
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Text(
-                              'Technical Indicators',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            Icon(
+                              Icons.analytics_outlined,
+                              size: 20,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade700,
                             ),
-                            if (enabledCount > 0)
-                              Row(
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (buyCount > 0)
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: Text(
-                                        '$buyCount Buy',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  if (sellCount > 0)
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: Text(
-                                        '$sellCount Sell',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  if (holdCount > 0)
-                                    Text(
-                                      '$holdCount Hold',
-                                      style: TextStyle(
-                                        fontSize: 12,
+                                  const Text(
+                                    'Technical Indicators',
+                                    style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.grey.shade600,
-                                      ),
+                                        fontSize: 16),
+                                  ),
+                                  if (enabledCount > 0)
+                                    Row(
+                                      children: [
+                                        if (buyCount > 0)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 8.0),
+                                            child: Text(
+                                              '$buyCount Buy',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        if (sellCount > 0)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 8.0),
+                                            child: Text(
+                                              '$sellCount Sell',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.red.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        if (holdCount > 0)
+                                          Text(
+                                            '$holdCount Hold',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                 ],
                               ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.settings,
-                          size: 20,
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade700,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Automated Trading: Entry Strategies',
-                        onPressed: () async {
-                          if (widget.user == null ||
-                              widget.userDocRef == null) {
-                            return;
-                          }
-                          final result = await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  AgenticTradingSettingsWidget(
-                                user: widget.user!,
-                                userDocRef: widget.userDocRef!,
-                                service: widget.service,
-                                initialSection: 'entryStrategies',
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.settings,
+                                size: 20,
+                                color: isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade700,
                               ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Automated Trading: Entry Strategies',
+                              onPressed: () async {
+                                if (widget.user == null ||
+                                    widget.userDocRef == null) {
+                                  return;
+                                }
+                                final result = await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AgenticTradingSettingsWidget(
+                                      user: widget.user!,
+                                      userDocRef: widget.userDocRef!,
+                                      service: widget.service,
+                                      initialSection: 'entryStrategies',
+                                    ),
+                                  ),
+                                );
+                                if (result == true && mounted) {
+                                  final tradeSignalsProvider =
+                                      Provider.of<TradeSignalsProvider>(context,
+                                          listen: false);
+                                  tradeSignalsProvider.fetchTradeSignal(
+                                      widget.instrument.symbol,
+                                      interval: tradeSignalsProvider
+                                          .selectedInterval);
+                                }
+                              },
                             ),
-                          );
-                          if (result == true && mounted) {
-                            final tradeSignalsProvider =
-                                Provider.of<TradeSignalsProvider>(context,
-                                    listen: false);
-                            tradeSignalsProvider.fetchTradeSignal(
-                                widget.instrument.symbol,
-                                interval:
-                                    tradeSignalsProvider.selectedInterval);
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: Icon(
-                          Icons.info_outline,
-                          size: 20,
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade700,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: 'Indicator Documentation',
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Technical Indicators'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildDocSection('priceMovement'),
-                                    _buildDocSection('momentum'),
-                                    _buildDocSection('marketDirection'),
-                                    _buildDocSection('volume'),
-                                    _buildDocSection('macd'),
-                                    _buildDocSection('bollingerBands'),
-                                    _buildDocSection('stochastic'),
-                                    _buildDocSection('atr'),
-                                    _buildDocSection('obv'),
-                                    _buildDocSection('vwap'),
-                                    _buildDocSection('adx'),
-                                    _buildDocSection('williamsR'),
-                                    _buildDocSection('ichimoku'),
-                                    _buildDocSection('cci'),
-                                    _buildDocSection('sar'),
-                                  ],
-                                ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: Icon(
+                                Icons.info_outline,
+                                size: 20,
+                                color: isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade700,
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _showTechnicalDetails
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 20,
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade700,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (overallSignalStrength != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  enabledSignalStrength != null
-                                      ? 'Signal Strength (Adjusted)${enabledSignalStrength >= Constants.signalStrengthStrongMin ? (sellCount > buyCount ? ' - Strong Sell' : ' - Strong Buy') : enabledSignalStrength >= Constants.signalStrengthModerateMin ? (sellCount > buyCount ? ' - Moderate Sell' : ' - Moderate Buy') : ' - Weak Signal'}'
-                                      : 'Signal Strength',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  '${enabledSignalStrength ?? overallSignalStrength}%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: (enabledSignalStrength ??
-                                                overallSignalStrength) >=
-                                            Constants.signalStrengthStrongMin
-                                        ? Colors.green
-                                        : ((enabledSignalStrength ??
-                                                    overallSignalStrength) >=
-                                                Constants
-                                                    .signalStrengthModerateMin
-                                            ? Colors.amber
-                                            : Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final strength = enabledSignalStrength ??
-                                    overallSignalStrength;
-                                return Stack(
-                                  children: [
-                                    Container(
-                                      height: 6,
-                                      width: constraints.maxWidth,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                        borderRadius: BorderRadius.circular(3),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Indicator Documentation',
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Technical Indicators'),
+                                    content: SingleChildScrollView(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _buildDocSection('priceMovement'),
+                                          _buildDocSection('momentum'),
+                                          _buildDocSection('marketDirection'),
+                                          _buildDocSection('volume'),
+                                          _buildDocSection('macd'),
+                                          _buildDocSection('bollingerBands'),
+                                          _buildDocSection('stochastic'),
+                                          _buildDocSection('atr'),
+                                          _buildDocSection('obv'),
+                                          _buildDocSection('vwap'),
+                                          _buildDocSection('adx'),
+                                          _buildDocSection('williamsR'),
+                                          _buildDocSection('ichimoku'),
+                                          _buildDocSection('cci'),
+                                          _buildDocSection('sar'),
+                                        ],
                                       ),
                                     ),
-                                    Container(
-                                      height: 6,
-                                      width: constraints.maxWidth *
-                                          (strength / 100),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            strength >=
-                                                    Constants
-                                                        .signalStrengthStrongMin
-                                                ? Colors.green.shade300
-                                                : (strength >=
-                                                        Constants
-                                                            .signalStrengthModerateMin
-                                                    ? Colors.orange.shade300
-                                                    : Colors.red.shade300),
-                                            strength >=
-                                                    Constants
-                                                        .signalStrengthStrongMin
-                                                ? Colors.green
-                                                : (strength >=
-                                                        Constants
-                                                            .signalStrengthModerateMin
-                                                    ? Colors.orange
-                                                    : Colors.red),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(3),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Close'),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 );
                               },
                             ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              showTechnicalDetails
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 20,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade700,
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                ),
-              if (_showTechnicalDetails) ...[
-                const SizedBox(height: 8),
-                Builder(builder: (context) {
-                  final List<Map<String, String>> indicatorDefs = [
-                    {'label': 'Price Movement', 'key': 'priceMovement'},
-                    {'label': 'RSI (Momentum)', 'key': 'momentum'},
-                    {'label': 'Market Direction', 'key': 'marketDirection'},
-                    {'label': 'Volume Analysis', 'key': 'volume'},
-                    {'label': 'MACD', 'key': 'macd'},
-                    {'label': 'Bollinger Bands', 'key': 'bollingerBands'},
-                    {'label': 'Stochastic Oscillator', 'key': 'stochastic'},
-                    {'label': 'Average True Range', 'key': 'atr'},
-                    {'label': 'On-Balance Volume', 'key': 'obv'},
-                    {'label': 'VWAP', 'key': 'vwap'},
-                    {'label': 'ADX (Trend Strength)', 'key': 'adx'},
-                    {'label': 'Williams %R', 'key': 'williamsR'},
-                    {'label': 'Ichimoku Cloud', 'key': 'ichimoku'},
-                    {'label': 'CCI', 'key': 'cci'},
-                    {'label': 'Parabolic SAR', 'key': 'parabolicSar'},
-                  ];
-
-                  final enabledList = <Widget>[];
-                  final disabledList = <Widget>[];
-
-                  for (var def in indicatorDefs) {
-                    final key = def['key']!;
-                    final label = def['label']!;
-                    final configKey = key;
-                    final isEnabled = enabledIndicators[configKey] == true;
-
-                    final row = _buildIndicatorRow(label, key,
-                        indicators[key] as Map<String, dynamic>?, isEnabled);
-
-                    if (isEnabled) {
-                      enabledList.add(row);
-                    } else {
-                      disabledList.add(row);
-                    }
-                  }
-
-                  return Column(
-                    children: [
-                      if (enabledList.isNotEmpty)
-                        Column(
-                          children: enabledList,
-                        ),
-                      if (disabledList.isNotEmpty)
-                        Theme(
-                          data: Theme.of(context)
-                              .copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            tilePadding: EdgeInsets.zero,
-                            title: Row(
-                              children: [
-                                Text(
-                                  'Disabled Indicators (${disabledList.length})',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
+                    ),
+                    if (overallSignalStrength != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        enabledSignalStrength != null
+                                            ? 'Signal Strength (Adjusted)${enabledSignalStrength >= Constants.signalStrengthStrongMin ? (sellCount > buyCount ? ' - Strong Sell' : ' - Strong Buy') : enabledSignalStrength >= Constants.signalStrengthModerateMin ? (sellCount > buyCount ? ' - Moderate Sell' : ' - Moderate Buy') : ' - Weak Signal'}'
+                                            : 'Signal Strength',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${enabledSignalStrength ?? overallSignalStrength}%',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: (enabledSignalStrength ??
+                                                      overallSignalStrength) >=
+                                                  Constants
+                                                      .signalStrengthStrongMin
+                                              ? Colors.green
+                                              : ((enabledSignalStrength ??
+                                                          overallSignalStrength) >=
+                                                      Constants
+                                                          .signalStrengthModerateMin
+                                                  ? Colors.amber
+                                                  : Colors.red),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                if (enabledCount > 0 &&
-                                    overallSignalStrength != null &&
-                                    overallSignalStrength !=
-                                        enabledSignalStrength) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: _getSignalStrengthColor(
-                                              overallSignalStrength)
-                                          .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.speed,
-                                            size: 10,
+                                  const SizedBox(height: 4),
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final strength = enabledSignalStrength ??
+                                          overallSignalStrength;
+                                      return Stack(
+                                        children: [
+                                          Container(
+                                            height: 6,
+                                            width: constraints.maxWidth,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                          ),
+                                          Container(
+                                            height: 6,
+                                            width: constraints.maxWidth *
+                                                (strength / 100),
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  strength >=
+                                                          Constants
+                                                              .signalStrengthStrongMin
+                                                      ? Colors.green.shade300
+                                                      : (strength >=
+                                                              Constants
+                                                                  .signalStrengthModerateMin
+                                                          ? Colors
+                                                              .orange.shade300
+                                                          : Colors
+                                                              .red.shade300),
+                                                  strength >=
+                                                          Constants
+                                                              .signalStrengthStrongMin
+                                                      ? Colors.green
+                                                      : (strength >=
+                                                              Constants
+                                                                  .signalStrengthModerateMin
+                                                          ? Colors.orange
+                                                          : Colors.red),
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      ),
+                    if (showTechnicalDetails) ...[
+                      const SizedBox(height: 8),
+                      Builder(builder: (context) {
+                        final List<Map<String, String>> indicatorDefs = [
+                          {'label': 'Price Movement', 'key': 'priceMovement'},
+                          {'label': 'RSI (Momentum)', 'key': 'momentum'},
+                          {
+                            'label': 'Market Direction',
+                            'key': 'marketDirection'
+                          },
+                          {'label': 'Volume Analysis', 'key': 'volume'},
+                          {'label': 'MACD', 'key': 'macd'},
+                          {'label': 'Bollinger Bands', 'key': 'bollingerBands'},
+                          {
+                            'label': 'Stochastic Oscillator',
+                            'key': 'stochastic'
+                          },
+                          {'label': 'Average True Range', 'key': 'atr'},
+                          {'label': 'On-Balance Volume', 'key': 'obv'},
+                          {'label': 'VWAP', 'key': 'vwap'},
+                          {'label': 'ADX (Trend Strength)', 'key': 'adx'},
+                          {'label': 'Williams %R', 'key': 'williamsR'},
+                          {'label': 'Ichimoku Cloud', 'key': 'ichimoku'},
+                          {'label': 'CCI', 'key': 'cci'},
+                          {'label': 'Parabolic SAR', 'key': 'parabolicSar'},
+                        ];
+
+                        final enabledList = <Widget>[];
+                        final disabledList = <Widget>[];
+
+                        for (var def in indicatorDefs) {
+                          final key = def['key']!;
+                          final label = def['label']!;
+                          final configKey = key;
+                          final isEnabled =
+                              enabledIndicators[configKey] == true;
+
+                          final row = _buildIndicatorRow(
+                              label,
+                              key,
+                              indicators[key] as Map<String, dynamic>?,
+                              isEnabled);
+
+                          if (isEnabled) {
+                            enabledList.add(row);
+                          } else {
+                            disabledList.add(row);
+                          }
+                        }
+
+                        return Column(
+                          children: [
+                            if (enabledList.isNotEmpty)
+                              Column(
+                                children: enabledList,
+                              ),
+                            if (disabledList.isNotEmpty)
+                              Theme(
+                                data: Theme.of(context)
+                                    .copyWith(dividerColor: Colors.transparent),
+                                child: ExpansionTile(
+                                  tilePadding: EdgeInsets.zero,
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        'Disabled Indicators (${disabledList.length})',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      if (enabledCount > 0 &&
+                                          overallSignalStrength != null &&
+                                          overallSignalStrength !=
+                                              enabledSignalStrength) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
                                             color: _getSignalStrengthColor(
-                                                overallSignalStrength)),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          '$overallSignalStrength% Overall',
-                                          style: TextStyle(
-                                            fontSize: 10.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: _getSignalStrengthColor(
-                                                overallSignalStrength),
+                                                    overallSignalStrength)
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.speed,
+                                                  size: 10,
+                                                  color: _getSignalStrengthColor(
+                                                      overallSignalStrength)),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                '$overallSignalStrength% Overall',
+                                                style: TextStyle(
+                                                  fontSize: 10.0,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _getSignalStrengthColor(
+                                                      overallSignalStrength),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ],
-                            ),
-                            children: disabledList,
-                          ),
-                        ),
+                                  children: disabledList,
+                                ),
+                              ),
+                          ],
+                        );
+                      }),
                     ],
-                  );
-                }),
-              ],
-            ],
-          ),
-        );
+                  ],
+                ),
+              );
+            });
       },
     );
   }
@@ -4089,6 +4548,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     final signal = indicator['signal'] as String? ?? 'HOLD';
     final reason = indicator['reason'] as String? ?? '';
+    final metadata = indicator['metadata'] as Map<String, dynamic>?;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color signalColor;
@@ -4115,91 +4575,269 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       bgColor = Colors.transparent;
     }
 
-    return Opacity(
-      opacity: isEnabled ? 1.0 : 0.5,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: _expandedIndicatorsNotifier,
+      builder: (context, expandedIndicators, child) {
+        final isExpanded = expandedIndicators.contains(key);
+        final hasMetadata =
+            metadata != null && metadata.isNotEmpty && isEnabled;
+
+        return Opacity(
+          opacity: isEnabled ? 1.0 : 0.5,
+          child: InkWell(
+            onTap: hasMetadata
+                ? () {
+                    final newSet = Set<String>.from(expandedIndicators);
+                    if (isExpanded) {
+                      newSet.remove(key);
+                    } else {
+                      newSet.add(key);
+                    }
+                    _expandedIndicatorsNotifier.value = newSet;
+                  }
+                : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              margin: const EdgeInsets.symmetric(vertical: 4.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      if (!isEnabled) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? Colors.grey.shade800
+                                                : Colors.grey.shade200,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'DISABLED',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: isDark
+                                                  ? Colors.grey.shade400
+                                                  : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (hasMetadata) ...[
+                                        const SizedBox(width: 4),
+                                        AnimatedRotation(
+                                          turns: isExpanded ? 0.5 : 0.0,
+                                          duration:
+                                              const Duration(milliseconds: 200),
+                                          child: Icon(
+                                            Icons.keyboard_arrow_down,
+                                            size: 16,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color
+                                                ?.withOpacity(0.5),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  if (reason.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 2.0, right: 8.0),
+                                      child: Text(
+                                        reason,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color
+                                              ?.withOpacity(0.8),
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      if (!isEnabled) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'DISABLED',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: signalColor.withValues(alpha: 0.3),
                           ),
                         ),
-                      ],
+                        child: Text(
+                          signal,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: signalColor,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  if (reason.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2.0, right: 8.0),
-                      child: Text(
-                        reason,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.color
-                              ?.withOpacity(0.8),
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    alignment: Alignment.topCenter,
+                    curve: Curves.easeInOut,
+                    child: (hasMetadata && isExpanded)
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 8.0, right: 8.0, bottom: 4.0),
+                              child: Wrap(
+                                spacing: 6.0,
+                                runSpacing: 6.0,
+                                children: metadata.entries
+                                    .where((e) =>
+                                        e.value != null &&
+                                        (e.value is String ||
+                                            e.value is num ||
+                                            e.value is bool))
+                                    .map((e) {
+                                  var value = e.value;
+                                  if (value is double) {
+                                    if (value.abs() >= 10000) {
+                                      value = formatCompactNumber.format(value);
+                                    } else if (value.abs() < 1 && value != 0) {
+                                      value = value.toStringAsFixed(4);
+                                    } else {
+                                      value = value.toStringAsFixed(2);
+                                    }
+                                  }
+
+                                  // Friendly label mapping
+                                  String label = e.key;
+                                  const labelMap = {
+                                    'ma5': 'SMA 5',
+                                    'ma10': 'SMA 10',
+                                    'ma20': 'SMA 20',
+                                    'ma50': 'SMA 50',
+                                    'ma200': 'SMA 200',
+                                    'ema12': 'EMA 12',
+                                    'ema26': 'EMA 26',
+                                    'rsi': 'RSI',
+                                    'k': '%K',
+                                    'd': '%D',
+                                    'upper': 'Upper',
+                                    'lower': 'Lower',
+                                    'middle': 'Mid',
+                                    'plusDI': '+DI',
+                                    'minusDI': '-DI',
+                                    'histogram': 'Hist',
+                                    'conversionLine': 'Tenkan',
+                                    'baseLine': 'Kijun',
+                                    'leadingSpanA': 'Span A',
+                                    'leadingSpanB': 'Span B',
+                                    'laggingSpan': 'Chikou',
+                                    'currentPrice': 'Price',
+                                    'volume': 'Vol',
+                                  };
+
+                                  if (labelMap.containsKey(label)) {
+                                    label = labelMap[label]!;
+                                  } else {
+                                    // Format key: camelCase to Title Case
+                                    label = label.replaceAllMapped(
+                                        RegExp(r'([a-z])([A-Z])'),
+                                        (Match m) => '${m[1]} ${m[2]}');
+                                    label = label.isNotEmpty
+                                        ? '${label[0].toUpperCase()}${label.substring(1)}'
+                                        : label;
+                                  }
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                              .withValues(alpha: 0.3)
+                                          : Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .dividerColor
+                                            .withValues(alpha: 0.1),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          "$label: ",
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color
+                                                ?.withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                        Text(
+                                          "$value",
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'Monospace',
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.color,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: signalColor.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Text(
-                signal,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: signalColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -4239,7 +4877,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildAgenticTradeSignals(Instrument instrument) {
-    final symbol = instrument.symbol;
     return SliverToBoxAdapter(
       key: tradeSignalKey,
       child: Column(
@@ -4300,16 +4937,169 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => BacktestingWidget(
+                                  user: widget.user,
                                   userDocRef: widget.userDocRef,
+                                  brokerageUser: widget.brokerageUser,
+                                  service: widget.service,
                                   prefilledSymbol: widget.instrument.symbol,
                                 ),
                               ),
                             );
                           },
                         ),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _isGeneratingSignalNotifier,
+                          builder: (context, isGeneratingSignal, _) {
+                            return IconButton(
+                              icon: isGeneratingSignal
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.auto_awesome),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Generate Trade Signal',
+                              onPressed: isGeneratingSignal
+                                  ? null
+                                  : () => _generateTradeSignal(context),
+                            );
+                          },
+                        ),
+                        if (provider.tradeSignal != null)
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _isAssessingRiskNotifier,
+                            builder: (context, isAssessingRisk, _) {
+                              return IconButton(
+                                icon: isAssessingRisk
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.shield_outlined),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8.0),
+                                constraints: const BoxConstraints(),
+                                tooltip:
+                                    provider.tradeSignal!['assessment'] == null
+                                        ? 'Run Risk Guard'
+                                        : 'Re-assess Risk',
+                                onPressed: isAssessingRisk
+                                    ? null
+                                    : () => _runRiskAssessment(
+                                        provider.tradeSignal!,
+                                        provider.tradeSignal!['signal'] ??
+                                            'HOLD'),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),
+                  if (provider.tradeSignal?['assessment'] != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: provider.tradeSignal!['assessment']
+                                      ['approved'] ==
+                                  true
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: provider.tradeSignal!['assessment']
+                                        ['approved'] ==
+                                    true
+                                ? Colors.green.shade300
+                                : Colors.red.shade300,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.shield_outlined,
+                                  size: 16,
+                                  color: provider.tradeSignal!['assessment']
+                                              ['approved'] ==
+                                          true
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700),
+                              const SizedBox(width: 8),
+                              Text("Risk Assessment",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: provider.tradeSignal!['assessment']
+                                                  ['approved'] ==
+                                              true
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700)),
+                            ]),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  provider.tradeSignal!['assessment']
+                                              ['approved'] ==
+                                          true
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: provider.tradeSignal!['assessment']
+                                              ['approved'] ==
+                                          true
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  provider.tradeSignal!['assessment']
+                                              ['approved'] ==
+                                          true
+                                      ? 'Trade Approved'
+                                      : 'Trade Rejected',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: provider.tradeSignal!['assessment']
+                                                ['approved'] ==
+                                            true
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (provider.tradeSignal!['assessment']['reason'] !=
+                                null) ...[
+                              const SizedBox(height: 4),
+                              SelectableText(
+                                provider.tradeSignal!['assessment']['reason'] ??
+                                    '',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: SegmentedButton<String>(
@@ -4378,12 +5168,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        _AgenticTradeButton(
-                          instrument: instrument,
-                          buildPortfolioState: () =>
-                              _buildPortfolioState(context),
-                        ),
                       ],
                     ),
                   ),
@@ -4393,7 +5177,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   signal['timestamp'] as int);
               var signalType = signal['signal'] ?? 'HOLD';
               // String? recalculatedReason;
-              final assessment = signal['assessment'] as Map<String, dynamic>?;
+              // final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
               final optimization =
@@ -4530,10 +5314,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     child: InkWell(
                                       onTap: optimization != null
                                           ? () {
-                                              setState(() {
-                                                _showAIReasoning =
-                                                    !_showAIReasoning;
-                                              });
+                                              _showAIReasoningNotifier.value =
+                                                  !_showAIReasoningNotifier
+                                                      .value;
                                             }
                                           : null,
                                       child: Container(
@@ -4598,13 +5381,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
-                                              Icon(
-                                                _showAIReasoning
-                                                    ? Icons.keyboard_arrow_up
-                                                    : Icons.keyboard_arrow_down,
-                                                color: Colors.white,
-                                                size: 16,
-                                              ),
+                                              ValueListenableBuilder<bool>(
+                                                  valueListenable:
+                                                      _showAIReasoningNotifier,
+                                                  builder: (context,
+                                                      showAIReasoning, child) {
+                                                    return Icon(
+                                                      showAIReasoning
+                                                          ? Icons
+                                                              .keyboard_arrow_up
+                                                          : Icons
+                                                              .keyboard_arrow_down,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    );
+                                                  }),
                                             ],
                                           ],
                                         ),
@@ -4684,82 +5475,89 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
                     // ML Optimization Section - Content Only if expanded or relevant
                     if (optimization != null &&
-                        optimization['reasoning'] != null &&
-                        _showAIReasoning)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 12.0),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? [
-                                      Colors.purple.shade900
-                                          .withValues(alpha: 0.3),
-                                      Colors.blue.shade900
-                                          .withValues(alpha: 0.3)
-                                    ]
-                                  : [
-                                      Colors.purple.shade50,
-                                      Colors.blue.shade50
-                                    ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.purpleAccent.withValues(alpha: 0.2)
-                                  : Colors.purple.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                ShaderMask(
-                                  shaderCallback: (bounds) =>
-                                      const LinearGradient(
-                                    colors: [Colors.purple, Colors.blue],
-                                  ).createShader(bounds),
-                                  child: const Icon(
-                                    Icons.auto_awesome,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
+                        optimization['reasoning'] != null)
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _showAIReasoningNotifier,
+                        builder: (context, showAIReasoning, child) {
+                          if (!showAIReasoning) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 12.0),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? [
+                                          Colors.purple.shade900
+                                              .withValues(alpha: 0.3),
+                                          Colors.blue.shade900
+                                              .withValues(alpha: 0.3)
+                                        ]
+                                      : [
+                                          Colors.purple.shade50,
+                                          Colors.blue.shade50
+                                        ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                const SizedBox(width: 8),
-                                Text("AI Insight",
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.purpleAccent
+                                          .withValues(alpha: 0.2)
+                                      : Colors.purple.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    ShaderMask(
+                                      shaderCallback: (bounds) =>
+                                          const LinearGradient(
+                                        colors: [Colors.purple, Colors.blue],
+                                      ).createShader(bounds),
+                                      child: const Icon(
+                                        Icons.auto_awesome,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text("AI Insight",
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            foreground: Paint()
+                                              ..shader = const LinearGradient(
+                                                colors: [
+                                                  Colors.purple,
+                                                  Colors.blue
+                                                ],
+                                              ).createShader(
+                                                  const Rect.fromLTWH(
+                                                      0.0, 0.0, 200.0, 70.0))))
+                                  ]),
+                                  const SizedBox(height: 12),
+                                  SelectableText(
+                                    optimization['reasoning'],
                                     style: TextStyle(
                                         fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        foreground: Paint()
-                                          ..shader = const LinearGradient(
-                                            colors: [
-                                              Colors.purple,
-                                              Colors.blue
-                                            ],
-                                          ).createShader(const Rect.fromLTWH(
-                                              0.0, 0.0, 200.0, 70.0))))
-                              ]),
-                              const SizedBox(height: 12),
-                              SelectableText(
-                                optimization['reasoning'],
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
-                                    height: 1.5),
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color,
+                                        height: 1.5),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       ),
 
                     // Multi-Indicator Display
@@ -4769,108 +5567,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: _buildMultiIndicatorDisplay(multiIndicator),
                       ),
 
-                    // Risk Assessment
-                    if (assessment != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 12.0),
-                        child: Container(
-                          padding: const EdgeInsets.all(12.0),
-                          decoration: BoxDecoration(
-                            color: assessment['approved'] == true
-                                ? Colors.green.withValues(alpha: 0.1)
-                                : Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: assessment['approved'] == true
-                                  ? Colors.green.shade300
-                                  : Colors.red.shade300,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                Icon(Icons.shield_outlined,
-                                    size: 16,
-                                    color: assessment['approved'] == true
-                                        ? Colors.green.shade700
-                                        : Colors.red.shade700),
-                                const SizedBox(width: 8),
-                                Text("Risk Assessment",
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: assessment['approved'] == true
-                                            ? Colors.green.shade700
-                                            : Colors.red.shade700)),
-                              ]),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(
-                                    assessment['approved'] == true
-                                        ? Icons.check_circle
-                                        : Icons.cancel,
-                                    color: assessment['approved'] == true
-                                        ? Colors.green.shade700
-                                        : Colors.red.shade700,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    assessment['approved'] == true
-                                        ? 'Trade Approved'
-                                        : 'Trade Rejected',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: assessment['approved'] == true
-                                          ? Colors.green.shade700
-                                          : Colors.red.shade700,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (assessment['reason'] != null) ...[
-                                const SizedBox(height: 4),
-                                SelectableText(
-                                  assessment['reason'] ?? '',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.color),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-
                     // Action Buttons
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _RiskGuardButton(
-                            symbol: symbol,
-                            signalType: signalType,
-                            signal: signal,
-                            assessment: assessment,
-                            buildPortfolioState: () =>
-                                _buildPortfolioState(context),
-                          ),
-                          const SizedBox(height: 8),
-                          _AgenticTradeButton(
-                            instrument: instrument,
-                            buildPortfolioState: () =>
-                                _buildPortfolioState(context),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               );
@@ -4882,7 +5579,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildESGCard() {
-    return FutureBuilder<ESGScore>(
+    return FutureBuilder<ESGScore?>(
       future: _esgFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -5013,6 +5710,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
+            instrument.symbol,
+            style: TextStyle(
+                fontSize: 14.0,
+                color: Theme.of(context).appBarTheme.foregroundColor),
+            textAlign: TextAlign.left,
+          ),
+          const SizedBox(height: 4),
+          Text(
             '${instrument.name != "" ? instrument.name : instrument.simpleName}',
             style: TextStyle(
                 fontSize: 16.0,
@@ -5021,57 +5726,57 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          if (quoteObj != null) ...[
-            const SizedBox(height: 4),
-            AnimatedPriceText(
-              price: quoteObj.lastTradePrice!,
-              format: formatCurrency,
-              style: TextStyle(
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).appBarTheme.foregroundColor),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                    quoteObj.changeToday > 0
-                        ? Icons.trending_up
-                        : (quoteObj.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (quoteObj.changeToday > 0
-                        ? (Theme.of(context).brightness == Brightness.light
-                            ? Colors.green
-                            : Colors.lightGreenAccent)
-                        : (quoteObj.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey)),
-                    size: 20.0),
-                const SizedBox(width: 4),
-                Text(
-                  formatPercentage.format(quoteObj.changePercentToday),
-                  style: TextStyle(
-                      fontSize: 16.0,
-                      color: Theme.of(context).appBarTheme.foregroundColor),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
-                  style: TextStyle(
-                      fontSize: 16.0,
-                      color: Theme.of(context).appBarTheme.foregroundColor),
-                ),
-              ],
-            ),
-            if (quoteObj.lastExtendedHoursTradePrice != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                "After Hours: ${formatCurrency.format(quoteObj.lastExtendedHoursTradePrice)}",
-                style: const TextStyle(fontSize: 12.0, color: Colors.grey),
-              ),
-            ]
-          ]
+          // if (quoteObj != null) ...[
+          //   const SizedBox(height: 4),
+          //   AnimatedPriceText(
+          //     price: quoteObj.lastTradePrice!,
+          //     format: formatCurrency,
+          //     style: TextStyle(
+          //         fontSize: 24.0,
+          //         fontWeight: FontWeight.bold,
+          //         color: Theme.of(context).appBarTheme.foregroundColor),
+          //   ),
+          //   const SizedBox(height: 4),
+          //   Row(
+          //     children: [
+          //       Icon(
+          //           quoteObj.changeToday > 0
+          //               ? Icons.trending_up
+          //               : (quoteObj.changeToday < 0
+          //                   ? Icons.trending_down
+          //                   : Icons.trending_flat),
+          //           color: (quoteObj.changeToday > 0
+          //               ? (Theme.of(context).brightness == Brightness.light
+          //                   ? Colors.green
+          //                   : Colors.lightGreenAccent)
+          //               : (quoteObj.changeToday < 0
+          //                   ? Colors.red
+          //                   : Colors.grey)),
+          //           size: 20.0),
+          //       const SizedBox(width: 4),
+          //       Text(
+          //         formatPercentage.format(quoteObj.changePercentToday),
+          //         style: TextStyle(
+          //             fontSize: 16.0,
+          //             color: Theme.of(context).appBarTheme.foregroundColor),
+          //       ),
+          //       const SizedBox(width: 8),
+          //       Text(
+          //         "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
+          //         style: TextStyle(
+          //             fontSize: 16.0,
+          //             color: Theme.of(context).appBarTheme.foregroundColor),
+          //       ),
+          //     ],
+          //   ),
+          //   if (quoteObj.lastExtendedHoursTradePrice != null) ...[
+          //     const SizedBox(height: 4),
+          //     Text(
+          //       "After Hours: ${formatCurrency.format(quoteObj.lastExtendedHoursTradePrice)}",
+          //       style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+          //     ),
+          //   ]
+          // ]
         ],
       ),
     );
@@ -5079,299 +5784,3 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 }
 
 // Risk Guard Button Widget
-class _RiskGuardButton extends StatefulWidget {
-  final String symbol;
-  final String signalType;
-  final Map<String, dynamic> signal;
-  final Map<String, dynamic>? assessment;
-  final Map<String, dynamic> Function() buildPortfolioState;
-
-  const _RiskGuardButton({
-    required this.symbol,
-    required this.signalType,
-    required this.signal,
-    required this.assessment,
-    required this.buildPortfolioState,
-  });
-
-  @override
-  State<_RiskGuardButton> createState() => _RiskGuardButtonState();
-}
-
-class _RiskGuardButtonState extends State<_RiskGuardButton> {
-  bool _isAssessing = false;
-
-  Future<void> _runRiskAssessment() async {
-    if (_isAssessing) return;
-
-    setState(() {
-      _isAssessing = true;
-    });
-
-    try {
-      final proposal = {
-        'symbol': widget.symbol,
-        'action': widget.signalType,
-        'quantity': widget.signal['proposal']?['quantity'] ?? 1,
-        'price': widget.signal['proposal']?['price'] ?? 0,
-      };
-
-      final portfolioState = widget.buildPortfolioState();
-
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-      final result = await tradeSignalsProvider.assessTradeRisk(
-        proposal: proposal,
-        portfolioState: portfolioState,
-        config: agenticTradingProvider.config,
-      );
-
-      // Update assessment in the signal and refresh UI
-      widget.signal['assessment'] = result;
-      if (mounted) {
-        (context as Element).markNeedsBuild();
-      }
-
-      if (mounted) {
-        await showDialog(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  result['approved']
-                      ? Icons.check_circle_outline
-                      : Icons.error_outline,
-                  color: result['approved'] ? Colors.green : Colors.red,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    result['approved']
-                        ? 'Risk Assessment Passed'
-                        : 'Risk Assessment Failed',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: result['approved']
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Status:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        result['approved'] ? 'Approved' : 'Rejected',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: result['approved']
-                              ? Colors.green.shade700
-                              : Colors.red.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (result['reason'] != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Reason:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    result['reason'],
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error running risk assessment: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isAssessing = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-        ),
-        icon: _isAssessing
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Icon(Icons.shield_outlined),
-        label: Text(
-          _isAssessing
-              ? 'Assessing...'
-              : (widget.assessment == null
-                  ? 'Run Risk Guard'
-                  : 'Re-assess Risk'),
-          style: const TextStyle(fontSize: 16),
-        ),
-        onPressed: _isAssessing ? null : _runRiskAssessment,
-      ),
-    );
-  }
-}
-
-class _AgenticTradeButton extends StatefulWidget {
-  final Instrument instrument;
-  final Map<String, dynamic> Function() buildPortfolioState;
-
-  const _AgenticTradeButton({
-    required this.instrument,
-    required this.buildPortfolioState,
-  });
-
-  @override
-  State<_AgenticTradeButton> createState() => _AgenticTradeButtonState();
-}
-
-class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
-  bool _isGenerating = false;
-
-  Future<void> _generateTradeSignal(BuildContext context) async {
-    if (_isGenerating) return;
-
-    setState(() {
-      _isGenerating = true;
-    });
-
-    try {
-      final portfolioState = widget.buildPortfolioState();
-      final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
-          widget.instrument.quoteObj?.lastTradePrice;
-
-      if (price == null) {
-        throw Exception('Unable to fetch current price');
-      }
-
-      // Generate new signal via initiateTradeProposal
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-      await tradeSignalsProvider.initiateTradeProposal(
-        symbol: widget.instrument.symbol,
-        currentPrice: price,
-        portfolioState: portfolioState,
-        config: agenticTradingProvider.config,
-      );
-
-      // Wait briefly to ensure Firestore write has completed
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Refresh the signal from Firestore
-      await Provider.of<TradeSignalsProvider>(context, listen: false)
-          .fetchTradeSignal(widget.instrument.symbol);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Trade signal generated successfully!'),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error generating signal: $e'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isGenerating = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-        ),
-        icon: _isGenerating
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Icon(Icons.auto_awesome),
-        label: Text(
-          _isGenerating ? 'Generating Signal...' : 'Generate Trade Signal',
-          style: const TextStyle(fontSize: 16),
-        ),
-        onPressed: _isGenerating ? null : () => _generateTradeSignal(context),
-      ),
-    );
-  }
-}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 
 class TradeSignalsProvider with ChangeNotifier {
@@ -376,7 +377,7 @@ class TradeSignalsProvider with ChangeNotifier {
   bool _isLoading = false;
   Map<String, dynamic>? _tradeSignal;
 
-  String _sortBy = 'signalStrength';
+  String _sortBy = 'timestamp';
   String get sortBy => _sortBy;
   set sortBy(String value) {
     if (_sortBy != value) {
@@ -450,6 +451,7 @@ class TradeSignalsProvider with ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? symbols,
+    String? searchQuery,
     String? interval,
     String sortBy = 'signalStrength',
   }) {
@@ -474,13 +476,17 @@ class TradeSignalsProvider with ChangeNotifier {
         }
       }
     }
-    if (minSignalStrength != null) {
-      query = query.where('multiIndicatorResult.signalStrength',
-          isGreaterThanOrEqualTo: minSignalStrength);
-    }
-    if (maxSignalStrength != null) {
-      query = query.where('multiIndicatorResult.signalStrength',
-          isLessThanOrEqualTo: maxSignalStrength);
+
+    // Only apply strength filters if not searching (avoid multiple inequality error)
+    if (searchQuery == null || searchQuery.isEmpty) {
+      if (minSignalStrength != null) {
+        query = query.where('multiIndicatorResult.signalStrength',
+            isGreaterThanOrEqualTo: minSignalStrength);
+      }
+      if (maxSignalStrength != null) {
+        query = query.where('multiIndicatorResult.signalStrength',
+            isLessThanOrEqualTo: maxSignalStrength);
+      }
     }
 
     query = query.where('interval', isEqualTo: effectiveInterval);
@@ -499,13 +505,23 @@ class TradeSignalsProvider with ChangeNotifier {
           isLessThanOrEqualTo: endDate.millisecondsSinceEpoch);
     }
 
-    if (symbols != null && symbols.isNotEmpty) {
+    // Handle search query (prefix search)
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final searchUpper = searchQuery.toUpperCase();
+      query = query
+          .where('symbol', isGreaterThanOrEqualTo: searchUpper)
+          .where('symbol', isLessThan: '${searchUpper}z');
+    } else if (symbols != null && symbols.isNotEmpty) {
       if (symbols.length <= 30) {
         query = query.where('symbol', whereIn: symbols);
       }
     }
 
-    if (sortBy == 'signalStrength') {
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      // Must order by symbol first when using range filter on symbol
+      query = query.orderBy('symbol');
+      query = query.orderBy('timestamp', descending: true);
+    } else if (sortBy == 'signalStrength') {
       query = query.orderBy('multiIndicatorResult.signalStrength',
           descending: true);
       query = query.orderBy('timestamp', descending: true);
@@ -527,6 +543,7 @@ class TradeSignalsProvider with ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? symbols,
+    String? searchQuery,
     String? interval,
     String sortBy = 'signalStrength',
     int limit = 200,
@@ -542,6 +559,7 @@ class TradeSignalsProvider with ChangeNotifier {
         startDate: startDate,
         endDate: endDate,
         symbols: symbols,
+        searchQuery: searchQuery,
         interval: effectiveInterval,
         sortBy: sortBy,
       );
@@ -577,6 +595,7 @@ class TradeSignalsProvider with ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
     List<String>? symbols,
+    String? searchQuery,
     int? limit,
     String? interval,
     String sortBy = 'signalStrength',
@@ -597,6 +616,7 @@ class TradeSignalsProvider with ChangeNotifier {
     debugPrint('   Start date: $startDate');
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
+    debugPrint('   Search: $searchQuery');
     debugPrint('   Limit: $_currentLimit');
     debugPrint('   Sort by: $sortBy');
 
@@ -614,6 +634,7 @@ class TradeSignalsProvider with ChangeNotifier {
         startDate: startDate,
         endDate: endDate,
         symbols: symbols,
+        searchQuery: searchQuery,
         interval: effectiveInterval,
         sortBy: sortBy,
       );
@@ -754,7 +775,7 @@ class TradeSignalsProvider with ChangeNotifier {
     required String symbol,
     required double currentPrice,
     required Map<String, dynamic> portfolioState,
-    required Map<String, dynamic> config,
+    required AgenticTradingConfig config,
     String? interval,
     bool skipSignalUpdate = false,
   }) async {
@@ -767,11 +788,12 @@ class TradeSignalsProvider with ChangeNotifier {
       'currentPrice': currentPrice,
       'portfolioState': portfolioState,
       'interval': effectiveInterval,
-      'smaPeriodFast': config['smaPeriodFast'],
-      'smaPeriodSlow': config['smaPeriodSlow'],
-      'tradeQuantity': config['tradeQuantity'],
-      'maxPositionSize': config['maxPositionSize'],
-      'maxPortfolioConcentration': config['maxPortfolioConcentration'],
+      'smaPeriodFast': config.strategyConfig.smaPeriodFast,
+      'smaPeriodSlow': config.strategyConfig.smaPeriodSlow,
+      'tradeQuantity': config.strategyConfig.tradeQuantity,
+      'maxPositionSize': config.strategyConfig.maxPositionSize,
+      'maxPortfolioConcentration':
+          config.strategyConfig.maxPortfolioConcentration,
       'skipSignalUpdate': skipSignalUpdate,
     };
 
@@ -804,7 +826,7 @@ class TradeSignalsProvider with ChangeNotifier {
       final simulatedTradeProposal = {
         'symbol': symbol,
         'action': 'BUY',
-        'quantity': config['tradeQuantity'],
+        'quantity': config.strategyConfig.tradeQuantity,
         'price': currentPrice,
       };
       _analytics.logEvent(
@@ -824,13 +846,13 @@ class TradeSignalsProvider with ChangeNotifier {
   Future<Map<String, dynamic>> assessTradeRisk({
     required Map<String, dynamic> proposal,
     required Map<String, dynamic> portfolioState,
-    required Map<String, dynamic> config,
+    required AgenticTradingConfig config,
   }) async {
     try {
       final result = await _functions.httpsCallable('riskguardTask').call({
         'proposal': proposal,
         'portfolioState': portfolioState,
-        'config': config,
+        'config': config.toJson(),
       });
       notifyListeners();
       if (result.data is Map<String, dynamic>) {

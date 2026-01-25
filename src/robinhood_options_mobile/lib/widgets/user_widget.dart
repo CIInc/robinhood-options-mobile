@@ -891,7 +891,11 @@ class _UserWidgetState extends State<UserWidget> {
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 BacktestingWidget(
+                                              user: user,
                                               userDocRef: userDocumentReference,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service,
                                             ),
                                           ),
                                         );

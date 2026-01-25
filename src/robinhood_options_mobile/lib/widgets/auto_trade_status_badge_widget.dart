@@ -104,7 +104,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
     return Consumer<AgenticTradingProvider>(
       builder: (context, agenticTradingProvider, child) {
         final config = agenticTradingProvider.config;
-        final autoTradeEnabled = config['autoTradeEnabled'] as bool? ?? false;
+        final autoTradeEnabled = config.autoTradeEnabled;
 
         if (!autoTradeEnabled) {
           return const SizedBox.shrink();
@@ -317,7 +317,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
     final isAutoTrading = provider.showAutoTradingVisual;
     final emergencyStop = provider.emergencyStopActivated;
     final dailyCount = provider.dailyTradeCount;
-    final dailyLimit = provider.config['dailyTradeLimit'] as int? ?? 5;
+    final dailyLimit = provider.config.strategyConfig.dailyTradeLimit;
     final countdownSeconds = provider.autoTradeCountdownSeconds;
 
     if (emergencyStop) {

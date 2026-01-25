@@ -55,6 +55,12 @@ class BacktestingProvider with ChangeNotifier {
       return null;
     }
 
+    if (config.startDate == null || config.endDate == null) {
+      _errorMessage = 'Start and End dates are required for backtesting.';
+      notifyListeners();
+      return null;
+    }
+
     _isRunning = true;
     _errorMessage = null;
     _progress = 0.0;
@@ -67,8 +73,8 @@ class BacktestingProvider with ChangeNotifier {
         name: 'backtest_started',
         parameters: {
           'symbols': config.symbolFilter.join(','),
-          'start_date': config.startDate.toIso8601String(),
-          'end_date': config.endDate.toIso8601String(),
+          'start_date': config.startDate!.toIso8601String(),
+          'end_date': config.endDate!.toIso8601String(),
           'interval': config.interval,
           if (templateId != null) 'template_id': templateId,
           if (templateName != null) 'template_name': templateName,
@@ -377,7 +383,7 @@ class BacktestingProvider with ChangeNotifier {
             .where('result.config.symbolFilter',
                 arrayContains: result.config.symbolFilter.first)
             .where('result.config.startDate',
-                isEqualTo: result.config.startDate.toIso8601String())
+                isEqualTo: result.config.startDate?.toIso8601String())
             .limit(1)
             .get();
 

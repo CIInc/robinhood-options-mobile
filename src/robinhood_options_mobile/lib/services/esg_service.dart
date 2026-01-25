@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/esg_score.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
@@ -8,7 +7,7 @@ class ESGService {
   final Map<String, ESGScore> _cache = {};
   final YahooService _yahooService = YahooService();
 
-  Future<ESGScore> getESGScore(String symbol) async {
+  Future<ESGScore?> getESGScore(String symbol) async {
     if (_cache.containsKey(symbol)) {
       return _cache[symbol]!;
     }
@@ -119,128 +118,13 @@ class ESGService {
       debugPrint("Error fetching ESG for $symbol: $e");
     }
 
-    // Fallback to mock if real data fails
-    final score = _generateMockScore(symbol);
-    _cache[symbol] = score;
-    return score;
+    return null;
   }
 
-  Future<List<ESGScore>> getESGScores(List<String> symbols) async {
+  Future<List<ESGScore?>> getESGScores(List<String> symbols) async {
     // Fetch in parallel
     var futures = symbols.map((symbol) => getESGScore(symbol));
     return await Future.wait(futures);
   }
 
-  ESGScore _generateMockScore(String symbol) {
-    // Realistic mock data for common tech stocks
-    if (_knownScores.containsKey(symbol)) {
-      return _knownScores[symbol]!;
-    }
-
-    final random = Random(symbol.hashCode);
-
-    // Generate scores between 0 and 100
-    // Higher is better for this mock (some systems use risk where lower is better,
-    // but 0-100 "score" usually implies higher is better or we can treat it as a percentile)
-    // Let's assume 0-100 where 100 is best.
-
-    final env = 40 + random.nextDouble() * 60; // 40-100
-    final soc = 40 + random.nextDouble() * 60; // 40-100
-    final gov = 40 + random.nextDouble() * 60; // 40-100
-
-    final total = (env + soc + gov) / 3;
-
-    String rating;
-    if (total >= 85) {
-      rating = "AAA";
-    } else if (total >= 75)
-      rating = "AA";
-    else if (total >= 65)
-      rating = "A";
-    else if (total >= 55)
-      rating = "BBB";
-    else if (total >= 45)
-      rating = "BB";
-    else if (total >= 35)
-      rating = "B";
-    else
-      rating = "CCC";
-
-    return ESGScore(
-      symbol: symbol,
-      totalScore: double.parse(total.toStringAsFixed(2)),
-      environmentalScore: double.parse(env.toStringAsFixed(2)),
-      socialScore: double.parse(soc.toStringAsFixed(2)),
-      governanceScore: double.parse(gov.toStringAsFixed(2)),
-      rating: rating,
-      description: "Mock ESG data for $symbol",
-    );
-  }
-
-  // Static data for common symbols to provide realistic demos
-  static final Map<String, ESGScore> _knownScores = {
-    'AAPL': ESGScore(
-        symbol: 'AAPL',
-        totalScore: 83.0, // Risk 17
-        environmentalScore: 99.0, // Risk 0.x
-        socialScore: 92.0, // Risk 8
-        governanceScore: 91.0, // Risk 9
-        rating: 'AA', // Low Risk
-        description:
-            'ESG Risk Rating: 17.0 (Low)\nPeer Group: Technology Hardware\nHighest Controversy: 3 (Customer Incidents)'),
-    'MSFT': ESGScore(
-        symbol: 'MSFT',
-        totalScore: 85.0, // Risk 15
-        environmentalScore: 98.0, // Risk 2
-        socialScore: 92.0, // Risk 8
-        governanceScore: 95.0, // Risk 5
-        rating: 'AAA', // Low Risk
-        description:
-            'ESG Risk Rating: 15.0 (Low)\nPeer Group: Software & Services\nHighest Controversy: 3 (Anticompetitive Practices)'),
-    'TSLA': ESGScore(
-        symbol: 'TSLA',
-        totalScore: 74.0, // Risk 26
-        environmentalScore: 97.0, // Risk 3
-        socialScore: 83.0, // Risk 17
-        governanceScore: 94.0, // Risk 6
-        rating: 'A', // Medium Risk
-        description:
-            'ESG Risk Rating: 26.0 (Medium)\nPeer Group: Automobiles\nHighest Controversy: 3 (Labor Relations)'),
-    'AMZN': ESGScore(
-        symbol: 'AMZN',
-        totalScore: 70.0, // Risk 30
-        environmentalScore: 95.0, // Risk 5
-        socialScore: 85.0, // Risk 15
-        governanceScore: 90.0, // Risk 10
-        rating: 'BBB', // High Risk
-        description:
-            'ESG Risk Rating: 30.0 (High)\nPeer Group: Retailing\nHighest Controversy: 3 (Labor Relations)'),
-    'GOOGL': ESGScore(
-        symbol: 'GOOGL',
-        totalScore: 78.0, // Risk 22
-        environmentalScore: 98.0, // Risk 2
-        socialScore: 90.0, // Risk 10
-        governanceScore: 90.0, // Risk 10
-        rating: 'A', // Medium Risk
-        description:
-            'ESG Risk Rating: 22.0 (Medium)\nPeer Group: Interactive Media\nHighest Controversy: 4 (Data Privacy)'),
-    'NVDA': ESGScore(
-        symbol: 'NVDA',
-        totalScore: 87.0, // Risk 13
-        environmentalScore: 99.0, // Risk 1
-        socialScore: 92.0, // Risk 8
-        governanceScore: 96.0, // Risk 4
-        rating: 'AAA', // Low Risk
-        description:
-            'ESG Risk Rating: 13.0 (Low)\nPeer Group: Semiconductors\nHighest Controversy: 2 (Business Ethics)'),
-    'META': ESGScore(
-        symbol: 'META',
-        totalScore: 68.0, // Risk 32
-        environmentalScore: 97.0, // Risk 3
-        socialScore: 80.0, // Risk 20
-        governanceScore: 91.0, // Risk 9
-        rating: 'BB', // High Risk
-        description:
-            'ESG Risk Rating: 32.0 (High)\nPeer Group: Interactive Media\nHighest Controversy: 4 (Data Privacy)'),
-  };
 }

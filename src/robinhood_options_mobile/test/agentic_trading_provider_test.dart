@@ -26,12 +26,13 @@ void main() {
       // Load with null config (should use defaults)
       provider.loadConfigFromUser(null);
 
-      expect(provider.config['autoTradeEnabled'], equals(false));
-      expect(provider.config['dailyTradeLimit'], equals(5));
-      expect(provider.config['autoTradeCooldownMinutes'], equals(60));
-      expect(provider.config['tradeQuantity'], equals(1));
-      expect(provider.config['maxPositionSize'], equals(100));
-      expect(provider.config['maxPortfolioConcentration'], equals(0.5));
+      expect(provider.config.autoTradeEnabled, equals(false));
+      expect(provider.config.strategyConfig.dailyTradeLimit, equals(5));
+      expect(provider.config.autoTradeCooldownMinutes, equals(60));
+      expect(provider.config.strategyConfig.tradeQuantity, equals(1));
+      expect(provider.config.strategyConfig.maxPositionSize, equals(100));
+      expect(provider.config.strategyConfig.maxPortfolioConcentration,
+          equals(0.5));
     });
 
     test('activateEmergencyStop should set emergency stop flag', () {
@@ -131,7 +132,7 @@ void main() {
     test('autoTrade should fail when emergency stop is activated', () async {
       // Enable auto-trade in config
       provider.loadConfigFromUser(null);
-      provider.config['autoTradeEnabled'] = true;
+      provider.config.autoTradeEnabled = true;
 
       // Activate emergency stop
       provider.activateEmergencyStop();
@@ -154,7 +155,7 @@ void main() {
     test('autoTrade should fail when no BUY signals available', () async {
       // Enable auto-trade
       provider.loadConfigFromUser(null);
-      provider.config['autoTradeEnabled'] = true;
+      provider.config.autoTradeEnabled = true;
 
       // No signals in the list (empty by default)
       final result = await provider.autoTrade(
@@ -175,7 +176,7 @@ void main() {
     test('Emergency stop should prevent auto-trading', () async {
       // Setup: Enable auto-trade
       provider.loadConfigFromUser(null);
-      provider.config['autoTradeEnabled'] = true;
+      provider.config.autoTradeEnabled = true;
 
       // Activate emergency stop
       provider.activateEmergencyStop();
@@ -202,8 +203,13 @@ void main() {
 
       // Setup: Enable auto-trade with limit of 1
       provider.loadConfigFromUser(null);
-      provider.config['autoTradeEnabled'] = true;
-      provider.config['dailyTradeLimit'] = 1;
+      provider.config.autoTradeEnabled = true;
+
+      // Note: dailyTradeLimit is in strategyConfig which is final.
+      // We need to create a new strategy config to change it.
+      final newStrategy =
+          provider.config.strategyConfig.copyWith(dailyTradeLimit: 1);
+      provider.config.strategyConfig = newStrategy;
 
       // After one trade, dailyTradeCount would be 1
       // Next trade attempt should fail
@@ -226,10 +232,11 @@ void main() {
       provider.loadConfigFromUser(null);
 
       // Verify all risk parameters are present
-      expect(provider.config['maxPositionSize'], isNotNull);
-      expect(provider.config['maxPortfolioConcentration'], isNotNull);
-      expect(provider.config['dailyTradeLimit'], isNotNull);
-      expect(provider.config['autoTradeCooldownMinutes'], isNotNull);
+      expect(provider.config.strategyConfig.maxPositionSize, isNotNull);
+      expect(
+          provider.config.strategyConfig.maxPortfolioConcentration, isNotNull);
+      expect(provider.config.strategyConfig.dailyTradeLimit, isNotNull);
+      expect(provider.config.autoTradeCooldownMinutes, isNotNull);
     });
 
     test('Daily counters should reset on new day', () {

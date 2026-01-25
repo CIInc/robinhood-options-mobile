@@ -57,7 +57,8 @@ class AgenticTradingProvider with ChangeNotifier {
     );
   }
 
-  Map<String, dynamic> _config = {};
+  AgenticTradingConfig _config =
+      AgenticTradingConfig(strategyConfig: TradeStrategyConfig());
 
   // Auto-trade state tracking
   bool _isAutoTrading = false;
@@ -111,7 +112,7 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Map<String, dynamic> get config => _config;
+  AgenticTradingConfig get config => _config;
 
   // Auto-trade getters
   bool get isAutoTrading => _isAutoTrading;
@@ -132,7 +133,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
-    final interval = _config['checkIntervalMinutes'] as int? ?? 5;
+    final interval = _config.checkIntervalMinutes;
     _nextAutoTradeTime = DateTime.now().add(Duration(minutes: interval));
     _autoTradeCountdownSeconds = interval * 60;
     notifyListeners();
@@ -160,7 +161,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Reset countdown for the next 5-minute cycle
   void resetAutoTradeCountdownForNextCycle() {
-    final interval = _config['checkIntervalMinutes'] as int? ?? 5;
+    final interval = _config.checkIntervalMinutes;
     _nextAutoTradeTime = DateTime.now().add(Duration(minutes: interval));
     _autoTradeCountdownSeconds = interval * 60;
     notifyListeners();
@@ -258,13 +259,13 @@ class AgenticTradingProvider with ChangeNotifier {
           Provider.of<OptionPositionStore>(context, listen: false);
 
       // Check auto-trade enabled
-      final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+      final autoTradeEnabled = _config.autoTradeEnabled;
       if (!autoTradeEnabled) {
         _log('🤖 Auto-trade check: disabled in config');
         return;
       }
 
-      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+      final isPaperMode = _config.paperTradingMode;
 
       // Validate user/account
       if (!isPaperMode &&
@@ -333,17 +334,16 @@ class AgenticTradingProvider with ChangeNotifier {
       final cycleStartTime = DateTime.now();
 
       // Fetch recent signals based on strategy
-      final enabledIndicators =
-          _config['enabledIndicators'] as Map<String, dynamic>? ?? {};
+      final enabledIndicators = _config.strategyConfig.enabledIndicators;
       final activeIndicators = enabledIndicators.entries
           .where((entry) => entry.value == true)
           .map((entry) => entry.key)
           .toList();
 
       final requireAllIndicatorsGreen =
-          _config['requireAllIndicatorsGreen'] as bool? ?? true;
+          _config.strategyConfig.requireAllIndicatorsGreen;
       final minSignalStrength =
-          (_config['minSignalStrength'] as num?)?.toInt() ?? 0;
+          _config.strategyConfig.minSignalStrength.toInt();
 
       Map<String, String>? indicatorFilters;
       int minStrengthFilter = minSignalStrength;
@@ -362,11 +362,9 @@ class AgenticTradingProvider with ChangeNotifier {
           '📡 Fetching signals since ${startDate.month}/${startDate.day} ${startDate.hour}:${startDate.minute}');
 
       // Filter by symbol whitelist if configured
-      final symbolFilter = _config['symbolFilter'];
+      final symbolFilter = _config.strategyConfig.symbolFilter;
       List<String>? symbols;
-      if (symbolFilter != null &&
-          symbolFilter is List &&
-          symbolFilter.isNotEmpty) {
+      if (symbolFilter.isNotEmpty) {
         symbols = symbolFilter.map((e) => e.toString().toUpperCase()).toList();
         // _log('🤖 Auto-trade check: filtering for allowed symbols: $symbols');
         _log('🔍 Filtering for allowed symbols: ${symbols.length}');
@@ -379,7 +377,7 @@ class AgenticTradingProvider with ChangeNotifier {
           sortBy: 'timestamp',
           startDate: startDate,
           symbols: symbols,
-          interval: _config['interval'],
+          interval: _config.strategyConfig.interval,
         );
 
         // Apply strength of selected indicators
@@ -400,7 +398,7 @@ class AgenticTradingProvider with ChangeNotifier {
           minSignalStrength: minStrengthFilter,
           sortBy: 'timestamp',
           // startDate: startDate,
-          interval: _config['interval'],
+          interval: _config.strategyConfig.interval,
         );
       }
 
@@ -483,40 +481,12 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Load configuration from User model
-  void loadConfigFromUser(dynamic agenticTradingConfig) {
+  void loadConfigFromUser(AgenticTradingConfig? agenticTradingConfig) {
     if (agenticTradingConfig != null) {
-      _config = agenticTradingConfig.toJson();
+      _config = agenticTradingConfig;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_from_user');
     } else {
-      _config = {
-        'smaPeriodFast': 10,
-        'smaPeriodSlow': 30,
-        'tradeQuantity': 1,
-        'maxPositionSize': 100,
-        'maxPortfolioConcentration': 0.5,
-        'rsiPeriod': 14,
-        'marketIndexSymbol': 'SPY',
-        'autoTradeEnabled': false,
-        'dailyTradeLimit': 5,
-        'autoTradeCooldownMinutes': 60,
-        'interval': '1d',
-        'enabledIndicators': {
-          'priceMovement': true,
-          'momentum': true,
-          'marketDirection': true,
-          'volume': true,
-          'macd': true,
-          'bollingerBands': true,
-          'stochastic': true,
-          'atr': true,
-          'obv': true,
-        },
-        'paperTradingMode': false,
-        'timeBasedExitEnabled': false,
-        'timeBasedExitMinutes': 0,
-        'requireAllIndicatorsGreen': true,
-        'minSignalStrength': 70.0,
-      };
+      _config = AgenticTradingConfig(strategyConfig: TradeStrategyConfig());
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
     }
     notifyListeners();
@@ -524,12 +494,13 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Update configuration and save to User document
   Future<void> updateConfig(
-    Map<String, dynamic> newConfig,
+    AgenticTradingConfig newConfig,
     DocumentReference userDocRef,
   ) async {
     _config = newConfig;
+
     try {
-      await userDocRef.update({'agenticTradingConfig': newConfig});
+      await userDocRef.update({'agenticTradingConfig': newConfig.toJson()});
       _analytics.logEvent(name: 'agentic_trading_config_updated');
     } catch (e) {
       _analytics.logEvent(
@@ -718,8 +689,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Public getter for market status (delegates to utility)
   bool get isMarketOpen {
-    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
-    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final allowPreMarket = _config.allowPreMarketTrading;
+    final allowAfterHours = _config.allowAfterHoursTrading;
     final includeExtended = allowPreMarket || allowAfterHours;
     return MarketHours.isMarketOpen(includeExtendedHours: includeExtended);
   }
@@ -732,7 +703,7 @@ class AgenticTradingProvider with ChangeNotifier {
       parameters: {'reason': 'manual_activation'},
     );
     // Send push notification if enabled
-    if (_config['notifyOnEmergencyStop'] as bool? ?? true) {
+    if (_config.notifyOnEmergencyStop) {
       _sendTradeNotification(userDocRef, 'emergency_stop');
     }
     notifyListeners();
@@ -747,7 +718,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Sends a daily summary notification using current trade history
   Future<void> sendDailySummary(DocumentReference? userDocRef) async {
-    if (!(_config['notifyDailySummary'] as bool? ?? false)) {
+    if (!_config.notifyDailySummary) {
       return;
     }
 
@@ -815,7 +786,7 @@ class AgenticTradingProvider with ChangeNotifier {
     _resetDailyCounters();
 
     // Check if auto-trade is enabled
-    final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+    final autoTradeEnabled = _config.autoTradeEnabled;
     if (!autoTradeEnabled) {
       _log('❌ Auto-trade not enabled in config');
       return 'Auto-trade disabled in settings';
@@ -828,8 +799,8 @@ class AgenticTradingProvider with ChangeNotifier {
     }
 
     // Check if market is open (including extended hours if enabled)
-    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
-    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final allowPreMarket = _config.allowPreMarketTrading;
+    final allowAfterHours = _config.allowAfterHoursTrading;
     final includeExtended = allowPreMarket || allowAfterHours;
 
     if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
@@ -838,7 +809,7 @@ class AgenticTradingProvider with ChangeNotifier {
     }
 
     // Check daily trade limit
-    final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+    final dailyLimit = _config.strategyConfig.dailyTradeLimit;
     if (_dailyTradeCount >= dailyLimit) {
       // _log('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
       return 'Daily trade limit reached ($_dailyTradeCount/$dailyLimit)';
@@ -846,7 +817,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
     // Check cooldown period
     if (_lastAutoTradeTime != null) {
-      final cooldownMinutes = _config['autoTradeCooldownMinutes'] as int? ?? 60;
+      final cooldownMinutes = _config.autoTradeCooldownMinutes;
       final cooldownDuration = Duration(minutes: cooldownMinutes);
       final timeSinceLastTrade = DateTime.now().difference(_lastAutoTradeTime!);
 
@@ -940,7 +911,7 @@ class AgenticTradingProvider with ChangeNotifier {
     final processedSignals = <Map<String, dynamic>>[];
 
     try {
-      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+      final isPaperMode = _config.paperTradingMode;
 
       // Validate required parameters
       if ((!isPaperMode &&
@@ -979,17 +950,15 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Get enabled indicators from config
-      final enabledIndicators =
-          _config['enabledIndicators'] as Map<String, dynamic>? ?? {};
+      final enabledIndicators = _config.strategyConfig.enabledIndicators;
       final activeIndicators = enabledIndicators.entries
           .where((entry) => entry.value == true)
           .map((entry) => entry.key)
           .toList();
 
       final requireAllIndicatorsGreen =
-          _config['requireAllIndicatorsGreen'] as bool? ?? true;
-      final minSignalStrength =
-          (_config['minSignalStrength'] as num?)?.toDouble() ?? 70.0;
+          _config.strategyConfig.requireAllIndicatorsGreen;
+      final minSignalStrength = _config.strategyConfig.minSignalStrength;
 
       // _log('📊 Active indicators for auto-trade filtering: $activeIndicators');
       // _log(
@@ -1141,7 +1110,7 @@ class AgenticTradingProvider with ChangeNotifier {
       _log('🎯 Found ${buySignals.length} qualified BUY signals');
 
       final executedTrades = <Map<String, dynamic>>[];
-      final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+      final dailyLimit = _config.strategyConfig.dailyTradeLimit;
 
       // Process each signal (respecting daily limit)
       for (final signal in buySignals) {
@@ -1220,9 +1189,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
               final side = normalizedAction == 'BUY' ? 'buy' : 'sell';
 
-              final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
-              final requireApproval =
-                  _config['requireApproval'] as bool? ?? false;
+              final isPaperMode = _config.paperTradingMode;
+              final requireApproval = _config.requireApproval;
 
               if (requireApproval) {
                 final strength = signal['signalStrength'];
@@ -1312,9 +1280,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     'highestPrice': currentPrice,
                     'timestamp': DateTime.now().toIso8601String(),
                     'enabledIndicators': List<String>.from(
-                      (_config['enabledIndicators'] as Map<String, dynamic>? ??
-                              {})
-                          .entries
+                      _config.strategyConfig.enabledIndicators.entries
                           .where((e) => e.value == true)
                           .map((e) => e.key),
                     ),
@@ -1326,7 +1292,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   await _saveAutomatedBuyTradesToFirestore(userDocRef);
 
                   // Send notification if enabled
-                  if (_config['notifyOnBuy'] as bool? ?? true) {
+                  if (_config.notifyOnBuy) {
                     _sendTradeNotification(
                       userDocRef,
                       'buy',
@@ -1460,7 +1426,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
     try {
       final side = action.toLowerCase() == 'buy' ? 'buy' : 'sell';
-      final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+      final isPaperMode = _config.paperTradingMode;
 
       if (!isPaperMode && brokerageService == null) {
         _log('❌ Cannot approve real order without brokerage service');
@@ -1518,8 +1484,7 @@ class AgenticTradingProvider with ChangeNotifier {
             'highestPrice': price,
             'timestamp': DateTime.now().toIso8601String(),
             'enabledIndicators': List<String>.from(
-              (_config['enabledIndicators'] as Map<String, dynamic>? ?? {})
-                  .entries
+              _config.strategyConfig.enabledIndicators.entries
                   .where((e) => e.value == true)
                   .map((e) => e.key),
             ),
@@ -1597,16 +1562,12 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Get take profit and stop loss percentages from config
-      final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
-      final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
+      final takeProfitPercent = _config.strategyConfig.takeProfitPercent;
+      final stopLossPercent = _config.strategyConfig.stopLossPercent;
 
       // Get partial exit config
-      final enablePartialExits =
-          _config['enablePartialExits'] as bool? ?? false;
-      final exitStages = (_config['exitStages'] as List<dynamic>?)
-              ?.map((e) => ExitStage.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [];
+      final enablePartialExits = _config.strategyConfig.enablePartialExits;
+      final exitStages = _config.strategyConfig.exitStages;
 
       // _log(
       //     '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
@@ -1722,10 +1683,8 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           // Trailing Stop Loss: exit if price drops by trailingStopPercent
-          if (!shouldExit &&
-              (_config['trailingStopEnabled'] as bool? ?? false)) {
-            final trailPercent =
-                _config['trailingStopPercent'] as double? ?? 3.0;
+          if (!shouldExit && _config.strategyConfig.trailingStopEnabled) {
+            final trailPercent = _config.strategyConfig.trailingStopPercent;
             final prevHighest =
                 (buyTrade['highestPrice'] as double?) ?? entryPrice;
             final newHighest =
@@ -1745,9 +1704,8 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           // Time-Based Exit
-          if (!shouldExit &&
-              (_config['timeBasedExitEnabled'] as bool? ?? false)) {
-            final exitMinutes = _config['timeBasedExitMinutes'] as int? ?? 0;
+          if (!shouldExit && _config.strategyConfig.timeBasedExitEnabled) {
+            final exitMinutes = _config.strategyConfig.timeBasedExitMinutes;
             if (exitMinutes > 0) {
               final tradeTimestamp = buyTrade['timestamp'] as String?;
               if (tradeTimestamp != null) {
@@ -1767,9 +1725,8 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           // Market Close Exit
-          if (!shouldExit &&
-              (_config['marketCloseExitEnabled'] as bool? ?? false)) {
-            final exitMinutes = _config['marketCloseExitMinutes'] as int? ?? 15;
+          if (!shouldExit && _config.strategyConfig.marketCloseExitEnabled) {
+            final exitMinutes = _config.strategyConfig.marketCloseExitMinutes;
             final minutesUntilClose = MarketHours.minutesUntilMarketClose();
             if (minutesUntilClose != null &&
                 minutesUntilClose <= exitMinutes &&
@@ -1785,11 +1742,11 @@ class AgenticTradingProvider with ChangeNotifier {
 
           // Technical Exits (RSI & Signal Strength)
           if (!shouldExit &&
-              ((_config['rsiExitEnabled'] as bool? ?? false) ||
-                  (_config['signalStrengthExitEnabled'] as bool? ?? false))) {
+              (_config.strategyConfig.rsiExitEnabled ||
+                  _config.strategyConfig.signalStrengthExitEnabled)) {
             try {
               // Fetch latest signal based on current interval
-              final interval = _config['interval'] as String? ?? '1d';
+              final interval = _config.strategyConfig.interval;
               final docId = interval == '1d'
                   ? 'signals_$symbol'
                   : 'signals_${symbol}_$interval';
@@ -1805,10 +1762,8 @@ class AgenticTradingProvider with ChangeNotifier {
                     data['multiIndicatorResult'] as Map<String, dynamic>?;
 
                 // Check RSI Exit
-                if (!shouldExit &&
-                    (_config['rsiExitEnabled'] as bool? ?? false)) {
-                  final rsiThreshold =
-                      _config['rsiExitThreshold'] as double? ?? 80.0;
+                if (!shouldExit && _config.strategyConfig.rsiExitEnabled) {
+                  final rsiThreshold = _config.strategyConfig.rsiExitThreshold;
                   if (multiIndicatorResult != null) {
                     final indicators = multiIndicatorResult['indicators']
                         as Map<String, dynamic>?;
@@ -1829,9 +1784,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
                 // Check Signal Strength Exit
                 if (!shouldExit &&
-                    (_config['signalStrengthExitEnabled'] as bool? ?? false)) {
+                    _config.strategyConfig.signalStrengthExitEnabled) {
                   final strengthThreshold =
-                      _config['signalStrengthExitThreshold'] as double? ?? 40.0;
+                      _config.strategyConfig.signalStrengthExitThreshold;
                   final optimization =
                       data['optimization'] as Map<String, dynamic>?;
 
@@ -1867,7 +1822,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
             // Execute sell order for the automated buy quantity
             try {
-              final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+              final isPaperMode = _config.paperTradingMode;
               _log(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing exit order: SELL $quantityToSell shares of $symbol at \$$currentPrice ($exitReason)');
 
@@ -1942,8 +1897,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
                 // Send notification based on exit type
                 final isTakeProfit = exitReason.contains('Take Profit');
-                if (isTakeProfit &&
-                    (_config['notifyOnTakeProfit'] as bool? ?? true)) {
+                if (isTakeProfit && _config.notifyOnTakeProfit) {
                   _sendTradeNotification(
                     userDocRef,
                     'take_profit',
@@ -1952,8 +1906,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     price: currentPrice,
                     profitLoss: (currentPrice - entryPrice) * quantityToSell,
                   );
-                } else if (!isTakeProfit &&
-                    (_config['notifyOnStopLoss'] as bool? ?? true)) {
+                } else if (!isTakeProfit && _config.notifyOnStopLoss) {
                   _sendTradeNotification(
                     userDocRef,
                     'stop_loss',
