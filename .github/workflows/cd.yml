@@ -61,38 +61,54 @@ jobs:
       # - name: Build web
       #   run: flutter build web --web-renderer html
 
-      # Ucomment the following steps to build Android
+      # Uncomment the following steps to build Android
 
-      # - name: Install Java
-      #   uses: actions/setup-java@v4
-      #   with:
-      #     distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
-      #     java-version: '17'
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-      # - name: Setup Android Signing
-      #   run: |
-      #     echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
-      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+      - name: Setup Android Signing
+        run: |
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      # - name: Build Android APK
-      #   run: flutter build apk --release
-      #   continue-on-error: false
+      - name: Build Android APK
+        run: flutter build apk --release
+        continue-on-error: false
 
-      # - name: Upload Android APK Build Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     # Artifact name
-      #     name: release-apk
-      #     # A file, directory or wildcard pattern that describes what to upload
-      #     path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
-      #     # The desired behavior if no files are found using the provided path.
-      #   continue-on-error: false
+      - name: Upload Android APK Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Artifact name
+          name: release-apk
+          # A file, directory or wildcard pattern that describes what to upload
+          path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+          # The desired behavior if no files are found using the provided path.
+        continue-on-error: false
 
 
 
-      # - name: Build Android AppBundle
-      #   run: flutter build appbundle --release
-      #   continue-on-error: false
+      - name: Build Android AppBundle
+        run: flutter build appbundle --release
+        continue-on-error: false
+
+      - name: Upload App Bundle (.aab) Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+        continue-on-error: false
+
+      - name: Upload to Play Store
+        uses: r0adkll/upload-google-play@v1.0.15
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
+          packageName: com.cidevelop.robinhood_options_mobile
+          releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+          track: internal
+
 
       # - name: Build iOS IPA
       #   id: build-ipa
@@ -109,22 +125,3 @@ jobs:
       #     # The desired behavior if no files are found using the provided path.
       #   continue-on-error: false
 
-#      - name: Build AppBundle
-#        id: build
-#        run: flutter build appbundle --build-number=`git rev-list --count HEAD`
-#        continue-on-error: false
-
-#      - name: Upload App Bundle (.aab) Build Artifact
-#        uses: actions/upload-artifact@v2.2.4
-#        with:
-#          name: release-aab
-#          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
-#        continue-on-error: false
-
-#      - name: Upload to Play Store
-#        uses: r0adkll/upload-google-play@v1.0.15
-#        with:
-#          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
-#          packageName: com.gdgkansascity.flutter_ci
-#          releaseFiles: ${{ steps.build.outputs.bundlePath }}
-#          track: internal

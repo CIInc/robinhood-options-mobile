@@ -109,13 +109,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration ([Tracking: #33](https://github.com/CIInc/robinhood-options-mobile/issues/33))
 - Fidelity Multi-leg options execution
-- Order Templates (save & reuse orders)
+- [x] Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
 ### v0.35.0 (Q2 2026 - May)
 **Quantitative Research Workbench**
 - Alpha factor discovery engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
-- Correlation matrix visualizer (multi-asset, multi-timeframe)
+- [x] Correlation matrix visualizer (multi-asset, multi-timeframe)
 - Event study analyzer
 - Rolling statistics dashboard
 - Custom screener builder
@@ -340,6 +340,8 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Review-before-execute mode for semi-automatic trading
 - [x] **Advanced Risk Controls** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
     - [x] Sector limits, correlation checks, volatility filters, drawdown protection
+- [x] **RiskGuard Manual Protection** ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):
+    - [x] Extended automated risk controls (max drawdown, sector exposure) to manual trading activities
 - [x] **Advanced Exit Strategies** ([#112](https://github.com/CIInc/robinhood-options-mobile/issues/112)):
     - [x] Partial Position Exits (staged take profit)
     - [x] Time-Based Exits (duration limits)
@@ -360,6 +362,8 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Improved detection algorithms (Whale, LEAPS)
     - [x] Comprehensive in-app definitions
     - [x] UI polish and better tooltips
+- [x] **Trade Signals Widget**:
+    - [x] Dedicated home screen widget for viewing and filtering real-time signals
 
 ### Backtesting
 - [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):
@@ -411,6 +415,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] "Others" grouping for remaining positions
 - [x] **Risk Heatmap**: Interactive treemap visualization with Sector/Symbol grouping
 - [x] **Portfolio Analytics**: Comprehensive dashboard with risk/return metrics, Custom Benchmarks, and Health Score
+- [x] **Custom Benchmarks**: Compare portfolio performance against any ticker (e.g., BTC, NVDA)
+- [x] **Enhanced Cash Allocation**: Intelligent handling of short-term treasury ETFs as cash equivalents
+- [x] **Correlation Matrix**: Multi-asset correlation heatmap with filtering and detailed tooltips
 
 ### Trading & Execution
 - [x] **Option Chain Screener** ([#12](https://github.com/CIInc/robinhood-options-mobile/issues/12)):
@@ -453,6 +460,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Secure Storage** ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88)): Secure storage for OAuth tokens
 - [x] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon
 - [x] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement
+- [x] **In-App Purchases**: Subscription infrastructure for premium features (Trade Signals)
 
 ## Planned Enhancements 🚀
 
@@ -618,6 +626,11 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))
 - [ ] **Multi-Broker**: Unified view across Fidelity, IBKR, and others
 - [ ] **Developer API**: Public API access and webhook webhooks
+- [ ] **SEC & EDGAR Data**: Direct access to regulatory filings and financial data ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143))
+    - [ ] Real-time 13F filings (Institutional Ownership)
+    - [ ] Form 4 data (Insider Trading)
+    - [ ] 10-K/10-Q Financial Statements parsing
+    - [ ] 8-K Material Events alerts
 
 #### Technical Excellence
 - [ ] **Testing**: Comprehensive unit, widget, and integration test coverage ([#75](https://github.com/CIInc/robinhood-options-mobile/issues/75), [#90](https://github.com/CIInc/robinhood-options-mobile/issues/90))

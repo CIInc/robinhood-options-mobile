@@ -20,6 +20,7 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 - **Smart Presets**: Quickly apply standard strategies using the preset chips:
   - *Asset Class*: Aggressive, Moderate, Conservative, All Equity.
   - *Sector*: Tech Heavy, Balanced, Defensive.
+- **AI Optimization**: Tap the sparkles icon ✨ to open the [AI Asset Allocation](ai-asset-allocation.md) tool. Get personalized target recommendations based on your risk profile, time horizon, and investment goals.
 - **Normalization**: One-tap "Normalize" button ensures your targets always add up to exactly 100%.
 
 ### 4. Actionable Recommendations
