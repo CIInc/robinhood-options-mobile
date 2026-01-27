@@ -359,7 +359,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           // Summary Section
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
@@ -495,7 +496,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
@@ -628,7 +630,9 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] = accountStore.items[0].portfolioCash;
+        portfolioState['buyingPower'] = accountStore.items[0].buyingPower ??
+            accountStore.items[0].portfolioCash;
+        portfolioState['cashAvailable'] = accountStore.items[0].portfolioCash;
         if (widget.stockPosition != null) {
           portfolioState[widget.instrument!.symbol] = {
             'quantity': widget.stockPosition!.quantity,

@@ -648,17 +648,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Map<String, dynamic> _buildPortfolioState(BuildContext context) {
     // Get actual portfolio cash from account (same as Home widget)
     double cash = 0.0;
+    double buyingPower = 0.0;
     final accountStore = Provider.of<AccountStore>(context, listen: false);
     if (accountStore.items.isNotEmpty) {
       final account = accountStore.items.first;
       cash = account.portfolioCash ?? 0.0;
+      buyingPower = account.buyingPower ?? cash;
     }
 
     final stockPositionStore =
         Provider.of<InstrumentPositionStore>(context, listen: false);
 
     final Map<String, dynamic> portfolioState = {
-      'cash': cash,
+      'buyingPower': buyingPower,
+      'cashAvailable': cash,
     };
 
     // Add all stock positions with their quantities and prices

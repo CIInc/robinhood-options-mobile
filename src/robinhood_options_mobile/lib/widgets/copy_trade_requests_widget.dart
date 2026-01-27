@@ -140,7 +140,10 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
 
         return Card(
           color: isSelected
-              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2)
+              ? Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.2)
               : null,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: InkWell(
@@ -308,8 +311,11 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] =
-            accountStore.items[0].portfolioCash; // .buyingPower
+        final buyingPower = accountStore.items[0].buyingPower ??
+            accountStore.items[0].portfolioCash ??
+            0.0;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] = accountStore.items[0].portfolioCash;
       }
 
       final riskResult =
@@ -403,7 +409,10 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] = accountStore.items[0].buyingPower;
+        final buyingPower = accountStore.items[0].buyingPower ?? 0.0;
+        portfolioState['cash'] = buyingPower;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] = buyingPower;
       }
 
       for (final request in selectedRequests) {

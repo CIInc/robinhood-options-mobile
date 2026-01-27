@@ -196,7 +196,8 @@ Future<void> showCopyTradeDialog({
       final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
-      portfolioState['cash'] = account.buyingPower;
+      portfolioState['buyingPower'] = account.buyingPower;
+      portfolioState['cashAvailable'] = account.portfolioCash;
 
       final riskResult =
           await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({

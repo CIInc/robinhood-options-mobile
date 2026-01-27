@@ -259,7 +259,8 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                                         .colorScheme
                                         .surfaceContainerHighest;
                                     if (tag == 'Bullish') {
-                                      color = Colors.green.withValues(alpha: 0.1);
+                                      color =
+                                          Colors.green.withValues(alpha: 0.1);
                                     } else if (tag == 'Bearish') {
                                       color = Colors.red.withValues(alpha: 0.1);
                                     }
@@ -1521,8 +1522,12 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] =
-            accountStore.items[0].portfolioCash; // .buyingPower
+        final buyingPower = accountStore.items[0].buyingPower ??
+            accountStore.items[0].portfolioCash ??
+            0.0;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] =
+            accountStore.items[0].portfolioCash ?? 0.0;
       }
 
       final riskResult =

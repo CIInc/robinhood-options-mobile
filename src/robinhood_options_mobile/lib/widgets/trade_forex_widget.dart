@@ -601,7 +601,12 @@ class _TradeForexWidgetState extends State<TradeForexWidget> {
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] = accountStore.items[0].portfolioCash;
+        final buyingPower = accountStore.items[0].buyingPower ??
+            accountStore.items[0].portfolioCash ??
+            0.0;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] =
+            accountStore.items[0].portfolioCash ?? 0.0;
         if (widget.holding.quantity != null && widget.holding.quantity! > 0) {
           portfolioState[widget.holding.currencyCode] = {
             'quantity': widget.holding.quantity,

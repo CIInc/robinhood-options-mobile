@@ -217,19 +217,18 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 _updateEstimates();
               });
             },
-            items:
-                <String>[
-                  'Market',
-                  'Limit',
-                  'Stop',
-                  'Stop Limit',
-                  'Trailing Stop',
-                ].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+            items: <String>[
+              'Market',
+              'Limit',
+              'Stop',
+              'Stop Limit',
+              'Trailing Stop',
+            ].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 16),
 
@@ -315,12 +314,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               },
               items: <String>['Percentage', 'Amount']
                   .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  })
-                  .toList(),
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -364,19 +362,19 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             },
             items: <String>['gtc', 'gfd', 'ioc', 'opg']
                 .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value.toUpperCase()),
-                  );
-                })
-                .toList(),
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value.toUpperCase()),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 24),
 
           // Summary Section
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -522,7 +520,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           const SizedBox(height: 24),
           Card(
             elevation: 0,
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -671,7 +670,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] = accountStore.items[0].buyingPower;
+        final buyingPower = accountStore.items[0].buyingPower ?? 0.0;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] =
+            accountStore.items[0].portfolioCash ?? 0.0;
         if (widget.optionPosition != null) {
           portfolioState[widget.optionInstrument!.chainSymbol] = {
             'quantity': widget.optionPosition!.quantity,
@@ -703,13 +705,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         'multiplier': 100,
       };
 
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('riskguardTask')
-          .call({
-            'proposal': proposal,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+      final result =
+          await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
+        'proposal': proposal,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['approved'] == true) {
@@ -773,7 +774,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       );
       final portfolioState = <String, dynamic>{};
       if (accountStore.items.isNotEmpty) {
-        portfolioState['cash'] = accountStore.items[0].buyingPower;
+        final buyingPower = accountStore.items[0].buyingPower ?? 0.0;
+        portfolioState['buyingPower'] = buyingPower;
+        portfolioState['cashAvailable'] =
+            accountStore.items[0].portfolioCash ?? 0.0;
         if (widget.optionPosition != null) {
           portfolioState[widget.optionInstrument!.chainSymbol] = {
             'quantity': widget.optionPosition!.quantity,
@@ -786,10 +790,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       final result = await FirebaseFunctions.instance
           .httpsCallable('calculatePositionSize')
           .call({
-            'symbol': widget.optionInstrument?.chainSymbol,
-            'portfolioState': portfolioState,
-            'config': agenticProvider.config,
-          });
+        'symbol': widget.optionInstrument?.chainSymbol,
+        'portfolioState': portfolioState,
+        'config': agenticProvider.config,
+      });
 
       final data = result.data;
       if (data['status'] == 'success') {
