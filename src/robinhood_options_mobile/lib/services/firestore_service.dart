@@ -984,6 +984,24 @@ class FirestoreService {
         .snapshots();
   }
 
+  /// Mark a message as read
+  Future<void> markGroupMessageAsRead(
+      String groupId, String messageId, String userId) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+        'readBy.$userId': Timestamp.now(),
+      });
+      // debugPrint("Message $messageId marked as read by $userId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to mark message as read: ${e.message}');
+      // Don't rethrow for read receipt failure, just log it
+    }
+  }
+
   /// Send a message to a group
   Future<void> sendGroupMessage(String groupId, GroupMessage message) async {
     try {

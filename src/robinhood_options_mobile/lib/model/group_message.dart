@@ -13,6 +13,7 @@ class GroupMessage {
   final String text;
   final DateTime timestamp;
   final MessageType type;
+  final Map<String, DateTime> readBy;
 
   GroupMessage({
     required this.id,
@@ -22,6 +23,7 @@ class GroupMessage {
     required this.text,
     required this.timestamp,
     this.type = MessageType.text,
+    this.readBy = const {},
   });
 
   factory GroupMessage.fromDocument(DocumentSnapshot doc) {
@@ -37,6 +39,13 @@ class GroupMessage {
         (e) => e.toString() == 'MessageType.${data['type']}',
         orElse: () => MessageType.text,
       ),
+      readBy: (data['readBy'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              (value as Timestamp).toDate(),
+            ),
+          ) ??
+          {},
     );
   }
 
@@ -48,6 +57,10 @@ class GroupMessage {
       'text': text,
       'timestamp': Timestamp.fromDate(timestamp),
       'type': type.toString().split('.').last,
+      'readBy': readBy.map((key, value) => MapEntry(
+            key,
+            Timestamp.fromDate(value),
+          )),
     };
   }
 }

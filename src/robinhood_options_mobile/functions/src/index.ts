@@ -30,6 +30,7 @@ import * as backtesting from "./backtesting";
 import * as optionsFlow from "./options-flow";
 import * as optionsFlowCron from "./options-flow-cron";
 import * as sentimentAnalysis from "./sentiment-analysis";
+import * as chatNotifications from "./chat-notifications";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -48,6 +49,7 @@ export const getInvestmentsHoldings =
   plaidfunc.getInvestmentsHoldings;
 export const getInvestmentsTransactions =
   plaidfunc.getInvestmentsTransactions;
+export const onGroupMessageCreated = chatNotifications.onGroupMessageCreated;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
 export const getSentimentAnalysis = sentimentAnalysis.getSentimentAnalysis;
