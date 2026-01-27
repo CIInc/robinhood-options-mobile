@@ -550,14 +550,23 @@ const isDateInOptions = (
   }[]
 ): boolean => {
   return options.some((opt) => {
+    let expDate: Date | undefined;
     if (opt.expirationDate) {
-      return getDaysDifference(opt.expirationDate, date) === 0;
+      expDate = opt.expirationDate;
+    } else {
+      const c = opt.calls?.[0];
+      const p = opt.puts?.[0];
+      const exp = c?.expiration || p?.expiration;
+      if (exp) expDate = new Date(exp);
     }
-    const c = opt.calls?.[0];
-    const p = opt.puts?.[0];
-    const exp = c?.expiration || p?.expiration;
-    if (!exp) return false;
-    return getDaysDifference(new Date(exp), date) === 0;
+
+    if (!expDate) return false;
+
+    return (
+      expDate.getUTCFullYear() === date.getUTCFullYear() &&
+      expDate.getUTCMonth() === date.getUTCMonth() &&
+      expDate.getUTCDate() === date.getUTCDate()
+    );
   });
 };
 

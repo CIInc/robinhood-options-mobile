@@ -368,10 +368,10 @@ class OptionsFlowStore extends ChangeNotifier {
 
       DateTime? expDate;
       if (val is DateTime) {
-        expDate = val;
+        expDate = val.isUtc ? val : val.toUtc();
       } else if (val is Timestamp) {
         // TODO: Should not occur, to remove
-        expDate = val.toDate();
+        expDate = val.toDate().toUtc();
       } else {
         debugPrint('Unexpected expiration date type: ${val.runtimeType}');
       }
@@ -460,10 +460,11 @@ class OptionsFlowStore extends ChangeNotifier {
       // Now we have cachedResult (either from DB or fresh fetch)
       final expirationDatesRaw = cachedResult['expirationDates'] as List?;
       final List<DateTime> expirationDates = expirationDatesRaw?.map((e) {
-            if (e is Timestamp) return e.toDate();
-            if (e is int) return DateTime.fromMillisecondsSinceEpoch(e * 1000);
-            if (e is DateTime) return e;
-            return DateTime.now(); // Should not happen
+            if (e is Timestamp) return e.toDate().toUtc();
+            if (e is int)
+              return DateTime.fromMillisecondsSinceEpoch(e * 1000, isUtc: true);
+            if (e is DateTime) return e.isUtc ? e : e.toUtc();
+            return DateTime.now().toUtc(); // Should not happen
           }).toList() ??
           [];
 
@@ -482,7 +483,8 @@ class OptionsFlowStore extends ChangeNotifier {
           return expDate.isAfter(now.subtract(const Duration(days: 1)));
         } else if (exp is int) {
           // TODO: Should not occur, to remove
-          final expDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          final expDate =
+              DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
           return expDate.isAfter(now.subtract(const Duration(days: 1)));
         }
         return false;
@@ -612,11 +614,12 @@ class OptionsFlowStore extends ChangeNotifier {
         // final expirationDate = DateTime.fromMillisecondsSinceEpoch(
         //     optionDate['expirationDate'] * 1000);
         final expirationDate = optionDate['expirationDate'] is DateTime
-            ? optionDate['expirationDate']
+            ? (optionDate['expirationDate'] as DateTime).toUtc()
             : optionDate['expirationDate'] is Timestamp
-                ? optionDate['expirationDate'].toDate()
+                ? (optionDate['expirationDate'] as Timestamp).toDate().toUtc()
                 : DateTime.fromMillisecondsSinceEpoch(
-                    optionDate['expirationDate'] * 1000);
+                    optionDate['expirationDate'] * 1000,
+                    isUtc: true);
 
         // Process Calls
         if (optionDate['calls'] != null) {
