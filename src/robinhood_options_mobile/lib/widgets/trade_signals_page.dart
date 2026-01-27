@@ -66,13 +66,72 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
   @override
   Widget build(BuildContext context) {
     if (widget.user == null || widget.userDocRef == null) {
+      var auth = firebase_auth.FirebaseAuth.instance;
       return Scaffold(
           appBar: AppBar(
             title: const Text(Constants.appTitle), // Search
+            centerTitle: false,
+            actions: [
+              IconButton(
+                  icon: auth.currentUser != null
+                      ? (auth.currentUser!.photoURL == null
+                          ? const Icon(Icons.account_circle)
+                          : CircleAvatar(
+                              maxRadius: 12,
+                              backgroundImage: CachedNetworkImageProvider(
+                                  auth.currentUser!.photoURL!)))
+                      : const Icon(Icons.account_circle_outlined),
+                  onPressed: () async {
+                    await showProfile(
+                        context,
+                        auth,
+                        FirestoreService(),
+                        widget.analytics,
+                        widget.observer,
+                        widget.brokerageUser,
+                        widget.service);
+                  }),
+            ],
             // title: const Text('Trade Signals')
           ),
-          body: const Center(
-            child: Text("Please login to access Trade Signals"),
+          body: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 64,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.6)),
+                      const SizedBox(height: 16),
+                      const Text('Sign in to access Trade Signals',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.login),
+                        onPressed: () async {
+                          await showProfile(
+                              context,
+                              auth,
+                              FirestoreService(),
+                              widget.analytics,
+                              widget.observer,
+                              widget.brokerageUser,
+                              widget.service);
+                        },
+                        label: const Text('Sign In'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ));
     }
 

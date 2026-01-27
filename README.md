@@ -357,8 +357,15 @@ If you get an error, see Debugging Notes section above to clean the project.
 
 ## Test
 
+### Unit & Widget Tests
 ```bash
 flutter test
+```
+
+### Integration Tests
+To run the end-to-end integration tests:
+```bash
+flutter test integration_test/app_test.dart
 ```
 
 ## Future Enhancements

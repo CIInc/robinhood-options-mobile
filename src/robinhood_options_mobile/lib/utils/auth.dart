@@ -118,7 +118,9 @@ class AuthUtil {
     String? fcmToken;
 
     //TODO: Disable Web Push Notifications for now until blank screen issue is resolved...
-    if (!kIsWeb) {
+    // Skip notification permission request during integration tests
+    const bool isIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
+    if (!kIsWeb && !isIntegrationTest) {
       // You may set the permission requests to "provisional" which allows the user to choose what type
       // of notifications they would like to receive once the user receives a notification.
       final settings = await FirebaseMessaging.instance.requestPermission(

@@ -51,7 +51,8 @@ import 'package:dynamic_color/dynamic_color.dart';
 
 /// Requires that a Firestore emulator is running locally.
 /// See https://firebase.flutter.dev/docs/firestore/usage#emulator-usage
-bool shouldUseFirestoreEmulator = false;
+bool shouldUseFirestoreEmulator =
+    const bool.fromEnvironment('USE_FIRESTORE_EMULATOR', defaultValue: false);
 
 late final FirebaseApp app;
 late final FirebaseAuth auth;

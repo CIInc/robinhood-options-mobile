@@ -111,7 +111,9 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
 
-    if (withSilentVerificationSMSMFA && !kIsWeb) {
+    // Skip notification permission request during integration tests
+    const bool isIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
+    if (withSilentVerificationSMSMFA && !kIsWeb && !isIntegrationTest) {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
       messaging.requestPermission();
     }

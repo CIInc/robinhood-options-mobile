@@ -420,13 +420,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             }
             if (userSnapshot != null) {
               user = userSnapshot.data();
-              if (userStore.items.length != user!.brokerageUsers.length) {
+              if (user != null &&
+                  userStore.items.length != user!.brokerageUsers.length) {
                 user!.brokerageUsers = userStore.items.toList();
-                _firestoreService.updateUser(userDoc!, user!);
+                if (userDoc != null) {
+                  _firestoreService.updateUser(userDoc!, user!);
+                }
               }
-              var brokerageUser = user!.brokerageUsers.firstWhereOrNull((b) =>
-                  b.userName == userStore.currentUser!.userName &&
-                  b.source == userStore.currentUser!.source);
+              var brokerageUser = userStore.currentUser;
               if (brokerageUser != null) {
                 if (brokerageUser.userInfo == null && userInfo != null) {
                   brokerageUser.userInfo = userInfo;
@@ -557,6 +558,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   void _buildTabs(BrokerageUserStore userStore) {
+    debugPrint("_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}");
     tabPages = [
       HomePage(
         userStore.currentUser, userInfo,

@@ -387,9 +387,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
+    bool isSessionExpired =
+        widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true;
+    if (widget.brokerageUser != null &&
+        widget.brokerageUser!.source == BrokerageSource.demo) {
+      isSessionExpired = false;
+    }
+
     if (widget.brokerageUser == null ||
         widget.service == null ||
-        (widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true)) {
+        isSessionExpired) {
       return Scaffold(
           body: RefreshIndicator(
         onRefresh: () async {

@@ -872,8 +872,10 @@ class _HistoryPageState extends State<HistoryPage>
                                         leading: CircleAvatar(
                                             radius: 22,
                                             backgroundColor: order.side == 'buy'
-                                                ? Colors.green.withValues(alpha: 0.1)
-                                                : Colors.red.withValues(alpha: 0.1),
+                                                ? Colors.green
+                                                    .withValues(alpha: 0.1)
+                                                : Colors.red
+                                                    .withValues(alpha: 0.1),
                                             foregroundColor: order.side == 'buy'
                                                 ? Colors.green
                                                 : Colors.red,
@@ -958,9 +960,11 @@ class _HistoryPageState extends State<HistoryPage>
                                                         horizontal: 8,
                                                         vertical: 4),
                                                     decoration: BoxDecoration(
-                                                        color: _amountColor(
-                                                                amount)
-                                                            .withValues(alpha: 0.12),
+                                                        color:
+                                                            _amountColor(amount)
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.12),
                                                         borderRadius:
                                                             BorderRadius
                                                                 .circular(8),
@@ -1150,11 +1154,13 @@ class _HistoryPageState extends State<HistoryPage>
                                                 horizontal: 16, vertical: 4),
                                         leading: CircleAvatar(
                                             radius: 22,
-                                            backgroundColor: optionOrder
-                                                        .direction ==
-                                                    'credit'
-                                                ? Colors.green.withValues(alpha: 0.1)
-                                                : Colors.red.withValues(alpha: 0.1),
+                                            backgroundColor:
+                                                optionOrder.direction ==
+                                                        'credit'
+                                                    ? Colors.green
+                                                        .withValues(alpha: 0.1)
+                                                    : Colors.red
+                                                        .withValues(alpha: 0.1),
                                             foregroundColor:
                                                 optionOrder.direction ==
                                                         'credit'
@@ -1341,10 +1347,10 @@ class _HistoryPageState extends State<HistoryPage>
                                       horizontal: 16, vertical: 4),
                                   leading: CircleAvatar(
                                       radius: 22,
-                                      backgroundColor:
-                                          event.direction == 'credit'
-                                              ? Colors.green.withValues(alpha: 0.1)
-                                              : Colors.red.withValues(alpha: 0.1),
+                                      backgroundColor: event.direction ==
+                                              'credit'
+                                          ? Colors.green.withValues(alpha: 0.1)
+                                          : Colors.red.withValues(alpha: 0.1),
                                       foregroundColor:
                                           event.direction == 'credit'
                                               ? Colors.green
@@ -1648,8 +1654,8 @@ class _HistoryPageState extends State<HistoryPage>
                                         },
                                         leading: CircleAvatar(
                                             radius: 22,
-                                            backgroundColor:
-                                                Colors.green.withValues(alpha: 0.1),
+                                            backgroundColor: Colors.green
+                                                .withValues(alpha: 0.1),
                                             foregroundColor: Colors.green,
                                             child: Text(
                                               dividend["instrumentObj"] != null
@@ -1893,8 +1899,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                 horizontal: 16, vertical: 4),
                                         leading: CircleAvatar(
                                             radius: 22,
-                                            backgroundColor:
-                                                Colors.green.withValues(alpha: 0.1),
+                                            backgroundColor: Colors.green
+                                                .withValues(alpha: 0.1),
                                             foregroundColor: Colors.green,
                                             child: const Icon(
                                                 Icons.attach_money,

@@ -459,6 +459,12 @@ class DemoService implements IBrokerageService {
     if (symbol == 'LYFT') {
       json = jsonDecode(
           '{"next":null,"previous":null,"results":[{"id":"2fd39520-01a7-4612-ab1f-ddbb9a861268","url":"https://api.robinhood.com/instruments/2fd39520-01a7-4612-ab1f-ddbb9a861268/","quote":"https://api.robinhood.com/quotes/LYFT/","fundamentals":"https://api.robinhood.com/fundamentals/LYFT/","splits":"https://api.robinhood.com/instruments/2fd39520-01a7-4612-ab1f-ddbb9a861268/splits/","state":"active","market":"https://api.robinhood.com/markets/XNAS/","simple_name":"Lyft","name":"Lyft, Inc. Class A Common Stock","tradeable":true,"tradability":"tradable","symbol":"LYFT","bloomberg_unique":"EQ0000000030316495","margin_initial_ratio":"0.5000","maintenance_ratio":"0.3500","country":"US","day_trade_ratio":"0.2500","list_date":"2019-03-29","min_tick_size":null,"type":"stock","tradable_chain_id":"6d718fff-da2d-4909-909f-bebb28be476b","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
+    } else if (symbol == 'AAPL') {
+      json = jsonDecode(
+          '{"next":null,"previous":null,"results":[{"id":"dummy_id_aapl","url":"https://api.robinhood.com/instruments/dummy_id_aapl/","quote":"https://api.robinhood.com/quotes/AAPL/","fundamentals":"https://api.robinhood.com/fundamentals/AAPL/","splits":"https://api.robinhood.com/instruments/dummy_id_aapl/splits/","state":"active","market":"https://api.robinhood.com/markets/XNAS/","simple_name":"Apple","name":"Apple Inc.","tradeable":true,"tradability":"tradable","symbol":"AAPL","bloomberg_unique":"EQ000000000000AAPL","margin_initial_ratio":"0.5000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"1980-12-12","min_tick_size":null,"type":"stock","tradable_chain_id":"dummy_chain_id_aapl","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
+    } else if (symbol == 'SPY') {
+      json = jsonDecode(
+          '{"next":null,"previous":null,"results":[{"id":"dummy_id_spy","url":"https://api.robinhood.com/instruments/dummy_id_spy/","quote":"https://api.robinhood.com/quotes/SPY/","fundamentals":"https://api.robinhood.com/fundamentals/SPY/","splits":"https://api.robinhood.com/instruments/dummy_id_spy/splits/","state":"active","market":"https://api.robinhood.com/markets/XNYS/","simple_name":"SPDR S&P 500","name":"SPDR S&P 500 ETF Trust","tradeable":true,"tradability":"tradable","symbol":"SPY","bloomberg_unique":"EQ0000000000000000","margin_initial_ratio":"0.5000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"1993-01-22","min_tick_size":null,"type":"etp","tradable_chain_id":"dummy_chain_id_spy","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"etf","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
     } else if (symbol == 'DG') {
       json = jsonDecode(
           '{"next":null,"previous":null,"results":[{"id":"e1e032ac-54a4-40fd-9d90-979044454bec","url":"https://api.robinhood.com/instruments/e1e032ac-54a4-40fd-9d90-979044454bec/","quote":"https://api.robinhood.com/quotes/DG/","fundamentals":"https://api.robinhood.com/fundamentals/DG/","splits":"https://api.robinhood.com/instruments/e1e032ac-54a4-40fd-9d90-979044454bec/splits/","state":"active","market":"https://api.robinhood.com/markets/XNYS/","simple_name":"Dollar General","name":"Dollar General Corp.","tradeable":true,"tradability":"tradable","symbol":"DG","bloomberg_unique":"EQ0000000008890202","margin_initial_ratio":"0.6000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"2009-11-13","min_tick_size":null,"type":"stock","tradable_chain_id":"7b5c75cd-bbb8-4057-b860-dcbad05825d2","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":false,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
@@ -1242,9 +1248,35 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future search(BrokerageUser user, String query) {
-    // TODO: implement search
-    throw UnimplementedError();
+  Future search(BrokerageUser user, String query) async {
+    // Return dummy search results
+    if (query.toUpperCase() == 'SPY') {
+      return [
+        {
+          "symbol": "SPY",
+          "simple_name": "SPDR S&P 500",
+          "name": "SPDR S&P 500 ETF Trust",
+          "id": "dummy_id_spy"
+        }
+      ];
+    } else if (query.toUpperCase() == 'AAPL') {
+      return [
+        {
+          "symbol": "AAPL",
+          "simple_name": "Apple",
+          "name": "Apple Inc.",
+          "id": "dummy_id_aapl"
+        }
+      ];
+    }
+    return [
+      {
+        "symbol": "MSFT",
+        "simple_name": "Microsoft",
+        "name": "Microsoft Corporation",
+        "id": "50810c35-d215-4866-9758-0ada4ac79ffa"
+      }
+    ];
   }
 
   @override
@@ -1524,16 +1556,17 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<OptionChain> getOptionChains(BrokerageUser user, String id) {
-    // TODO: implement getOptionChains
-    throw UnimplementedError();
+  Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
+    final json = jsonDecode(
+        '{"next":null,"previous":null,"results":[{"id":"dummy_chain_id","symbol":"AAPL","can_open_position":true,"cash_component":null,"expiration_dates":["2025-12-19"],"trade_value_multiplier":"100.0000","underlying_instruments":[{"id":"dummy_uid","instrument":"https://api.robinhood.com/instruments/dummy_id/","quantity":100}],"min_ticks":{"above_tick":"0.05","below_tick":"0.01","cutoff_price":"3.00"},"late_close_state":"disabled"}]}');
+    final resultJson = await Future.delayed(Duration.zero, () => json);
+    return OptionChain.fromJson(resultJson['results'][0]);
   }
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-      BrokerageUser user, List<String> ids) {
-    // TODO: implement getOptionChainsByIds
-    throw UnimplementedError();
+      BrokerageUser user, List<String> ids) async {
+    return [await getOptionChains(user, ids.first)];
   }
 
   @override
@@ -1570,9 +1603,69 @@ class DemoService implements IBrokerageService {
       String? expirationDates,
       String? type,
       {String? state = "active",
-      bool includeMarketData = false}) {
-    // TODO: implement streamOptionInstruments
-    throw UnimplementedError();
+      bool includeMarketData = false}) async* {
+    var optionInstrument = OptionInstrument.fromJson({
+      "chain_id": "93eb5d71-55db-449e-ba60-31af7a192aa0",
+      "chain_symbol": "AAPL",
+      "created_at": "2020-08-28T02:00:00.000000Z",
+      "expiration_date": "2025-12-19",
+      "id": "c1d3c026-6dcf-432d-88f6-28569992c303",
+      "issue_date": "2020-08-28",
+      "min_ticks": {
+        "above_tick": "0.01",
+        "below_tick": "0.01",
+        "cutoff_price": "0.00"
+      },
+      "rhs_tradability": "tradable",
+      "state": "active",
+      "strike_price": "150.0000",
+      "tradability": "tradable",
+      "type": "call",
+      "updated_at": "2022-10-31T03:00:19.499690Z",
+      "url":
+          "https://api.robinhood.com/options/instruments/c1d3c026-6dcf-432d-88f6-28569992c303/",
+      "sellout_datetime": "2025-12-19T21:00:00+00:00",
+      "long_strategy_code": "long_call",
+      "short_strategy_code": "short_call"
+    });
+    // Add dummy market data so it renders price
+    optionInstrument.optionMarketData = OptionMarketData.fromJson({
+      "adjusted_mark_price": "10.50",
+      "ask_price": "11.00",
+      "ask_size": 100,
+      "bid_price": "10.00",
+      "bid_size": 100,
+      "break_even_price": "160.50",
+      "high_price": "12.00",
+      "instrument":
+          "https://api.robinhood.com/options/instruments/c1d3c026-6dcf-432d-88f6-28569992c303/",
+      "instrument_id": "c1d3c026-6dcf-432d-88f6-28569992c303",
+      "last_trade_price": "10.50",
+      "last_trade_size": 5,
+      "low_price": "9.50",
+      "mark_price": "10.50",
+      "open_interest": 500,
+      "previous_close_date": "2023-11-20",
+      "previous_close_price": "10.00",
+      "volume": 1000,
+      "symbol": "AAPL",
+      "occ_symbol": "AAPL251219C00150000",
+      "chance_of_profit_long": "0.45",
+      "chance_of_profit_short": "0.55",
+      "delta": "0.65",
+      "gamma": "0.05",
+      "implied_volatility": "0.25",
+      "rho": "0.01",
+      "theta": "-0.02",
+      "vega": "0.15",
+      "high_fill_rate_buy_price": "10.90",
+      "high_fill_rate_sell_price": "10.10",
+      "low_fill_rate_buy_price": "10.10",
+      "low_fill_rate_sell_price": "10.90",
+      "updated_at": "2023-11-20T00:00:00Z"
+    });
+
+    yield [optionInstrument];
   }
 
   @override

@@ -204,9 +204,9 @@ class _InstrumentOptionChainWidgetState
       if (recommendations.isNotEmpty) {
         setState(() {
           if (expirationDateFilter != null) {
-            aiRecommendationsMap[
-                    expirationDateFilter!.toString().substring(0, 10)] =
-                recommendations;
+            aiRecommendationsMap[expirationDateFilter!
+                .toString()
+                .substring(0, 10)] = recommendations;
           }
         });
 
@@ -248,8 +248,6 @@ class _InstrumentOptionChainWidgetState
         });
       }
     }
-
-
   }
 
   Future<Map<String, dynamic>?> _showAIOptionsDialog(BuildContext context) {

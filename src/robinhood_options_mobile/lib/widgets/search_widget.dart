@@ -98,6 +98,26 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   @override
+  void didUpdateWidget(SearchWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.brokerageUser != oldWidget.brokerageUser) {
+      debugPrint("SearchWidget: User changed. Resetting futures.");
+      futureMovers = null;
+      futureLosers = null;
+      futureListMovers = null;
+      futureSearch = null;
+      watchlistStream = null;
+
+      if (searchCtl?.text.isNotEmpty == true && widget.service != null) {
+        debugPrint(
+            "SearchWidget: User changed and text present. Retriggering search.");
+        futureSearch =
+            widget.service!.search(widget.brokerageUser!, searchCtl!.text);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     searchCtl?.dispose();
     super.dispose();
@@ -129,7 +149,8 @@ class _SearchWidgetState extends State<SearchWidget>
           widget.service!.getMovers(widget.brokerageUser!, direction: "down");
       futureListMovers ??=
           widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
-      if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+          widget.brokerageUser!.source == BrokerageSource.demo) {
         watchlistStream ??= widget.service!.streamLists(widget.brokerageUser!,
             instrumentStore!, Provider.of<QuoteStore>(context, listen: false));
       }
@@ -170,6 +191,10 @@ class _SearchWidgetState extends State<SearchWidget>
                 data.length > 3 ? data[3] as List<Instrument> : null;
             // var listMostPopular =
             //     data.length > 4 ? data[4] as List<Instrument> : null;
+
+            if (search != null)
+              debugPrint("SearchWidget: has search results: $search");
+
             return _buildPage(
                 search: search,
                 movers: movers,
@@ -316,6 +341,8 @@ class _SearchWidgetState extends State<SearchWidget>
                           ),
                           onChanged: (text) {
                             widget.analytics.logSearch(searchTerm: text);
+                            debugPrint(
+                                "SearchWidget: onChanged '$text'. Service: ${widget.service}");
                             setState(() {
                               futureSearch =
                                   text.isEmpty || widget.service == null
@@ -323,6 +350,10 @@ class _SearchWidgetState extends State<SearchWidget>
                                       : widget.service!
                                           .search(widget.brokerageUser!, text);
                             });
+                          },
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            FocusScope.of(context).unfocus();
                           },
                         ),
                       ),
