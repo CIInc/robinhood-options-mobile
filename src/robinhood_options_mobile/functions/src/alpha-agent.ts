@@ -470,10 +470,8 @@ export async function handleAlphaTask(marketData: any,
         }
 
         // 2. Max Portfolio Concentration Cap
-        const maxPortfolioConcentrationPercent =
-          config.maxPortfolioConcentration || 50.0;
         const maxPortfolioConcentration =
-          maxPortfolioConcentrationPercent / 100.0;
+          config.maxPortfolioConcentration || 0.5;
         if (lastPrice > 0) {
           const maxValue = accountValue * maxPortfolioConcentration;
           const maxTotalQty = Math.floor(maxValue / lastPrice);

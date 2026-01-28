@@ -221,7 +221,7 @@ export async function performTradeProposal(request: any) {
     smaPeriodSlow: request.data.smaPeriodSlow || 30,
     tradeQuantity: request.data.tradeQuantity || 1,
     maxPositionSize: request.data.maxPositionSize || 100,
-    maxPortfolioConcentration: request.data.maxPortfolioConcentration || 50.0,
+    maxPortfolioConcentration: request.data.maxPortfolioConcentration || 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
   };
 
@@ -271,7 +271,7 @@ export const getAgenticTradingConfig = onCall(async () => {
     smaPeriodSlow: 30,
     tradeQuantity: 1,
     maxPositionSize: 100,
-    maxPortfolioConcentration: 50.0,
+    maxPortfolioConcentration: 0.5,
     rsiPeriod: 14,
     marketIndexSymbol: "SPY",
     enableDynamicPositionSizing: false,

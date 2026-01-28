@@ -3975,19 +3975,23 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
 
   void _showTemplateDetailsSheet(
       BuildContext context, TradeStrategyTemplate template) {
-    StrategyDetailsBottomSheet.show(
-      context,
-      template,
-      () async {
-        Navigator.pop(context); // Close bottom sheet first
+    TradeStrategyConfig? currentConfig;
+    if (widget.runTabKey?.currentState != null) {
+      currentConfig = widget.runTabKey!.currentState!.getStrategyConfig();
+    }
 
+    StrategyDetailsBottomSheet.showWithConfirmation(
+      context: context,
+      template: template,
+      currentConfig: currentConfig,
+      onConfirmLoad: (t) async {
         // Load template into Run tab via provider
         final provider =
             Provider.of<BacktestingProvider>(context, listen: false);
 
         // Set pending template and update usage
-        provider.setPendingTemplate(template);
-        await provider.updateTemplateUsage(template.id);
+        provider.setPendingTemplate(t);
+        await provider.updateTemplateUsage(t.id);
 
         // Switch to Run tab
         if (widget.tabController != null) {
@@ -3997,7 +4001,7 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Loaded template: ${template.name}'),
+              content: Text('Loaded template: ${t.name}'),
             ),
           );
         }

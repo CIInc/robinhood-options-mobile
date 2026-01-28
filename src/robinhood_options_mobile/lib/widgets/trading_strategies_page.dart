@@ -88,10 +88,15 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trading Strategies'),
+        elevation: 0,
+        scrolledUnderElevation: 2,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort_rounded),
             tooltip: 'Sort Strategies',
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            position: PopupMenuPosition.under,
             onSelected: (value) {
               setState(() {
                 _sortBy = value;
@@ -123,11 +128,11 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                 child: Row(
                   children: [
                     Icon(Icons.sort_by_alpha, size: 18),
-                    SizedBox(width: 8),
                     Text('Name (Z-A)'),
                   ],
                 ),
               ),
+              const PopupMenuDivider(),
               const PopupMenuItem(
                 value: 'date_new',
                 child: Row(
@@ -164,6 +169,9 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
         ],
         bottom: TabBar(
           controller: _tabController,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+          indicatorSize: TabBarIndicatorSize.label,
+          splashBorderRadius: BorderRadius.circular(16),
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'System'),
@@ -173,31 +181,40 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search strategies...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          FocusScope.of(context).unfocus();
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                 filled: true,
                 fillColor: Theme.of(context)
                     .colorScheme
                     .surfaceContainerHighest
-                    .withValues(alpha: 0.3),
+                    .withValues(alpha: 0.5),
               ),
             ),
           ),
           SizedBox(
             height: 48,
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               scrollDirection: Axis.horizontal,
               itemCount: _indicatorNames.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -208,6 +225,25 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
                 return FilterChip(
                   label: Text(label),
                   selected: isSelected,
+                  showCheckmark: false,
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.onSecondaryContainer
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainer
+                      .withValues(alpha: 0.5),
+                  selectedColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
@@ -546,44 +582,48 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
 
   void _showTemplateDetailsSheet(
       BuildContext context, TradeStrategyTemplate template) {
-    StrategyDetailsBottomSheet.show(context, template, () {
-      widget.onLoadStrategy(template);
-      Navigator.pop(context); // Close sheet
-      Navigator.pop(context); // Close page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Loaded strategy: ${template.name}')),
-      );
-    }, onSearch: () {
-      if (widget.user != null && widget.userDocRef != null) {
-        final initialIndicators = template.config.enabledIndicators.entries
-            .where((e) => e.value)
-            .fold<Map<String, String>>({}, (prev, element) {
-          prev[element.key] =
-              "BUY"; // _indicatorNames[element.key] ?? element.key.toUpperCase();
-          return prev;
-        });
-
-        Navigator.pop(context); // Close sheet
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => TradeSignalsPage(
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
-                      brokerageUser: widget.brokerageUser,
-                      service: widget.service,
-                      analytics: MyApp.analytics,
-                      observer: MyApp.observer,
-                      generativeService: GenerativeService(),
-                      initialIndicators: initialIndicators,
-                      strategyTemplate: template,
-                    )));
-      } else {
-        Navigator.pop(context);
+    StrategyDetailsBottomSheet.showWithConfirmation(
+      context: context,
+      template: template,
+      currentConfig: widget.currentConfig,
+      onConfirmLoad: (t) {
+        widget.onLoadStrategy(t);
+        Navigator.pop(context); // Close page
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please log in for signal search.')),
+          SnackBar(content: Text('Loaded strategy: ${t.name}')),
         );
-      }
-    });
+      },
+      onSearch: () {
+        if (widget.user != null && widget.userDocRef != null) {
+          final initialIndicators = template.config.enabledIndicators.entries
+              .where((e) => e.value)
+              .fold<Map<String, String>>({}, (prev, element) {
+            prev[element.key] = "BUY";
+            return prev;
+          });
+
+          Navigator.pop(context); // Close sheet
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => TradeSignalsPage(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        brokerageUser: widget.brokerageUser,
+                        service: widget.service,
+                        analytics: MyApp.analytics,
+                        observer: MyApp.observer,
+                        generativeService: GenerativeService(),
+                        initialIndicators: initialIndicators,
+                        strategyTemplate: template,
+                      )));
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please log in for signal search.')),
+          );
+        }
+      },
+    );
   }
 }

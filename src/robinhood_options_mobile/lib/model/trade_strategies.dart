@@ -67,7 +67,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // For risk management
+          'atr': false, // Only for sizing
           'obv': false,
           'vwap': false,
           'adx': false,
@@ -145,10 +145,23 @@ class TradeStrategyDefaults {
         initialCapital: 10000.0,
         enabledIndicators: {
           'macd': true,
+          'adx': false, // Using custom indicator for specific threshold
         },
         indicatorReasons: {
           'macd': 'Detects bullish trend reversals via crossover events.',
+          'adx': 'Ensures sufficient trend strength (ADX > 20).',
         },
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'simple_macd_adx',
+            name: 'ADX > 20',
+            type: IndicatorType.ADX,
+            parameters: {'period': 14},
+            condition: SignalCondition.GreaterThan,
+            threshold: 20.0,
+            compareToPrice: false,
+          ),
+        ],
         takeProfitPercent: 8.0,
         stopLossPercent: 4.0,
         riskPerTrade: 0.02,
@@ -205,9 +218,9 @@ class TradeStrategyDefaults {
           'bollingerBands': false,
           'stochastic': false,
           'atr': false,
-          'obv': false,
+          'obv': true, // OBV
           'vwap': false,
-          'adx': true, // ADX
+          'adx': false, // Using custom indicator
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // CCI
@@ -217,6 +230,7 @@ class TradeStrategyDefaults {
           'priceMovement': 'Confirms price is moving in the desired direction.',
           'momentum': 'RSI indicates strong momentum without being overbought.',
           'volume': 'High volume validates the strength of the move.',
+          'obv': 'OBV confirms volume flow matches price action.',
           'macd': 'MACD histogram expansion confirms accelerating momentum.',
           'adx': 'ADX > 20 indicates a strong trending environment.',
           'cci': 'CCI helps detect the start of a new trend or cyclical turn.',
@@ -328,14 +342,14 @@ class TradeStrategyDefaults {
           'priceMovement': true,
           'momentum': false,
           'marketDirection': true,
-          'volume': false,
+          'volume': true, // Added volume
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true,
           'vwap': false,
-          'adx': true, // ADX
+          'adx': false, // Using custom indicator
           'williamsR': false,
           'ichimoku': true,
           'cci': false,
@@ -344,6 +358,7 @@ class TradeStrategyDefaults {
         indicatorReasons: {
           'priceMovement': 'Price action confirms the established trend.',
           'marketDirection': 'Moving averages provide support in uptrends.',
+          'volume': 'Volume confirms the validity of the trend.',
           'macd': 'MACD confirms trend strength and direction.',
           'atr': 'ATR measures volatility for stop-loss placement.',
           'obv': 'OBV confirms volume backing the trend.',
@@ -398,7 +413,7 @@ class TradeStrategyDefaults {
           'atr': true,
           'obv': false,
           'vwap': true, // Price > VWAP
-          'adx': true, // ADX > 20
+          'adx': false, // Using custom indicator
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // CCI > 100
@@ -464,10 +479,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': true,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': true,
-          'adx': true, // ADX
+          'adx': false, // Using custom indicator
           'williamsR': true,
           'ichimoku': false,
           'cci': true,
@@ -534,7 +549,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // For stop loss helper
+          'atr': false, // Only for sizing
           'obv': false,
           'vwap': false,
           'adx': false,
@@ -598,10 +613,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': true,
           'stochastic': false,
-          'atr': true,
+          'atr': false, // Managed by sizing
           'obv': true,
           'vwap': false,
-          'adx': true, // Strong Trend
+          'adx': false, // Strong Trend
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // Volatility sensitive
@@ -844,7 +859,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true,
           'stochastic': true,
-          'atr': true, // Critical for ATR-based stops
+          'atr': false, // Critical for ATR-based stops (Sizing only)
           'obv': false,
           'vwap': true,
           'adx': false,
@@ -896,7 +911,7 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': false,
@@ -1074,10 +1089,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Volatility expansion
           'stochastic': true,
-          'atr': true, // Measure moves
+          'atr': false, // Measure moves (Stops only)
           'obv': false,
           'vwap': true, // Intraday anchor
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // Speed
@@ -1154,10 +1169,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true, // Accumulation
           'vwap': false,
-          'adx': true, // Strong trend only
+          'adx': false, // Strong trend only
           'williamsR': false,
           'ichimoku': true, // Trend confirm
           'cci': false,
@@ -1280,7 +1295,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': true,
@@ -1347,7 +1362,7 @@ class TradeStrategyDefaults {
           'macd': true, // Screen 1: Trend (Momentum)
           'bollingerBands': false,
           'stochastic': true, // Screen 2: Value
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': true, // Trend strength
@@ -1406,7 +1421,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // Volatility check
+          'atr': false, // Volatility check (Sizing)
           'obv': false,
           'vwap': true, // Anchor
           'adx': false,
@@ -1472,7 +1487,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // Volatility stops
+          'atr': false, // Volatility stops (Sizing)
           'obv': false,
           'vwap': false,
           'adx': true, // Trend strength
@@ -1519,11 +1534,11 @@ class TradeStrategyDefaults {
           'bollingerBands':
               true, // Reversal zone (Lower Band implied by oversold)
           'stochastic': true, // Confirmation
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx':
-              true, // Ensure no strong trend (implied inverse logic if checked?)
+              false, // Ensure no strong trend (implied inverse logic if checked?)
           'williamsR': true,
           'ichimoku': false,
           'cci': true,
@@ -1557,6 +1572,15 @@ class TradeStrategyDefaults {
             threshold: -100.0,
             compareToPrice: false,
           ),
+          CustomIndicatorConfig(
+            id: 'adx_low_trend',
+            name: 'ADX < 25',
+            type: IndicatorType.ADX,
+            parameters: {'period': 14},
+            condition: SignalCondition.LessThan,
+            threshold: 25.0,
+            compareToPrice: false,
+          ),
         ],
         riskPerTrade: 0.01,
         enableDynamicPositionSizing: true,
@@ -1586,10 +1610,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
-          'adx': true,
+          'adx': false, // Using custom indicator
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -1644,7 +1668,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Squeeze breaks
           'stochastic': false,
-          'atr': true, // Volatility check
+          'atr': false, // Volatility check (Sizing)
           'obv': true, // Smart money flow
           'vwap': true, // Support
           'adx': true, // Trend strength
@@ -1715,10 +1739,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true, // Critical
           'vwap': false,
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -1777,10 +1801,10 @@ class TradeStrategyDefaults {
           'macd': true, // Momentum flip
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // Volatility
+          'atr': false, // Volatility (Sizing)
           'obv': false,
           'vwap': false,
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -1841,10 +1865,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Expansion
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true, // Institutional flow
           'vwap': false,
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // Impulse
@@ -1910,7 +1934,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': true, // Price > VWAP is key
           'adx': false,
@@ -1980,7 +2004,7 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': true, // Volatility Expansion
           'stochastic': false,
-          'atr': true, // High Volatility
+          'atr': false, // High Volatility (Sizing)
           'obv': false,
           'vwap': false,
           'adx': true, // Strong Trend (>25)
@@ -2039,7 +2063,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Below lower band
           'stochastic': true, // Deep oversold
-          'atr': true, // High volatility
+          'atr': false, // High volatility (Sizing)
           'obv': false,
           'vwap': false,
           'adx': false,
@@ -2097,10 +2121,10 @@ class TradeStrategyDefaults {
           'macd': true, // Histogram ticking down
           'bollingerBands': true, // Outside upper band
           'stochastic': true, // Crossing down
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
-          'adx': true, // Trend weakening
+          'adx': false, // Trend weakening
           'williamsR': true,
           'ichimoku': false,
           'cci': true,
@@ -2172,7 +2196,7 @@ class TradeStrategyDefaults {
           'atr': true, // CRITICAL: Low ATR
           'obv': true, // Accumulation hints
           'vwap': false,
-          'adx': true, // Low ADX (No trend yet)
+          'adx': false, // Low ADX (No trend yet)
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -2227,10 +2251,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // Volatility check
+          'atr': false, // Volatility check (Sizing)
           'obv': false,
           'vwap': false,
-          'adx': true, // Confirm trend strength
+          'adx': false, // Confirm trend strength
           'williamsR': false,
           'ichimoku': true, // Cloud confirmation
           'cci': false,
@@ -2288,7 +2312,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Squeeze context
           'stochastic': false,
-          'atr': true, // Profit targets based on ATR
+          'atr': false, // Profit targets based on ATR (Sizing)
           'obv': false,
           'vwap': false,
           'adx': false,
@@ -2332,10 +2356,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true, // No distribution allowed
           'vwap': false,
-          'adx': true, // ADX > 40 typically
+          'adx': false, // ADX > 40 typically
           'williamsR': false,
           'ichimoku': false,
           'cci': true,
@@ -2412,10 +2436,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -2495,7 +2519,7 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': true, // Breakout above upper band
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': true,
@@ -2645,10 +2669,10 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true, // Volatility
+          'atr': false, // Volatility (Sizing)
           'obv': false,
           'vwap': false,
-          'adx': true, // Trend strength > 25
+          'adx': false, // Trend strength > 25
           'williamsR': false,
           'ichimoku': true, // Cloud confirmation
           'cci': false,
@@ -2704,10 +2728,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Bounce off bands
           'stochastic': true, // Cycle lows
-          'atr': true,
+          'atr': false,
           'obv': true, // Accumulation check
           'vwap': false,
-          'adx': true,
+          'adx': false, // Using custom indicator
           'williamsR': false,
           'ichimoku': false,
           'cci': true, // Momentum
@@ -2773,7 +2797,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': true, // Overbought crossing down
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': true, // Key resistance level
           'adx': false,
@@ -2842,7 +2866,7 @@ class TradeStrategyDefaults {
           'macd': true,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': true, // Primary filter
@@ -2899,7 +2923,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Band expansion often accompanies CCI burst
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
           'adx': true, // Trend acceleration
@@ -2966,7 +2990,7 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': false,
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': true, // Additional volume confirm
           'vwap': false,
           'adx': false,
@@ -3020,10 +3044,10 @@ class TradeStrategyDefaults {
           'macd': false,
           'bollingerBands': true, // Breakout
           'stochastic': false,
-          'atr': true,
+          'atr': false,
           'obv': false,
           'vwap': false,
-          'adx': true, // Trend strength
+          'adx': false, // Trend strength
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -3090,7 +3114,7 @@ class TradeStrategyDefaults {
           'atr': true, // Low ATR
           'obv': false,
           'vwap': false,
-          'adx': true, // Low ADX likely
+          'adx': false, // Low ADX likely
           'williamsR': false,
           'ichimoku': false,
           'cci': false,
@@ -3209,7 +3233,7 @@ class TradeStrategyDefaults {
           'macd': true, // Trend confirm
           'bollingerBands': false,
           'stochastic': true, // Pullback
-          'atr': true, // Stop placement
+          'atr': false, // Stop placement (Sizing)
           'obv': false,
           'vwap': false,
           'adx': true, // Trend strength

@@ -91,6 +91,7 @@ class EntryStrategiesWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -99,15 +100,27 @@ class EntryStrategiesWidget extends StatelessWidget {
           children: [
             Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.dashboard_customize_outlined,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 const Text('Active Indicators',
                     style:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 4),
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: Icon(
-                    Icons.info_outline,
+                    Icons.info_outline_rounded,
                     size: 18,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   tooltip: 'Indicator Documentation',
                   visualDensity: VisualDensity.compact,
@@ -121,44 +134,83 @@ class EntryStrategiesWidget extends StatelessWidget {
               label: const Text('Toggle All'),
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         ...enabledIndicators.keys
             .map((key) => _buildIndicatorToggle(context, key)),
-        const SizedBox(height: 8),
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            title: const Text('Indicator Parameters',
-                style: TextStyle(fontSize: 14)),
-            tilePadding: EdgeInsets.zero,
-            children: [
-              const SizedBox(height: 8),
-              _buildTextField(context, rsiPeriodController, 'RSI Period'),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                      child: _buildTextField(
-                          context, smaFastController, 'Fast SMA')),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _buildTextField(
-                          context, smaSlowController, 'Slow SMA')),
-                ],
+        const SizedBox(height: 16),
+
+        // Indicator Parameters Card
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.1),
+            ),
+          ),
+          color: colorScheme.surface,
+          clipBehavior: Clip.antiAlias,
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+              splashColor:
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            ),
+            child: ExpansionTile(
+              backgroundColor:
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+              collapsedBackgroundColor:
+                  colorScheme.surfaceContainer.withValues(alpha: 0.3),
+              shape: const Border.fromBorderSide(BorderSide.none),
+              collapsedShape: const Border.fromBorderSide(BorderSide.none),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.tune_rounded,
+                    size: 18, color: colorScheme.secondary),
               ),
-              const SizedBox(height: 12),
-              _buildTextField(context, marketIndexController, 'Market Index',
-                  helperText: 'SPY or QQQ'),
-            ],
+              title: Text('Indicator Parameters',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface)),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              children: [
+                _buildTextField(context, rsiPeriodController, 'RSI Period',
+                    prefixIcon: Icons.speed_rounded),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _buildTextField(
+                            context, smaFastController, 'Fast SMA',
+                            prefixIcon: Icons.trending_up_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildTextField(
+                            context, smaSlowController, 'Slow SMA',
+                            prefixIcon: Icons.timeline_rounded)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildTextField(context, marketIndexController, 'Market Index',
+                    helperText: 'e.g. SPY, QQQ',
+                    prefixIcon: Icons.bar_chart_rounded),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        const Divider(),
-        const SizedBox(height: 8),
+        const SizedBox(height: 20),
+
+        // Strict Entry Mode Card
         _buildSwitchListTile(
           context,
           'Strict Entry Mode',
@@ -167,19 +219,120 @@ class EntryStrategiesWidget extends StatelessWidget {
           onRequireStrictEntryChanged,
         ),
         const SizedBox(height: 12),
-        _buildTextField(
-          context,
-          requireAllIndicatorsGreen
-              ? _disabled100Controller
-              : minSignalStrengthController,
-          'Min Signal Strength',
-          suffixText: '%',
-          helperText: 'Minimum confidence score required',
-          enabled: !requireAllIndicatorsGreen,
-        ),
-        const SizedBox(height: 8),
-        const Divider(),
-        const SizedBox(height: 8),
+
+        // Signal Strength Section
+        if (requireAllIndicatorsGreen)
+          _buildTextField(
+            context,
+            _disabled100Controller,
+            'Min Signal Strength',
+            suffixText: '%',
+            helperText: 'Required confidence score (Fixed)',
+            enabled: false,
+            prefixIcon: Icons.lock_outline,
+          )
+        else
+          StatefulBuilder(builder: (context, setState) {
+            final double currentValue =
+                double.tryParse(minSignalStrengthController.text) ?? 75.0;
+            return Container(
+              decoration: BoxDecoration(
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colorScheme.outline.withValues(alpha: 0.1),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.signal_cellular_alt_rounded,
+                              size: 20, color: colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Min Signal Strength',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${currentValue.toInt()}%',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Text('0',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant)),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 8),
+                            overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 20),
+                          ),
+                          child: Slider(
+                            value: currentValue.clamp(0.0, 100.0),
+                            min: 0,
+                            max: 100,
+                            divisions: 100,
+                            label: currentValue.toInt().toString(),
+                            onChanged: (val) {
+                              setState(() {
+                                minSignalStrengthController.text =
+                                    val.toInt().toString();
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      Text('100',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Minimum confidence score required for entry',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.8)),
+                  ),
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 24),
         _buildCustomIndicatorsSection(context),
       ],
     );
@@ -194,16 +347,23 @@ class EntryStrategiesWidget extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.build,
-                  size: 20,
-                  color: colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.build_circle_outlined,
+                    size: 18,
+                    color: colorScheme.secondary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Custom Indicators',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
@@ -211,9 +371,10 @@ class EntryStrategiesWidget extends StatelessWidget {
               ],
             ),
             IconButton(
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_circle_outline_rounded),
               onPressed: onAddCustomIndicator,
               tooltip: 'Add Custom Indicator',
+              color: colorScheme.primary,
             ),
           ],
         ),
@@ -222,15 +383,35 @@ class EntryStrategiesWidget extends StatelessWidget {
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: colorScheme.outline.withValues(alpha: 0.2),
+                color: colorScheme.outline.withValues(alpha: 0.1),
+                style: BorderStyle.solid,
               ),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16),
               child: Center(
-                child: Text('No custom indicators defined'),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.auto_graph_rounded,
+                      size: 32,
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No custom indicators defined',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           )
@@ -240,23 +421,49 @@ class EntryStrategiesWidget extends StatelessWidget {
               elevation: 0,
               margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: colorScheme.outline.withValues(alpha: 0.2),
+                  color: colorScheme.outline.withValues(alpha: 0.1),
                 ),
               ),
+              color: colorScheme.surface,
               child: ListTile(
-                title: Text(indicator.name),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.extension_rounded,
+                      size: 20, color: colorScheme.primary),
+                ),
+                title: Text(
+                  indicator.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 subtitle: Text(
-                    '${indicator.type.toString().split('.').last} - ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}'),
+                  '${indicator.type.toString().split('.').last} • ${indicator.condition.toString().split('.').last} ${indicator.compareToPrice ? 'Price' : indicator.threshold}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  ),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                        icon: const Icon(Icons.edit),
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        tooltip: 'Edit',
                         onPressed: () => onEditCustomIndicator(indicator)),
                     IconButton(
-                        icon: const Icon(Icons.delete),
+                        icon: Icon(Icons.delete_outline_rounded,
+                            size: 20, color: colorScheme.error),
+                        tooltip: 'Remove',
                         onPressed: () => onRemoveCustomIndicator(indicator)),
                   ],
                 ),
@@ -316,73 +523,96 @@ class EntryStrategiesWidget extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isEnabled
               ? colorScheme.primary.withValues(alpha: 0.3)
-              : colorScheme.outline.withValues(alpha: 0.2),
+              : colorScheme.outline.withValues(alpha: 0.1),
           width: isEnabled ? 1.5 : 1,
         ),
       ),
-      child: SwitchListTile(
-        secondary: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? colorScheme.primary.withValues(alpha: 0.1)
-                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            metadata.icon,
-            color:
-                isEnabled ? colorScheme.primary : colorScheme.onSurfaceVariant,
-            size: 20,
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                metadata.label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
+      color: isEnabled
+          ? colorScheme.primaryContainer.withValues(alpha: 0.05)
+          : colorScheme.surface,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => onToggleIndicator(key, !isEnabled),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
                   color: isEnabled
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurface.withValues(alpha: 0.6),
+                      ? colorScheme.primary.withValues(alpha: 0.1)
+                      : colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  metadata.icon,
+                  color: isEnabled
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  size: 20,
                 ),
               ),
-            ),
-            if (indicatorReasons[key] != null &&
-                indicatorReasons[key]!.isNotEmpty)
-              Tooltip(
-                message: indicatorReasons[key],
-                triggerMode: TooltipTriggerMode.tap,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            metadata.label,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: isEnabled
+                                  ? colorScheme.onSurface
+                                  : colorScheme.onSurface
+                                      .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                        if (indicatorReasons[key] != null &&
+                            indicatorReasons[key]!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4.0),
+                            child: Icon(
+                              Icons.info_outline_rounded,
+                              size: 16,
+                              color: colorScheme.secondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      metadata.description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (isEnabled) _getIndicatorSubtitle(context, key),
+                  ],
                 ),
               ),
-          ],
+              Switch(
+                value: isEnabled,
+                onChanged: (val) => onToggleIndicator(key, val),
+                activeColor: colorScheme.primary,
+              ),
+            ],
+          ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(metadata.description, style: const TextStyle(fontSize: 12)),
-            if (isEnabled) _getIndicatorSubtitle(context, key),
-          ],
-        ),
-        value: isEnabled,
-        onChanged: (val) => onToggleIndicator(key, val),
-        activeThumbColor: colorScheme.primary,
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor:
-            isEnabled ? colorScheme.primary.withValues(alpha: 0.05) : null,
       ),
     );
   }
@@ -417,16 +647,36 @@ class EntryStrategiesWidget extends StatelessWidget {
     ValueChanged<bool> onChanged, {
     bool isSecondary = false,
   }) {
-    return SwitchListTile(
-      title: Text(title,
-          style: TextStyle(
-              fontWeight: isSecondary ? FontWeight.normal : FontWeight.w600,
-              fontSize: isSecondary ? 14 : 16)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      value: value,
-      onChanged: onChanged,
-      contentPadding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: value
+            ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: value
+              ? colorScheme.primary.withValues(alpha: 0.5)
+              : Colors.transparent,
+          width: 1,
+        ),
+      ),
+      child: SwitchListTile(
+        title: Text(title,
+            style: TextStyle(
+                fontWeight: isSecondary ? FontWeight.normal : FontWeight.w600,
+                fontSize: isSecondary ? 14 : 15,
+                color: colorScheme.onSurface)),
+        subtitle: Text(subtitle,
+            style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8))),
+        value: value,
+        onChanged: onChanged,
+        activeColor: colorScheme.primary,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
@@ -440,25 +690,53 @@ class EntryStrategiesWidget extends StatelessWidget {
     TextInputType keyboardType = TextInputType.number,
     bool enabled = true,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: enabled
+              ? colorScheme.onSurface
+              : colorScheme.onSurface.withValues(alpha: 0.5)),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle:
+            TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
         helperText: helperText,
+        helperStyle: TextStyle(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
         suffixText: suffixText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        suffixStyle: const TextStyle(fontWeight: FontWeight.bold),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon,
+                size: 18, color: colorScheme.primary.withValues(alpha: 0.8))
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+            color: colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 1.5,
           ),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
+        fillColor: enabled
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       keyboardType: keyboardType,
       validator: (value) => value?.isEmpty ?? true ? 'Required' : null,

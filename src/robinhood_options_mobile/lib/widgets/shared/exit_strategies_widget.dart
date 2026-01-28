@@ -103,148 +103,210 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (_exitStageProfitControllers.length != widget.exitStages.length) {
+      _initializeStageControllers();
+    }
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Primary Targets Section
+        _buildSectionHeader(context, 'Primary Targets', Icons.track_changes),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildTextField(
+                context,
                 widget.takeProfitController,
                 'Take Profit',
                 suffixText: '%',
-                prefixIcon: Icons.trending_up,
+                prefixIcon: Icons.trending_up_rounded,
                 onChanged: (_) => _notifySettingsChanged(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildTextField(
+                context,
                 widget.stopLossController,
                 'Stop Loss',
                 suffixText: '%',
-                prefixIcon: Icons.trending_down,
+                prefixIcon: Icons.trending_down_rounded,
                 onChanged: (_) => _notifySettingsChanged(),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 24),
+
+        _buildSectionHeader(
+            context, 'Advanced Exits', Icons.auto_graph_rounded),
         const SizedBox(height: 12),
-        _buildSwitchListTile(
+
+        _buildStrategyCard(
           context,
           'Trailing Stop',
           'Dynamically adjust stop price',
           widget.trailingStopEnabled,
           widget.onTrailingStopChanged,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildTextField(
-              widget.trailingStopController,
-              'Trailing Stop Distance',
-              suffixText: '%',
-              prefixIcon: Icons.show_chart,
-              onChanged: (_) => _notifySettingsChanged(),
-            ),
+          icon: Icons.show_chart_rounded,
+          extraContent: _buildTextField(
+            context,
+            widget.trailingStopController,
+            'Trailing Distance',
+            suffixText: '%',
+            helperText: 'Distance from peak price',
+            prefixIcon: Icons.space_bar_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        const Divider(height: 24),
-        _buildSwitchListTile(
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
           context,
-          'Time-Based Hard Stop',
-          'Close trade after fixed duration',
+          'Time-Based Exit',
+          'Close trade after a fixed duration',
           widget.timeBasedExitEnabled,
           widget.onTimeBasedExitChanged,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildTextField(
-              widget.timeBasedExitController,
-              'Max Hold Time',
-              suffixText: 'min',
-              prefixIcon: Icons.timer,
-              onChanged: (_) => _notifySettingsChanged(),
-            ),
+          icon: Icons.timer_outlined,
+          extraContent: _buildTextField(
+            context,
+            widget.timeBasedExitController,
+            'Max Hold Time',
+            suffixText: 'min',
+            prefixIcon: Icons.hourglass_top_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        _buildSwitchListTile(
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
           context,
           'Market Close Exit',
           'Close positions before market close',
           widget.marketCloseExitEnabled,
           widget.onMarketCloseExitChanged,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildTextField(
-              widget.marketCloseExitController,
-              'Mins Before Close',
-              suffixText: 'min',
-              prefixIcon: Icons.schedule,
-              onChanged: (_) => _notifySettingsChanged(),
-            ),
+          icon: Icons.schedule_rounded,
+          extraContent: _buildTextField(
+            context,
+            widget.marketCloseExitController,
+            'Exits Before Close',
+            suffixText: 'min',
+            helperText: 'Minutes before session end',
+            prefixIcon: Icons.alarm_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        const Divider(height: 24),
-        _buildSwitchListTile(
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
           context,
-          'RSI Overbought Exit',
-          'Exit if RSI crosses threshold',
+          'RSI Exit',
+          'Exit when asset becomes overbought',
           widget.rsiExitEnabled,
           widget.onRsiExitChanged,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildTextField(
-              widget.rsiExitThresholdController,
-              'RSI Threshold',
-              suffixText: '',
-              prefixIcon: Icons.show_chart,
-              onChanged: (_) => _notifySettingsChanged(),
-            ),
+          icon: Icons.speed_rounded,
+          extraContent: _buildTextField(
+            context,
+            widget.rsiExitThresholdController,
+            'RSI Threshold',
+            helperText: 'Usually 70-80',
+            prefixIcon: Icons.warning_amber_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        _buildSwitchListTile(
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
           context,
-          'Weak Signal Exit',
+          'Signal Strength Exit',
           'Exit if signal strength drops',
           widget.signalStrengthExitEnabled,
           widget.onSignalStrengthExitChanged,
-          extraContent: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: _buildTextField(
-              widget.signalStrengthExitThresholdController,
-              'Min Signal Strength',
-              suffixText: '',
-              prefixIcon: Icons.signal_cellular_alt,
-              onChanged: (_) => _notifySettingsChanged(),
-            ),
+          icon: Icons.signal_cellular_alt_rounded,
+          extraContent: _buildTextField(
+            context,
+            widget.signalStrengthExitThresholdController,
+            'Min Signal Score',
+            helperText: 'Exit if score drops below this',
+            prefixIcon: Icons.low_priority_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        const Divider(height: 24),
-        _buildSwitchListTile(
+        const SizedBox(height: 24),
+
+        _buildSectionHeader(context, 'Scaling Out', Icons.layers_outlined),
+        const SizedBox(height: 12),
+        _buildStrategyCard(
           context,
           'Partial Exits',
           'Scale out at defined profit levels',
           widget.partialExitsEnabled,
           widget.onPartialExitsChanged,
+          icon: Icons.pie_chart_outline_rounded,
           extraContent: _buildPartialExitsContent(context),
         ),
       ],
     );
   }
 
+  Widget _buildSectionHeader(
+      BuildContext context, String title, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: colorScheme.secondary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: colorScheme.secondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPartialExitsContent(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         if (widget.exitStages.isEmpty)
-          Padding(
+          Container(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'No exit stages configured.',
-              style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.6),
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 16, color: colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Text(
+                  'No exit stages configured.',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
             ),
           ),
         ...List.generate(widget.exitStages.length, (index) {
@@ -258,16 +320,10 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.3),
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.1),
+                color: colorScheme.outline.withValues(alpha: 0.1),
               ),
             ),
             padding: const EdgeInsets.all(12),
@@ -277,12 +333,25 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Stage ${index + 1}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Stage ${index + 1}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     InkWell(
                       onTap: () {
@@ -296,12 +365,9 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                       child: Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Icon(
-                          Icons.close,
+                          Icons.close_rounded,
                           size: 18,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -312,6 +378,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                   children: [
                     Expanded(
                       child: _buildTextField(
+                        context,
                         profitController,
                         'Profit Target',
                         suffixText: '%',
@@ -325,12 +392,6 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                               profitTargetPercent: val,
                               quantityPercent: stage.quantityPercent,
                             );
-                            // Avoid full rebuild loop if just text change, but for simplicity:
-                            // We don't call onExitStagesChanged here immediately if it triggers rebuild of text field?
-                            // Actually it's safer to only commit on save or debounce.
-                            // But following parent pattern:
-                            // We need to update the model.
-                            // The controllers are local, so they won't lose focus/state if we don't rebuild the whole widget tree destructively.
                             widget.onExitStagesChanged(newStages);
                             _notifySettingsChanged();
                           }
@@ -340,6 +401,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTextField(
+                        context,
                         quantityController,
                         'Sell Amount',
                         suffixText: '%',
@@ -366,10 +428,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                   'Sell ${(stage.quantityPercent * 100).toStringAsFixed(0)}% of position when profit reaches ${stage.profitTargetPercent}%',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -377,8 +436,8 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
           );
         }),
         Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: OutlinedButton.icon(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: TextButton.icon(
             onPressed: () {
               final newStage = ExitStage(
                 profitTargetPercent: widget.exitStages.isEmpty ? 5.0 : 10.0,
@@ -386,17 +445,17 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
               );
               final newStages = List<ExitStage>.from(widget.exitStages)
                 ..add(newStage);
-
-              // We need to add controllers locally too before rebuild?
-              // uniqueKey or letting didUpdateWidget handle it.
-              // If we callback, parent updates list, `didUpdateWidget` runs, adds controllers.
               widget.onExitStagesChanged(newStages);
               _notifySettingsChanged();
             },
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
             label: const Text('Add Exit Stage'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 40),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(double.infinity, 44),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              backgroundColor:
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             ),
           ),
         ),
@@ -404,39 +463,96 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
     );
   }
 
-  Widget _buildSwitchListTile(
+  Widget _buildStrategyCard(
     BuildContext context,
     String title,
     String subtitle,
     bool value,
     ValueChanged<bool> onChanged, {
+    required IconData icon,
     Widget? extraContent,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SwitchListTile(
-          title:
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-          value: value,
-          onChanged: (val) {
-            onChanged(val);
-            _notifySettingsChanged();
-          },
-          contentPadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: value
+              ? colorScheme.primary.withValues(alpha: 0.3)
+              : colorScheme.outline.withValues(alpha: 0.1),
+          width: value ? 1.5 : 1,
         ),
-        if (value && extraContent != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: extraContent,
+      ),
+      color: value
+          ? colorScheme.primaryContainer.withValues(alpha: 0.05)
+          : colorScheme.surface,
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
+            ),
+            value: value,
+            onChanged: (val) {
+              onChanged(val);
+              _notifySettingsChanged();
+            },
+            activeColor: colorScheme.primary,
+            secondary: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: value
+                    ? colorScheme.primary.withValues(alpha: 0.1)
+                    : colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color:
+                    value ? colorScheme.primary : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           ),
-      ],
+          if (value && extraContent != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                children: [
+                  Divider(
+                    height: 24,
+                    color: colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                  extraContent,
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildTextField(
+    BuildContext context,
     TextEditingController controller,
     String label, {
     String? helperText,
@@ -444,16 +560,48 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
     IconData? prefixIcon,
     ValueChanged<String>? onChanged,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
+      style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: colorScheme.onSurface),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle:
+            TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
         helperText: helperText,
+        helperStyle: TextStyle(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
         suffixText: suffixText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 18) : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        suffixStyle: const TextStyle(fontWeight: FontWeight.bold),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon,
+                size: 18, color: colorScheme.primary.withValues(alpha: 0.8))
+            : null,
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.outline.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 1.5,
+          ),
+        ),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         isDense: true,
       ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),

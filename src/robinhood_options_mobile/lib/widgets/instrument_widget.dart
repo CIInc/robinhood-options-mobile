@@ -1055,7 +1055,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: CustomScrollView(slivers: [
           SliverLayoutBuilder(
             builder: (BuildContext context, constraints) {
-              const expandedHeight = 140.0; // 1800
+              const expandedHeight = 160.0; // 1800
               final scrolled =
                   math.min(expandedHeight, constraints.scrollOffset) /
                       expandedHeight;
@@ -1070,7 +1070,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       opacity: opacity,
                       child: headerTitle(instrument, quoteStore));
                 }),
-                expandedHeight: 140, // 240 // 280.0,
+                expandedHeight: 160, // 240 // 280.0,
                 floating: false,
                 snap: false,
                 pinned: true,

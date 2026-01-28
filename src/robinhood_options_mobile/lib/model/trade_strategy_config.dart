@@ -205,7 +205,7 @@ class TradeStrategyConfig {
     this.rsiExitThreshold = 80.0,
     this.signalStrengthExitEnabled = false,
     this.signalStrengthExitThreshold = 40.0,
-  }) : enabledIndicators = {
+  })  : enabledIndicators = {
           // Default indicator settings need to be off for safety,
           //some strategies don't explicitly enable indicators
           'priceMovement': false,
@@ -284,10 +284,9 @@ class TradeStrategyConfig {
         initialCapital: (json['initialCapital'] as num?)?.toDouble() ?? 10000.0,
         interval: json['interval'] as String? ?? '1d',
         enabledIndicators: _parseEnabledIndicators(json['enabledIndicators']),
-        indicatorReasons:
-            json['indicatorReasons'] != null
-                ? Map<String, String>.from(json['indicatorReasons'] as Map)
-                : {},
+        indicatorReasons: json['indicatorReasons'] != null
+            ? Map<String, String>.from(json['indicatorReasons'] as Map)
+            : {},
         tradeQuantity: json['tradeQuantity'] as int? ?? 1,
         takeProfitPercent:
             (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
@@ -352,6 +351,87 @@ class TradeStrategyConfig {
         signalStrengthExitThreshold:
             (json['signalStrengthExitThreshold'] as num?)?.toDouble() ?? 40.0,
       );
+
+  Map<String, String> getDifferences(TradeStrategyConfig other) {
+    final diffs = <String, String>{};
+
+    void check<T>(String name, T currentVal, T newVal) {
+      if (currentVal != newVal) {
+        diffs[name] = 'From: $currentVal\nTo: $newVal';
+      }
+    }
+
+    check('Min Signal Strength', other.minSignalStrength, minSignalStrength);
+    check('Require All Indicators Green', other.requireAllIndicatorsGreen,
+        requireAllIndicatorsGreen);
+
+    // Indicators
+    final allKeys = {
+      ...enabledIndicators.keys,
+      ...other.enabledIndicators.keys
+    };
+    final changedIndicators = <String>[];
+    for (var key in allKeys) {
+      final current = other.enabledIndicators[key] ?? false;
+      final next = enabledIndicators[key] ?? false;
+      if (current != next) {
+        changedIndicators.add('$key: $current -> $next');
+      }
+    }
+    if (changedIndicators.isNotEmpty) {
+      diffs['Enabled Indicators'] = changedIndicators.join('\n');
+    }
+
+    check('Interval', other.interval, interval);
+    check('Take Profit %', other.takeProfitPercent, takeProfitPercent);
+    check('Stop Loss %', other.stopLossPercent, stopLossPercent);
+    check('Trailing Stop Enabled', other.trailingStopEnabled,
+        trailingStopEnabled);
+    check('Trailing Stop %', other.trailingStopPercent, trailingStopPercent);
+    check('Initial Capital', other.initialCapital, initialCapital);
+    check('Trade Quantity', other.tradeQuantity, tradeQuantity);
+    check('Max Pos Size', other.maxPositionSize, maxPositionSize);
+    check('Max Concentration', other.maxPortfolioConcentration,
+        maxPortfolioConcentration);
+    check('Daily Trade Limit', other.dailyTradeLimit, dailyTradeLimit);
+
+    // Advanced Logic
+    check('Dynamic Sizing', other.enableDynamicPositionSizing,
+        enableDynamicPositionSizing);
+    check('Risk Per Trade', other.riskPerTrade, riskPerTrade);
+    check('ATR Multiplier', other.atrMultiplier, atrMultiplier);
+
+    // Filters
+    if (symbolFilter.join(',') != other.symbolFilter.join(',')) {
+      diffs['Symbol Filter'] =
+          'From: ${other.symbolFilter.join(', ')}\nTo: ${symbolFilter.join(', ')}';
+    }
+
+    // Exits
+    check('Time Based Exit', other.timeBasedExitEnabled, timeBasedExitEnabled);
+    check(
+        'Time Exit Minutes', other.timeBasedExitMinutes, timeBasedExitMinutes);
+    check('Close Exit', other.marketCloseExitEnabled, marketCloseExitEnabled);
+    check('Close Exit Minutes', other.marketCloseExitMinutes,
+        marketCloseExitMinutes);
+    check('Partial Exits', other.enablePartialExits, enablePartialExits);
+
+    // Risk Controls
+    check('Sector Limits', other.enableSectorLimits, enableSectorLimits);
+    check('Max Sector Exposure', other.maxSectorExposure, maxSectorExposure);
+    check('Correlation Checks', other.enableCorrelationChecks,
+        enableCorrelationChecks);
+    check('Max Correlation', other.maxCorrelation, maxCorrelation);
+    check('Volatility Filters', other.enableVolatilityFilters,
+        enableVolatilityFilters);
+    check('Min Volatility', other.minVolatility, minVolatility);
+    check('Max Volatility', other.maxVolatility, maxVolatility);
+    check('Drawdown Protection', other.enableDrawdownProtection,
+        enableDrawdownProtection);
+    check('Max Drawdown', other.maxDrawdown, maxDrawdown);
+
+    return diffs;
+  }
 
   static Map<String, bool> _parseEnabledIndicators(dynamic jsonMap) {
     final defaults = {

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
-import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
 
 class StrategyListWidget extends StatelessWidget {
   final List<TradeStrategyTemplate> strategies;
@@ -170,22 +169,6 @@ class StrategyListWidget extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () => onSelect(template),
-        onLongPress: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder: (context) => StrategyDetailsBottomSheet(
-              template: template,
-              onLoad: () {
-                Navigator.pop(context); // Close bottom sheet
-                onSelect(template); // Proceed with load
-              },
-            ),
-          );
-        },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -235,20 +218,21 @@ class StrategyListWidget extends StatelessWidget {
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: Colors.amber.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                       color:
                                           Colors.amber.withValues(alpha: 0.5),
-                                      width: 0.5),
+                                      width: 1),
                                 ),
                                 child: Text(
                                   'SYSTEM',
                                   style: TextStyle(
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
                                     color: Colors.amber[900],
                                   ),
                                 ),

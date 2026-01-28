@@ -59,7 +59,7 @@ function calculateCorrelation(data1: number[], data2: number[]): number {
 /**
  * Calculates annualized volatility from price data.
  * @param {number[]} prices - Array of prices.
- * @return {number} Annualized volatility (0-100).
+ * @return {number} Annualized volatility (0-1).
  */
 function calculateVolatility(prices: number[]): number {
   if (!prices || prices.length < 2) return 0;
@@ -71,7 +71,7 @@ function calculateVolatility(prices: number[]): number {
   const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
     (returns.length - 1);
   const stdDev = Math.sqrt(variance);
-  return stdDev * Math.sqrt(252) * 100; // Annualized
+  return stdDev * Math.sqrt(252); // Annualized
 }
 
 /**
@@ -180,7 +180,7 @@ export async function assessTrade(proposal: any,
   });
 
   const maxPositionSize = config?.maxPositionSize ?? 100;
-  const maxPortfolioConcentration = config?.maxPortfolioConcentration ?? 50;
+  const maxPortfolioConcentration = config?.maxPortfolioConcentration ?? 0.5;
 
   const symbol = proposal?.symbol;
   const qty = proposal?.quantity || 0;
@@ -290,8 +290,9 @@ export async function assessTrade(proposal: any,
   if (proposedConcentration > maxPortfolioConcentration) {
     return {
       approved: false,
-      reason: `Proposed concentration ${proposedConcentration.toFixed(2)} ` +
-        `exceeds max ${maxPortfolioConcentration.toFixed(2)}`,
+      reason: "Proposed concentration " +
+        `${(proposedConcentration * 100).toFixed(2)}% ` +
+        `exceeds max ${(maxPortfolioConcentration * 100).toFixed(2)}%`,
       metrics,
     };
   }
@@ -305,7 +306,7 @@ export async function assessTrade(proposal: any,
       // Note: Full sector exposure check requires fetching sectors for all
       // positions, which is expensive. For now, we check if this single
       // position exceeds the sector limit.
-      const sectorExposure = proposedConcentration * 100;
+      const sectorExposure = proposedConcentration;
       metrics.sector = symbolInfo.sector;
       metrics.sectorExposure = sectorExposure;
       metrics.maxSectorExposure = config.maxSectorExposure;
@@ -313,8 +314,9 @@ export async function assessTrade(proposal: any,
       if (sectorExposure > config.maxSectorExposure) {
         return {
           approved: false,
-          reason: `Sector exposure ${sectorExposure.toFixed(2)}% for ` +
-            `${symbolInfo.sector} exceeds max ${config.maxSectorExposure}%`,
+          reason: `Sector exposure ${(sectorExposure * 100).toFixed(2)}% ` +
+            `for ${symbolInfo.sector} exceeds max ` +
+            `${(config.maxSectorExposure * 100).toFixed(1)}%`,
           metrics,
         };
       }
@@ -353,16 +355,16 @@ export async function assessTrade(proposal: any,
     if (config.minVolatility && volatility < config.minVolatility) {
       return {
         approved: false,
-        reason: `Volatility ${volatility.toFixed(2)} is below min ` +
-          `${config.minVolatility}`,
+        reason: `Volatility ${(volatility * 100).toFixed(2)}% is below min ` +
+          `${(config.minVolatility * 100).toFixed(2)}%`,
         metrics,
       };
     }
     if (config.maxVolatility && volatility > config.maxVolatility) {
       return {
         approved: false,
-        reason: `Volatility ${volatility.toFixed(2)} exceeds max ` +
-          `${config.maxVolatility}`,
+        reason: `Volatility ${(volatility * 100).toFixed(2)}% exceeds max ` +
+          `${(config.maxVolatility * 100).toFixed(2)}%`,
         metrics,
       };
     }
@@ -374,7 +376,7 @@ export async function assessTrade(proposal: any,
     if (portfolioState.highWaterMark && portfolioState.highWaterMark > 0) {
       const highWaterMark = Number(portfolioState.highWaterMark);
       const drawdown = (highWaterMark - totalPortfolioValue) /
-        highWaterMark * 100;
+        highWaterMark;
       metrics.drawdown = drawdown;
       metrics.maxDrawdown = config.maxDrawdown;
       metrics.highWaterMark = highWaterMark;
@@ -382,8 +384,8 @@ export async function assessTrade(proposal: any,
       if (drawdown > config.maxDrawdown) {
         return {
           approved: false,
-          reason: `Portfolio drawdown ${drawdown.toFixed(2)}% exceeds max ` +
-            `${config.maxDrawdown}%`,
+          reason: `Portfolio drawdown ${(drawdown * 100).toFixed(2)}% ` +
+            `exceeds max ${(config.maxDrawdown * 100).toFixed(2)}%`,
           metrics,
         };
       }
@@ -470,9 +472,8 @@ export const calculatePositionSize = onCall(async (request) => {
     cappedBy = "maxPositionSize";
   }
 
-  const maxPortfolioConcentrationPercent =
-    config.maxPortfolioConcentration || 50.0;
-  const maxPortfolioConcentration = maxPortfolioConcentrationPercent / 100.0;
+  const maxPortfolioConcentration =
+    config.maxPortfolioConcentration || 0.5;
   const lastPrice = closes[closes.length - 1];
   if (lastPrice > 0) {
     const maxValue = accountValue * maxPortfolioConcentration;
