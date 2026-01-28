@@ -625,6 +625,45 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  /// Load auto-trade history from Firestore
+  Future<void> loadAutoTradeHistoryFromFirestore(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      _log('⚠️ Cannot load auto-trade history: userDocRef is null');
+      return;
+    }
+
+    try {
+      final historyCollection = userDocRef.collection('auto_trade_history');
+      final snapshot = await historyCollection
+          .orderBy('timestamp', descending: true)
+          .limit(100)
+          .get();
+
+      _autoTradeHistory.clear();
+      _autoTradeHistory.addAll(
+        snapshot.docs.map((doc) => doc.data()),
+      );
+
+      _log('📖 Loaded ${_autoTradeHistory.length} trade history records');
+      notifyListeners();
+    } catch (e) {
+      _log('❌ Failed to load auto-trade history: $e');
+    }
+  }
+
+  /// Add a single trade to Firestore history
+  Future<void> _addTradeToHistoryFirestore(
+      Map<String, dynamic> tradeRecord, DocumentReference? userDocRef) async {
+    if (userDocRef == null) return;
+
+    try {
+      await userDocRef.collection('auto_trade_history').add(tradeRecord);
+    } catch (e) {
+      _log('❌ Failed to save trade to history: $e');
+    }
+  }
+
   /// Add a single pending order to Firestore
   Future<void> _addPendingOrderToFirestore(
       DocumentReference userDocRef, Map<String, dynamic> order) async {
@@ -1308,6 +1347,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
                 executedTrades.add(tradeRecord);
                 _autoTradeHistory.insert(0, tradeRecord);
+                _addTradeToHistoryFirestore(tradeRecord, userDocRef);
 
                 // Keep only last 100 trades in history
                 if (_autoTradeHistory.length > 100) {
@@ -1516,6 +1556,7 @@ class AgenticTradingProvider with ChangeNotifier {
         };
 
         _autoTradeHistory.insert(0, tradeRecord);
+        _addTradeToHistoryFirestore(tradeRecord, userDocRef);
         if (_autoTradeHistory.length > 100) {
           _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
         }
@@ -1910,6 +1951,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
                 executedExits.add(exitRecord);
                 _autoTradeHistory.insert(0, exitRecord);
+                _addTradeToHistoryFirestore(exitRecord, userDocRef);
 
                 // Keep only last 100 trades in history
                 if (_autoTradeHistory.length > 100) {

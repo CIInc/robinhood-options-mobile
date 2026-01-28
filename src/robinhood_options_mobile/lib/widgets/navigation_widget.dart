@@ -474,6 +474,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             // Load automated buy trades from Firestore
             agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+            // Load auto-trade history from Firestore
+            agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
             // Load pending orders from Firestore
             agenticProvider.loadPendingOrdersFromFirestore(userDoc);
 
