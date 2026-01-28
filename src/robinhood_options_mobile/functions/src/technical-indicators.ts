@@ -1215,6 +1215,7 @@ export function detectChartPattern(
         patterns,
         ma5, ma10, ma20,
         slope,
+        currentPrice,
       },
     };
   }
@@ -1231,6 +1232,7 @@ export function detectChartPattern(
         patterns,
         ma5, ma10, ma20,
         slope,
+        currentPrice,
       },
     };
   }

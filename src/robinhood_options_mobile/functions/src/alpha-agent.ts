@@ -378,23 +378,7 @@ export async function handleAlphaTask(marketData: any,
     interval,
     symbol,
     marketIndexSymbol,
-    indicators: {
-      priceMovement: indicatorResults.priceMovement.signal,
-      momentum: indicatorResults.momentum.signal,
-      marketDirection: {
-        signal: indicatorResults.marketDirection.signal,
-        reason: indicatorResults.marketDirection.reason,
-        fastMA: indicatorResults.marketDirection.metadata?.fastMA,
-        slowMA: indicatorResults.marketDirection.metadata?.slowMA,
-        trendStrength: indicatorResults.marketDirection.metadata?.trendStrength,
-      },
-      volume: indicatorResults.volume.signal,
-      macd: indicatorResults.macd.signal,
-      bollingerBands: indicatorResults.bollingerBands.signal,
-      stochastic: indicatorResults.stochastic.signal,
-      atr: indicatorResults.atr.signal,
-      obv: indicatorResults.obv.signal,
-    },
+    indicators: indicatorResults,
   });
 
   // If not all indicators are green, hold
