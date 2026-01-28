@@ -15,10 +15,14 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  final FirebaseAnalytics _analytics;
+
+  AgenticTradingProvider({FirebaseAnalytics? analytics})
+      : _analytics = analytics ?? FirebaseAnalytics.instance;
 
   // Constants
   static const int _tradeDelaySeconds =
@@ -128,8 +132,6 @@ class AgenticTradingProvider with ChangeNotifier {
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
   List<Map<String, dynamic>> get signalProcessingHistory =>
       _signalProcessingHistory;
-
-  AgenticTradingProvider();
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
@@ -257,6 +259,8 @@ class AgenticTradingProvider with ChangeNotifier {
           Provider.of<InstrumentPositionStore>(context, listen: false);
       final optionPositionStore =
           Provider.of<OptionPositionStore>(context, listen: false);
+      final paperTradingStore =
+          Provider.of<PaperTradingStore>(context, listen: false);
 
       // Check auto-trade enabled
       final autoTradeEnabled = _config.autoTradeEnabled;
@@ -438,6 +442,7 @@ class AgenticTradingProvider with ChangeNotifier {
         account: firstAccount,
         brokerageService: brokerageService,
         instrumentStore: instrumentStore,
+        paperTradingStore: paperTradingStore,
         userDocRef: userDocRef,
       );
 
@@ -464,6 +469,7 @@ class AgenticTradingProvider with ChangeNotifier {
           account: firstAccount,
           brokerageService: brokerageService,
           instrumentStore: instrumentStore,
+          paperTradingStore: paperTradingStore,
           userDocRef: userDocRef,
         );
         // _log(
@@ -863,8 +869,27 @@ class AgenticTradingProvider with ChangeNotifier {
     required double price,
     required int quantity,
     required bool isPaperMode,
+    PaperTradingStore? paperTradingStore,
   }) async {
     if (isPaperMode) {
+      if (paperTradingStore != null && instrument != null) {
+        try {
+          // Assume stock order for now as agentic trading focuses on stocks
+          // Cast instrument to required type if possible, or rely on dynamic dispatch
+          await paperTradingStore.executeStockOrder(
+            instrument: instrument,
+            quantity: quantity.toDouble(),
+            price: price,
+            side: action.toLowerCase(),
+            orderType: 'market',
+          );
+        } catch (e) {
+          _log('❌ Error persisting paper trade: $e');
+          // Start simulation anyway so the loop continues, or fail?
+          // If persistence fails, maybe we should fail the order.
+          return http.Response('Error persisting paper trade: $e', 400);
+        }
+      }
       return _simulatePaperOrder(action, symbol, quantity, price);
     }
     return await brokerageService.placeInstrumentOrder(
@@ -902,6 +927,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic instrumentStore,
     required dynamic tradeSignalsProvider,
     DocumentReference? userDocRef,
+    PaperTradingStore? paperTradingStore,
   }) async {
     _isAutoTrading = true;
     _showAutoTradingVisual = true;
@@ -1237,6 +1263,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 price: currentPrice,
                 quantity: quantity,
                 isPaperMode: isPaperMode,
+                paperTradingStore: paperTradingStore,
               );
 
               // Check if order was successful (HTTP 200 OK or 201 Created)
@@ -1412,6 +1439,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic account,
     required dynamic brokerageService,
     DocumentReference? userDocRef,
+    PaperTradingStore? paperTradingStore,
   }) async {
     if (!_pendingOrders.contains(order)) {
       _log('❌ Order not found in pending list');
@@ -1447,6 +1475,7 @@ class AgenticTradingProvider with ChangeNotifier {
         price: price,
         quantity: quantity,
         isPaperMode: isPaperMode,
+        paperTradingStore: paperTradingStore,
       );
 
       const httpOk = 200;
@@ -1544,6 +1573,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic brokerageService,
     required dynamic instrumentStore,
     DocumentReference? userDocRef,
+    PaperTradingStore? paperTradingStore,
   }) async {
     try {
       // Validate required parameters
@@ -1836,6 +1866,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 price: currentPrice,
                 quantity: quantityToSell,
                 isPaperMode: isPaperMode,
+                paperTradingStore: paperTradingStore,
               );
 
               // Check if order was successful

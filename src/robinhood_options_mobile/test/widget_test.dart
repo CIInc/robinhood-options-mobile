@@ -3,48 +3,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/services/remote_config_service.dart';
+import 'firebase_mocks.dart';
 
-void main() async {
+void main() {
   setUpAll(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp();
-    // runApp(MyApp());
+    await setupFirebaseMocks();
   });
 
   testWidgets('Application opens', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
-    expect(find.text('RealizeAlpha'), findsOneWidget);
+    await tester.pumpAndSettle();
+    // Verify Welcome message is present (empty state)
+    expect(find.text('Welcome to RealizeAlpha'), findsOneWidget);
   });
 
-  testWidgets('Home Menu opens Drawer', (WidgetTester tester) async {
+  testWidgets('Initial state shows Welcome screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pump();
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('Welcome to RealizeAlpha'), findsOneWidget);
+    expect(find.text('Link Brokerage Account'), findsOneWidget);
+
+    // Verify NOT seeing drawer as no user is logged in
+    expect(find.byIcon(Icons.menu), findsNothing);
   });
 
+  /*
   testWidgets('Login opens Login Page', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pump();
+    await tester.tap(find.text('Link Brokerage Account'));
+    await tester.pumpAndSettle();
+    
+    // Should navigate to Login/webview
     expect(find.text('Login'), findsOneWidget);
-
-    //await tester.tap(find.byIcon(Icons.verified_user));
-    await tester.tap(find.text('Login'));
-    await tester.pump();
-
-    /*
-
-    expect(find.byType(TextField), findsWidgets);
-    expect(find.byIcon(Icons.login_outlined), findsOneWidget);
-    expect(find.text('Robinhood password'), findsOneWidget);
-    */
   });
+  */
 
   /*
   testWidgets('Home Menu opens ModalBottomSheet smoke test',

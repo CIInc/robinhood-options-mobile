@@ -41,6 +41,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
@@ -240,6 +241,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => ForexHoldingStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => PaperTradingStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentStore(),

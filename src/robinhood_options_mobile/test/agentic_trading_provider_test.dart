@@ -1,13 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
+
+class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object?>? parameters,
+    AnalyticsCallOptions? callOptions,
+  }) async {}
+}
 
 void main() {
   group('AgenticTradingProvider Tests', () {
     late AgenticTradingProvider provider;
 
     setUp(() {
-      provider = AgenticTradingProvider();
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
     });
 
     tearDown(() {
@@ -86,8 +97,8 @@ void main() {
         expect(doc, isNotNull);
         expect(doc['title'], isNotNull);
         expect(doc['title'], isNotEmpty);
-        expect(doc['documentation'], isNotNull);
-        expect(doc['documentation'], isNotEmpty);
+        expect(doc['description'], isNotNull);
+        expect(doc['description'], isNotEmpty);
       }
     });
 
@@ -96,7 +107,7 @@ void main() {
       final doc = TradeSignalsProvider.indicatorDocumentation('unknown');
 
       expect(doc['title'], equals('Technical Indicator'));
-      expect(doc['documentation'],
+      expect(doc['description'],
           contains('Technical indicator used to analyze'));
     });
 
@@ -118,10 +129,10 @@ void main() {
         tradeSignals: [],
         tradeSignalsProvider: null,
         portfolioState: {},
-        brokerageUser: null, // Will fail pre-flight checks anyway
-        account: null,
-        brokerageService: null,
-        instrumentStore: null,
+        brokerageUser: 'mock',
+        account: 'mock',
+        brokerageService: 'mock',
+        instrumentStore: 'mock',
       );
 
       expect(result['success'], equals(false));
@@ -141,10 +152,10 @@ void main() {
         tradeSignals: [],
         tradeSignalsProvider: null,
         portfolioState: {},
-        brokerageUser: null,
-        account: null,
-        brokerageService: null,
-        instrumentStore: null,
+        brokerageUser: 'mock',
+        account: 'mock',
+        brokerageService: 'mock',
+        instrumentStore: 'mock',
       );
 
       expect(result['success'], equals(false));
@@ -157,20 +168,26 @@ void main() {
       provider.loadConfigFromUser(null);
       provider.config.autoTradeEnabled = true;
 
+      // Set market to OPEN (Wed Oct 25 2023 11:00 AM EDT = 15:00 UTC)
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
       // No signals in the list (empty by default)
       final result = await provider.autoTrade(
         tradeSignals: [],
         tradeSignalsProvider: null,
         portfolioState: {},
-        brokerageUser: null,
-        account: null,
-        brokerageService: null,
-        instrumentStore: null,
+        brokerageUser: 'mock',
+        account: 'mock',
+        brokerageService: 'mock',
+        instrumentStore: 'mock',
       );
+
+      // Reset test time
+      MarketHours.testTime = null;
 
       expect(result['success'], equals(false));
       expect(result['tradesExecuted'], equals(0));
-      expect(result['message'], contains('No BUY signals available'));
+      expect(result['message'], contains('No BUY signals matching enabled indicators'));
     });
 
     test('Emergency stop should prevent auto-trading', () async {
@@ -186,10 +203,10 @@ void main() {
         tradeSignals: [],
         tradeSignalsProvider: null,
         portfolioState: {},
-        brokerageUser: null,
-        account: null,
-        brokerageService: null,
-        instrumentStore: null,
+        brokerageUser: 'mock',
+        account: 'mock',
+        brokerageService: 'mock',
+        instrumentStore: 'mock',
       );
 
       // Verify trade was blocked
@@ -221,7 +238,7 @@ void main() {
     late AgenticTradingProvider provider;
 
     setUp(() {
-      provider = AgenticTradingProvider();
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
     });
 
     tearDown(() {

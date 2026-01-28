@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/widgets/trade_signal_notification_setti
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/main.dart';
@@ -456,6 +457,8 @@ class _AgenticTradingSettingsWidgetState
     final brokerageUserStore =
         Provider.of<BrokerageUserStore>(context, listen: false);
     final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final paperTradingStore =
+        Provider.of<PaperTradingStore>(context, listen: false);
     final isPaperMode = provider.config.paperTradingMode;
 
     if (!isPaperMode && brokerageUserStore.items.isEmpty) {
@@ -483,6 +486,7 @@ class _AgenticTradingSettingsWidgetState
       account: account,
       brokerageService: widget.service,
       userDocRef: widget.userDocRef,
+      paperTradingStore: paperTradingStore,
     );
   }
 

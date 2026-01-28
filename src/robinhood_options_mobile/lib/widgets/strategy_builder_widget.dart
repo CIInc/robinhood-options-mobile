@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 
 class StrategyBuilderWidget extends StatefulWidget {
   final BrokerageUser user;
@@ -57,6 +58,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   final TextEditingController _priceController = TextEditingController();
   bool _isPreviewing = false;
   bool placingOrder = false;
+  bool _isPaperTrade = false;
 
   final Set<String> _selectedTags = {};
   late final List<String> _sortedTags;
@@ -1440,6 +1442,19 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text("Paper Trade"),
+                    subtitle:
+                        const Text("Simulate this trade with virtual money"),
+                    value: _isPaperTrade,
+                    onChanged: (val) {
+                      setState(() {
+                        _isPaperTrade = val;
+                      });
+                    },
+                    secondary: const Icon(Icons.school),
+                  ),
+                  const SizedBox(height: 8),
                   Consumer<AccountStore>(
                     builder: (context, accountStore, child) {
                       final buyingPower = accountStore.items.isNotEmpty
@@ -1521,7 +1536,12 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
       var agenticProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final portfolioState = <String, dynamic>{};
-      if (accountStore.items.isNotEmpty) {
+
+      if (_isPaperTrade) {
+        var paperStore = Provider.of<PaperTradingStore>(context, listen: false);
+        portfolioState['buyingPower'] = paperStore.cashBalance;
+        portfolioState['cashAvailable'] = paperStore.cashBalance;
+      } else if (accountStore.items.isNotEmpty) {
         final buyingPower = accountStore.items[0].buyingPower ??
             accountStore.items[0].portfolioCash ??
             0.0;
@@ -1570,39 +1590,71 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
         }
       }
 
-      final legs = selectedLegs
-          .asMap()
-          .entries
-          .where((entry) => entry.value != null)
-          .map((entry) {
-        final index = entry.key;
-        final leg = entry.value!;
-        final template = selectedStrategy!.legTemplates[index];
-        final isBuy = template.action == LegAction.any
-            ? selectedLegActions[index]?.toLowerCase() == 'buy'
-            : template.action == LegAction.buy;
-        return {
-          'position_effect': 'open', // Assuming opening a new position
-          'side': isBuy ? 'buy' : 'sell',
-          'ratio_quantity': template.ratio,
-          'option': leg.url,
-        };
-      }).toList();
+      if (_isPaperTrade) {
+        final legsData = selectedLegs
+            .asMap()
+            .entries
+            .where((entry) => entry.value != null)
+            .map((entry) {
+          final index = entry.key;
+          final leg = entry.value!;
+          final template = selectedStrategy!.legTemplates[index];
+          final isBuy = template.action == LegAction.any
+              ? selectedLegActions[index]?.toLowerCase() == 'buy'
+              : template.action == LegAction.buy;
+          return {
+            'instrument': leg,
+            'side': isBuy ? 'buy' : 'sell',
+            'ratio': template.ratio,
+          };
+        }).toList();
 
-      await widget.service.placeMultiLegOptionsOrder(
-        widget.user,
-        Provider.of<AccountStore>(context, listen: false)
-            .items
-            .first, // Assuming first account
-        legs,
-        creditOrDebit,
-        price,
-        quantity,
-      );
+        await Provider.of<PaperTradingStore>(context, listen: false)
+            .executeComplexOptionStrategy(
+          price: price,
+          quantity: quantity.toDouble(),
+          strategyName: selectedStrategy?.name ?? "Custom",
+          direction: creditOrDebit,
+          legsData: legsData,
+        );
+      } else {
+        final legs = selectedLegs
+            .asMap()
+            .entries
+            .where((entry) => entry.value != null)
+            .map((entry) {
+          final index = entry.key;
+          final leg = entry.value!;
+          final template = selectedStrategy!.legTemplates[index];
+          final isBuy = template.action == LegAction.any
+              ? selectedLegActions[index]?.toLowerCase() == 'buy'
+              : template.action == LegAction.buy;
+          return {
+            'position_effect': 'open', // Assuming opening a new position
+            'side': isBuy ? 'buy' : 'sell',
+            'ratio_quantity': template.ratio,
+            'option': leg.url,
+          };
+        }).toList();
+
+        await widget.service.placeMultiLegOptionsOrder(
+          widget.user,
+          Provider.of<AccountStore>(context, listen: false)
+              .items
+              .first, // Assuming first account
+          legs,
+          creditOrDebit,
+          price,
+          quantity,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully')),
+          SnackBar(
+              content: Text(_isPaperTrade
+                  ? 'Paper Order placed successfully'
+                  : 'Order placed successfully')),
         );
         Navigator.pop(context); // Go back
       }

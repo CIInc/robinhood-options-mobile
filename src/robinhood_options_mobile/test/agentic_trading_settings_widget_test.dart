@@ -11,8 +11,28 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
+import 'package:robinhood_options_mobile/model/backtesting_models.dart';
+import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_mocks.dart';
+
+class MockBacktestingProvider extends ChangeNotifier implements BacktestingProvider {
+  @override
+  List<TradeStrategyTemplate> get templates => [];
+
+  @override
+  void initialize(DocumentReference<User>? userDocRef) {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
+  setUpAll(() async {
+    await setupFirebaseMocks();
+  });
+
   group('AgenticTradingSettingsWidget Auto-Save Tests', () {
     late User testUser;
     late DocumentReference<User> testUserDocRef;
@@ -59,7 +79,11 @@ void main() {
         (WidgetTester tester) async {
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
-          .doc('test_user_123') as DocumentReference<User>;
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -67,6 +91,7 @@ void main() {
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(create: (_) => MockBacktestingProvider()),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,
@@ -87,7 +112,11 @@ void main() {
         (WidgetTester tester) async {
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
-          .doc('test_user_123') as DocumentReference<User>;
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -95,6 +124,7 @@ void main() {
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(create: (_) => MockBacktestingProvider()),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,
@@ -113,7 +143,7 @@ void main() {
   });
 }
 
-class MockBrokerageService implements IBrokerageService {
+class MockBrokerageService extends Fake implements IBrokerageService {
   @override
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,

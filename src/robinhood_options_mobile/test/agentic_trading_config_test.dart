@@ -158,20 +158,20 @@ void main() {
       expect(config.strategyConfig.takeProfitPercent, equals(10.0));
       expect(config.strategyConfig.stopLossPercent, equals(5.0));
 
-      // Verify all indicators are enabled by default
+      // Verify all indicators are disabled by default for safety
       expect(config.strategyConfig.enabledIndicators['priceMovement'],
-          equals(true));
-      expect(config.strategyConfig.enabledIndicators['momentum'], equals(true));
+          equals(false));
+      expect(config.strategyConfig.enabledIndicators['momentum'], equals(false));
       expect(config.strategyConfig.enabledIndicators['marketDirection'],
-          equals(true));
-      expect(config.strategyConfig.enabledIndicators['volume'], equals(true));
-      expect(config.strategyConfig.enabledIndicators['macd'], equals(true));
+          equals(false));
+      expect(config.strategyConfig.enabledIndicators['volume'], equals(false));
+      expect(config.strategyConfig.enabledIndicators['macd'], equals(false));
       expect(config.strategyConfig.enabledIndicators['bollingerBands'],
-          equals(true));
+          equals(false));
       expect(
-          config.strategyConfig.enabledIndicators['stochastic'], equals(true));
-      expect(config.strategyConfig.enabledIndicators['atr'], equals(true));
-      expect(config.strategyConfig.enabledIndicators['obv'], equals(true));
+          config.strategyConfig.enabledIndicators['stochastic'], equals(false));
+      expect(config.strategyConfig.enabledIndicators['atr'], equals(false));
+      expect(config.strategyConfig.enabledIndicators['obv'], equals(false));
     });
 
     test(

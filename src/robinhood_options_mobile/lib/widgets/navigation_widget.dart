@@ -41,6 +41,8 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -132,6 +134,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     if (auth.currentUser != null) {
       userDoc = _firestoreService.userCollection.doc(auth.currentUser!.uid);
       futureArr.add(userDoc!.get());
+
+      // Initialize PaperTradingStore
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Provider.of<PaperTradingStore>(context, listen: false)
+              .setUser(auth.currentUser);
+        });
+      }
     }
 
     return Future.wait(futureArr);
@@ -558,7 +568,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   void _buildTabs(BrokerageUserStore userStore) {
-    debugPrint("_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}");
+    debugPrint(
+        "_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}");
     tabPages = [
       HomePage(
         userStore.currentUser, userInfo,

@@ -10,6 +10,9 @@ enum TradingSession {
 
 /// Utility functions for US market hours checking (Eastern Time)
 class MarketHours {
+  /// Test-only override for current time
+  static DateTime? testTime;
+
   /// Checks if the market is currently open (9:30 AM - 4:00 PM ET, Monday-Friday)
   /// Optionally includes extended hours (pre-market and after-hours)
   static bool isMarketOpen({bool includeExtendedHours = false}) {
@@ -24,7 +27,7 @@ class MarketHours {
 
   /// Gets the current trading session
   static TradingSession getCurrentTradingSession() {
-    final now = DateTime.now().toUtc();
+    final now = (testTime ?? DateTime.now()).toUtc();
 
     // Determine if we're in EDT (summer) or EST (winter)
     // DST in US: Second Sunday in March to First Sunday in November

@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -45,6 +46,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   String orderType = "Market"; // Market, Limit, Stop, Stop Limit, Trailing Stop
   String timeInForce = "gtc";
   String trailingType = "Percentage"; // Percentage, Amount
+  bool _isPaperTrade = false;
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
@@ -192,6 +194,19 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               ),
             ),
           ),
+          // Paper Trading Toggle
+          SwitchListTile(
+            title: const Text("Paper Trade"),
+            subtitle: const Text("Simulate this trade with virtual money"),
+            value: _isPaperTrade,
+            onChanged: (val) {
+              setState(() {
+                _isPaperTrade = val;
+              });
+            },
+            secondary: const Icon(Icons.school),
+          ),
+          const SizedBox(height: 16),
           const SizedBox(height: 24),
 
           // Order Type
@@ -624,6 +639,14 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     });
 
     try {
+      if (_isPaperTrade) {
+        setState(() {
+          _isPreviewing = true;
+          _riskGuardWarning = null;
+        });
+        return;
+      }
+
       var accountStore = Provider.of<AccountStore>(context, listen: false);
       var agenticProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
@@ -789,6 +812,41 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           backgroundColor: Colors.red,
         ));
       }
+
+      if (_isPaperTrade) {
+        try {
+          double price = double.tryParse(priceCtl.text) ??
+              widget.instrument?.quoteObj?.lastTradePrice ??
+              0.0;
+          await Provider.of<PaperTradingStore>(context, listen: false)
+              .executeStockOrder(
+            instrument: widget.instrument!,
+            quantity: double.parse(quantityCtl.text),
+            price: price,
+            side: positionType ?? "Buy",
+            orderType: orderType,
+          );
+          if (!mounted) return;
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Paper Order placed successfully!"),
+            backgroundColor: Colors.green,
+          ));
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Paper Trade Error: $e"),
+            backgroundColor: Colors.red,
+          ));
+        } finally {
+          if (mounted) {
+            setState(() {
+              placingOrder = false;
+            });
+          }
+        }
+        return;
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -802,6 +860,42 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     setState(() {
       placingOrder = true;
     });
+
+    if (_isPaperTrade) {
+      try {
+        double price = double.tryParse(priceCtl.text) ??
+            widget.instrument?.quoteObj?.lastTradePrice ??
+            0.0;
+        await Provider.of<PaperTradingStore>(context, listen: false)
+            .executeStockOrder(
+          instrument: widget.instrument!,
+          quantity: double.parse(quantityCtl.text),
+          price: price,
+          side: positionType ?? "Buy",
+          orderType: orderType,
+        );
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Paper Order placed successfully!"),
+          backgroundColor: Colors.green,
+        ));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Paper Trade Error: $e"),
+          backgroundColor: Colors.red,
+        ));
+      } finally {
+        if (mounted) {
+          setState(() {
+            placingOrder = false;
+          });
+        }
+      }
+      return;
+    }
+
     var accountStore = Provider.of<AccountStore>(context, listen: false);
 
     if (_riskGuardWarning != null) {

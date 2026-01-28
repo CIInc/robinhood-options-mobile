@@ -10,6 +10,9 @@ class RemoteConfigService {
   static late final RemoteConfigService _instance;
   static RemoteConfigService get instance => _instance;
 
+  @visibleForTesting
+  static set mockInstance(RemoteConfigService service) => _instance = service;
+
   static Future<void> initialize() async {
     _instance = RemoteConfigService();
     await _instance._initConfig();

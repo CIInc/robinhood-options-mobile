@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
@@ -883,6 +884,33 @@ class _UserWidgetState extends State<UserWidget> {
                                               ?.copyWith(
                                                   fontWeight: FontWeight.bold),
                                         )),
+                                    // Paper Trading Simulator
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.school_outlined),
+                                      ),
+                                      title:
+                                          const Text('Paper Trading Simulator'),
+                                      subtitle: const Text(
+                                          'Practice trading with virtual money'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const PaperTradingDashboardWidget(),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                     // Agentic Trading Settings entry moved here from the app Drawer
                                     ListTile(
                                       leading: CircleAvatar(
