@@ -41,10 +41,12 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - **Manual Execution:** Use the "Run Now" button to immediately trigger a market analysis and trade execution cycle.
    - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities. You can also **long-press the auto-trade status badge** in the app bar to quickly toggle the emergency stop.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
+   - **Paper Trading:** Expanded paper trading functionality allows validatation of strategies across various widgets without risking real capital.
 
 6. **Backend Functions** (`functions/src/`)
    - `riskguardTask`: Advanced risk assessment and validation engine (powers both Agentic and [Manual Trading](risk-guard.md) protection)
    - `RiskGuardAgent`: Implements sector limits, correlation checks, and volatility filters
+   - `MacroAssessment`: Integrates broader market conditions into trading logic for enhanced decision making
    - Trade signal generation cron jobs (daily, hourly, 15-min)
    - `seedAgenticTrading` function: Initializes monitored stocks (supports batch processing)
    - `stock-list.ts`: Source of S&P 500 symbols

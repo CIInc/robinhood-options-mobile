@@ -83,7 +83,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Strategy Enhancements:** Refactored configuration for better template management
 - ✅ **Chat Improvements:** Smoother scrolling and message handling
 
-### v0.31.0 (Q1 2026 - Feb)
+### v0.31.0 ✅ (Released Jan 28, 2026)
+**Macro Logic, Paper Trading & Biometrics**
+- ✅ **Macro Assessment:** Integrated macro assessment logic into trading engine.
+- ✅ **Paper Trading:** Expanded paper trading functionality across various widgets.
+- ✅ **Group Messaging:** Notifications and read receipts for Investor Groups.
+- ✅ **Biometrics:** FaceID/TouchID authentication support.
+- ✅ **Testing & CI:** Integration tests and improved CI/CD workflows.
+
+### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - Futures Realized & Day P&L Tracking
@@ -91,13 +99,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Advanced Backtesting Filters (4-way indicator support) ([Tracking: #136](https://github.com/CIInc/robinhood-options-mobile/issues/136))
 - Smart Order Routing (Intelligent execution across venues)
 
-### v0.32.0 (Q1 2026 - Late Feb)
+### v0.33.0 (Q1 2026 - Late Feb)
 **AI Portfolio Architect**
 - Automated portfolio rebalancing scheduler ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
 - Voice-activated portfolio queries
 - Holistic portfolio health monitoring with predictive alerts
 
-### v0.33.0 (Q1 2026 - March)
+### v0.34.0 (Q1 2026 - March)
 **Schwab API Integration - Phase 2 & Smart Alerts**
 - Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
 - Futures trading UI & order placement
@@ -105,14 +113,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Multi-condition alert builder ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - Institutional flow tracking alerts
 
-### v0.34.0 (Q2 2026 - April)
+### v0.35.0 (Q2 2026 - April)
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration ([Tracking: #33](https://github.com/CIInc/robinhood-options-mobile/issues/33))
 - Fidelity Multi-leg options execution
 - [x] Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
-### v0.35.0 (Q2 2026 - May)
+### v0.36.0 (Q2 2026 - May)
 **Quantitative Research Workbench**
 - Alpha factor discovery engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] Correlation matrix visualizer (multi-asset, multi-timeframe)
@@ -120,14 +128,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Rolling statistics dashboard
 - Custom screener builder
 
-### v0.36.0 (Q2 2026 - Late May)
+### v0.37.0 (Q2 2026 - Late May)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Carry trade optimizer
 
-### v0.37.0 (Q2 2026 - June)
+### v0.38.0 (Q2 2026 - June)
 **Risk Management Suite 2.0**
 - Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
 - Scenario analysis with custom economic conditions
@@ -135,77 +143,76 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Tail risk hedging recommendations
 - Liquidity risk assessment
 
-### v0.38.0 (Q3 2026 - July)
+### v0.39.0 (Q3 2026 - July)
 **AI Trading Coach & Behavioral Finance**
 - Personalized trading pattern analysis ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - Behavioral coaching (detect biases)
 - Emotion tracking & journaling
 - Trading psychology score
 
-### v0.39.0 (Q3 2026 - August)
+### v0.40.0 (Q3 2026 - August)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Performance leaderboards
 - Shared watchlists
 - Collaborative portfolio analysis boards
 
-### v0.40.0 (Q3 2026 - Sept)
+### v0.41.0 (Q3 2026 - Sept)
 **Real-Time Alerts & News Intelligence**
 - Custom price/volume/volatility alerts
 - Real-time news aggregation with AI summarization
 - Sentiment scoring from social media
 - Financial news impact predictor
 
-### v0.41.0 (Q3 2026 - Late Sept)
+### v0.42.0 (Q3 2026 - Late Sept)
 **Social Platform Foundation**
 - Follow portfolios ([Tracking: #27](https://github.com/CIInc/robinhood-options-mobile/issues/27))
 - Top portfolios leaderboard
 - User reputation system
 - Social feed
 
-### v0.42.0 (Q4 2026 - Oct)
+### v0.43.0 (Q4 2026 - Oct)
 **Security & Compliance**
-- Biometric authentication ([Tracking: #69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
 - Two-factor authentication (2FA)
 - Compliance automation
 - Security audit implementation
 
-### v0.43.0 (Q4 2026 - Nov)
+### v0.44.0 (Q4 2026 - Nov)
 **Tax Optimization & Reporting Suite**
 - Comprehensive tax center with multi-year tracking ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
 - Capital gains optimizer
 - Wash sale detector
 - IRS Form 8949 generator
 
-### v0.44.0 (Q4 2026 - Dec)
+### v0.45.0 (Q4 2026 - Dec)
 **Mobile Experience & Polish**
 - Home screen widgets ([Tracking: #86](https://github.com/CIInc/robinhood-options-mobile/issues/86))
 - Offline mode with intelligent caching
 - Landscape mode support
 - Apple Watch app
 
-### v0.45.0 (2027 Q1 - Jan)
+### v0.46.0 (2027 Q1 - Jan)
 **Advanced Social & Community**
 - Group analytics & insights
 - Community trade ideas voting
 - NFT-based portfolio achievements
 - Decentralized portfolio verification
 
-### v0.46.0 (2027 Q1 - Feb)
+### v0.47.0 (2027 Q1 - Feb)
 **Options Analytics Pro**
 - Implied volatility surface 3D visualizer
 - Options flow anomaly detector
 - Earnings volatility analyzer
 - Delta-neutral portfolio builder
 
-### v0.47.0 (2027 Q1 - March)
+### v0.48.0 (2027 Q1 - March)
 **Algorithmic Strategy Marketplace**
 - Community strategy sharing with performance proofs
 - Strategy rental/subscription model
 - Algorithmic strategy backtesting as a service
 - Automated royalty distribution
 
-### v0.48.0+ (2027 Q2+)
+### v0.49.0+ (2027 Q2+)
 **Future Vision**
 - Retirement Planning ([Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139))
 - Credit & Lending Integration

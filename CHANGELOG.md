@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-01-28
+
+### Added
+- **Macro Assessment:** Integrated macro assessment logic into the trading engine to enhance decision making based on broader market conditions.
+- **Paper Trading:** Expanded paper trading functionality across various widgets, allowing users to test strategies risk-free throughout the app.
+- **Group Messaging:** Implemented group message notifications and read receipts for better communication within Investor Groups.
+- **Biometric Authentication:** Added biometric authentication support (FaceID/TouchID) for improved security.
+- **Remote Configuration:** Introduced `RemoteConfigService` to manage app configuration settings remotely.
+- **Testing:** Added integration tests and updated documentation with testing instructions.
+- **CI/CD:** Updated Android build workflow in CI/CD pipelines.
+
+### Changed
+- **Strategy UI:** Enhanced the Strategy Details bottom sheet with a confirmation dialog and improved UI for better usability.
+
+### Fixed
+- **Expiration Dates:** Ensured expiration dates are consistently handled in UTC format to prevent timezone discrepancies.
+- **Portfolio State:** Fixed an issue where buying power and cash available were not updating correctly across multiple widgets.
+
 ## [0.30.1] - 2026-01-24
 
 ### Added
