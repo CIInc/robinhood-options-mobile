@@ -305,20 +305,10 @@ export async function handleAlphaTask(marketData: any,
     const currIndicators = JSON.stringify(multiIndicatorResult.indicators);
     if (prevIndicators === currIndicators) {
       indicatorsChanged = false;
-      logger.info(`Indicators unchanged for ${symbol}, skipping processing`);
+      logger.info(`Indicators unchanged for ${symbol}, ` +
+        "reusing previous optimization");
       // Reuse previous optimization if available
       optimization = previousSignalDoc.optimization;
-
-      // If indicators haven't changed, we can skip the rest of the processing
-      // and return the previous result (or a no-action result)
-      return {
-        status: "no_action",
-        message: "Alpha agent: Indicators unchanged, skipping processing.",
-        reason: previousSignalDoc.reason,
-        signal: previousSignalDoc.signal,
-        interval,
-        multiIndicatorResult: previousSignalDoc.multiIndicatorResult,
-      };
     }
   }
 
