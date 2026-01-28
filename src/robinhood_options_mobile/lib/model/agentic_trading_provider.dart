@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics;
@@ -96,6 +97,26 @@ class AgenticTradingProvider with ChangeNotifier {
   // Activity Log
   final List<String> _activityLog = [];
   List<String> get activityLog => _activityLog;
+
+  // Macro Assessment
+  MacroAssessment? _macroAssessment;
+  MacroAssessment? get macroAssessment => _macroAssessment;
+
+  Future<void> fetchMacroAssessment() async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('getMacroAssessment');
+      final result = await callable.call();
+      if (result.data != null) {
+        _macroAssessment =
+            MacroAssessment.fromMap(Map<String, dynamic>.from(result.data));
+        notifyListeners();
+        _log("Macro assessment updated: ${_macroAssessment?.status}");
+      }
+    } catch (e) {
+      _log("Error fetching macro assessment: $e");
+    }
+  }
 
   void _log(String message) {
     debugPrint(message);

@@ -3,6 +3,7 @@ import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
 import { optimizeSignal } from "./signal-optimizer";
+import { getMacroAssessment } from "./macro-agent";
 import fetch from "node-fetch";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -218,7 +219,10 @@ export async function handleAlphaTask(marketData: any,
 
   // Fetch market index data (SPY by default, or QQQ if configured)
   const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
-  const marketIndexData = await fetchMarketData(marketIndexSymbol);
+  const [marketIndexData, macroAssessment] = await Promise.all([
+    fetchMarketData(marketIndexSymbol),
+    getMacroAssessment(),
+  ]);
 
   // Log detailed market data for debugging cache consistency
   const lastFewPrices = marketIndexData.closes.slice(-5);
@@ -253,6 +257,28 @@ export async function handleAlphaTask(marketData: any,
     marketIndexData,
     indicatorConfig
   );
+
+  // Integrate Macro Assessment
+  if (macroAssessment) {
+    multiIndicatorResult.macroAssessment = {
+      status: macroAssessment.status,
+      score: macroAssessment.score,
+      reason: macroAssessment.reason,
+    };
+
+    // Adjust signal strength based on macro score
+    if (macroAssessment.status === "RISK_OFF" &&
+      multiIndicatorResult.overallSignal === "BUY") {
+      multiIndicatorResult.signalStrength = Math.max(0,
+        multiIndicatorResult.signalStrength - 15);
+      multiIndicatorResult.reason += " (Macro Risk Off: -15 confidence)";
+    } else if (macroAssessment.status === "RISK_ON" &&
+      multiIndicatorResult.overallSignal === "BUY") {
+      multiIndicatorResult.signalStrength = Math.min(100,
+        multiIndicatorResult.signalStrength + 10);
+      multiIndicatorResult.reason += " (Macro Risk On: +10 confidence)";
+    }
+  }
 
   // Check if indicators have changed since last run to avoid expensive ML calls
   const signalDocId = interval === "1d" ?

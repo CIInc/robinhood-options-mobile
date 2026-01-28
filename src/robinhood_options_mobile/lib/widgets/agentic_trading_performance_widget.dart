@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 
 /// Performance monitoring widget for agentic trading system
 ///
@@ -90,48 +91,52 @@ class _AgenticTradingPerformanceWidgetState
   ) {
     final allHistory = provider.autoTradeHistory;
     final history = _filterHistory(allHistory);
-
-    if (allHistory.isEmpty) {
-      return _buildEmptyState(
-        'No trade history yet',
-        'Auto-trades will appear here once executed',
-        Icons.show_chart,
-        colorScheme,
-      );
-    }
-
-    final stats = _calculateStatistics(history);
+    final stats = allHistory.isNotEmpty ? _calculateStatistics(history) : null;
 
     return RefreshIndicator(
       onRefresh: () async {
+        await provider.fetchMacroAssessment();
         setState(() {});
       },
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildFilterChips(history, colorScheme),
+          const MacroAssessmentWidget(),
           const SizedBox(height: 16),
-          _buildOverviewCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildPerformanceCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildTradeBreakdownCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildBestWorstCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildAdvancedAnalyticsCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildRiskMetricsCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildTimeOfDayCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildIndicatorComboCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildSignalStrengthCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildSignalPerformanceCard(stats, colorScheme),
-          const SizedBox(height: 16),
-          _buildSymbolPerformanceCard(stats, colorScheme),
+          if (allHistory.isEmpty)
+            Padding(
+                padding: const EdgeInsets.only(top: 60),
+                child: _buildEmptyState(
+                  'No trade history yet',
+                  'Auto-trades will appear here once executed',
+                  Icons.show_chart,
+                  colorScheme,
+                ))
+          else ...[
+            _buildFilterChips(history, colorScheme),
+            const SizedBox(height: 16),
+            _buildOverviewCard(stats!, colorScheme),
+            const SizedBox(height: 16),
+            _buildPerformanceCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildTradeBreakdownCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildBestWorstCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildAdvancedAnalyticsCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildRiskMetricsCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildTimeOfDayCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildIndicatorComboCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildSignalStrengthCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildSignalPerformanceCard(stats, colorScheme),
+            const SizedBox(height: 16),
+            _buildSymbolPerformanceCard(stats, colorScheme),
+          ]
         ],
       ),
     );

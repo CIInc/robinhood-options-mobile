@@ -31,6 +31,7 @@ import * as optionsFlow from "./options-flow";
 import * as optionsFlowCron from "./options-flow-cron";
 import * as sentimentAnalysis from "./sentiment-analysis";
 import * as chatNotifications from "./chat-notifications";
+import * as macroAgent from "./macro-agent";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -92,3 +93,4 @@ export const deleteOptionAlert = optionsFlow.deleteOptionAlert;
 export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
 export const verifySubscription = verifySubscriptionFunc;
+export const getMacroAssessment = macroAgent.getMacroAssessmentCall;

@@ -110,7 +110,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Primary Targets Section
-        _buildSectionHeader(context, 'Primary Targets', Icons.track_changes),
+        _buildSubsectionTitle(context, 'Primary Targets'),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -137,10 +137,8 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
-
-        _buildSectionHeader(
-            context, 'Advanced Exits', Icons.auto_graph_rounded),
+        const SizedBox(height: 16),
+        _buildSubsectionTitle(context, 'Advanced Exits'),
         const SizedBox(height: 12),
 
         _buildStrategyCard(
@@ -233,9 +231,8 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
-        const SizedBox(height: 24),
-
-        _buildSectionHeader(context, 'Scaling Out', Icons.layers_outlined),
+        const SizedBox(height: 16),
+        _buildSubsectionTitle(context, 'Scaling Out'),
         const SizedBox(height: 12),
         _buildStrategyCard(
           context,
@@ -250,33 +247,19 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
     );
   }
 
-  Widget _buildSectionHeader(
-      BuildContext context, String title, IconData icon) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: colorScheme.secondary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: colorScheme.secondary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
+  Widget _buildSubsectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
           title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
         ),
-      ],
+      ),
     );
   }
 

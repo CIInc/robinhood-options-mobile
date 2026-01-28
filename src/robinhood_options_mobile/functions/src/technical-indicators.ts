@@ -42,6 +42,11 @@ export interface MultiIndicatorResult {
     parabolicSar: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
+  macroAssessment?: {
+    status: "RISK_ON" | "RISK_OFF" | "NEUTRAL";
+    score: number;
+    reason: string;
+  };
   overallSignal: "BUY" | "SELL" | "HOLD";
   reason: string;
   signalStrength: number; // 0-100 score based on indicator alignment

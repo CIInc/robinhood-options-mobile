@@ -1,6 +1,6 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import * as agenticTrading from "./agentic-trading";
+import { getMarketData } from "./market-data";
 import * as technicalIndicators from "./technical-indicators";
 import { CustomIndicatorConfig } from "./technical-indicators";
 
@@ -148,7 +148,7 @@ export const runBacktest = onCall(async (request) => {
     });
 
     // Fetch market index data (SPY/QQQ)
-    const marketData = await agenticTrading.getMarketData(
+    const marketData = await getMarketData(
       marketIndexSymbol || "SPY",
       smaPeriodFast,
       smaPeriodSlow,
@@ -162,7 +162,7 @@ export const runBacktest = onCall(async (request) => {
 
     const results = await Promise.all(symbols.map(async (sym: string) => {
       // Fetch historical data for the symbol
-      const symbolData = await agenticTrading.getMarketData(
+      const symbolData = await getMarketData(
         sym,
         smaPeriodFast,
         smaPeriodSlow,

@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/market_sentiment_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
@@ -513,6 +514,13 @@ class _SearchWidgetState extends State<SearchWidget>
                   //     height: 25.0,
                   //   )),
                   // ],
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: MacroAssessmentWidget(),
+                    ),
+                  ),
                   const SliverToBoxAdapter(
                     child: MarketSentimentCardWidget(),
                   ),

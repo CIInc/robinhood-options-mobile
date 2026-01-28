@@ -89,6 +89,22 @@ class EntryStrategiesWidget extends StatelessWidget {
     required this.onRemoveCustomIndicator,
   });
 
+  Widget _buildSubsectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -98,6 +114,17 @@ class EntryStrategiesWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+              child: Text(
+                'Active Indicators',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+/*
             Row(
               children: [
                 Container(
@@ -128,21 +155,35 @@ class EntryStrategiesWidget extends StatelessWidget {
                 ),
               ],
             ),
-            TextButton.icon(
-              onPressed: onToggleAllIndicators,
-              icon: const Icon(Icons.select_all, size: 16),
-              label: const Text('Toggle All'),
-              style: TextButton.styleFrom(
+*/
+            Row(children: [
+              IconButton(
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                tooltip: 'Indicator Documentation',
                 visualDensity: VisualDensity.compact,
-                textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                onPressed: () => _showDocumentationDialog(context),
               ),
-            ),
+              TextButton.icon(
+                onPressed: onToggleAllIndicators,
+                icon: const Icon(Icons.select_all, size: 16),
+                label: const Text('Toggle All'),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ]),
           ],
         ),
         const SizedBox(height: 12),
         ...enabledIndicators.keys
             .map((key) => _buildIndicatorToggle(context, key)),
-        const SizedBox(height: 16),
+        // const SizedBox(height: 16),
+        _buildSubsectionTitle(context, 'Configuration'),
 
         // Indicator Parameters Card
         Card(
@@ -332,7 +373,7 @@ class EntryStrategiesWidget extends StatelessWidget {
               ),
             );
           }),
-        const SizedBox(height: 24),
+        const SizedBox(height: 12),
         _buildCustomIndicatorsSection(context),
       ],
     );
@@ -345,31 +386,7 @@ class EntryStrategiesWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.build_circle_outlined,
-                    size: 18,
-                    color: colorScheme.secondary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Custom Indicators',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
+            _buildSubsectionTitle(context, 'Custom Indicators'),
             IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
               onPressed: onAddCustomIndicator,

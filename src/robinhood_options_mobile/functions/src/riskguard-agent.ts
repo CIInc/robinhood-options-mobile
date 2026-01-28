@@ -1,7 +1,7 @@
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
-import { getMarketData } from "./agentic-trading";
+import { getMarketData } from "./market-data";
 import { computeATR } from "./technical-indicators";
 
 /**

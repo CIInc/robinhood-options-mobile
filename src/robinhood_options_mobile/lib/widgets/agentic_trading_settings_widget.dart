@@ -1939,7 +1939,8 @@ class _AgenticTradingSettingsWidgetState
                     children: [
                       Divider(
                         height: 1,
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 16),
                       // Config Summary
@@ -2286,7 +2287,8 @@ class _AgenticTradingSettingsWidgetState
                     'No activity recorded yet.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -2800,7 +2802,7 @@ class _AgenticTradingSettingsWidgetState
         ),
         const SizedBox(height: 16),
         // Extended Trading Hours Section
-        _buildSectionHeader(context, 'Extended Hours', Icons.schedule),
+        _buildSubsectionTitle(context, 'Extended Hours'),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -2870,25 +2872,6 @@ class _AgenticTradingSettingsWidgetState
                 ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(
-      BuildContext context, String title, IconData icon) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-            fontSize: 14,
           ),
         ),
       ],
@@ -2995,6 +2978,7 @@ class _AgenticTradingSettingsWidgetState
           icon: Icons.calendar_today,
           min: 1,
         ),
+        const SizedBox(height: 16),
         _buildSubsectionTitle(context, 'Advanced Controls'),
         const SizedBox(height: 12),
         _buildSwitchListTile(
@@ -3133,13 +3117,16 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildSubsectionTitle(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+      padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
       ),
     );
   }
