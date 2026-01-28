@@ -481,11 +481,15 @@ class AgenticTradingProvider with ChangeNotifier {
       // Monitor TP/SL when positions exist
       // final instrumentPositionStore =
       //    Provider.of<InstrumentPositionStore>(context, listen: false);
-      if (instrumentPositionStore.items.isNotEmpty) {
-        _log(
-            '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL');
+
+      final positionsToMonitor = isPaperMode
+          ? paperTradingStore.positions
+          : instrumentPositionStore.items;
+
+      if (positionsToMonitor.isNotEmpty) {
+        _log('📊 Monitoring ${positionsToMonitor.length} positions for TP/SL');
         final tpSlResult = await monitorTakeProfitStopLoss(
-          positions: instrumentPositionStore.items,
+          positions: positionsToMonitor,
           brokerageUser: currentUser,
           account: firstAccount,
           brokerageService: brokerageService,
@@ -809,7 +813,8 @@ class AgenticTradingProvider with ChangeNotifier {
       if (dkey != today) continue;
 
       totalTrades += 1;
-      final profitLoss = trade['profitLoss'] as double?; // may be null
+      final profitLoss =
+          (trade['profitLoss'] as num?)?.toDouble(); // may be null
       if (profitLoss != null) {
         totalPnL += profitLoss;
         if (profitLoss > 0) {
@@ -1212,7 +1217,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
         try {
           // Get current price from signal
-          final currentPrice = signal['currentPrice'] as double? ?? 0.0;
+          final currentPrice =
+              (signal['currentPrice'] as num?)?.toDouble() ?? 0.0;
           if (currentPrice <= 0) {
             _log('⚠️ Invalid price for $symbol ($currentPrice), skipping');
             continue;
@@ -1510,7 +1516,7 @@ class AgenticTradingProvider with ChangeNotifier {
     final symbol = order['symbol'] as String;
     final action = order['action'] as String;
     final quantity = order['quantity'] as int;
-    final price = order['price'] as double;
+    final price = (order['price'] as num).toDouble();
     final instrument = order['instrument'];
 
     try {
@@ -1681,7 +1687,7 @@ class AgenticTradingProvider with ChangeNotifier {
         try {
           final symbol = buyTrade['symbol'] as String?;
           final buyQuantity = buyTrade['quantity'] as int?;
-          final entryPrice = buyTrade['entryPrice'] as double?;
+          final entryPrice = (buyTrade['entryPrice'] as num?)?.toDouble();
           final initialQuantity =
               buyTrade['initialQuantity'] as int? ?? buyQuantity;
           final executedStages =
@@ -1778,7 +1784,7 @@ class AgenticTradingProvider with ChangeNotifier {
           if (!shouldExit && _config.strategyConfig.trailingStopEnabled) {
             final trailPercent = _config.strategyConfig.trailingStopPercent;
             final prevHighest =
-                (buyTrade['highestPrice'] as double?) ?? entryPrice;
+                (buyTrade['highestPrice'] as num?)?.toDouble() ?? entryPrice;
             final newHighest =
                 currentPrice > prevHighest ? currentPrice : prevHighest;
             if (newHighest != prevHighest) {
@@ -1860,7 +1866,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     final indicators = multiIndicatorResult['indicators']
                         as Map<String, dynamic>?;
                     final rsi = indicators?['rsi'] as Map<String, dynamic>?;
-                    final rsiValue = rsi?['value'] as double?;
+                    final rsiValue = (rsi?['value'] as num?)?.toDouble();
 
                     if (rsiValue != null && rsiValue >= rsiThreshold) {
                       shouldExit = true;
