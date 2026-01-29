@@ -1,9 +1,9 @@
 # Futures Positions
 
-RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing both Open P&L and Day P&L calculations per contract.
+RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing Open P&L, Day P&L, and Realized P&L calculations per contract.
 
 ## Overview
-Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L and Day P&L; realized P&L, margin analytics, and roll logic are planned.
+Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L, Day P&L, and Realized P&L; margin analytics and roll logic are planned.
 
 ## Data Sources
 - **Aggregated Positions:** Base quantity and average trade price.
@@ -24,6 +24,8 @@ Futures data is aggregated client-side from brokerage APIs, then augmented with 
 | `lastTradePrice` | Latest trade price from quote feed. |
 | `previousClosePrice` | Previous close (settlement) price from closes endpoint. |
 | `quantity` | Number of contracts held (signed). |
+| `startOfDayPnl` | P&L since the start of the trading day. |
+| `realizedPnl` | Realized P&L for the day. |
 | `openPnlCalc` | Computed Open P&L value (see formula). |
 | `dayPnlCalc` | Computed Day P&L value (see formula). |
 | `notionalValue` | Computed Notional Value (Last Price * |Quantity| * Multiplier). |
@@ -56,7 +58,10 @@ LastTradePrice = 4527.25
 Quantity = 3
 Multiplier = 50
 DayPnlCalc = (4527.25 - 4518.50) * 3 * 50 = 1312.50
-```
+```ealized P&L
+Realized P&L is calculated based on closed positions during the current session, factoring in execution prices and quantities.
+
+### R
 
 ### Risk Metrics
 Basic risk metrics are provided to monitor exposure.
@@ -100,8 +105,7 @@ A pie chart visualizes the distribution of Notional Value across different futur
 - Assumes multiplier is available and non-null; positions without multiplier may show `openPnlCalc = null` and `dayPnlCalc = null`.
 - Day P&L calculation depends on availability of previous close price; if unavailable, `dayPnlCalc` will be null.
 - No Greeks or implied volatility surface metrics.
-## Roadmap
-Planned enhancements:
+##anned enhancements:
 - Margin metrics & risk layer (SPAN-style summary).
 - Realized P&L tracking using trade history.
 - Contract roll assistant (alerts near expiration, auto-suggest roll strikes/months).

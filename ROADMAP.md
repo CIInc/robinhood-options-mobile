@@ -46,7 +46,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Correlation Matrix**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (15+)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**, **Instrument Notes**, **AI Asset Allocation**, **Strategy Optimization**, **Custom Benchmarks**, **Enhanced Cash Allocation**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Correlation Matrix**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (15+)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**, **Instrument Notes**, **AI Asset Allocation**, **Strategy Optimization**, **Custom Benchmarks**, **Enhanced Cash Allocation**, **Futures Historical Data**, **Futures Realized P&L**, **Auto-Trade History Persistence**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -91,10 +91,15 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Biometrics:** FaceID/TouchID authentication support.
 - ✅ **Testing & CI:** Integration tests and improved CI/CD workflows.
 
+### v0.31.1 ✅ (Released Jan 28, 2026)
+**Futures Enhancements & Auto-Trade History**
+- ✅ **Futures Positions:** Historical data fetching and display.
+- ✅ **Futures P&L:** Realized P&L and Day P&L calculations.
+- ✅ **Agentic Trading:** Auto-trade history loading from Firestore.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
-- Futures Realized & Day P&L Tracking
 - Futures Roll Assistant
 - Advanced Backtesting Filters (4-way indicator support) ([Tracking: #136](https://github.com/CIInc/robinhood-options-mobile/issues/136))
 - Smart Order Routing (Intelligent execution across venues)

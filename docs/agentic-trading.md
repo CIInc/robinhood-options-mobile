@@ -20,6 +20,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Implements `ChangeNotifier` for reactive UI updates
    - Manages trade execution, TP/SL monitoring, and safety checks
    - Handles automated buy trades tracking and Firebase persistence
+   - Loads auto-trade history from Firestore ensuring persistence across app restarts
 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
@@ -41,7 +42,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - **Manual Execution:** Use the "Run Now" button to immediately trigger a market analysis and trade execution cycle.
    - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities. You can also **long-press the auto-trade status badge** in the app bar to quickly toggle the emergency stop.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
-   - **Paper Trading:** Expanded paper trading functionality allows validatation of strategies across various widgets without risking real capital.
+   - **Paper Trading:** Expanded paper trading functionality allows validatation of strategies across various widgets without risking real capital. Supports TP/SL monitoring in paper mode.
 
 6. **Backend Functions** (`functions/src/`)
    - `riskguardTask`: Advanced risk assessment and validation engine (powers both Agentic and [Manual Trading](risk-guard.md) protection)

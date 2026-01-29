@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-01-28
+
+### Added
+- **Futures Positions:** Added historical data fetching and display for futures positions.
+- **Futures Positions:** Implemented Realized P&L and Day P&L calculations and display.
+- **Agentic Trading:** Implemented loading of auto-trade history from Firestore.
+- **Agentic Trading:** Added event handling and navigation to performance and settings widgets.
+
+### Fixed
+- **Chart:** Added animation control to PieChartItem for smoother rendering.
+- **Agentic Trading:** Fixed handling of unchanged indicators in Alpha agent processing.
+- **Agentic Trading:** Fixed monitoring of Take Profit/Stop Loss support for paper trading mode.
+- **Agentic Trading:** Streamlined indicator results handling in Alpha task and updated chart pattern detection.
+- **Build:** Updated NDK version to 28.2.13676358 in build.gradle.
+
 ## [0.31.0] - 2026-01-28
 
 ### Added
