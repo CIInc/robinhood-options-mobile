@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
@@ -33,6 +34,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -982,6 +984,10 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               // Open P&L formula: (Last - Avg) * Quantity * Multiplier
               position['openPnlCalc'] =
                   (lastTradePrice - avgTradePrice) * quantity * multiplier;
+
+              // Notional Value: Last * |Quantity| * Multiplier
+              position['notionalValue'] =
+                  lastTradePrice * quantity.abs() * multiplier;
             }
 
             // Compute Day P&L if we have lastTradePrice, previousClosePrice, quantity, and multiplier
@@ -1002,8 +1008,172 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
     }
   }
 
-  /*
-Futures Account PnL
+  Future<List<dynamic>> getFuturesPositions(
+      BrokerageUser user, FuturesPositionStore store, String account) async {
+    // Re-using logic from streamFuturePositions but for a single fetch
+    var results = await pagedGet(
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
+
+    if (results.isEmpty) {
+      store.removeAll();
+      return results;
+    }
+
+    // Extract unique contract IDs
+    var contractIds = results
+        .map((e) => e['contractId']?.toString())
+        .where((id) => id != null)
+        .toSet()
+        .toList()
+        .cast<String>();
+
+    if (contractIds.isNotEmpty) {
+      // Fetch contract details
+      var contracts = await getFuturesContractsByIds(user, contractIds);
+
+      // Extract unique product IDs from contracts
+      var productIds = contracts
+          .map((c) => c['productId']?.toString())
+          .where((id) => id != null)
+          .toSet()
+          .toList()
+          .cast<String>();
+
+      List<dynamic> products = [];
+      if (productIds.isNotEmpty) {
+        // Fetch product details
+        products = await getFuturesProductsByIds(user, productIds);
+      }
+
+      // Fetch quotes for contracts to compute Open P&L
+      List<dynamic> quotes = [];
+      try {
+        var quotesUrl =
+            "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
+        var quotesJson = await getJson(user, quotesUrl);
+        if (quotesJson['data'] != null) {
+          quotes = quotesJson['data'];
+        }
+      } catch (e) {
+        debugPrint('getFuturePositions: futures quotes fetch error: $e');
+      }
+
+      // Fetch closes for contracts to compute Day P&L
+      List<dynamic> closes = [];
+      try {
+        closes = await getFuturesClosesByIds(user, contractIds);
+      } catch (e) {
+        debugPrint('getFuturePositions: futures closes fetch error: $e');
+      }
+
+      // Map for quick lookup instrument_id -> last_trade_price
+      Map<String, double> lastTradePriceByContract = {};
+      for (var quoteWrapper in quotes) {
+        if (quoteWrapper is Map && quoteWrapper['data'] != null) {
+          var data = quoteWrapper['data'];
+          var instrumentId = data['instrument_id']?.toString();
+          var lastTradePriceStr = data['last_trade_price']?.toString();
+          if (instrumentId != null && lastTradePriceStr != null) {
+            var lastTrade = double.tryParse(lastTradePriceStr);
+            if (lastTrade != null) {
+              lastTradePriceByContract[instrumentId] = lastTrade;
+            }
+          }
+        }
+      }
+
+      // Map for quick lookup instrument_id -> previous_close_price
+      Map<String, double> previousClosePriceByContract = {};
+      for (var closeWrapper in closes) {
+        if (closeWrapper is Map && closeWrapper['data'] != null) {
+          var data = closeWrapper['data'];
+          var instrumentId = data['instrument_id']?.toString();
+          var previousClosePriceStr = data['previous_close_price']?.toString();
+          if (instrumentId != null && previousClosePriceStr != null) {
+            var previousClose = double.tryParse(previousClosePriceStr);
+            if (previousClose != null) {
+              previousClosePriceByContract[instrumentId] = previousClose;
+            }
+          }
+        }
+      }
+
+      // Enrich positions with contract and product data
+      for (var position in results) {
+        var contractId = position['contractId'];
+        var contract = contracts.firstWhere(
+          (c) => c['id'] == contractId,
+          orElse: () => null,
+        );
+
+        if (contract != null) {
+          position['contract'] = contract;
+
+          var productId = contract['productId'];
+          var product = products.firstWhere(
+            (p) => p['id'] == productId,
+            orElse: () => null,
+          );
+
+          if (product != null) {
+            position['product'] = product;
+          }
+
+          // Attach last trade price if available
+          if (lastTradePriceByContract.containsKey(contractId)) {
+            position['lastTradePrice'] = lastTradePriceByContract[contractId];
+          }
+
+          // Attach previous close price if available
+          if (previousClosePriceByContract.containsKey(contractId)) {
+            position['previousClosePrice'] =
+                previousClosePriceByContract[contractId];
+          }
+
+          // Compute Open P&L if we have lastTradePrice, avgTradePrice, quantity, and multiplier
+          var lastTradePrice = position['lastTradePrice'];
+          var avgTradePriceStr = position['avgTradePrice']?.toString();
+          var quantityStr = position['quantity']?.toString();
+          var multiplierStr = contract['multiplier']?.toString();
+          double? avgTradePrice = avgTradePriceStr != null
+              ? double.tryParse(avgTradePriceStr)
+              : null;
+          double? quantity =
+              quantityStr != null ? double.tryParse(quantityStr) : null;
+          double? multiplier =
+              multiplierStr != null ? double.tryParse(multiplierStr) : null;
+          if (lastTradePrice is double &&
+              avgTradePrice != null &&
+              quantity != null &&
+              multiplier != null) {
+            // Open P&L formula: (Last - Avg) * Quantity * Multiplier
+            position['openPnlCalc'] =
+                (lastTradePrice - avgTradePrice) * quantity * multiplier;
+
+            // Notional Value: Last * |Quantity| * Multiplier
+            position['notionalValue'] =
+                lastTradePrice * quantity.abs() * multiplier;
+          }
+
+          // Compute Day P&L if we have lastTradePrice, previousClosePrice, quantity, and multiplier
+          var previousClosePrice = position['previousClosePrice'];
+          if (lastTradePrice is double &&
+              previousClosePrice is double &&
+              quantity != null &&
+              multiplier != null) {
+            // Day P&L formula: (Last - PreviousClose) * Quantity * Multiplier
+            position['dayPnlCalc'] =
+                (lastTradePrice - previousClosePrice) * quantity * multiplier;
+          }
+        }
+      }
+    }
+
+    store.set(results);
+    return results;
+  }
+
+/*
 https://api.robinhood.com/ceres/v1/accounts/6720fb91-1664-4e00-ad41-9b4e91008879/pnl_cost_basis
 {
     "contractToInfo": {
@@ -3445,6 +3615,84 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     var resultJson = await RobinhoodService.getJson(user, url);
     var item = ForexHistoricals.fromJson(resultJson);
     return item;
+  }
+
+/*
+interval: 5minute (1D), hour (1W, 1M), day (3M, 1Y)
+GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&interval=5minute&start=2026-01-28T06%3A00%3A00.000Z
+*/
+  @override
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    String bounds = convertChartBoundsFilter(chartBoundsFilter);
+    // var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
+    // String span = rtn[0];
+    // String interval = rtn[1];
+    String interval = "day";
+    if (chartDateSpanFilter == ChartDateSpan.day) {
+      interval = "5minute";
+    } else if (chartDateSpanFilter == ChartDateSpan.week ||
+        chartDateSpanFilter == ChartDateSpan.month) {
+      interval = "hour";
+    }
+    DateTime now = DateTime.now();
+    DateTime startTime;
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.hour:
+        startTime = now.subtract(const Duration(hours: 1));
+        break;
+      case ChartDateSpan.day:
+        startTime = now.subtract(const Duration(days: 1));
+        break;
+      case ChartDateSpan.week:
+        startTime = now.subtract(const Duration(days: 7));
+        break;
+      case ChartDateSpan.month:
+        startTime = now.subtract(const Duration(days: 30));
+        break;
+      case ChartDateSpan.month_3:
+        startTime = now.subtract(const Duration(days: 90));
+        break;
+      case ChartDateSpan.ytd:
+        startTime = DateTime(now.year, 1, 1);
+        break;
+      case ChartDateSpan.year:
+        startTime = now.subtract(const Duration(days: 365));
+        break;
+      case ChartDateSpan.year_2:
+        startTime = now.subtract(const Duration(days: 365 * 2));
+        break;
+      case ChartDateSpan.year_3:
+        startTime = now.subtract(const Duration(days: 365 * 3));
+        break;
+      case ChartDateSpan.year_5:
+        startTime = now.subtract(const Duration(days: 365 * 5));
+        break;
+      case ChartDateSpan.all:
+        startTime = DateTime(2000);
+        break;
+    }
+    var start = Uri.encodeComponent(startTime.toUtc().toIso8601String());
+    var url =
+        "$endpoint/marketdata/futures/historicals/contracts/v1/?ids=$id&interval=$interval&start=$start";
+    try {
+      var result = await RobinhoodService.getJson(user, url);
+      // return FutureHistoricals.fromJson(result);
+      if (result['data'] != null &&
+          result['data'] is List &&
+          result['data'].isNotEmpty) {
+        var data = result['data'][0];
+        if (data['data'] != null) {
+          return FutureHistoricals.fromJson(data['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching future historicals: $e");
+      return null;
+    }
   }
 
   Future<List<dynamic>> getForexPairs(BrokerageUser user) async {

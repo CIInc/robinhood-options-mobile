@@ -26,6 +26,7 @@ Futures data is aggregated client-side from brokerage APIs, then augmented with 
 | `quantity` | Number of contracts held (signed). |
 | `openPnlCalc` | Computed Open P&L value (see formula). |
 | `dayPnlCalc` | Computed Day P&L value (see formula). |
+| `notionalValue` | Computed Notional Value (Last Price * |Quantity| * Multiplier). |
 
 ## P&L Formulas
 
@@ -41,11 +42,10 @@ LastTradePrice = 4527.25
 Quantity = 3
 Multiplier = 50
 OpenPnlCalc = (4527.25 - 4520.00) * 3 * 50 = 1087.50
-## UI Integration
-- Both Day P&L and Open P&L are displayed in the Futures Positions widget with color-coded values (green for positive, red for negative, grey for zero).
-- Day P&L is shown above Open P&L for each position.
-- Precision: last trade price shown with 2–4 decimals depending on instrument.
-- Contract & product metadata shown as supplemental descriptive text.lose price, scaled by contract quantity and multiplier.
+```
+
+### Day P&L
+The Day P&L compares the last trade price against the previous close price, scaled by contract quantity and multiplier.
 
 $Day\ P\&L = (Last\ Price - Previous\ Close\ Price) \times Quantity \times Multiplier$
 
@@ -58,10 +58,33 @@ Multiplier = 50
 DayPnlCalc = (4527.25 - 4518.50) * 3 * 50 = 1312.50
 ```
 
+### Risk Metrics
+Basic risk metrics are provided to monitor exposure.
+
+**Notional Value**
+Represents the total value of the assets controlled by the futures position.
+
+$Notional\ Value = Last\ Price \times |Quantity| \times Multiplier$
+
+Example:
+```
+LastTradePrice = 4527.25
+Quantity = -3 (Short)
+Multiplier = 50
+NotionalValue = 4527.25 * 3 * 50 = 679,087.50
+```
+
+### Risk Distribution
+A pie chart visualizes the distribution of Notional Value across different futures products (e.g., /ES, /NQ), highlighting concentration risk.
+
 ## UI Integration
-- Displayed in the Futures Positions widget with color-coded value (positive/negative).
-- Precision: last trade price shown with 2–4 decimals depending on instrument.
-- Contract & product metadata shown as supplemental descriptive text.
+- **Summary Header:** Displays aggregated Total Notional, Total Open P&L, and Total Day P&L.
+- **Risk Chart:** Interactive pie chart showing notional exposure by root symbol.
+- **Position List:**
+    - Day P&L and Open P&L with color-coded values.
+    - Notional Value per position.
+    - Contract details and multipliers.
+
 ## Technical Implementation
 - Service layer method (`streamFuturePositions`) fetches aggregated positions, then sequentially:
   1. Fetches contract & product metadata via `getFuturesContractsByIds` and `getFuturesProductsByIds`.

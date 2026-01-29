@@ -9,7 +9,7 @@ class InstrumentHistorical {
   final double? highPrice;
   final double? lowPrice;
   final int volume;
-  final String session;
+  final String? session;
   final bool interpolated;
 
   InstrumentHistorical(

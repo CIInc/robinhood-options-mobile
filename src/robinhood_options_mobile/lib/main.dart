@@ -30,6 +30,7 @@ import 'firebase_options.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -241,6 +242,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => ForexHoldingStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => FuturesPositionStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => PaperTradingStore(),

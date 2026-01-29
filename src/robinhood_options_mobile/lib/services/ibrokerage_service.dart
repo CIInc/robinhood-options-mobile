@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
@@ -158,6 +159,10 @@ abstract class IBrokerageService {
       String? chartInterval});
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
 
   // Dividends & Interests

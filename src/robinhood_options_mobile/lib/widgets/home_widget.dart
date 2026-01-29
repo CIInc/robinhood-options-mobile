@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 // import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -33,7 +34,6 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
-import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
@@ -165,8 +165,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<OptionPositionStore>? futureOptionPositions;
   //Stream<OptionPositionStore>? optionPositionStoreStream;
 
-  Future<List<dynamic>>? futureFuturesAccounts;
-  Stream<List<dynamic>>? futuresStream;
+  // Future<List<dynamic>>? futureFuturesAccounts;
+  String? futuresAccountId;
+  // StreamSubscription? _futuresSubscription;
+  // Stream<List<dynamic>>? futuresStream;
 
   /*
   Stream<List<StockPosition>>? positionStream;
@@ -280,8 +282,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       );
 
       if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
-        futureFuturesAccounts = (widget.service! as RobinhoodService)
-            .getFuturesAccounts(widget.brokerageUser!, account!);
+        (widget.service! as RobinhoodService)
+            .getFuturesAccounts(widget.brokerageUser!, account!)
+            .then((accounts) => _updateFuturesPositions(accounts));
       }
     } else {
       futurePortfolioHistoricals = null;
@@ -361,6 +364,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    /*
+    if (_futuresSubscription != null) {
+      _futuresSubscription?.cancel();
+    }
+    */
     _stopRefreshTimer();
     super.dispose();
   }
@@ -452,31 +460,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           } else {
             account = null;
           }
-
-          // if (widget.brokerageUser!.source == BrokerageSource.robinhood) {
-          //   futureFuturesAccounts = (widget.service! as RobinhoodService)
-          //       .getFuturesAccounts(widget.brokerageUser!, account!);
-          // }
-
-          /*
-          return MultiProvider(
-              providers: [
-                StreamProvider<StockPositionStore>.value(
-                  value: positionStoreStream,
-                  initialData: StockPositionStore(),
-                ),
-                StreamProvider<OptionPositionStore>.value(
-                  value: optionPositionStoreStream,
-                  initialData: OptionPositionStore(),
-                )
-              ],
-              builder: (BuildContext context, Widget? subwidget) {
-                */
           return _buildPage(context,
               userInfo: widget.userInfo,
               account: account,
               done: dataSnapshot.connectionState == ConnectionState.done);
-          //});
         } else if (dataSnapshot.hasError) {
           debugPrint("${dataSnapshot.error}");
           return _buildPage(context,
@@ -564,63 +551,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     account: account,
                     user: widget.user,
                     userDocRef: widget.userDoc)),
-            // FUTURES: If we have futures accounts, stream aggregated positions
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
-              FutureBuilder<List<dynamic>>(
-                  future: futureFuturesAccounts,
-                  builder: (context, snapshotAccounts) {
-                    if (snapshotAccounts.hasData &&
-                        snapshotAccounts.data != null) {
-                      var accounts = snapshotAccounts.data!;
-                      var futuresAccount = accounts.firstWhere(
-                          (f) => f != null && f['accountType'] == 'FUTURES',
-                          orElse: () => null);
-                      if (futuresAccount != null) {
-                        var accountId = futuresAccount['id'];
-                        var stream = (widget.service! as RobinhoodService)
-                            .streamFuturePositions(
-                                widget.brokerageUser!, accountId);
-                        return StreamBuilder<List<dynamic>>(
-                            stream: stream,
-                            builder: (context, futSnapshot) {
-                              if (futSnapshot.hasData &&
-                                  futSnapshot.data != null) {
-                                var list = futSnapshot.data!;
-                                // Build a store and provide it to descendants
-                                var store = FuturesPositionStore();
-                                store.addAll(list);
-                                return ChangeNotifierProvider<
-                                    FuturesPositionStore>.value(
-                                  value: store,
-                                  child: FuturesPositionsWidget(
-                                    showList: false,
-                                    onTapHeader: () {
-                                      // navigate to a full futures page if desired
-                                    },
-                                  ),
-                                );
-                              } else if (futSnapshot.hasError) {
-                                return SliverToBoxAdapter(
-                                  child: Text('${futSnapshot.error}'),
-                                );
-                              } else {
-                                return const SliverToBoxAdapter(
-                                  child: Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(12.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                );
-                              }
-                            });
-                      }
-                      return SliverToBoxAdapter();
-                    } else {
-                      return SliverToBoxAdapter();
-                    }
-                  }),
-            ],
+
             SliverToBoxAdapter(
               child: Padding(
                 padding:
@@ -845,6 +776,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 includePortfolioSymbols: true,
               ),
             ),
+            // FUTURES: If we have futures accounts, stream aggregated positions
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
+              Consumer<FuturesPositionStore>(
+                  builder: (context, futuresPositionStore, child) {
+                return FuturesPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  futuresPositionStore.items,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  showList: false,
+                );
+              }),
+            ],
             Consumer<OptionPositionStore>(
                 builder: (context, optionPositionStore, child) {
               //if (optionPositions != null) {
@@ -1158,6 +1106,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     );
   }
 
+  void _updateFuturesPositions([List<dynamic>? accounts]) async {
+    if (accounts != null && accounts.isNotEmpty) {
+      var futuresAccount = accounts.firstWhere(
+          (f) => f != null && f['accountType'] == 'FUTURES',
+          orElse: () => null);
+      if (futuresAccount != null) {
+        futuresAccountId = futuresAccount['id'];
+      }
+    }
+    if (futuresAccountId != null) {
+      if (!mounted) return;
+      var store = Provider.of<FuturesPositionStore>(context, listen: false);
+      await (widget.service! as RobinhoodService)
+          .getFuturesPositions(widget.brokerageUser!, store, futuresAccountId!);
+    }
+  }
+
   void _startRefreshTimer() {
     // Start listening to clipboard
     refreshTriggerTime = Timer.periodic(
@@ -1208,6 +1173,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //     chartDateSpanFilter == ChartDateSpan.day
             //         ? ChartDateSpan.hour
             //         : chartDateSpanFilter);
+          });
+
+          newRandom = (random.nextDouble() * maxDelay).toInt();
+          debugPrint('refreshFutures scheduled in $newRandom');
+          Future.delayed(Duration(milliseconds: newRandom), () async {
+            if (!mounted) return;
+            // setState(() {
+            if (futuresAccountId == null && account != null) {
+              var accounts = await (widget.service! as RobinhoodService)
+                  .getFuturesAccounts(widget.brokerageUser!, account!);
+              _updateFuturesPositions(accounts);
+            } else {
+              _updateFuturesPositions();
+            }
+            // });
           });
         }
         var newRandom = (random.nextDouble() * maxDelay).toInt();
@@ -1299,8 +1279,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
     Provider.of<OptionPositionStore>(context, listen: false).removeAll();
     Provider.of<InstrumentPositionStore>(context, listen: false).removeAll();
+    Provider.of<FuturesPositionStore>(context, listen: false).removeAll();
+    /*
+    if (_futuresSubscription != null) {
+      _futuresSubscription?.cancel();
+      _futuresSubscription = null;
+    }
+    */
     setState(() {
       futureAccounts = null;
+      // futureFuturesAccounts = null;
       futurePortfolios = null;
       futureNummusHoldings = null;
       futureOptionPositions = null;
