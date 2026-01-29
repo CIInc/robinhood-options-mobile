@@ -306,7 +306,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
   Widget _buildFilterBar(OptionsFlowStore store) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (widget.initialSymbol != null) return const SizedBox.shrink();
+    // Don't hide filter chips when initialSymbol is set as we now have expiration date filters
+    // if (widget.initialSymbol != null) return const SizedBox.shrink();
 
     final symbolsToShow =
         (widget.initialSymbols != null && widget.initialSymbols!.isNotEmpty)
@@ -321,37 +322,38 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search symbol (e.g. SPY, TSLA)...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: store.filterSymbol != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => store.setFilterSymbol(null),
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
+        if (widget.initialSymbol == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search symbol (e.g. SPY, TSLA)...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: store.filterSymbol != null
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => store.setFilterSymbol(null),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                fillColor: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.3),
               ),
-              filled: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              fillColor: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.3),
+              textCapitalization: TextCapitalization.characters,
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  store.setFilterSymbol(value.toUpperCase());
+                }
+              },
             ),
-            textCapitalization: TextCapitalization.characters,
-            onSubmitted: (value) {
-              if (value.isNotEmpty) {
-                store.setFilterSymbol(value.toUpperCase());
-              }
-            },
           ),
-        ),
         Container(
           height: 50,
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -496,37 +498,92 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                width: 1,
-                height: 24,
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                color: Theme.of(context).dividerColor,
-              ),
-              const SizedBox(width: 8),
-              ...symbolsToShow.map((symbol) {
-                final isSelected = store.filterSymbol == symbol;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(symbol),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        store.setFilterSymbol(symbol);
-                      } else {
-                        store.setFilterSymbol(null);
-                      }
-                    },
-                  ),
-                );
-              }),
-              if (widget.initialSymbols == null ||
-                  widget.initialSymbols!.isEmpty)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: _showManageDefaultsDialog,
-                  tooltip: 'Manage Watchlist',
+              if (store.expirationDates.isNotEmpty) ...[
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                  color: Theme.of(context).dividerColor,
                 ),
+                const SizedBox(width: 8),
+                ...store.expirationDates.map((date) {
+                  final dateStr = DateFormat('yyyy-MM-dd').format(date);
+                  final displayStr = DateFormat('MMM d').format(date);
+                  final isSelected = store.filterExpiration == dateStr;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(displayStr),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        store.setFilterExpiration(selected ? dateStr : null);
+                      },
+                      avatar: isSelected
+                          ? null
+                          : Icon(
+                              Icons.calendar_today,
+                              size: 14,
+                              color: isDark
+                                  ? Colors.blue.shade200
+                                  : Colors.blue.shade700,
+                            ),
+                      selectedColor:
+                          isDark ? Colors.blue.shade200 : Colors.blue.shade700,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? Colors.black
+                            : (isDark
+                                ? Colors.blue.shade200
+                                : Colors.blue.shade700),
+                        fontWeight: isSelected ? FontWeight.bold : null,
+                      ),
+                      backgroundColor:
+                          (isDark ? Colors.blue.shade200 : Colors.blue.shade700)
+                              .withValues(alpha: 0.1),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+              if (widget.initialSymbol == null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                  color: Theme.of(context).dividerColor,
+                ),
+                const SizedBox(width: 8),
+                ...symbolsToShow.map((symbol) {
+                  final isSelected = store.filterSymbol == symbol;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(symbol),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          store.setFilterSymbol(symbol);
+                        } else {
+                          store.setFilterSymbol(null);
+                        }
+                      },
+                    ),
+                  );
+                }),
+                if (widget.initialSymbols == null ||
+                    widget.initialSymbols!.isEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: _showManageDefaultsDialog,
+                    tooltip: 'Manage Watchlist',
+                  ),
+              ],
             ],
           ),
         ),
@@ -600,9 +657,24 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
 
     if (store.filterExpiration != null) {
       String label = store.filterExpiration!;
-      if (label == '0-7') label = '< 7d';
-      if (label == '8-30') label = '8-30d';
-      if (label == '30+') label = '> 30d';
+      if (label == '0-7') {
+        label = '< 7d';
+      } else if (label == '8-30') {
+        label = '8-30d';
+      } else if (label == '30+') {
+        label = '> 30d';
+      } else {
+        try {
+          final parts = label.split('-');
+          if (parts.length == 3) {
+            final date = DateTime(
+                int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+            label = DateFormat('MMM d').format(date);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
       chips.add(InputChip(
         avatar: Icon(Icons.timer,
             size: 16, color: Theme.of(context).colorScheme.primary),

@@ -512,7 +512,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
-    - [ ] Add chat interface for market questions
+    - [x] Add chat interface for market questions
     - [ ] Implement `generateInvestmentThesis`
     - [x] **Personalized AI Coach**: Analyze user's manual trading history to identify biases and suggest improvements (v0.28.0) - **Large** (5-7 weeks)
     - [ ] **Natural Language Interface**: "Chat with your Portfolio" feature to ask questions about performance and risk - **Large** (6-8 weeks)
@@ -576,7 +576,7 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 **Revenue Impact:** High (network effects drive adoption)
 
 #### Investor Groups ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
-- [ ] **Group Chat**: Real-time messaging within groups ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76)) - **Large** (3-4 weeks)
+- [x] **Group Chat**: Real-time messaging within groups ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76)) - **Large** (3-4 weeks)
 - [ ] **Performance Analytics**: Group leaderboards and performance tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77)) - **Medium** (2-3 weeks)
 - [ ] **Activity Feed**: Real-time feed of member trades ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78)) - **Medium** (2-3 weeks)
 - [ ] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
@@ -626,9 +626,9 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 - [ ] **Accessibility**: Voice/Assistant integrations, dynamic type, haptic feedback
 
 #### Infrastructure & Security
-- [ ] **Biometric Authentication**: Face/fingerprint login ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
+- [x] **Biometric Authentication**: Face/fingerprint login ([#69](https://github.com/CIInc/robinhood-options-mobile/issues/69))
 - [ ] **End-to-End Encryption**: Sensitive data encryption
-- [ ] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
+- [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
 - [ ] **Performance Optimization**: App size, startup time, and list scrolling performance
 - [ ] **Security Audit**: Third-party assessment and compliance automation
 
@@ -645,10 +645,10 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
     - [ ] 8-K Material Events alerts
 
 #### Technical Excellence
-- [ ] **Testing**: Comprehensive unit, widget, and integration test coverage ([#75](https://github.com/CIInc/robinhood-options-mobile/issues/75), [#90](https://github.com/CIInc/robinhood-options-mobile/issues/90))
+- [x] **Testing**: Comprehensive unit, widget, and integration test coverage ([#75](https://github.com/CIInc/robinhood-options-mobile/issues/75), [#90](https://github.com/CIInc/robinhood-options-mobile/issues/90))
 - [ ] **Code Quality**: Stricter linting (Dart 3 migration), technical debt reduction
 - [ ] **Documentation**: Complete API reference, developer guides, and architecture records ([#94](https://github.com/CIInc/robinhood-options-mobile/issues/94))
-- [ ] **Monetization**: AdMob integration ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) and subscription management
+- [x] **Monetization**: AdMob integration ([#120](https://github.com/CIInc/robinhood-options-mobile/issues/120)) and subscription management
 
 ### Future Horizons
 

@@ -219,17 +219,27 @@ const saveYahooOptionsResult = async (
 let yahooCrumb: string | null = null;
 let yahooCookie: string | null = null;
 
+const YAHOO_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+    "Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9," +
+    "image/avif,image/webp,image/apng,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Upgrade-Insecure-Requests": "1",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+};
+
 const fetchCrumb = async (): Promise<void> => {
   if (yahooCrumb && yahooCookie) return;
 
   try {
     // 1. Get cookie
     const cookieResponse = await fetch("https://fc.yahoo.com", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-          "AppleWebKit/537.36 (KHTML, like Gecko) " +
-          "Chrome/120.0.0.0 Safari/537.36",
-      },
+      headers: YAHOO_HEADERS,
     });
 
     const setCookie = cookieResponse.headers.get("set-cookie");
@@ -241,16 +251,17 @@ const fetchCrumb = async (): Promise<void> => {
       "https://query1.finance.yahoo.com/v1/test/getcrumb",
       {
         headers: {
+          ...YAHOO_HEADERS,
           "Cookie": yahooCookie,
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/120.0.0.0 Safari/537.36",
         },
       }
     );
 
     if (!crumbResponse.ok) {
-      throw new Error(`Failed to get crumb ${crumbResponse.statusText}`);
+      throw new Error(
+        `Failed to get crumb ${crumbResponse.status} ` +
+        `${crumbResponse.statusText}`
+      );
     }
     yahooCrumb = await crumbResponse.text();
   } catch (e) {
@@ -275,9 +286,7 @@ const fetchYahooOptions = async (
     url += `${yahooCrumb ? "&" : "?"}date=${Math.floor(date.getTime() / 1000)}`;
   }
   const headers: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-      "AppleWebKit/537.36 (KHTML, like Gecko) " +
-      "Chrome/120.0.0.0 Safari/537.36",
+    ...YAHOO_HEADERS,
   };
 
   if (yahooCookie) {
@@ -339,9 +348,7 @@ const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
   }
 
   const headers: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-      "AppleWebKit/537.36 (KHTML, like Gecko) " +
-      "Chrome/120.0.0.0 Safari/537.36",
+    ...YAHOO_HEADERS,
   };
 
   if (yahooCookie) {

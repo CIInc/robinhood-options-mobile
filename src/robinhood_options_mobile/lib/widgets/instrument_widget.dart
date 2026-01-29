@@ -4549,6 +4549,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Map<String, dynamic>? indicator, bool isEnabled) {
     if (indicator == null) return const SizedBox.shrink();
 
+    // Now that disabled indicators are shown in the collapsible `Disabled Indicators`
+    // section, we always treat them as enabled for display purposes
+    isEnabled = true;
+
     final signal = indicator['signal'] as String? ?? 'HOLD';
     final reason = indicator['reason'] as String? ?? '';
     final metadata = indicator['metadata'] as Map<String, dynamic>?;

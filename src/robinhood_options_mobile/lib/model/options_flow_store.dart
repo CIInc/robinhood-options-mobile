@@ -163,6 +163,21 @@ class OptionsFlowStore extends ChangeNotifier {
   List<String>? get filterFlags => _filterFlags;
   FlowSortOption get sortOption => _sortOption;
 
+  List<DateTime> get expirationDates {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dates = _allItems
+        .map((i) => i.expirationDate)
+        .where((d) {
+          final exp = DateTime(d.year, d.month, d.day);
+          return !exp.isBefore(today);
+        })
+        .toSet()
+        .toList();
+    dates.sort();
+    return dates;
+  }
+
   double get totalBullishPremium => _items
       .where((i) => i.sentiment == Sentiment.bullish)
       .fold(0.0, (sum, item) => sum + item.premium);
@@ -1336,6 +1351,21 @@ class OptionsFlowStore extends ChangeNotifier {
         if (_filterExpiration == '0-7') return days <= 7;
         if (_filterExpiration == '8-30') return days > 7 && days <= 30;
         if (_filterExpiration == '30+') return days > 30;
+        
+        // Exact date match
+        try {
+          // Assume format yyyy-MM-dd
+          final parts = _filterExpiration!.split('-');
+          if (parts.length == 3) {
+            final filterDate = DateTime(
+                int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+            return i.expirationDate.year == filterDate.year &&
+                i.expirationDate.month == filterDate.month &&
+                i.expirationDate.day == filterDate.day;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
         return true;
       }).toList();
     }
