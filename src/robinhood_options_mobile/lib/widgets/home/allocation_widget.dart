@@ -490,6 +490,17 @@ class _PieChartItem extends StatefulWidget {
 class _PieChartItemState extends State<_PieChartItem> {
   final ValueNotifier<PieChartData?> _selectedDataNotifier =
       ValueNotifier(null);
+  bool _hasAnimated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _hasAnimated = true;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -570,6 +581,7 @@ class _PieChartItemState extends State<_PieChartItem> {
                         PieChart(
                           seriesList,
                           renderer: renderer,
+                          animate: !_hasAnimated,
                           onSelected: (selected) {
                             _selectedDataNotifier.value =
                                 selected as PieChartData?;
