@@ -43,6 +43,8 @@ import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -207,6 +209,70 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             }
           });
         }
+      }
+    } else if (message.data['type'] == 'agentic_trade') {
+      final eventType = message.data['eventType'];
+      final symbol = message.data['symbol'];
+
+      if (eventType == 'buy' ||
+          eventType == 'take_profit' ||
+          eventType == 'stop_loss') {
+        if (symbol != null) {
+          final userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
+          final instrumentStore =
+              Provider.of<InstrumentStore>(context, listen: false);
+          if (userStore.items.isNotEmpty) {
+            var brokerageUser = userStore.currentUser ?? userStore.items.first;
+            service = brokerageUser.source == BrokerageSource.robinhood
+                ? RobinhoodService()
+                : brokerageUser.source == BrokerageSource.schwab
+                    ? SchwabService()
+                    : brokerageUser.source == BrokerageSource.plaid
+                        ? PlaidService()
+                        : DemoService();
+
+            service!
+                .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
+                .then((instrument) {
+              if (instrument != null) {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              brokerageUser,
+                              service!,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: _generativeService,
+                              user: user,
+                              userDocRef: userDoc,
+                            )));
+              }
+            });
+          }
+        }
+      } else if (eventType == 'emergency_stop') {
+        if (user != null && userDoc != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AgenticTradingSettingsWidget(
+                user: user!,
+                userDocRef: userDoc!,
+                service: service,
+              ),
+            ),
+          );
+        }
+      } else if (eventType == 'daily_summary') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AgenticTradingPerformanceWidget(),
+          ),
+        );
       }
     }
   }
