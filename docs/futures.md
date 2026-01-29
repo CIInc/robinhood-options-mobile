@@ -94,7 +94,6 @@ A pie chart visualizes the distribution of Notional Value across different futur
 - Enriched positions exposed as a stream for reactive UI updates.
 - No secrets: all sensitive logic (if any future brokerage write operations are needed) should move to Firebase Functions.
 ## Limitations
-- No realized P&L yet (requires trade history processing).
 - Margin impact / maintenance requirement not shown.
 - No contract roll detection or calendar spread awareness.
 - No Greeks or implied volatility surface metrics.

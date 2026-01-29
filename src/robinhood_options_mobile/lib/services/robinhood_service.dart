@@ -847,18 +847,66 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
         user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
 
     await for (final results in pageStream) {
+      /*
       if (results.isEmpty) {
         yield results;
         continue;
       }
+      */
+      // Note: We process even if results is empty, because we might have closed positions with realized P&L
 
-      // Extract unique contract IDs
+      // Calculate Realized P&L from today's orders
+      Map<String, double> realizedPnlByContract = {};
+      try {
+        var orders = await getFuturesOrders(user, account);
+        var today = DateTime.now().toUtc().toIso8601String().substring(0, 10);
+        for (var order in orders) {
+          var updatedAt = order['updatedAt']?.toString();
+          // Filter for orders filled today
+          if (updatedAt != null && updatedAt.startsWith(today)) {
+            var orderState = order['orderState'];
+            if (orderState == 'FILLED' || orderState == 'PARTIALLY_FILLED') {
+              // Parse realized P&L
+              // Structure: "realizedPnl": { "realizedPnl": { "amount": "100.0", "currency": "USD" } }
+              if (order['realizedPnl'] != null &&
+                  order['realizedPnl']['realizedPnl'] != null) {
+                var amountStr =
+                    order['realizedPnl']['realizedPnl']['amount']?.toString();
+                var amount = double.tryParse(amountStr ?? '') ?? 0.0;
+                if (amount != 0) {
+                  // Find contractId
+                  if (order['orderLegs'] is List &&
+                      (order['orderLegs'] as List).isNotEmpty) {
+                    // Assuming single leg for attribution or attributing to first leg
+                    // TODO: Handle complex multi-leg futures attribution if needed
+                    var leg = order['orderLegs'][0];
+                    var contractId = leg['contractId']?.toString();
+                    if (contractId != null) {
+                      realizedPnlByContract[contractId] =
+                          (realizedPnlByContract[contractId] ?? 0.0) + amount;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('streamFuturePositions: futures orders fetch error: $e');
+      }
+
+      // Extract unique contract IDs from Open Positions
       var contractIds = results
           .map((e) => e['contractId']?.toString())
           .where((id) => id != null)
           .toSet()
           .toList()
           .cast<String>();
+
+      // Add contract IDs from Realized P&L (finding closed positions)
+      contractIds.addAll(realizedPnlByContract.keys);
+      // Deduplicate
+      contractIds = contractIds.toSet().toList();
 
       if (contractIds.isNotEmpty) {
         // Fetch contract details
@@ -933,9 +981,19 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
           }
         }
 
-        // Enrich positions with contract and product data
+        // 1. Enrich existing open positions
         for (var position in results) {
           var contractId = position['contractId'];
+
+          // Attach Realized P&L if available
+          double realizedPnl = 0.0;
+          if (realizedPnlByContract.containsKey(contractId)) {
+            realizedPnl = realizedPnlByContract[contractId]!;
+            position['realizedPnl'] = realizedPnl;
+            // Remove from map so we know it's handled
+            realizedPnlByContract.remove(contractId);
+          }
+
           var contract = contracts.firstWhere(
             (c) => c['id'] == contractId,
             orElse: () => null,
@@ -977,29 +1035,77 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
                 quantityStr != null ? double.tryParse(quantityStr) : null;
             double? multiplier =
                 multiplierStr != null ? double.tryParse(multiplierStr) : null;
+            double openPnl = 0.0;
             if (lastTradePrice is double &&
                 avgTradePrice != null &&
                 quantity != null &&
                 multiplier != null) {
               // Open P&L formula: (Last - Avg) * Quantity * Multiplier
-              position['openPnlCalc'] =
+              openPnl =
                   (lastTradePrice - avgTradePrice) * quantity * multiplier;
+              position['openPnlCalc'] = openPnl;
 
               // Notional Value: Last * |Quantity| * Multiplier
               position['notionalValue'] =
                   lastTradePrice * quantity.abs() * multiplier;
             }
 
-            // Compute Day P&L if we have lastTradePrice, previousClosePrice, quantity, and multiplier
+            // Compute Day P&L
+            // Total Day P&L = Unrealized Day P&L + Realized P&L
             var previousClosePrice = position['previousClosePrice'];
+            double unrealizedDayPnl = 0.0;
             if (lastTradePrice is double &&
                 previousClosePrice is double &&
                 quantity != null &&
                 multiplier != null) {
               // Day P&L formula: (Last - PreviousClose) * Quantity * Multiplier
-              position['dayPnlCalc'] =
+              // Start with unrealized portion
+              unrealizedDayPnl =
                   (lastTradePrice - previousClosePrice) * quantity * multiplier;
             }
+            // Update dayPnlCalc to include realized
+            position['dayPnlCalc'] = unrealizedDayPnl + realizedPnl;
+          }
+        }
+
+        // 2. Create synthetic positions for closed contracts with Realized P&L
+        for (var contractId in realizedPnlByContract.keys) {
+          var realizedPnl = realizedPnlByContract[contractId]!;
+          var contract = contracts.firstWhere(
+            (c) => c['id'] == contractId,
+            orElse: () => null,
+          );
+
+          if (contract != null) {
+            Map<String, dynamic> syntheticPosition = {
+              'contractId': contractId,
+              'contract': contract,
+              'quantity': 0, // Closed
+              'openPnlCalc': 0.0,
+              'realizedPnl': realizedPnl,
+              'dayPnlCalc': realizedPnl, // Total Day P&L is just realized
+            };
+
+            var productId = contract['productId'];
+            var product = products.firstWhere(
+              (p) => p['id'] == productId,
+              orElse: () => null,
+            );
+            if (product != null) {
+              syntheticPosition['product'] = product;
+            }
+
+            // Maybe attach quotes even if closed, for reference?
+            if (lastTradePriceByContract.containsKey(contractId)) {
+              syntheticPosition['lastTradePrice'] =
+                  lastTradePriceByContract[contractId];
+            }
+            if (previousClosePriceByContract.containsKey(contractId)) {
+              syntheticPosition['previousClosePrice'] =
+                  previousClosePriceByContract[contractId];
+            }
+
+            results.add(syntheticPosition);
           }
         }
       }
@@ -1171,6 +1277,22 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 
     store.set(results);
     return results;
+  }
+
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    // https://api.robinhood.com/ceres/v1/accounts/{params}/orders?orderState=QUEUED&orderState=CONFIRMED&orderState=UNCONFIRMED&orderState=PENDING_CANCELLED&orderState=PARTIALLY_FILLED&orderState=FILLED&orderState=CANCELLED&orderState=REJECTED
+    var url =
+        "$endpoint/ceres/v1/accounts/$account/orders?orderState=FILLED&orderState=PARTIALLY_FILLED";
+    try {
+      var response = await getJson(user, url);
+      if (response != null && response['results'] != null) {
+        return response['results'] as List<dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Error getting futures orders: $e');
+    }
+    return [];
   }
 
 /*

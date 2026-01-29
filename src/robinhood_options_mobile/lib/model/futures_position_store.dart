@@ -37,6 +37,15 @@ class FuturesPositionStore extends ChangeNotifier {
         })
       : 0.0;
 
+  double get totalRealizedPnl => _items.isNotEmpty
+      ? _items.fold(0.0, (double acc, e) {
+          if (e is Map && e['realizedPnl'] != null) {
+            return acc + (double.tryParse(e['realizedPnl'].toString()) ?? 0.0);
+          }
+          return acc;
+        })
+      : 0.0;
+
   double get totalNotional => _items.isNotEmpty
       ? _items.fold(0.0, (double acc, e) {
           if (e is Map && e['notionalValue'] != null) {

@@ -122,7 +122,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       ]
                     ]),
                     subtitle: Text(
-                        '${items.length} positions • Notional: ${formatCurrency.format(localStore.totalNotional)}'),
+                        '${items.length} positions • Day: ${formatCurrency.format(localStore.totalDayPnl)}'),
                     trailing: InkWell(
                       onTap: () {
                         // Placeholder for functionality to switch display value
@@ -219,6 +219,7 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                       String accountNumber = '';
                       double? openPnl;
                       double? dayPnl;
+                      double? realizedPnl;
                       double? lastPrice;
                       double? multiplier;
                       double? previousClosePrice;
@@ -265,6 +266,10 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                         if (pos['dayPnlCalc'] != null) {
                           dayPnl =
                               double.tryParse(pos['dayPnlCalc'].toString());
+                        }
+                        if (pos['realizedPnl'] != null) {
+                          realizedPnl =
+                              double.tryParse(pos['realizedPnl'].toString());
                         }
                         if (pos['lastTradePrice'] != null) {
                           lastPrice =
@@ -381,6 +386,26 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                                                   value: dayPnl),
                                               const SizedBox(height: 4),
                                               const Text("Day P&L",
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          summaryLabelFontSize)),
+                                            ],
+                                          ),
+                                        ),
+                                      if (realizedPnl != null &&
+                                          realizedPnl != 0)
+                                        Padding(
+                                          padding: const EdgeInsets.all(
+                                              summaryEgdeInset),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              PnlBadge(
+                                                  text: formatCurrency
+                                                      .format(realizedPnl),
+                                                  value: realizedPnl),
+                                              const SizedBox(height: 4),
+                                              const Text("Realized",
                                                   style: TextStyle(
                                                       fontSize:
                                                           summaryLabelFontSize)),
