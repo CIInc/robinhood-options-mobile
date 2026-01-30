@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
@@ -1138,69 +1139,623 @@ class _AgenticTradingPerformanceWidgetState
     Map<String, dynamic> trade,
     ColorScheme colorScheme,
   ) {
+    final symbol = trade['symbol'] as String? ?? 'N/A';
+    final action = trade['action'] as String? ?? 'N/A';
+    final quantity = trade['quantity'] as int? ?? 0;
+    final price = trade['price'] as double? ?? 0.0;
+    final timestamp = _parseTimestamp(trade['timestamp']);
+    final profitLoss = trade['profitLoss'] as double?;
+    final reason = trade['reason'] as String?;
+    final isPaper = trade['paperMode'] as bool? ?? false;
+    final proposal = trade['proposal'] as Map<String, dynamic>?;
+
+    // Signal data
+    int? signalStrength;
+    Map<String, dynamic>? indicators;
+    if (proposal != null) {
+      final multiIndicatorResult =
+          proposal['multiIndicatorResult'] as Map<String, dynamic>?;
+      if (multiIndicatorResult != null) {
+        signalStrength = multiIndicatorResult['signalStrength'] as int?;
+        indicators =
+            multiIndicatorResult['indicators'] as Map<String, dynamic>?;
+      }
+    }
+
+    final totalValue = price * quantity;
+    final isBuy = action == 'BUY';
+    final color = isBuy
+        ? Colors.blue
+        : (profitLoss != null && profitLoss >= 0 ? Colors.green : Colors.red);
+    final icon = isBuy
+        ? Icons.shopping_cart
+        : (profitLoss != null && profitLoss >= 0
+            ? Icons.trending_up
+            : Icons.trending_down);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.7,
+          initialChildSize: 0.8,
           minChildSize: 0.5,
           maxChildSize: 0.95,
-          expand: false,
           builder: (context, scrollController) {
             return Container(
-              padding: const EdgeInsets.all(24),
-              child: ListView(
-                controller: scrollController,
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Trade Details',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurface.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  ...trade.entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              _formatKey(entry.key),
+                  // Content
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                      children: [
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      symbol,
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(icon, size: 16, color: color),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            action,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: color,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isPaper) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: const Text(
+                                          'PAPER',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                if (timestamp != null)
+                                  Text(
+                                    _dateFormat.format(
+                                        DateTime.fromMillisecondsSinceEpoch(
+                                            timestamp)),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                              style: IconButton.styleFrom(
+                                backgroundColor: colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Financial Summary
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: colorScheme.outlineVariant
+                                    .withValues(alpha: 0.5)),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDetailMetric(
+                                      'Price',
+                                      _currencyFormat.format(price),
+                                      colorScheme,
+                                    ),
+                                  ),
+                                  Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: colorScheme.outlineVariant),
+                                  Expanded(
+                                    child: _buildDetailMetric(
+                                      'Quantity',
+                                      quantity.toString(),
+                                      colorScheme,
+                                    ),
+                                  ),
+                                  Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: colorScheme.outlineVariant),
+                                  Expanded(
+                                    child: _buildDetailMetric(
+                                      'Total Value',
+                                      _currencyFormat.format(totalValue),
+                                      colorScheme,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (profitLoss != null) ...[
+                                const Divider(height: 32),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Column(
+                                      children: [
+                                        Text(
+                                          'Realized P&L',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: colorScheme.onSurface
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _currencyFormat.format(profitLoss),
+                                          style: TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            color: profitLoss >= 0
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                        ),
+                                        if (totalValue > 0)
+                                          Container(
+                                            margin:
+                                                const EdgeInsets.only(top: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: (profitLoss >= 0
+                                                      ? Colors.green
+                                                      : Colors.red)
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              '${profitLoss >= 0 ? '+' : ''}${_percentFormat.format(profitLoss / (totalValue - profitLoss))}', // approx return calc if totalValue is exit value
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: profitLoss >= 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Exit Reason / Strategy
+                        if (reason != null) ...[
+                          Text(
+                            'Execution Context',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    color: colorScheme.primary),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    reason,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: colorScheme.onSurface,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // Signal Analysis
+                        if (signalStrength != null || indicators != null) ...[
+                          Text(
+                            'Signal Intelligence',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (signalStrength != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    colorScheme.primaryContainer
+                                        .withValues(alpha: 0.1),
+                                    colorScheme.surface,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: colorScheme.outlineVariant
+                                        .withValues(alpha: 0.5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 60,
+                                    height: 60,
+                                    child: Stack(
+                                      children: [
+                                        Center(
+                                          child: CircularProgressIndicator(
+                                            value: signalStrength / 100,
+                                            strokeWidth: 6,
+                                            backgroundColor: colorScheme
+                                                .outlineVariant
+                                                .withValues(alpha: 0.3),
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              signalStrength >= 80
+                                                  ? Colors.green
+                                                  : signalStrength >= 60
+                                                      ? Colors.blue
+                                                      : Colors.orange,
+                                            ),
+                                          ),
+                                        ),
+                                        Center(
+                                          child: Text(
+                                            signalStrength.toString(),
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Signal Strength',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          signalStrength >= 80
+                                              ? 'Strong alignment across multiple indicators.'
+                                              : signalStrength >= 60
+                                                  ? 'Moderate consensus among active indicators.'
+                                                  : 'Weak or mixed signals detected.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: colorScheme.onSurface
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (indicators != null && indicators.isNotEmpty) ...[
+                            Text(
+                              'Active Indicators',
                               style: TextStyle(
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: colorScheme.onSurface
                                     .withValues(alpha: 0.7),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              _formatValue(entry.value),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: indicators.entries.map((entry) {
+                                // Extract signal direction if available in the indicator data
+                                final data = entry.value;
+                                String? signal; // 'BUY', 'SELL', 'NEUTRAL'
+                                if (data is Map<String, dynamic>) {
+                                  signal = data['signal'] as String?;
+                                } else if (data is String) {
+                                  signal = data;
+                                }
+
+                                final isBullish = signal == 'BUY';
+                                final isBearish = signal == 'SELL';
+                                final chipColor = isBullish
+                                    ? Colors.green
+                                    : (isBearish ? Colors.red : Colors.grey);
+
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: chipColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color:
+                                            chipColor.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isBullish
+                                            ? Icons.arrow_upward
+                                            : (isBearish
+                                                ? Icons.arrow_downward
+                                                : Icons.remove),
+                                        size: 14,
+                                        color: chipColor,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _formatIndicatorName(entry.key),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: chipColor.withOpacity(
+                                              0.9), // use withOpacity if custom colors, or standard colorScheme
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ],
+
+                        // Raw Data Expander
+                        Theme(
+                          data: Theme.of(context)
+                              .copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            title: Text(
+                              'Raw Trade Data',
                               style: TextStyle(
-                                color: colorScheme.onSurface,
+                                fontSize: 14,
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.6),
                               ),
                             ),
+                            iconColor:
+                                colorScheme.onSurface.withValues(alpha: 0.6),
+                            collapsedIconColor:
+                                colorScheme.onSurface.withValues(alpha: 0.6),
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  children: trade.entries.map((entry) {
+                                    var displayValue = entry.value;
+                                    bool isComplex = displayValue is Map ||
+                                        displayValue is List;
+
+                                    // Try to parse JSON strings
+                                    if (!isComplex &&
+                                        displayValue is String &&
+                                        (displayValue.trim().startsWith('{') ||
+                                            displayValue
+                                                .trim()
+                                                .startsWith('['))) {
+                                      try {
+                                        displayValue = jsonDecode(displayValue);
+                                        isComplex = true;
+                                      } catch (_) {}
+                                    }
+
+                                    String valueString;
+                                    if (isComplex) {
+                                      try {
+                                        valueString =
+                                            const JsonEncoder.withIndent('  ')
+                                                .convert(displayValue);
+                                      } catch (e) {
+                                        valueString = displayValue.toString();
+                                      }
+                                    } else {
+                                      valueString = displayValue.toString();
+                                    }
+
+                                    if (isComplex) {
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 12),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              entry.key,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontFamily: 'RobotoMono',
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.6),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.surface
+                                                    .withValues(alpha: 0.5),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: SelectableText(
+                                                valueString,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontFamily: 'RobotoMono',
+                                                  color: colorScheme.onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            flex: 2,
+                                            child: Text(
+                                              entry.key,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontFamily: 'RobotoMono',
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.6),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 3,
+                                            child: SelectableText(
+                                              valueString,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontFamily: 'RobotoMono',
+                                                color: colorScheme.onSurface,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  }),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -1208,6 +1763,49 @@ class _AgenticTradingPerformanceWidgetState
         );
       },
     );
+  }
+
+  Widget _buildDetailMetric(
+      String label, String value, ColorScheme colorScheme) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatIndicatorName(String key) {
+    const Map<String, String> labels = {
+      'priceMovement': 'Price Movement',
+      'momentum': 'RSI (Momentum)',
+      'marketDirection': 'Market Direction',
+      'volume': 'Volume Analysis',
+      'macd': 'MACD',
+      'bollingerBands': 'Bollinger Bands',
+      'stochastic': 'Stochastic',
+      'atr': 'ATR',
+      'obv': 'OBV',
+      'vwap': 'VWAP',
+      'adx': 'ADX',
+      'williamsR': 'Williams %R',
+      'ichimoku': 'Ichimoku Cloud',
+    };
+    return labels[key] ?? key;
   }
 
   Map<String, dynamic> _calculateStatistics(
@@ -2478,26 +3076,6 @@ class _AgenticTradingPerformanceWidgetState
         return bTotal.compareTo(aTotal);
       });
 
-    // Helper to format indicator names
-    String formatIndicatorName(String key) {
-      const Map<String, String> labels = {
-        'priceMovement': 'Price Movement',
-        'momentum': 'RSI (Momentum)',
-        'marketDirection': 'Market Direction',
-        'volume': 'Volume Analysis',
-        'macd': 'MACD',
-        'bollingerBands': 'Bollinger Bands',
-        'stochastic': 'Stochastic',
-        'atr': 'ATR',
-        'obv': 'OBV',
-        'vwap': 'VWAP',
-        'adx': 'ADX',
-        'williamsR': 'Williams %R',
-        'ichimoku': 'Ichimoku Cloud',
-      };
-      return labels[key] ?? key;
-    }
-
     return Card(
       elevation: 2,
       child: Padding(
@@ -2536,7 +3114,7 @@ class _AgenticTradingPerformanceWidgetState
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          formatIndicatorName(indicator),
+                          _formatIndicatorName(indicator),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -2713,29 +3291,6 @@ class _AgenticTradingPerformanceWidgetState
         ),
       ),
     );
-  }
-
-  String _formatKey(String key) {
-    return key
-        .replaceAllMapped(
-          RegExp(r'([A-Z])'),
-          (match) => ' ${match.group(0)}',
-        )
-        .trim()
-        .split(' ')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
-  }
-
-  String _formatValue(dynamic value) {
-    if (value is int && value > 1000000000) {
-      return _dateFormat.format(DateTime.fromMillisecondsSinceEpoch(value));
-    } else if (value is double) {
-      return value.toStringAsFixed(2);
-    } else if (value is bool) {
-      return value ? 'Yes' : 'No';
-    }
-    return value.toString();
   }
 }
 

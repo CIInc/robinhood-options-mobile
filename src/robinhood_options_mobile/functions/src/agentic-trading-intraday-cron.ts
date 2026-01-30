@@ -25,8 +25,8 @@ export const agenticTradingIntradayCron = onSchedule(
       "chart documents for hourly signals"
     );
     try {
-      const snapshot = await db.collection("agentic_trading").get();
-      if (snapshot.empty) {
+      const docRefs = await db.collection("agentic_trading").listDocuments();
+      if (docRefs.length === 0) {
         logger.info("No agentic_trading documents found");
         return;
       }
@@ -46,7 +46,7 @@ export const agenticTradingIntradayCron = onSchedule(
         logger.error("Error fetching config", e);
       }
 
-      const docsToProcess = snapshot.docs.filter((doc) =>
+      const docsToProcess = docRefs.filter((doc) =>
         doc.id.startsWith("chart_") &&
         !doc.id.endsWith("_1h") &&
         !doc.id.endsWith("_15m")
@@ -119,8 +119,8 @@ export const agenticTrading15mCron = onSchedule(
       "15-minute Agentic Trading Cron: Scanning for 15m signals"
     );
     try {
-      const snapshot = await db.collection("agentic_trading").get();
-      if (snapshot.empty) {
+      const docRefs = await db.collection("agentic_trading").listDocuments();
+      if (docRefs.length === 0) {
         logger.info("No agentic_trading documents found");
         return;
       }
@@ -140,7 +140,7 @@ export const agenticTrading15mCron = onSchedule(
         logger.error("Error fetching config", e);
       }
 
-      const docsToProcess = snapshot.docs.filter((doc) =>
+      const docsToProcess = docRefs.filter((doc) =>
         doc.id.startsWith("chart_") &&
         !doc.id.endsWith("_1h") &&
         !doc.id.endsWith("_15m")

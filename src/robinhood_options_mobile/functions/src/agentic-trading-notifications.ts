@@ -32,6 +32,7 @@ interface NotificationRequest {
   quantity?: number;
   price?: number;
   profitLoss?: number;
+  isPaperTrade?: boolean;
   dailyStats?: {
     totalTrades: number;
     wins: number;
@@ -215,7 +216,16 @@ function buildNotificationContent(data: NotificationRequest): {
   title: string;
   body: string;
 } {
-  const { type, symbol, quantity, price, profitLoss, dailyStats } = data;
+  const {
+    type,
+    symbol,
+    quantity,
+    price,
+    profitLoss,
+    dailyStats,
+    isPaperTrade,
+  } = data;
+  const prefix = isPaperTrade ? "[PAPER] " : "";
 
   switch (type) {
   case "buy": {
@@ -229,7 +239,7 @@ function buildNotificationContent(data: NotificationRequest): {
       `${price?.toFixed(2)} ` +
       `($${total.toFixed(2)})`;
     return {
-      title: "🤖 Auto-Trade Executed",
+      title: `${prefix}🤖 Auto-Trade Executed`,
       body,
     };
   }
@@ -257,7 +267,7 @@ function buildNotificationContent(data: NotificationRequest): {
       "profit" +
       percentStr;
     return {
-      title: "💰 Take Profit Hit!",
+      title: `${prefix}💰 Take Profit Hit!`,
       body,
     };
   }
@@ -283,7 +293,7 @@ function buildNotificationContent(data: NotificationRequest): {
       `${Math.abs(profitLoss || 0).toFixed(2)}` +
       percentStr;
     return {
-      title: "🛑 Stop Loss Triggered",
+      title: `${prefix}🛑 Stop Loss Triggered`,
       body,
     };
   }
@@ -307,19 +317,19 @@ function buildNotificationContent(data: NotificationRequest): {
         `${winRate}% win) | ` +
         `${totalPnL >= 0 ? "📈 +" : "📉 "}$${totalPnL.toFixed(2)}`;
       return {
-        title: "📊 Daily Auto-Trade Summary",
+        title: `${prefix}📊 Daily Auto-Trade Summary`,
         body,
       };
     }
     return {
-      title: "📊 Daily Auto-Trade Summary",
+      title: `${prefix}📊 Daily Auto-Trade Summary`,
       body: "Your daily trading summary is ready to view.",
     };
   }
 
   default:
     return {
-      title: "🤖 Agentic Trade Update",
+      title: `${prefix}🤖 Agentic Trade Update`,
       body: "An auto-trading event occurred.",
     };
   }

@@ -24,8 +24,8 @@ export async function runAgenticTradingCron() {
   logger.info(
     "Agentic Trading Cron: Scanning all agentic_trading chart documents"
   );
-  const snapshot = await db.collection("agentic_trading").get();
-  if (snapshot.empty) {
+  const docRefs = await db.collection("agentic_trading").listDocuments();
+  if (docRefs.length === 0) {
     logger.warn("⚠️ No agentic_trading documents found in Firestore!");
     return {
       processedCount: 0,
@@ -35,7 +35,7 @@ export async function runAgenticTradingCron() {
   }
 
   logger.info(
-    `📊 Found ${snapshot.docs.length} documents in ` +
+    `📊 Found ${docRefs.length} documents in ` +
     "agentic_trading collection"
   );
 
@@ -55,7 +55,7 @@ export async function runAgenticTradingCron() {
   }
 
   // Filter docs first
-  const docsToProcess = snapshot.docs.filter((doc) => {
+  const docsToProcess = docRefs.filter((doc) => {
     // Skip intraday charts (only process daily charts)
     if (!doc.id.startsWith("chart_")) {
       // skippedCount++;

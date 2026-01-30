@@ -1216,31 +1216,22 @@ class AgenticTradingProvider with ChangeNotifier {
       final dailyLimit = _config.strategyConfig.dailyTradeLimit;
 
       // Process each signal (respecting daily limit)
-      for (final signal in buySignals) {
-        // Check if we've hit the limit
-        if (_dailyTradeCount >= dailyLimit) {
-          _log(
-              '⚠️ Reached daily trade limit during execution ($_dailyTradeCount/$dailyLimit)');
-          break;
-        }
+      // Parallelize proposal generation to speed up the cycle
+      if (buySignals.isNotEmpty) {
+        _log(
+            '🤖 Initiating ${buySignals.length} trade proposals in parallel...');
+      }
 
+      final proposalFutures = buySignals.map((signal) async {
         final symbol = signal['symbol'] as String?;
-        if (symbol == null || symbol.isEmpty) continue;
+        if (symbol == null || symbol.isEmpty) return null;
+
+        final currentPrice =
+            (signal['currentPrice'] as num?)?.toDouble() ?? 0.0;
+        if (currentPrice <= 0) return null;
 
         try {
-          // Get current price from signal
-          final currentPrice =
-              (signal['currentPrice'] as num?)?.toDouble() ?? 0.0;
-          if (currentPrice <= 0) {
-            _log('⚠️ Invalid price for $symbol ($currentPrice), skipping');
-            continue;
-          }
-
-          _log('🤖 Auto-trading $symbol at \$$currentPrice');
-
-          // Initiate trade proposal via TradeSignalsProvider
-          final proposalResult =
-              await tradeSignalsProvider.initiateTradeProposal(
+          final result = await tradeSignalsProvider.initiateTradeProposal(
             symbol: symbol,
             currentPrice: currentPrice,
             portfolioState: portfolioState,
@@ -1248,6 +1239,45 @@ class AgenticTradingProvider with ChangeNotifier {
             interval: signal['interval'] as String?,
             skipSignalUpdate: true,
           );
+          return {
+            'signal': signal,
+            'result': result,
+            'symbol': symbol,
+            'currentPrice': currentPrice
+          };
+        } catch (e) {
+          _log('❌ Error initiating proposal for $symbol: $e');
+          return null;
+        }
+      });
+
+      final proposalResults = await Future.wait(proposalFutures);
+      final validProposals = proposalResults.where((r) => r != null).toList();
+
+      // Track available funds locally to handle parallel approvals
+      double estimatedBuyingPower =
+          (portfolioState['buyingPower'] as num?)?.toDouble() ?? 0.0;
+
+      for (final item in validProposals) {
+        if (item == null) continue;
+
+        // Check if we've hit the limit
+        if (_dailyTradeCount >= dailyLimit) {
+          _log(
+              '⚠️ Reached daily trade limit during execution ($_dailyTradeCount/$dailyLimit)');
+          break;
+        }
+
+        final signal = item['signal'] as Map<String, dynamic>;
+        final symbol = item['symbol'] as String;
+        final currentPrice = item['currentPrice'] as double;
+        final proposalResult = item['result'] as Map<String, dynamic>;
+
+        try {
+          _log('🤖 Processing proposal for $symbol at \$$currentPrice');
+
+          // Configured result available from parallel fetch
+          // final proposalResult = ... (already fetched)
 
           final proposalStatus = proposalResult['status'] as String?;
           final proposal = proposalResult['proposal'] != null
@@ -1266,6 +1296,17 @@ class AgenticTradingProvider with ChangeNotifier {
               _log(
                   '⚠️ Invalid proposal for $symbol: Action=$action, Quantity=$quantity');
               continue;
+            }
+
+            // Check buying power for parallel execution safety
+            if (action.toUpperCase() == 'BUY' && !isPaperMode) {
+              final cost = quantity * currentPrice;
+              if (cost > estimatedBuyingPower) {
+                _log(
+                    '⚠️ Insufficient buying power for $symbol (Cost: \$${cost.toStringAsFixed(2)}, Avail: \$${estimatedBuyingPower.toStringAsFixed(2)})');
+                continue;
+              }
+              estimatedBuyingPower -= cost;
             }
 
             // Get instrument from store
@@ -1696,6 +1737,43 @@ class AgenticTradingProvider with ChangeNotifier {
       // Create a map for faster position lookup
       final positionMap = {for (var p in positions) p.instrumentObj?.symbol: p};
 
+      // Pre-fetch signals for all relevant symbols in parallel to avoid sequential waits
+      final technicalExitEnabled = _config.strategyConfig.rsiExitEnabled ||
+          _config.strategyConfig.signalStrengthExitEnabled;
+      final Map<String, Map<String, dynamic>> fetchedSignals = {};
+
+      if (technicalExitEnabled && _automatedBuyTrades.isNotEmpty) {
+        final symbolsToFetch = _automatedBuyTrades
+            .map((t) => t['symbol'] as String?)
+            .where((s) => s != null && s.isNotEmpty)
+            .where((s) =>
+                positionMap.containsKey(s)) // Only fetch if position exists
+            .toSet()
+            .toList();
+
+        if (symbolsToFetch.isNotEmpty) {
+          // _log('📡 Pre-fetching signals for ${symbolsToFetch.length} positions');
+          final interval = _config.strategyConfig.interval;
+          // Use Future.wait to fetch all signals in parallel
+          await Future.wait(symbolsToFetch.map((symbol) async {
+            try {
+              final docId = interval == '1d'
+                  ? 'signals_$symbol'
+                  : 'signals_${symbol}_$interval';
+              final doc = await FirebaseFirestore.instance
+                  .collection('agentic_trading')
+                  .doc(docId)
+                  .get();
+              if (doc.exists && doc.data() != null) {
+                fetchedSignals[symbol!] = doc.data()!;
+              }
+            } catch (e) {
+              // Ignore individual fetch errors
+            }
+          }));
+        }
+      }
+
       // Check each automated buy trade
       for (final buyTrade in _automatedBuyTrades) {
         try {
@@ -1864,19 +1942,10 @@ class AgenticTradingProvider with ChangeNotifier {
               (_config.strategyConfig.rsiExitEnabled ||
                   _config.strategyConfig.signalStrengthExitEnabled)) {
             try {
-              // Fetch latest signal based on current interval
-              final interval = _config.strategyConfig.interval;
-              final docId = interval == '1d'
-                  ? 'signals_$symbol'
-                  : 'signals_${symbol}_$interval';
+              // Use pre-fetched signal based on current interval
+              final data = fetchedSignals[symbol];
 
-              final signalSnapshot = await FirebaseFirestore.instance
-                  .collection('agentic_trading')
-                  .doc(docId)
-                  .get();
-
-              if (signalSnapshot.exists && signalSnapshot.data() != null) {
-                final data = signalSnapshot.data()!;
+              if (data != null) {
                 final multiIndicatorResult =
                     data['multiIndicatorResult'] as Map<String, dynamic>?;
 
@@ -2140,6 +2209,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final data = {
         'userId': userDocRef.id,
         'type': type,
+        'isPaperTrade': _config.paperTradingMode,
         if (symbol != null) 'symbol': symbol,
         if (quantity != null) 'quantity': quantity,
         if (price != null) 'price': price,
