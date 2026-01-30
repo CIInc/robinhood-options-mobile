@@ -56,6 +56,11 @@ service cloud.firestore {
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
         allow delete: if request.auth.token.role == 'admin';
       }
+      match /auto_trade_history/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      }
       match /pending_orders/{id} {
         allow read : if request.auth.uid != null;
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';

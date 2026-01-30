@@ -310,17 +310,28 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Build portfolio state
-      final Map<String, dynamic> portfolioState = {
-        'portfolioValue': portfolioStore.items.isNotEmpty
-            ? portfolioStore.items.first.equity
-            : 0.0,
-        'buyingPower': firstAccount?.buyingPower ?? 0.0,
-        'cashAvailable': firstAccount?.portfolioCash ?? 0.0,
-        'positions': portfolioStore.items.length,
-      };
+      final Map<String, dynamic> portfolioState = isPaperMode
+          ? {
+              'portfolioValue': paperTradingStore.equity,
+              'buyingPower': paperTradingStore.cashBalance,
+              'cashAvailable': paperTradingStore.cashBalance,
+              'positions': paperTradingStore.positions.length +
+                  paperTradingStore.optionPositions.length,
+            }
+          : {
+              'portfolioValue': portfolioStore.items.isNotEmpty
+                  ? portfolioStore.items.first.equity
+                  : 0.0,
+              'buyingPower': firstAccount?.buyingPower ?? 0.0,
+              'cashAvailable': firstAccount?.portfolioCash ?? 0.0,
+              'positions': portfolioStore.items.length,
+            };
 
       // Add stock positions
-      for (var pos in instrumentPositionStore.items) {
+      final stockPositions = isPaperMode
+          ? paperTradingStore.positions
+          : instrumentPositionStore.items;
+      for (var pos in stockPositions) {
         if (pos.instrumentObj != null &&
             pos.quantity != null &&
             pos.quantity! != 0) {
@@ -336,7 +347,10 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       // Add option positions
-      for (var pos in optionPositionStore.items) {
+      final optionPositions = isPaperMode
+          ? paperTradingStore.optionPositions
+          : optionPositionStore.items;
+      for (var pos in optionPositions) {
         if (pos.optionInstrument != null &&
             pos.quantity != null &&
             pos.quantity! != 0) {
@@ -365,8 +379,6 @@ class AgenticTradingProvider with ChangeNotifier {
           .map((entry) => entry.key)
           .toList();
 
-      final requireAllIndicatorsGreen =
-          _config.strategyConfig.requireAllIndicatorsGreen;
       final minSignalStrength =
           _config.strategyConfig.minSignalStrength.toInt();
 
@@ -1372,6 +1384,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     'executedStages': <int>[],
                     'entryPrice': currentPrice,
                     'highestPrice': currentPrice,
+                    'paperMode': isPaperMode,
                     'timestamp': DateTime.now().toIso8601String(),
                     'enabledIndicators': List<String>.from(
                       _config.strategyConfig.enabledIndicators.entries
@@ -1579,6 +1592,7 @@ class AgenticTradingProvider with ChangeNotifier {
             'executedStages': <int>[],
             'entryPrice': price,
             'highestPrice': price,
+            'paperMode': isPaperMode,
             'timestamp': DateTime.now().toIso8601String(),
             'enabledIndicators': List<String>.from(
               _config.strategyConfig.enabledIndicators.entries
@@ -1698,6 +1712,13 @@ class AgenticTradingProvider with ChangeNotifier {
               buyQuantity == null ||
               entryPrice == null ||
               entryPrice <= 0) {
+            continue;
+          }
+
+          // Strict mode check: prevent processing or removing trades from wrong mode
+          final tradePaperMode = buyTrade['paperMode'] as bool?;
+          final currentMode = _config.paperTradingMode;
+          if (tradePaperMode != null && tradePaperMode != currentMode) {
             continue;
           }
 

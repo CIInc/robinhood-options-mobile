@@ -24,6 +24,20 @@ export async function performTradeProposal(request: any) {
     tradeQuantity: request.data.tradeQuantity || 1,
     maxPositionSize: request.data.maxPositionSize || 100,
     maxPortfolioConcentration: request.data.maxPortfolioConcentration || 0.5,
+    enableDynamicPositionSizing:
+      request.data.enableDynamicPositionSizing || false,
+    riskPerTrade: request.data.riskPerTrade || 0.01,
+    atrMultiplier: request.data.atrMultiplier || 2,
+    rsiPeriod: request.data.rsiPeriod || 14,
+    enableSectorLimits: request.data.enableSectorLimits || false,
+    maxSectorExposure: request.data.maxSectorExposure || 0.2,
+    enableCorrelationChecks: request.data.enableCorrelationChecks || false,
+    maxCorrelation: request.data.maxCorrelation || 0.8,
+    enableVolatilityFilters: request.data.enableVolatilityFilters || false,
+    minVolatility: request.data.minVolatility || 0,
+    maxVolatility: request.data.maxVolatility || 100,
+    enableDrawdownProtection: request.data.enableDrawdownProtection || false,
+    maxDrawdown: request.data.maxDrawdown || 0.2,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
   };
 

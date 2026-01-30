@@ -7,6 +7,8 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 
+enum PerformanceViewMode { all, real, paper }
+
 /// Performance monitoring widget for agentic trading system
 ///
 /// Displays:
@@ -32,8 +34,7 @@ class _AgenticTradingPerformanceWidgetState
   final NumberFormat _currencyFormat = NumberFormat.currency(symbol: '\$');
   final NumberFormat _percentFormat =
       NumberFormat.decimalPercentPattern(decimalDigits: 2);
-  bool _showPaperOnly =
-      false; // Toggle between all trades / paper only / real only
+  PerformanceViewMode _viewMode = PerformanceViewMode.all;
 
   @override
   void initState() {
@@ -45,6 +46,16 @@ class _AgenticTradingPerformanceWidgetState
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  int? _parseTimestamp(dynamic timestamp) {
+    if (timestamp == null) return null;
+    if (timestamp is int) return timestamp;
+    if (timestamp is String) {
+      final dt = DateTime.tryParse(timestamp);
+      return dt?.millisecondsSinceEpoch;
+    }
+    return null;
   }
 
   @override
@@ -113,7 +124,7 @@ class _AgenticTradingPerformanceWidgetState
                   colorScheme,
                 ))
           else ...[
-            _buildFilterChips(history, colorScheme),
+            _buildFilterChips(allHistory, colorScheme),
             const SizedBox(height: 16),
             _buildOverviewCard(stats!, colorScheme),
             const SizedBox(height: 16),
@@ -147,7 +158,8 @@ class _AgenticTradingPerformanceWidgetState
     AgenticTradingProvider provider,
     ColorScheme colorScheme,
   ) {
-    final history = provider.autoTradeHistory;
+    final allHistory = provider.autoTradeHistory;
+    final history = _filterHistory(allHistory);
 
     if (history.isEmpty) {
       return _buildEmptyState(
@@ -173,7 +185,8 @@ class _AgenticTradingPerformanceWidgetState
     AgenticTradingProvider provider,
     ColorScheme colorScheme,
   ) {
-    final history = provider.autoTradeHistory;
+    final allHistory = provider.autoTradeHistory;
+    final history = _filterHistory(allHistory);
 
     if (history.isEmpty) {
       return _buildEmptyState(
@@ -200,27 +213,29 @@ class _AgenticTradingPerformanceWidgetState
 
   List<Map<String, dynamic>> _filterHistory(
       List<Map<String, dynamic>> history) {
-    if (_showPaperOnly) {
+    if (_viewMode == PerformanceViewMode.paper) {
       return history.where((t) => t['paperMode'] == true).toList();
+    } else if (_viewMode == PerformanceViewMode.real) {
+      return history.where((t) => t['paperMode'] != true).toList();
     }
     return history;
   }
 
   Widget _buildFilterChips(
-    List<Map<String, dynamic>> history,
+    List<Map<String, dynamic>> allHistory,
     ColorScheme colorScheme,
   ) {
-    final paperCount = history.where((t) => t['paperMode'] == true).length;
-    final realCount = history.where((t) => t['paperMode'] != true).length;
+    final paperCount = allHistory.where((t) => t['paperMode'] == true).length;
+    final realCount = allHistory.where((t) => t['paperMode'] != true).length;
 
     return Row(
       children: [
         FilterChip(
-          label: Text('All Trades (${history.length})'),
-          selected: !_showPaperOnly,
+          label: Text('All Trades (${allHistory.length})'),
+          selected: _viewMode == PerformanceViewMode.all,
           onSelected: (selected) {
             if (selected) {
-              setState(() => _showPaperOnly = false);
+              setState(() => _viewMode = PerformanceViewMode.all);
             }
           },
         ),
@@ -229,35 +244,51 @@ class _AgenticTradingPerformanceWidgetState
           label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.description, size: 16, color: Colors.blue),
+              Icon(Icons.description,
+                  size: 16,
+                  color: _viewMode == PerformanceViewMode.paper
+                      ? colorScheme.onPrimary
+                      : Colors.blue),
               const SizedBox(width: 4),
               Text('Paper ($paperCount)'),
             ],
           ),
-          selected: _showPaperOnly,
+          selected: _viewMode == PerformanceViewMode.paper,
           onSelected: (selected) {
-            setState(() => _showPaperOnly = selected);
+            setState(() => _viewMode = PerformanceViewMode.paper);
           },
-          selectedColor: Colors.blue.withValues(alpha: 0.2),
+          checkmarkColor: colorScheme.onPrimary,
+          selectedColor: Colors.blue,
+          labelStyle: TextStyle(
+            color: _viewMode == PerformanceViewMode.paper
+                ? colorScheme.onPrimary
+                : colorScheme.onSurface,
+          ),
         ),
         const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-          ),
-          child: Row(
+        FilterChip(
+          label: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.attach_money, size: 16, color: Colors.green),
+              Icon(Icons.attach_money,
+                  size: 16,
+                  color: _viewMode == PerformanceViewMode.real
+                      ? colorScheme.onPrimary
+                      : Colors.green),
               const SizedBox(width: 4),
-              Text(
-                'Real ($realCount)',
-                style: const TextStyle(fontSize: 12),
-              ),
+              Text('Real ($realCount)'),
             ],
+          ),
+          selected: _viewMode == PerformanceViewMode.real,
+          onSelected: (selected) {
+            setState(() => _viewMode = PerformanceViewMode.real);
+          },
+          checkmarkColor: colorScheme.onPrimary,
+          selectedColor: Colors.green,
+          labelStyle: TextStyle(
+            color: _viewMode == PerformanceViewMode.real
+                ? colorScheme.onPrimary
+                : colorScheme.onSurface,
           ),
         ),
       ],
@@ -630,7 +661,7 @@ class _AgenticTradingPerformanceWidgetState
   ) {
     final symbol = trade['symbol'] as String? ?? 'N/A';
     final pnl = trade['profitLoss'] as double? ?? 0.0;
-    final timestamp = trade['timestamp'] as int?;
+    final timestamp = _parseTimestamp(trade['timestamp']);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -695,7 +726,7 @@ class _AgenticTradingPerformanceWidgetState
     final action = trade['action'] as String? ?? 'N/A';
     final quantity = trade['quantity'] as int? ?? 0;
     final price = trade['price'] as double? ?? 0.0;
-    final timestamp = trade['timestamp'] as int?;
+    final timestamp = _parseTimestamp(trade['timestamp']);
     final success = trade['success'] as bool? ?? false;
     final reason = trade['reason'] as String?;
     final profitLoss = trade['profitLoss'] as double?;
@@ -890,7 +921,7 @@ class _AgenticTradingPerformanceWidgetState
       final profitLoss = trade['profitLoss'] as double?;
       if (profitLoss != null) {
         cumulativePnL += profitLoss;
-        final timestamp = trade['timestamp'] as int?;
+        final timestamp = _parseTimestamp(trade['timestamp']);
         if (timestamp != null) {
           data.add(PnLData(
             DateTime.fromMillisecondsSinceEpoch(timestamp),
@@ -1034,7 +1065,7 @@ class _AgenticTradingPerformanceWidgetState
     final dailyCounts = <DateTime, int>{};
 
     for (final trade in history) {
-      final timestamp = trade['timestamp'] as int?;
+      final timestamp = _parseTimestamp(trade['timestamp']);
       if (timestamp != null) {
         final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
         final day = DateTime(date.year, date.month, date.day);
@@ -1321,7 +1352,7 @@ class _AgenticTradingPerformanceWidgetState
       final symbol = trade['symbol'] as String?;
       final action = trade['action'] as String?;
       final profitLoss = trade['profitLoss'] as double?;
-      final timestampStr = trade['timestamp'] as String?;
+      final timestampMillis = _parseTimestamp(trade['timestamp']);
 
       if (symbol != null && profitLoss != null) {
         symbolStats[symbol] ??= {'wins': 0, 'losses': 0, 'total': 0};
@@ -1334,9 +1365,9 @@ class _AgenticTradingPerformanceWidgetState
       }
 
       // Track buy/sell times for hold duration
-      if (symbol != null && timestampStr != null) {
-        final timestamp = DateTime.tryParse(timestampStr);
-        if (timestamp != null) {
+      if (symbol != null && timestampMillis != null) {
+        final timestamp = DateTime.fromMillisecondsSinceEpoch(timestampMillis);
+        {
           if (action == 'BUY') {
             buyTimes[symbol] = timestamp;
           } else if (action == 'SELL' && buyTimes.containsKey(symbol)) {

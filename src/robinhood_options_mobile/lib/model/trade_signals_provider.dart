@@ -794,6 +794,20 @@ class TradeSignalsProvider with ChangeNotifier {
       'maxPositionSize': config.strategyConfig.maxPositionSize,
       'maxPortfolioConcentration':
           config.strategyConfig.maxPortfolioConcentration,
+      'enableDynamicPositionSizing':
+          config.strategyConfig.enableDynamicPositionSizing,
+      'riskPerTrade': config.strategyConfig.riskPerTrade,
+      'atrMultiplier': config.strategyConfig.atrMultiplier,
+      'rsiPeriod': config.strategyConfig.rsiPeriod,
+      'enableSectorLimits': config.strategyConfig.enableSectorLimits,
+      'maxSectorExposure': config.strategyConfig.maxSectorExposure,
+      'enableCorrelationChecks': config.strategyConfig.enableCorrelationChecks,
+      'maxCorrelation': config.strategyConfig.maxCorrelation,
+      'enableVolatilityFilters': config.strategyConfig.enableVolatilityFilters,
+      'minVolatility': config.strategyConfig.minVolatility,
+      'maxVolatility': config.strategyConfig.maxVolatility,
+      'enableDrawdownProtection': config.strategyConfig.enableDrawdownProtection,
+      'maxDrawdown': config.strategyConfig.maxDrawdown,
       'skipSignalUpdate': skipSignalUpdate,
     };
 

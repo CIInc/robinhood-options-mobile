@@ -131,7 +131,7 @@ class PaperTradingStore extends ChangeNotifier {
   Map<String, dynamic> _instrumentPositionToJson(InstrumentPosition p) {
     return {
       'url': p.url,
-      'instrument': p.instrument,
+      'instrument': p.instrumentObj?.toJson() ?? p.instrument,
       'account': p.account,
       'account_number': p.accountNumber,
       'average_buy_price': p.averageBuyPrice,
@@ -139,15 +139,16 @@ class PaperTradingStore extends ChangeNotifier {
       'quantity': p.quantity,
       'intraday_average_buy_price': p.intradayAverageBuyPrice,
       'intraday_quantity': p.intradayQuantity,
-      'shares_available_for_exercise': p.sharesAvailableForExercise,
-      'shares_held_for_buys': p.sharesHeldForBuys,
-      'shares_held_for_sells': p.sharesHeldForSells,
-      'shares_held_for_stock_grants': p.sharesHeldForStockGrants,
-      'shares_held_for_options_collateral': p.sharesHeldForOptionsCollateral,
-      'shares_held_for_options_events': p.sharesHeldForOptionsEvents,
-      'shares_pending_from_options_events': p.sharesPendingFromOptionsEvents,
-      'shares_available_for_closing_short_position':
-          p.sharesAvailableForClosingShortPosition,
+      // These properties are not used
+      // 'shares_available_for_exercise': p.sharesAvailableForExercise,
+      // 'shares_held_for_buys': p.sharesHeldForBuys,
+      // 'shares_held_for_sells': p.sharesHeldForSells,
+      // 'shares_held_for_stock_grants': p.sharesHeldForStockGrants,
+      // 'shares_held_for_options_collateral': p.sharesHeldForOptionsCollateral,
+      // 'shares_held_for_options_events': p.sharesHeldForOptionsEvents,
+      // 'shares_pending_from_options_events': p.sharesPendingFromOptionsEvents,
+      // 'shares_available_for_closing_short_position':
+      //     p.sharesAvailableForClosingShortPosition,
       'avg_cost_affected': p.averageCostAffected,
       'updated_at': p.updatedAt?.toIso8601String(),
       'created_at': p.createdAt?.toIso8601String(),
