@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.2] - 2026-01-29
+
+### Added
+- **Options Flow:** Added expiration date filtering (0DTE, 1DTE, etc.) and enhanced the filter bar.
+- **Agentic Trading:** Added paper mode filtering to the Agentic Trading Performance widget.
+- **Agentic Trading:** Notifications now explicitly indicate if a trade was a paper trade.
+
+### Changed
+- **Agentic Trading (Backend):** Optimized cron functions to use `listDocuments` for improved performance.
+
 ## [0.31.1] - 2026-01-28
 
 ### Added

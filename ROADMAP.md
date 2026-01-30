@@ -97,6 +97,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Futures P&L:** Realized P&L and Day P&L calculations.
 - ✅ **Agentic Trading:** Auto-trade history loading from Firestore.
 
+### v0.31.2 ✅ (Released Jan 29, 2026)
+**Options Flow Expiration Dates & Performance Analytics Paper Mode**
+- ✅ **Advanced Options Flow Filtering:** New filters for expiration dates (0DTE, etc.), premium, and flow types.
+- ✅ **Performance Analytics:** Enhanced paper mode filtering in Agentic Trading Performance widget.
+- ✅ **Backend Optimization:** Improved efficiency for trading cron jobs using `listDocuments`.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
@@ -374,6 +380,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Improved detection algorithms (Whale, LEAPS)
     - [x] Comprehensive in-app definitions
     - [x] UI polish and better tooltips
+    - [x] **New:** Advanced filtering (Expiration Date, Premium, etc.)
 - [x] **Trade Signals Widget**:
     - [x] Dedicated home screen widget for viewing and filtering real-time signals
 

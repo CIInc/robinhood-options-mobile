@@ -18,6 +18,14 @@ Our system automatically tags trades with specific characteristics to help you i
 *   **Large Block:** A single trade execution with significant size (>$200k premium), indicating institutional activity in one transaction.
 *   **Golden Sweep:** Aggressive sweep orders with >$1M premium, executed out-of-the-money. Often a strong directional signal.
 *   **Steamroller:** Massive size (>$500k), short term (<30 days), aggressive OTM sweep.
+
+### Advanced Filtering
+You can filter the options flow real-time feed to focus on specific opportunities:
+
+*   **Expiration Date:** Filter by time to expiration (0DTE, 1DTE, 7DTE, etc.) to target short-term gamma plays or longer-term positioning.
+*   **Flow Type:** Filter by specific tags like "Sweep", "Block", "Golden Sweep", etc.
+*   **Min Premium:** Set a minimum premium threshold to filter out noise.
+
 *   **Mega Vol:** Volume is >10x Open Interest. Extreme unusual activity indicating a major new position.
 *   **Vol Explosion:** Volume is >5x Open Interest. Significant unusual activity.
 *   **High Vol/OI:** Volume is >1.5x Open Interest. Indicates unusual interest.

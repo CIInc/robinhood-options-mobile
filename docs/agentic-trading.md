@@ -1292,6 +1292,11 @@ Navigator.push(
   - Enhanced market data fetching logic to ensure sufficient historical data for MACD.
   - Improved trade signal sorting functionality and reliability.
 
+- **v1.5** (2026-01-29): Performance Optimization & Flow Filtering
+  - Enhanced paper mode filtering in performance widget
+  - Optimized backend cron jobs using listDocuments
+  - Explicit paper trade indication in notifications
+
 - **v1.4** (2025-12-19): Signal Performance Metrics
   - Added Signal Strength Performance Card (Win Rate by strength bucket)
   - Added Individual Indicator Performance Card (Win Rate by indicator)
