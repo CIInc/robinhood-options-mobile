@@ -43,11 +43,14 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
       case IndicatorType.RSI:
       case IndicatorType.ATR:
       case IndicatorType.WilliamsR:
-      case IndicatorType.ADX:
       case IndicatorType.MFI:
       case IndicatorType.ROC:
       case IndicatorType.CCI:
         _parameters['period'] = 14;
+        break;
+      case IndicatorType.ADX:
+        _parameters['period'] = 14;
+        _parameters['component'] = 'adx';
         break;
       case IndicatorType.CMF:
         _parameters['period'] = 20;
@@ -56,15 +59,18 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
       case IndicatorType.BBW:
         _parameters['period'] = 20;
         _parameters['stdDev'] = 2.0;
+        _parameters['component'] = 'middle';
         break;
       case IndicatorType.MACD:
         _parameters['fastPeriod'] = 12;
         _parameters['slowPeriod'] = 26;
         _parameters['signalPeriod'] = 9;
+        _parameters['component'] = 'histogram';
         break;
       case IndicatorType.Stochastic:
         _parameters['kPeriod'] = 14;
         _parameters['dPeriod'] = 3;
+        _parameters['component'] = 'k';
         break;
       case IndicatorType.OBV:
       case IndicatorType.VWAP:
@@ -364,34 +370,76 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
   Widget _buildParametersFields() {
     List<Widget> fields = [];
     _parameters.forEach((key, value) {
-      // Capitalize first letter of key for label
-      final label = key.substring(0, 1).toUpperCase() + key.substring(1);
+      if (key == 'component') {
+        List<String> items = [];
+        if (_type == IndicatorType.MACD) {
+          items = ['histogram', 'macd', 'signal'];
+        } else if (_type == IndicatorType.Bollinger ||
+            _type == IndicatorType.BBW) {
+          items = ['middle', 'upper', 'lower'];
+        } else if (_type == IndicatorType.Stochastic) {
+          items = ['k', 'd'];
+        } else if (_type == IndicatorType.ADX) {
+          items = ['adx', 'plusDI', 'minusDI'];
+        } else {
+          // Default fallbacks just in case
+          items = ['default'];
+        }
 
-      fields.add(TextFormField(
-        initialValue: value.toString(),
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        fields.add(DropdownButtonFormField<String>(
+          initialValue: items.contains(value) ? value : items.first,
+          decoration: InputDecoration(
+            labelText: 'Component',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            prefixIcon: const Icon(Icons.layers),
+            isDense: true,
           ),
-          prefixIcon: const Icon(Icons.input),
-          isDense: true,
-        ),
-        keyboardType: TextInputType.number,
-        validator: (val) {
-          if (val == null || val.isEmpty) return 'Required';
-          if (num.tryParse(val) == null) return 'Invalid number';
-          return null;
-        },
-        onChanged: (val) {
-          if (val.isNotEmpty) {
-            final numVal = num.tryParse(val);
-            if (numVal != null) {
-              _parameters[key] = numVal;
+          items: items.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _parameters[key] = val;
+              });
             }
-          }
-        },
-      ));
+          },
+        ));
+      } else {
+        // Capitalize first letter of key for label
+        final label = key.substring(0, 1).toUpperCase() + key.substring(1);
+
+        fields.add(TextFormField(
+          initialValue: value.toString(),
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            prefixIcon: const Icon(Icons.input),
+            isDense: true,
+          ),
+          keyboardType: TextInputType.number,
+          validator: (val) {
+            if (val == null || val.isEmpty) return 'Required';
+            if (num.tryParse(val) == null) return 'Invalid number';
+            return null;
+          },
+          onChanged: (val) {
+            if (val.isNotEmpty) {
+              final numVal = num.tryParse(val);
+              if (numVal != null) {
+                _parameters[key] = numVal;
+              }
+            }
+          },
+        ));
+      }
       fields.add(const SizedBox(height: 12));
     });
     // Remove last SizedBox

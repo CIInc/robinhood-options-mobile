@@ -198,6 +198,109 @@ class TradeStrategyDefaults {
       createdAt: DateTime.now(),
     ),
     TradeStrategyTemplate(
+      id: 'default_macd_cross_strategy',
+      name: 'MACD Zero Line Cross',
+      description:
+          'Advanced trend confirmation strategy looking for MACD Histogram Crossing Zero (Momentum shift).',
+      config: TradeStrategyConfig(
+        minSignalStrength: 60.0,
+        requireAllIndicatorsGreen: false,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        initialCapital: 10000.0,
+        enabledIndicators: {
+          'momentum': true, // RSI check
+          'volume': true,
+        },
+        indicatorReasons: {
+          'momentum': 'RSI ensures we are not overbought.',
+          'volume': 'Volume spike confirms the momentum shift.',
+        },
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'macd_histogram_cross_zero',
+            name: 'MACD Hist Cross > 0',
+            type: IndicatorType.MACD,
+            parameters: {
+              'fastPeriod': 12,
+              'slowPeriod': 26,
+              'signalPeriod': 9,
+              'component': 'histogram'
+            },
+            condition: SignalCondition.CrossOverAbove,
+            threshold: 0.0,
+            compareToPrice: false,
+          ),
+        ],
+        takeProfitPercent: 12.0,
+        stopLossPercent: 4.0,
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
+        trailingStopEnabled: true,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
+      id: 'default_bollinger_squeeze_breakout',
+      name: 'Bollinger Band Squeeze Breakout',
+      description:
+          'Detects price breaking above Upper Bollinger Band after a period of low volatility.',
+      config: TradeStrategyConfig(
+        minSignalStrength: 65.0,
+        requireAllIndicatorsGreen: false,
+        startDate: DateTime.now().subtract(const Duration(days: 365)),
+        endDate: DateTime.now(),
+        interval: '1d',
+        initialCapital: 10000.0,
+        enabledIndicators: {
+          'volume': true,
+          'adx': false, // Custom
+        },
+        indicatorReasons: {
+          'volume': 'Volume surge needed to confirm breakout.',
+        },
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'price_above_upper_bb',
+            name: 'Price > Upper BB',
+            type: IndicatorType.Bollinger,
+            parameters: {'period': 20, 'stdDev': 2.0, 'component': 'upper'},
+            condition: SignalCondition.CrossOverAbove,
+            compareToPrice:
+                true, // Check if Price crosses above Upper Band value
+            // Note: technically compareToPrice compares Indicator Value (Upper Band) to Price.
+            // If Indicator (Upper Band) > Price (False).
+            // We want Price > Upper Band.
+            // "CrossOverAbove": Value (Upper Band) crosses above Price? No.
+            // We usually want Price crosses above Value.
+            // Our engine does: if (Value > CompareValue).
+            // Here Value = Upper Band. CompareValue = Price.
+            // If Upper Band > Price -> Price is below Upper Band.
+            // If Upper Band < Price -> Price is above Upper Band.
+            // So we want Upper Band to be Less Than Price.
+            // So "CrossOverBelow"?
+            // Previous: Upper Band > Price. (Price contained)
+            // Current: Upper Band < Price. (Price breakout)
+            // So Upper Band crosses BELOW Price.
+          ),
+          CustomIndicatorConfig(
+            id: 'adx_trend_strength',
+            name: 'ADX > 25',
+            type: IndicatorType.ADX,
+            parameters: {'period': 14, 'component': 'adx'},
+            condition: SignalCondition.GreaterThan,
+            threshold: 25.0,
+          ),
+        ],
+        takeProfitPercent: 15.0,
+        stopLossPercent: 5.0,
+        riskPerTrade: 0.02,
+        enableDynamicPositionSizing: true,
+      ),
+      createdAt: DateTime.now(),
+    ),
+    TradeStrategyTemplate(
       id: 'default_momentum_master',
       name: 'Momentum Master',
       description:

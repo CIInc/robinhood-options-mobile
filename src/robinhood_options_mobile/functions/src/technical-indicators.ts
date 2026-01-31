@@ -60,9 +60,44 @@ export interface MultiIndicatorResult {
  */
 export function computeSMA(prices: number[], period: number): number | null {
   if (!prices || prices.length < period || period <= 0) return null;
-  const slice = prices.slice(prices.length - period);
-  const sum = slice.reduce((a, b) => a + b, 0);
+
+  let sum = 0;
+  for (let i = prices.length - period; i < prices.length; i++) {
+    sum += prices[i];
+  }
   return sum / period;
+}
+
+/**
+ * Compute array of SMA values
+ * @param {number[]} prices - Array of prices
+ * @param {number} period - SMA period
+ * @return {(number|null)[]} Array of SMA values
+ */
+export function computeSMAArray(
+  prices: number[],
+  period: number
+): (number | null)[] {
+  if (!prices || prices.length < period || period <= 0) {
+    return Array(prices.length).fill(null);
+  }
+
+  const result: (number | null)[] = Array(period - 1).fill(null);
+  let sum = 0;
+
+  // First sum
+  for (let i = 0; i < period; i++) {
+    sum += prices[i];
+  }
+  result.push(sum / period);
+
+  // Sliding window
+  for (let i = period; i < prices.length; i++) {
+    sum += prices[i] - prices[i - period];
+    result.push(sum / period);
+  }
+
+  return result;
 }
 
 /**
@@ -75,7 +110,11 @@ export function computeEMA(prices: number[], period: number): number | null {
   if (!prices || prices.length < period || period <= 0) return null;
 
   const multiplier = 2 / (period + 1);
-  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += prices[i];
+  }
+  let ema = sum / period;
 
   for (let i = period; i < prices.length; i++) {
     ema = (prices[i] - ema) * multiplier + ema;
@@ -302,9 +341,17 @@ export function computeStochasticArray(
 
   // Calculate raw K values for the whole series starting from index kPeriod - 1
   for (let i = kPeriod - 1; i < closes.length; i++) {
-    const hh = Math.max(...highs.slice(i - kPeriod + 1, i + 1));
-    const ll = Math.min(...lows.slice(i - kPeriod + 1, i + 1));
-    if (hh !== ll) {
+    let hh = Number.NEGATIVE_INFINITY;
+    let ll = Number.POSITIVE_INFINITY;
+    // Look back kPeriod bars including current
+    for (let j = 0; j < kPeriod; j++) {
+      const valH = highs[i - j];
+      const valL = lows[i - j];
+      if (valH > hh) hh = valH;
+      if (valL < ll) ll = valL;
+    }
+
+    if (hh !== ll && Number.isFinite(hh) && Number.isFinite(ll)) {
       kValues.push(((closes[i] - ll) / (hh - ll)) * 100);
     } else {
       kValues.push(50); // Default to middle if no range
@@ -1457,16 +1504,17 @@ export function evaluateMarketDirection(
     };
   }
 
-  const fastMA = computeSMA(marketPrices, fastPeriod);
-  const slowMA = computeSMA(marketPrices, slowPeriod);
+  const fastMAs = computeSMAArray(marketPrices, fastPeriod);
+  const slowMAs = computeSMAArray(marketPrices, slowPeriod);
+
+  const fastMA = fastMAs[fastMAs.length - 1];
+  const slowMA = slowMAs[slowMAs.length - 1];
 
   // Previous MAs for crossover detection
-  const fastPrevMA = marketPrices.length > fastPeriod ?
-    computeSMA(marketPrices.slice(0, -1), fastPeriod) : null;
-  const slowPrevMA = marketPrices.length > slowPeriod ?
-    computeSMA(marketPrices.slice(0, -1), slowPeriod) : null;
+  const fastPrevMA = fastMAs.length >= 2 ? fastMAs[fastMAs.length - 2] : null;
+  const slowPrevMA = slowMAs.length >= 2 ? slowMAs[slowMAs.length - 2] : null;
 
-  if (!fastMA || !slowMA) {
+  if (fastMA === null || slowMA === null) {
     return {
       value: null,
       signal: "HOLD",
@@ -1544,6 +1592,50 @@ export function evaluateMarketDirection(
 }
 
 /**
+ * Evaluate Macro Assessment based on market direction
+ * @param {IndicatorResult} marketDirection - Market direction result
+ * @return {object} The macro assessment result
+ */
+export function evaluateMacroAssessment(
+  marketDirection: IndicatorResult
+): MultiIndicatorResult["macroAssessment"] {
+  if (marketDirection.signal === "BUY") {
+    return {
+      status: "RISK_ON",
+      score: 1.0,
+      reason: `Market trend is bullish (${marketDirection.reason})`,
+    };
+  } else if (marketDirection.signal === "SELL") {
+    return {
+      status: "RISK_OFF",
+      score: -1.0,
+      reason: `Market trend is bearish (${marketDirection.reason})`,
+    };
+  } else {
+    // Check value/strength if available for more nuance
+    const strength = marketDirection.value || 0;
+    if (strength > 0.5) {
+      return {
+        status: "RISK_ON",
+        score: 0.5,
+        reason: "Market is neutral with positive bias",
+      };
+    } else if (strength < -0.5) {
+      return {
+        status: "RISK_OFF",
+        score: -0.5,
+        reason: "Market is neutral with negative bias",
+      };
+    }
+    return {
+      status: "NEUTRAL",
+      score: 0,
+      reason: "Market trend is neutral",
+    };
+  }
+}
+
+/**
  * Evaluate volume indicators
  * @param {number[]} volumes - Array of volume data.
  * @param {number[]} prices - Array of price data.
@@ -1568,12 +1660,23 @@ export function evaluateVolume(
   const currentVolume = recentVolumes[recentVolumes.length - 1];
   const volSum = recentVolumes.reduce((a, b) => a + b, 0);
   const avgVolume = volSum / recentVolumes.length;
-  const volumeRatio = currentVolume / avgVolume;
 
   const currentPrice = recentPrices[recentPrices.length - 1];
   const previousPrice = recentPrices[recentPrices.length - 2];
   const priceDiff = currentPrice - previousPrice;
   const priceChange = (priceDiff / previousPrice) * 100;
+
+  if (avgVolume === 0) {
+    return {
+      value: 0,
+      signal: "HOLD",
+      reason: "Volume data unavailable, price change " +
+        `${priceChange.toFixed(2)}%`,
+      metadata: { currentVolume, avgVolume, volumeRatio: 0, priceChange },
+    };
+  }
+
+  const volumeRatio = currentVolume / avgVolume;
 
   // High volume with price increase = bullish
   if (volumeRatio > 1.5 && priceChange > 0.5) {
@@ -2922,7 +3025,9 @@ export function evaluateAllIndicators(
       }
     }
 
-    if (hasZeroVolume) {
+    // Only filter if we have some valid volumes.
+    // If ALL volumes are zero (e.g. Index like ^VIX), keep the data.
+    if (hasZeroVolume && validIndices.length > 0) {
       const v = symbolData.volumes;
       symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
       symbolData.volumes = validIndices.map((i) => v[i]);
@@ -3134,6 +3239,10 @@ export function evaluateAllIndicators(
   const allRed = allVals.length > 0 &&
     allVals.every((ind) => ind.signal === "SELL");
 
+  const macroAssessment = isEnabled("marketDirection") ?
+    evaluateMacroAssessment(marketDirection) :
+    undefined;
+
   let overallSignal: "BUY" | "SELL" | "HOLD";
   let reason: string;
 
@@ -3160,6 +3269,10 @@ export function evaluateAllIndicators(
       `Signal strength: ${signalStrength}/100.`;
   }
 
+  if (macroAssessment && macroAssessment.status !== "NEUTRAL") {
+    reason += ` Market: ${macroAssessment.status}.`;
+  }
+
   // Optimized: Removed dense logging per evaluation
   /*
   logger.info("Multi-indicator evaluation complete", {
@@ -3174,6 +3287,7 @@ export function evaluateAllIndicators(
     allGreen,
     indicators,
     customIndicators: customResults,
+    macroAssessment,
     overallSignal,
     reason,
     signalStrength,
@@ -3258,122 +3372,153 @@ export function evaluateCustomIndicator(
   volumes: number[]
 ): IndicatorResult {
   let value: number | null = null;
+  let prevValue: number | null = null;
   let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
   let reason = "";
 
   try {
-    const toPeriod = (val: unknown, defaultVal: number): number => {
+    const getNumberParam = (
+      val: unknown,
+      defaultVal: number,
+      isFloat = false
+    ): number => {
       if (typeof val === "number") return val;
       if (typeof val === "string") {
-        const parsed = parseInt(val, 10);
-        return isNaN(parsed) ? defaultVal : parsed;
+        const parsed = isFloat ? parseFloat(val) : parseInt(val, 10);
+        return Number.isFinite(parsed) ? parsed : defaultVal;
       }
       return defaultVal;
     };
 
-    switch (config.type) {
-    case "SMA": {
-      value = computeSMA(prices, toPeriod(config.parameters.period, 14));
-      break;
-    }
-    case "EMA": {
-      value = computeEMA(prices, toPeriod(config.parameters.period, 14));
-      break;
-    }
-    case "RSI": {
-      value = computeRSI(prices, toPeriod(config.parameters.period, 14));
-      break;
-    }
-    case "MACD": {
-      const macdRes = computeMACD(
-        prices,
-        toPeriod(config.parameters.fastPeriod, 12),
-        toPeriod(config.parameters.slowPeriod, 26),
-        toPeriod(config.parameters.signalPeriod, 9)
-      );
-      value = macdRes ? macdRes.histogram : null;
-      break;
-    }
-    case "Bollinger": {
-      const bbRes = computeBollingerBands(
-        prices,
-        toPeriod(config.parameters.period, 20),
-        toPeriod(config.parameters.stdDev, 2)
-      );
-      value = bbRes ? bbRes.middle : null;
-      break;
-    }
-    case "Stochastic": {
-      const stochRes = computeStochastic(
-        highs,
-        lows,
-        prices,
-        toPeriod(config.parameters.kPeriod, 14),
-        toPeriod(config.parameters.dPeriod, 3)
-      );
-      value = stochRes ? stochRes.k : null;
-      break;
-    }
-    case "ATR": {
-      value = computeATR(
-        highs,
-        lows,
-        prices,
-        toPeriod(config.parameters.period, 14)
-      );
-      break;
-    }
-    case "OBV": {
-      const obvRes = computeOBV(prices, volumes);
-      value = obvRes && obvRes.length > 0 ?
-        obvRes[obvRes.length - 1] : null;
-      break;
-    }
-    case "WilliamsR": {
-      value = computeWilliamsR(
-        highs,
-        lows,
-        prices,
-        toPeriod(config.parameters.period, 14)
-      );
-      break;
-    }
-    case "CCI": {
-      // CCI requires Typical Prices: (High + Low + Close) / 3
-      const period = toPeriod(config.parameters.period, 20);
-      if (
-        highs.length >= period &&
-        lows.length >= period &&
-        prices.length >= period
-      ) {
-        const typicalPrices: number[] = [];
-        const len = Math.min(highs.length, lows.length, prices.length);
-        for (let i = 0; i < len; i++) {
-          typicalPrices.push((highs[i] + lows[i] + prices[i]) / 3);
-        }
-        value = computeCCI(typicalPrices, period);
+    const getStringParam = (val: unknown, defaultVal: string): string => {
+      if (typeof val === "string") return val;
+      return defaultVal;
+    };
+
+    // Helper to calculate indicator value for a given set of data
+    const calculateValue = (
+      p: number[],
+      h: number[],
+      l: number[],
+      v: number[]
+    ): number | null => {
+      switch (config.type) {
+      case "SMA":
+        return computeSMA(
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+      case "EMA":
+        return computeEMA(
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+      case "RSI":
+        return computeRSI(
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+      case "MACD": {
+        const macdRes = computeMACD(
+          p,
+          getNumberParam(config.parameters.fastPeriod, 12),
+          getNumberParam(config.parameters.slowPeriod, 26),
+          getNumberParam(config.parameters.signalPeriod, 9)
+        );
+        if (!macdRes) return null;
+        const comp = getStringParam(config.parameters.component, "histogram");
+        if (comp === "macd") return macdRes.macd;
+        if (comp === "signal") return macdRes.signal;
+        return macdRes.histogram;
       }
-      break;
-    }
-    case "ROC": {
-      value = computeROC(prices, toPeriod(config.parameters.period, 9));
-      break;
-    }
-    case "VWAP": {
-      value = computeVWAP(highs, lows, prices, volumes);
-      break;
-    }
-    case "ADX": {
-      const adxRes = computeADX(
-        highs,
-        lows,
-        prices,
-        toPeriod(config.parameters.period, 14)
-      );
-      value = adxRes ? adxRes.adx : null;
-      break;
-    }
-    }
+      case "Bollinger": {
+        const bbRes = computeBollingerBands(
+          p,
+          getNumberParam(config.parameters.period, 20),
+          getNumberParam(config.parameters.stdDev, 2, true)
+        );
+        if (!bbRes) return null;
+        const comp = getStringParam(config.parameters.component, "middle");
+        if (comp === "upper") return bbRes.upper;
+        if (comp === "lower") return bbRes.lower;
+        return bbRes.middle;
+      }
+      case "Stochastic": {
+        const stochRes = computeStochastic(
+          h,
+          l,
+          p,
+          getNumberParam(config.parameters.kPeriod, 14),
+          getNumberParam(config.parameters.dPeriod, 3)
+        );
+        if (!stochRes) return null;
+        const comp = getStringParam(config.parameters.component, "k");
+        if (comp === "d") return stochRes.d;
+        return stochRes.k;
+      }
+      case "ATR":
+        return computeATR(
+          h,
+          l,
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+      case "OBV": {
+        const obvRes = computeOBV(p, v);
+        return obvRes && obvRes.length > 0 ?
+          obvRes[obvRes.length - 1] : null;
+      }
+      case "WilliamsR":
+        return computeWilliamsR(
+          h,
+          l,
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+      case "CCI": {
+        // CCI requires Typical Prices: (High + Low + Close) / 3
+        const period = getNumberParam(config.parameters.period, 20);
+        if (
+          h.length >= period &&
+          l.length >= period &&
+          p.length >= period
+        ) {
+          const typicalPrices: number[] = [];
+          const len = Math.min(h.length, l.length, p.length);
+          for (let i = 0; i < len; i++) {
+            typicalPrices.push((h[i] + l[i] + p[i]) / 3);
+          }
+          return computeCCI(typicalPrices, period);
+        }
+        return null;
+      }
+      case "ROC":
+        return computeROC(
+          p,
+          getNumberParam(config.parameters.period, 9)
+        );
+      case "VWAP":
+        return computeVWAP(h, l, p, v);
+      case "ADX": {
+        const adxRes = computeADX(
+          h,
+          l,
+          p,
+          getNumberParam(config.parameters.period, 14)
+        );
+        if (!adxRes) return null;
+        const comp = getStringParam(config.parameters.component, "adx");
+        if (comp === "plusDI") return adxRes.plusDI;
+        if (comp === "minusDI") return adxRes.minusDI;
+        return adxRes.adx;
+      }
+      default:
+        return null;
+      }
+    };
+
+    // 1. Calculate current value
+    value = calculateValue(prices, highs, lows, volumes);
 
     if (value === null) {
       return {
@@ -3383,6 +3528,7 @@ export function evaluateCustomIndicator(
       };
     }
 
+    // 2. Determine Comparison Value (Current)
     const currentPrice = prices[prices.length - 1];
     const compareValue = config.compareToPrice ?
       currentPrice : config.threshold;
@@ -3395,25 +3541,50 @@ export function evaluateCustomIndicator(
       };
     }
 
+    // 3. Check Condition
     let conditionMet = false;
+    const isCrossover = config.condition.startsWith("CrossOver");
 
-    switch (config.condition) {
-    case "GreaterThan": {
-      if (value > compareValue) conditionMet = true;
-      break;
-    }
-    case "LessThan": {
-      if (value < compareValue) conditionMet = true;
-      break;
-    }
-    case "CrossOverAbove": {
-      if (value > compareValue) conditionMet = true;
-      break;
-    }
-    case "CrossOverBelow": {
-      if (value < compareValue) conditionMet = true;
-      break;
-    }
+    if (isCrossover) {
+      // Calculate Previous Value
+      // We slice the arrays to simulate "previous candle stick" state
+      if (prices.length > 1) {
+        prevValue = calculateValue(
+          prices.slice(0, -1),
+          highs.slice(0, -1),
+          lows.slice(0, -1),
+          volumes.slice(0, -1)
+        );
+      }
+
+      const prevPrice = prices.length > 1 ? prices[prices.length - 2] : null;
+
+      // Ensure we have previous data
+      if (prevValue !== null && prevPrice !== null) {
+        const prevCompareValue = config.compareToPrice ?
+          prevPrice : config.threshold;
+
+        if (prevCompareValue !== undefined && prevCompareValue !== null) {
+          if (config.condition === "CrossOverAbove") {
+            // Crossed ABOVE: Previous was <=, Current is >
+            if (prevValue <= prevCompareValue && value > compareValue) {
+              conditionMet = true;
+            }
+          } else if (config.condition === "CrossOverBelow") {
+            // Crossed BELOW: Previous was >=, Current is <
+            if (prevValue >= prevCompareValue && value < compareValue) {
+              conditionMet = true;
+            }
+          }
+        }
+      }
+    } else {
+      // Standard GreaterThan / LessThan
+      if (config.condition === "GreaterThan") {
+        if (value > compareValue) conditionMet = true;
+      } else if (config.condition === "LessThan") {
+        if (value < compareValue) conditionMet = true;
+      }
     }
 
     if (conditionMet) {
@@ -3428,7 +3599,14 @@ export function evaluateCustomIndicator(
         `${compareValue.toFixed(2)}`;
     }
 
-    return { value, signal, reason };
+    const metadata: Record<string, unknown> = {
+      condition: config.condition,
+      threshold: config.threshold,
+      compareToPrice: config.compareToPrice,
+    };
+    if (prevValue !== null) metadata.prevValue = prevValue;
+
+    return { value, signal, reason, metadata };
   } catch (e) {
     return {
       value: null,

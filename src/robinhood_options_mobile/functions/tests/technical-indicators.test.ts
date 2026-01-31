@@ -10,6 +10,7 @@ import {
   computeSMA,
   computeMACD,
   evaluateMACD,
+  evaluateMacroAssessment,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -343,6 +344,64 @@ describe("Technical Indicators", () => {
         } else {
           expect(parseFloat(display2Dec)).toBeCloseTo(value, 2);
         }
+      });
+    });
+  });
+
+  describe("evaluateMacroAssessment", () => {
+    it("should return RISK_ON for BUY signal", () => {
+      const marketDirection = {
+        value: 10,
+        signal: "BUY" as const,
+        reason: "Bullish trend",
+      };
+      const result = evaluateMacroAssessment(marketDirection);
+      expect(result).toEqual({
+        status: "RISK_ON",
+        score: 1.0,
+        reason: "Market trend is bullish (Bullish trend)",
+      });
+    });
+
+    it("should return RISK_OFF for SELL signal", () => {
+      const marketDirection = {
+        value: -10,
+        signal: "SELL" as const,
+        reason: "Bearish trend",
+      };
+      const result = evaluateMacroAssessment(marketDirection);
+      expect(result).toEqual({
+        status: "RISK_OFF",
+        score: -1.0,
+        reason: "Market trend is bearish (Bearish trend)",
+      });
+    });
+
+    it("should return NEUTRAL for HOLD signal", () => {
+      const marketDirection = {
+        value: 0,
+        signal: "HOLD" as const,
+        reason: "Neutral",
+      };
+      const result = evaluateMacroAssessment(marketDirection);
+      expect(result).toEqual({
+        status: "NEUTRAL",
+        score: 0,
+        reason: "Market trend is neutral",
+      });
+    });
+
+    it("should return RISK_ON for HOLD signal with positive bias", () => {
+      const marketDirection = {
+        value: 1.0,
+        signal: "HOLD" as const,
+        reason: "Wait",
+      };
+      const result = evaluateMacroAssessment(marketDirection);
+      expect(result).toEqual({
+        status: "RISK_ON",
+        score: 0.5,
+        reason: "Market is neutral with positive bias",
       });
     });
   });

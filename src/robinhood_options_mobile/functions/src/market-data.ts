@@ -143,7 +143,7 @@ export async function getMarketData(symbol: string,
         }
       }
 
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${dataRange}`;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${dataRange}`;
       const resp = await fetch(url);
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
