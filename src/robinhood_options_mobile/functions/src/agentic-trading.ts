@@ -38,6 +38,8 @@ export async function performTradeProposal(request: any) {
     maxVolatility: request.data.maxVolatility || 100,
     enableDrawdownProtection: request.data.enableDrawdownProtection || false,
     maxDrawdown: request.data.maxDrawdown || 0.2,
+    reduceSizeOnRiskOff: request.data.reduceSizeOnRiskOff || false,
+    riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
   };
 

@@ -72,6 +72,7 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _smaSlowController;
   late TextEditingController _marketIndexController;
   late TextEditingController _trailingStopPercentController;
+  late TextEditingController _riskOffSizeReductionController;
   // late bool _enableDynamicPositionSizing;
   // late Map<String, bool> _enabledIndicators;
   // late List<ExitStage> _exitStages;
@@ -198,6 +199,13 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.rsiExitThreshold.toString() ?? '80.0');
     _signalStrengthExitThresholdController = TextEditingController(
         text: strategy?.signalStrengthExitThreshold.toString() ?? '40.0');
+
+    double riskOffSizeReduction = strategy?.riskOffSizeReduction ?? 0.5;
+    double riskOffSizeReductionPercent = riskOffSizeReduction * 100;
+    _riskOffSizeReductionController = TextEditingController(
+        text: riskOffSizeReductionPercent % 1 == 0
+            ? riskOffSizeReductionPercent.toInt().toString()
+            : riskOffSizeReductionPercent.toString());
     _timeBasedExitMinutesController = TextEditingController(
         text: strategy?.timeBasedExitMinutes.toString() ?? '0');
     _marketCloseExitMinutesController = TextEditingController(
@@ -490,6 +498,10 @@ class _AgenticTradingSettingsWidgetState
       enableDrawdownProtection: strategySource.enableDrawdownProtection,
       maxDrawdown:
           (double.tryParse(_maxDrawdownController.text) ?? 10.0) / 100.0,
+      reduceSizeOnRiskOff: strategySource.reduceSizeOnRiskOff,
+      riskOffSizeReduction:
+          (double.tryParse(_riskOffSizeReductionController.text) ?? 50.0) /
+              100.0,
       rsiExitEnabled: strategySource.rsiExitEnabled,
       rsiExitThreshold:
           double.tryParse(_rsiExitThresholdController.text) ?? 80.0,
@@ -3105,6 +3117,36 @@ class _AgenticTradingSettingsWidgetState
             label: 'Max Drawdown %',
             helperText: 'Stop trading at this drawdown',
             icon: Icons.trending_down,
+            isDecimal: true,
+            min: 0,
+            max: 100,
+            suffixText: '%',
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSubsectionTitle(context, 'Macro Risk Control'),
+        const SizedBox(height: 12),
+        _buildSwitchListTile(
+          'reduceSizeOnRiskOff',
+          'Reduce Size on RISK_OFF',
+          'Cut position size by 50% when market is bearish',
+          agenticTradingProvider,
+          defaultValue: false,
+          value: agenticTradingProvider
+              .config.strategyConfig.reduceSizeOnRiskOff,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(reduceSizeOnRiskOff: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          extraContent: _buildNumberField(
+            controller: _riskOffSizeReductionController,
+            label: 'Reduction %',
+            helperText: 'Percentage to cut position size (e.g. 50.0)',
+            icon: Icons.cut,
             isDecimal: true,
             min: 0,
             max: 100,

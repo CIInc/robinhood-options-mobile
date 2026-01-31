@@ -517,6 +517,33 @@ export async function handleAlphaTask(marketData: any,
     }
   }
 
+  // --- Macro Risk Adjustment ---
+  // If enabled, reduce position size by user-configured
+  // % (default 50%) during RISK_OFF conditions
+  if (config?.reduceSizeOnRiskOff &&
+    overallSignal === "BUY" &&
+    multiIndicatorResult.macroAssessment?.status === "RISK_OFF") {
+    const originalQty = quantity;
+    const reductionPercent = config.riskOffSizeReduction || 0.5;
+    const keepPercent = 1.0 - reductionPercent;
+    // Reduce by %, floor to integer
+    quantity = Math.floor(quantity * keepPercent);
+
+    logger.info(`⚠️ Macro Risk Off: Reduced quantity from ${originalQty} ` +
+      `to ${quantity} (${reductionPercent * 100}% reduction)`);
+
+    reason += ` (Size reduced ${reductionPercent * 100}% due to RISK_OFF)`;
+
+    if (dynamicSizingDetails) {
+      dynamicSizingDetails.macroRiskData = {
+        status: "RISK_OFF",
+        action: `reduce_${reductionPercent * 100}_percent`,
+        originalQty,
+        finalQty: quantity,
+      };
+    }
+  }
+
   const proposal = {
     symbol,
     action: overallSignal,

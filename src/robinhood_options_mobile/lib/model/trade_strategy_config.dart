@@ -46,6 +46,8 @@ class TradeStrategyConfig {
   final double maxVolatility;
   final bool enableDrawdownProtection;
   final double maxDrawdown;
+  final bool reduceSizeOnRiskOff;
+  final double riskOffSizeReduction;
 
   // Technical Exits
   final bool rsiExitEnabled;
@@ -95,6 +97,8 @@ class TradeStrategyConfig {
     double? maxVolatility,
     bool? enableDrawdownProtection,
     double? maxDrawdown,
+    bool? reduceSizeOnRiskOff,
+    double? riskOffSizeReduction,
     bool? rsiExitEnabled,
     double? rsiExitThreshold,
     bool? signalStrengthExitEnabled,
@@ -151,6 +155,9 @@ class TradeStrategyConfig {
       enableDrawdownProtection:
           enableDrawdownProtection ?? this.enableDrawdownProtection,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
+      reduceSizeOnRiskOff: reduceSizeOnRiskOff ?? this.reduceSizeOnRiskOff,
+      riskOffSizeReduction:
+          riskOffSizeReduction ?? this.riskOffSizeReduction,
       rsiExitEnabled: rsiExitEnabled ?? this.rsiExitEnabled,
       rsiExitThreshold: rsiExitThreshold ?? this.rsiExitThreshold,
       signalStrengthExitEnabled:
@@ -201,6 +208,8 @@ class TradeStrategyConfig {
     this.maxVolatility = 0.5,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 0.05,
+    this.reduceSizeOnRiskOff = false,
+    this.riskOffSizeReduction = 0.5,
     this.rsiExitEnabled = false,
     this.rsiExitThreshold = 80.0,
     this.signalStrengthExitEnabled = false,
@@ -267,6 +276,8 @@ class TradeStrategyConfig {
         'maxVolatility': maxVolatility,
         'enableDrawdownProtection': enableDrawdownProtection,
         'maxDrawdown': maxDrawdown,
+        'reduceSizeOnRiskOff': reduceSizeOnRiskOff,
+        'riskOffSizeReduction': riskOffSizeReduction,
         'rsiExitEnabled': rsiExitEnabled,
         'rsiExitThreshold': rsiExitThreshold,
         'signalStrengthExitEnabled': signalStrengthExitEnabled,
@@ -343,6 +354,9 @@ class TradeStrategyConfig {
         enableDrawdownProtection:
             json['enableDrawdownProtection'] as bool? ?? false,
         maxDrawdown: (json['maxDrawdown'] as num?)?.toDouble() ?? 0.05,
+        reduceSizeOnRiskOff: json['reduceSizeOnRiskOff'] as bool? ?? false,
+        riskOffSizeReduction:
+            (json['riskOffSizeReduction'] as num?)?.toDouble() ?? 0.5,
         rsiExitEnabled: json['rsiExitEnabled'] as bool? ?? false,
         rsiExitThreshold:
             (json['rsiExitThreshold'] as num?)?.toDouble() ?? 80.0,
