@@ -19,6 +19,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
   late SignalCondition _condition;
   late TextEditingController _thresholdController;
   bool _compareToPrice = false;
+  SignalType _signalType = SignalType.BUY;
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
     _thresholdController = TextEditingController(
         text: widget.indicator?.threshold?.toString() ?? '');
     _compareToPrice = widget.indicator?.compareToPrice ?? false;
+    _signalType = widget.indicator?.signalType ?? SignalType.BUY;
 
     if (_parameters.isEmpty) {
       _setDefaultParameters();
@@ -282,6 +284,32 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      DropdownButtonFormField<SignalType>(
+                        initialValue: _signalType,
+                        decoration: InputDecoration(
+                          labelText: 'Signal Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.traffic),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                        items: SignalType.values.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type.toString().split('.').last),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _signalType = value;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       DropdownButtonFormField<SignalCondition>(
                         initialValue: _condition,
                         decoration: InputDecoration(
@@ -466,6 +494,7 @@ class _CustomIndicatorPageState extends State<CustomIndicatorPage> {
         threshold:
             _compareToPrice ? null : double.tryParse(_thresholdController.text),
         compareToPrice: _compareToPrice,
+        signalType: _signalType,
       );
       Navigator.pop(context, indicator);
     }

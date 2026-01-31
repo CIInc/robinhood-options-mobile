@@ -19,6 +19,8 @@ enum IndicatorType {
 
 enum SignalCondition { GreaterThan, LessThan, CrossOverAbove, CrossOverBelow }
 
+enum SignalType { BUY, SELL }
+
 class CustomIndicatorConfig {
   String id;
   String name;
@@ -27,6 +29,7 @@ class CustomIndicatorConfig {
   SignalCondition condition;
   double? threshold;
   bool compareToPrice;
+  SignalType signalType;
 
   CustomIndicatorConfig({
     required this.id,
@@ -36,6 +39,7 @@ class CustomIndicatorConfig {
     required this.condition,
     this.threshold,
     this.compareToPrice = false,
+    this.signalType = SignalType.BUY,
   });
 
   Map<String, dynamic> toJson() => {
@@ -46,6 +50,7 @@ class CustomIndicatorConfig {
         'condition': condition.toString().split('.').last,
         'threshold': threshold,
         'compareToPrice': compareToPrice,
+        'signalType': signalType.toString().split('.').last,
       };
 
   factory CustomIndicatorConfig.fromJson(Map<String, dynamic> json) =>
@@ -61,5 +66,10 @@ class CustomIndicatorConfig {
             orElse: () => SignalCondition.GreaterThan),
         threshold: (json['threshold'] as num?)?.toDouble(),
         compareToPrice: json['compareToPrice'] as bool? ?? false,
+        signalType: json['signalType'] != null
+            ? SignalType.values.firstWhere(
+                (e) => e.toString().split('.').last == json['signalType'],
+                orElse: () => SignalType.BUY)
+            : SignalType.BUY,
       );
 }

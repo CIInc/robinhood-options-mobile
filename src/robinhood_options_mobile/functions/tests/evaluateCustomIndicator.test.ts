@@ -132,4 +132,24 @@ describe("evaluateCustomIndicator", () => {
     // the "signal" field indicates condition met)
     expect(res.signal).toBe("BUY");
   });
+
+  it("should respect signalType configuration", () => {
+    const config: CustomIndicatorConfig = {
+      id: "test-signal-type",
+      name: "Test Signal Type",
+      type: "SMA",
+      parameters: { period: 1 },
+      condition: "GreaterThan",
+      threshold: 10,
+      signalType: "SELL",
+    };
+
+    // prices such that SMA(1) > 10. e.g. last price 12.
+    const p = [10, 12];
+    const result = evaluateCustomIndicator(config, p, p, p, []);
+
+    expect(result.value).toBe(12);
+    expect(result.signal).toBe("SELL");
+    expect(result.reason).toContain("(SELL)");
+  });
 });

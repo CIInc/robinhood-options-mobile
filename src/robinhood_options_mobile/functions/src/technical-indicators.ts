@@ -20,6 +20,7 @@ export interface CustomIndicatorConfig {
   condition: "GreaterThan" | "LessThan" | "CrossOverAbove" | "CrossOverBelow";
   threshold?: number;
   compareToPrice?: boolean;
+  signalType?: "BUY" | "SELL";
 }
 
 export interface MultiIndicatorResult {
@@ -3588,8 +3589,8 @@ export function evaluateCustomIndicator(
     }
 
     if (conditionMet) {
-      signal = "BUY";
-      reason = `${config.name}: ${value.toFixed(2)} ` +
+      signal = config.signalType || "BUY";
+      reason = `${config.name} (${signal}): ${value.toFixed(2)} ` +
         `met condition ${config.condition} ` +
         `${compareValue.toFixed(2)}`;
     } else {
@@ -3603,6 +3604,7 @@ export function evaluateCustomIndicator(
       condition: config.condition,
       threshold: config.threshold,
       compareToPrice: config.compareToPrice,
+      signalType: config.signalType,
     };
     if (prevValue !== null) metadata.prevValue = prevValue;
 
