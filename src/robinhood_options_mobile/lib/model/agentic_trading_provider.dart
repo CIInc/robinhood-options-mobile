@@ -150,6 +150,7 @@ class AgenticTradingProvider with ChangeNotifier {
   List<Map<String, dynamic>> get pendingOrders => _pendingOrders;
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
   int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
+  // Is this property needed if we have autoTradeHistory?
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
   List<Map<String, dynamic>> get signalProcessingHistory =>
       _signalProcessingHistory;
@@ -513,6 +514,24 @@ class AgenticTradingProvider with ChangeNotifier {
         //     '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
         if (tpSlResult['exitsExecuted'] > 0) {
           _log('📊 TP/SL result: ${tpSlResult['message']}');
+
+          // Merge exits into result for Last Execution display
+          final exits = tpSlResult['exits'] as List;
+          final currentTrades = result['trades'] as List? ?? [];
+          final allTrades = [...currentTrades, ...exits];
+
+          result['trades'] = allTrades;
+          result['tradesExecuted'] = (result['tradesExecuted'] as int? ?? 0) +
+              (tpSlResult['exitsExecuted'] as int);
+
+          if (tpSlResult['message'] != null &&
+              tpSlResult['message'] != 'No exits required') {
+            result['message'] =
+                "${result['message']} | ${tpSlResult['message']}";
+          }
+          result['success'] = true; // Mark as success since action was taken
+
+          updateLastAutoTradeResult(result);
         }
       } else {
         _log('📊 No positions to monitor for TP/SL');

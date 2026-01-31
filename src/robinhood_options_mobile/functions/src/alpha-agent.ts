@@ -100,9 +100,15 @@ function isMarketDataCacheStale(cacheData: any): boolean {
 async function fetchMarketData(symbol = "SPY"): Promise<{
   closes: number[];
   volumes: number[];
+  opens: number[];
+  highs: number[];
+  lows: number[];
 }> {
   let closes: number[] = [];
   let volumes: number[] = [];
+  let opens: number[] = [];
+  let highs: number[] = [];
+  let lows: number[] = [];
 
   // Try to load cached data from Firestore
   const cacheKey = `agentic_trading/chart_${symbol}`;
@@ -128,10 +134,13 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
       });
 
       if (isCached && chart.indicators?.quote?.[0]?.close) {
-        const closeData = chart.indicators.quote[0].close;
-        const volumeData = chart.indicators.quote[0].volume || [];
-        closes = closeData.filter((p: any) => p !== null);
-        volumes = volumeData.filter((v: any) => v !== null);
+        const quote = chart.indicators.quote[0];
+        closes = (quote.close || []).filter((p: any) => p !== null);
+        volumes = (quote.volume || []).filter((v: any) => v !== null);
+        opens = (quote.open || []).filter((o: any) => o !== null);
+        highs = (quote.high || []).filter((h: any) => h !== null);
+        lows = (quote.low || []).filter((l: any) => l !== null);
+
         const lastFew = closes.slice(-5);
         logger.info(`✅ CACHE HIT: Loaded cached market data for ${symbol}`, {
           count: closes.length,
@@ -139,7 +148,7 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
           cacheAge: Date.now() - (cacheData?.updated || 0),
           source: "cache",
         });
-        return { closes, volumes };
+        return { closes, volumes, opens, highs, lows };
       } else {
         logger.info(`❌ CACHE MISS: Cached market data for ${symbol} is ` +
           "stale, fetching fresh data");
@@ -164,10 +173,12 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
       // Remove nested arrays that cause Firestore errors
       delete result.meta?.tradingPeriods;
 
-      const closeData = result.indicators.quote[0].close;
-      const volumeData = result.indicators.quote[0].volume;
-      closes = closeData.filter((p: any) => p !== null);
-      volumes = volumeData.filter((v: any) => v !== null);
+      const quote = result.indicators.quote[0];
+      closes = (quote.close || []).filter((p: any) => p !== null);
+      volumes = (quote.volume || []).filter((v: any) => v !== null);
+      opens = (quote.open || []).filter((o: any) => o !== null);
+      highs = (quote.high || []).filter((h: any) => h !== null);
+      lows = (quote.low || []).filter((l: any) => l !== null);
 
       const lastFew = closes.slice(-5);
       logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} prices ` +
@@ -184,13 +195,13 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
         logger.warn(`Failed to cache market data for ${symbol}`, err);
       }
 
-      return { closes, volumes };
+      return { closes, volumes, opens, highs, lows };
     }
   } catch (err) {
     logger.warn(`Failed to fetch market data for ${symbol}`, err);
   }
 
-  return { closes: [], volumes: [] };
+  return { closes: [], volumes: [], opens: [], highs: [], lows: [] };
 }
 
 /**
@@ -347,7 +358,8 @@ export async function handleAlphaTask(marketData: any,
         }
       );
       overallSignal = "HOLD";
-      reason = `ML Optimization: ${optimization.reasoning}`;
+      reason = `ML Optimization: ${optimization.reasoning}. ` +
+        `(Was: ${multiIndicatorResult.overallSignal})`;
       // Update the result object for storage consistency
       multiIndicatorResult.overallSignal = "HOLD";
       multiIndicatorResult.reason = reason;
@@ -365,7 +377,7 @@ export async function handleAlphaTask(marketData: any,
         }
       );
       overallSignal = optimization.refinedSignal;
-      reason = `ML Optimization: ${optimization.reasoning}`;
+      reason = `ML Optimization: ${optimization.reasoning}. (Was: HOLD)`;
       // Update the result object for storage consistency
       multiIndicatorResult.overallSignal = optimization.refinedSignal;
       multiIndicatorResult.reason = reason;
@@ -380,6 +392,53 @@ export async function handleAlphaTask(marketData: any,
     marketIndexSymbol,
     indicators: indicatorResults,
   });
+
+
+  const lastPrice = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice || 0;
+
+  // Calculate indicator statistics for reporting
+  const indicatorValues = [
+    ...Object.values(multiIndicatorResult.indicators),
+    ...(multiIndicatorResult.customIndicators ?
+      Object.values(multiIndicatorResult.customIndicators) : []),
+  ];
+  const totalIndicators = indicatorValues.length;
+  const buyCount = indicatorValues.filter(
+    (i: any) => i.signal === "BUY").length;
+  const sellCount = indicatorValues.filter(
+    (i: any) => i.signal === "SELL").length;
+  const holdCount = indicatorValues.filter(
+    (i: any) => i.signal === "HOLD").length;
+  const alignedCount = overallSignal === "BUY" ? buyCount :
+    (overallSignal === "SELL" ? sellCount : holdCount);
+
+  const analysis = {
+    score: multiIndicatorResult.signalStrength,
+    consensus: {
+      buy: buyCount,
+      sell: sellCount,
+      hold: holdCount,
+      total: totalIndicators,
+      aligned: alignedCount,
+    },
+    supportingIndicators: indicatorValues
+      .filter((i: any) => i.signal === overallSignal)
+      .map((i: any) => i.name),
+    conflictingIndicators: indicatorValues
+      .filter((i: any) => i.signal !== overallSignal && i.signal !== "HOLD")
+      .map((i: any) => i.name),
+    macroImpact: multiIndicatorResult.macroAssessment ? {
+      status: multiIndicatorResult.macroAssessment.status,
+      score: multiIndicatorResult.macroAssessment.score,
+    } : null,
+  };
+
+  const supportingStr = analysis.supportingIndicators.join(", ");
+  const outputMessage = `Alpha agent: ${overallSignal} (${interval}). ` +
+    `Score: ${analysis.score}/100. ` +
+    `Driven by: ${supportingStr || "None"}. ` +
+    `Consensus: ${alignedCount}/${totalIndicators} indicators aligned.`;
 
   // If not all indicators are green, hold
   if (overallSignal === "HOLD") {
@@ -416,18 +475,15 @@ export async function handleAlphaTask(marketData: any,
 
     return {
       status: "rejected",
-      message: "Alpha agent: Multi-indicator analysis shows " +
-        `HOLD (${interval}).`,
+      message: outputMessage,
       reason,
       signal: overallSignal,
       interval,
       multiIndicatorResult,
       optimization,
+      analysis,
     };
   }
-
-  const lastPrice = closes.length > 0 ?
-    closes[closes.length - 1] : marketData?.currentPrice || 0;
 
   let quantity = config?.tradeQuantity || 1;
   let dynamicSizingDetails: any = null;
@@ -600,25 +656,26 @@ export async function handleAlphaTask(marketData: any,
   if (!assessment.approved) {
     return {
       status: "rejected",
-      message: "RiskGuard agent rejected the proposal",
+      message: `RiskGuard agent rejected the proposal: ${assessment.reason}`,
       reason: assessment.reason,
       proposal: proposal,
       assessment: assessment,
       interval,
       multiIndicatorResult,
       optimization,
+      analysis,
     };
   }
 
   return {
     status: "approved",
-    message: `Alpha agent approved ${overallSignal} proposal (${interval}): ` +
-      "All 12 indicators aligned",
+    message: outputMessage,
     proposal: proposal,
     assessment: assessment,
     interval,
     multiIndicatorResult,
     optimization,
+    analysis,
   };
 }
 

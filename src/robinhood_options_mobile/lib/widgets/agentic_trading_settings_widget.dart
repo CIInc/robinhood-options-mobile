@@ -3132,8 +3132,8 @@ class _AgenticTradingSettingsWidgetState
           'Cut position size by 50% when market is bearish',
           agenticTradingProvider,
           defaultValue: false,
-          value: agenticTradingProvider
-              .config.strategyConfig.reduceSizeOnRiskOff,
+          value:
+              agenticTradingProvider.config.strategyConfig.reduceSizeOnRiskOff,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
                 agenticTradingProvider,
@@ -3854,6 +3854,7 @@ class _AgenticTradingSettingsWidgetState
                 final side = trade['side'] ?? 'Unknown';
                 final quantity = trade['quantity'] ?? 0;
                 final price = trade['price'];
+                final reason = trade['reason'] as String?;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   elevation: 0,
@@ -3878,8 +3879,97 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ),
                     title: Text('$quantity $symbol'),
-                    subtitle:
-                        price != null ? Text('@ \$${price.toString()}') : null,
+                    subtitle: (price != null || reason != null)
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (price != null)
+                                Text('@ \$${price.toString()}'),
+                              if (reason != null)
+                                Text(
+                                  reason,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          )
+                        : null,
+                  ),
+                );
+              }),
+            ],
+            if (trades.isEmpty && provider.autoTradeHistory.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Last Recorded Trade',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Builder(builder: (context) {
+                final trade = provider.autoTradeHistory.first;
+                final symbol = trade['symbol'] ?? 'Unknown';
+                final side = trade['action'] ?? 'Unknown';
+                final quantity = trade['quantity'] ?? 0;
+                final price = trade['price'];
+                final reason = trade['rejectionReason'] as String? ??
+                    (trade['paperMode'] == true ? 'Paper Trade' : null);
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  elevation: 0,
+                  color: colorScheme.surfaceContainer,
+                  child: ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: side.toString().toLowerCase() == 'buy'
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        (side.toString().isNotEmpty
+                                ? side.toString().substring(0, 1)
+                                : '?')
+                            .toUpperCase(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: side.toString().toLowerCase() == 'buy'
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ),
+                    title: Text('$quantity $symbol'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (price != null) Text('@ \$${price.toString()}'),
+                        if (trade['timestamp'] != null)
+                          Text(
+                            _formatTime(DateTime.tryParse(trade['timestamp']) ??
+                                DateTime.now()),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        if (reason != null)
+                          Text(
+                            reason,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               }),
