@@ -72,8 +72,4 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Verify file paths and code references exist
    - Check that API parameters match implementation
 
-11. **Tag release**:
-   - Create a new git tag for the updated version
-   - Push changes and tags to the repository
-
 Provide a summary of all documentation updates made and any consistency issues found.

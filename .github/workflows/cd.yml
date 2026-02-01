@@ -62,6 +62,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.check.outputs.new_version }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      release_notes: ${{ steps.check.outputs.release_notes }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -75,10 +77,50 @@ jobs:
           
           echo "Checking tag: $TAG_NAME"
           
+          # Extract release notes from ROADMAP.md
+          ROADMAP_PATH="ROADMAP.md"
+          # In workflow default working directory is src/robinhood_options_mobile
+          # But ROADMAP.md is at root. We're currently in src/robinhood_options_mobile because of defaults.run
+          # So we need to go up two levels
+          ROADMAP_PATH="../../ROADMAP.md"
+          
+          if [ -f "$ROADMAP_PATH" ]; then
+            # Extract content between the current version header and the next version header
+            # Version header format: ### v0.31.4 ...
+            # We want to match "### v0.31.4" where 0.31.4 is VERSION
+            
+            # Escape dots for regex
+            ESCAPED_VERSION=$(echo $VERSION | sed 's/\./\\./g')
+            
+            # awk pattern:
+            # Start: Line starts with "### v" followed by VERSION
+            # End: Next line starting with "### v"
+            
+            RELEASE_NOTES=$(awk "/^### v$ESCAPED_VERSION/{flag=1;next}/^### v/{flag=0}flag" $ROADMAP_PATH)
+            
+            # If empty, default to something
+            if [ -z "$RELEASE_NOTES" ]; then
+              RELEASE_NOTES="Release $TAG_NAME"
+              echo "Warning: No release notes found in ROADMAP.md for v$VERSION"
+            fi
+            
+            echo "Extracted Release Notes:"
+            echo "$RELEASE_NOTES"
+            
+            # Output multiline string
+            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+            echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+             echo "ROADMAP.md not found at $ROADMAP_PATH"
+             echo "release_notes=Release $TAG_NAME" >> $GITHUB_OUTPUT
+          fi
+          
           # Check if tag exists on remote
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
             echo "Tag $TAG_NAME already exists."
             echo "new_version=false" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           else
             echo "Tag $TAG_NAME does not exist. Creating..."
             git config user.name "github-actions[bot]"
@@ -86,6 +128,7 @@ jobs:
             git tag $TAG_NAME
             git push origin $TAG_NAME
             echo "new_version=true" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           fi
 
   build_android:
@@ -250,3 +293,33 @@ jobs:
           xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
 
 
+
+  create_release:
+    name: Create GitHub Release
+    needs: [check_version, build_android, build_ios]
+    if: needs.check_version.outputs.new_version == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-apk
+          path: release-artifacts/android/
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-ipa
+          path: release-artifacts/ios/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.check_version.outputs.tag_name }}
+          body: ${{ needs.check_version.outputs.release_notes }}
+          generate_release_notes: true
+          files: |
+            release-artifacts/android/*.apk
+            release-artifacts/ios/*.ipa
