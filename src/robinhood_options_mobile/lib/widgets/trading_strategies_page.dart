@@ -179,7 +179,11 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
           ],
         ),
       ),
-      body: Column(
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Column(
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -336,6 +340,7 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

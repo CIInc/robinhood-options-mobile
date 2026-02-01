@@ -1026,13 +1026,18 @@ class _AgenticTradingSettingsWidgetState
       appBar: AppBar(
         title: const Text('Automated Trading'),
       ),
-      body: Consumer<AgenticTradingProvider>(
-        builder: (context, agenticTradingProvider, child) {
-          return Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Consumer<AgenticTradingProvider>(
+          builder: (context, agenticTradingProvider, child) {
+            return Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                 children: [
                   _buildStatusHeader(context, agenticTradingProvider),
                   const SizedBox(height: 16),
@@ -1053,6 +1058,7 @@ class _AgenticTradingSettingsWidgetState
             ),
           );
         },
+      ),
       ),
     );
   }

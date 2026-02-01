@@ -60,10 +60,6 @@ export const generateContent25 = gemini.generateContent25;
 export const analyzePriceTargets = gemini.analyzePriceTargets;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;
-export const getAgenticTradingConfig =
-  agenticTradingfunc.getAgenticTradingConfig;
-export const setAgenticTradingConfig =
-  agenticTradingfunc.setAgenticTradingConfig;
 export const seedAgenticTrading = agenticTradingfunc.seedAgenticTrading;
 export const agenticTradingCronJob = agenticTradingCron.agenticTradingCron;
 export const agenticTradingCronInvoke =

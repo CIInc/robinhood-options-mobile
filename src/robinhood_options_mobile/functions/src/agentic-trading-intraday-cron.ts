@@ -72,6 +72,7 @@ export const agenticTradingIntradayCron = onSchedule(
               interval: "1h",
               ...config,
               portfolioState: {},
+              skipRiskGuard: true,
             };
             const result = await performTradeProposal({ data } as any);
             if (result && result.status === "no_action") {

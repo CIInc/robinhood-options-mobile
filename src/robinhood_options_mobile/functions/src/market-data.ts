@@ -69,7 +69,29 @@ export async function getMarketData(symbol: string,
       estNow.getMonth(),
       estNow.getDate()
     ).getTime();
-    return endMs < todayStartEST;
+
+    // Fix for weekend loop: If it's Saturday (6) or Sunday (0) and we already
+    // updated today, don't refetch
+    const dayOfWeek = estNow.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    if (isWeekend && updated && updated > todayStartEST) {
+      return false;
+    }
+
+    const isStale = endMs < todayStartEST;
+    if (isStale) {
+      logger.info(`🔍 Cache Stale Detail for ${symbol}:`, {
+        symbol,
+        interval,
+        endMs,
+        todayStartEST,
+        updated,
+        isWeekend,
+        cacheAgeMs: updated ? Date.now() - updated : null,
+        endVsStart: endMs - todayStartEST,
+      });
+    }
+    return isStale;
   }
 
   // Try to load cached prices from Firestore

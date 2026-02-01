@@ -4,205 +4,11 @@ import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
 import { optimizeSignal } from "./signal-optimizer";
 import { getMacroAssessment } from "./macro-agent";
-import fetch from "node-fetch";
+import { getMarketData } from "./market-data";
 import { getFirestore } from "firebase-admin/firestore";
 
 const db = getFirestore();
 
-/**
- * Check if cached market data is stale
- * During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
- * After hours, cache is valid for the rest of the trading day
- * @param {any} cacheData The full cache document with chart and updated fields
- * @return {boolean} True if stale
- */
-function isMarketDataCacheStale(cacheData: any): boolean {
-  const chart = cacheData?.chart;
-  const updated = cacheData?.updated;
-
-  if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
-    return true;
-  }
-  const endSec = chart.meta.currentTradingPeriod.regular.end;
-  const endMs = endSec * 1000;
-  const now = new Date();
-
-  // Use America/New_York timezone for consistent market hours
-  const estTimeString = now.toLocaleString("en-US", {
-    timeZone: "America/New_York",
-    hour12: false,
-  });
-
-  // Parse EST time components
-  const estMatch =
-    estTimeString.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
-  if (!estMatch) {
-    logger.warn("Failed to parse EST time", { estTimeString });
-    return true; // Treat as stale if we can't parse
-  }
-
-  const [, month, day, year, hour, minute] = estMatch;
-  const estHour = parseInt(hour, 10);
-  const estMinute = parseInt(minute, 10);
-
-  const todayStartEST = new Date(
-    parseInt(year, 10),
-    parseInt(month, 10) - 1,
-    parseInt(day, 10),
-    0,
-    0,
-    0
-  ).getTime();
-
-  // Check if from previous trading day
-  if (endMs < todayStartEST) {
-    return true;
-  }
-
-  // During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
-  const isMarketHours =
-    (estHour > 9 || (estHour === 9 && estMinute >= 30)) && estHour < 16;
-
-  logger.info("📅 Market hours check", {
-    estTimeString,
-    estHour,
-    estMinute,
-    isMarketHours,
-    cacheUpdated: updated,
-    cacheAge: updated ? now.getTime() - updated : null,
-  });
-
-  // If no updated timestamp, treat as stale (legacy cache)
-  if (!updated) {
-    logger.info("⚠️ Cache missing 'updated' field - treating as stale");
-    return true;
-  }
-
-  if (isMarketHours) {
-    const cacheAge = now.getTime() - updated;
-    const maxCacheAge = 15 * 60 * 1000; // 15 minutes
-    const isStale = cacheAge > maxCacheAge;
-    logger.info(`🕐 Cache age check: ${Math.round(cacheAge / 1000 / 60)} min ` +
-      `(max: 15 min) - ${isStale ? "STALE" : "FRESH"}`);
-    return isStale;
-  }
-
-  logger.info("✅ Cache valid (after market hours)");
-  return false;
-}
-
-/**
- * Fetch market index data (SPY or QQQ) for market direction analysis
- * Now includes Firestore caching with timezone-aware staleness check
- * @param {string} symbol The market index symbol (default: SPY)
- * @return {Promise<{prices: number[], volumes: number[]}>} Market data
- */
-async function fetchMarketData(symbol = "SPY"): Promise<{
-  closes: number[];
-  volumes: number[];
-  opens: number[];
-  highs: number[];
-  lows: number[];
-}> {
-  let closes: number[] = [];
-  let volumes: number[] = [];
-  let opens: number[] = [];
-  let highs: number[] = [];
-  let lows: number[] = [];
-
-  // Try to load cached data from Firestore
-  const cacheKey = `agentic_trading/chart_${symbol}`;
-  logger.info(`🔍 Checking cache for ${symbol}`, { cacheKey });
-  try {
-    const doc = await db.doc(cacheKey).get();
-    if (doc.exists) {
-      const cacheData = doc.data();
-      const chart = cacheData?.chart;
-      logger.info(`📦 Cache document exists for ${symbol}`, {
-        hasChart: !!chart,
-        hasUpdated: !!(cacheData?.updated),
-        updated: cacheData?.updated,
-        chartClosesLength: chart?.indicators?.quote?.[0]?.close?.length,
-      });
-      const isStale = isMarketDataCacheStale(cacheData);
-      const isCached = chart && !isStale;
-
-      logger.info(`🎯 Cache decision for ${symbol}`, {
-        isStale,
-        isCached,
-        willUseCache: isCached && chart.indicators?.quote?.[0]?.close,
-      });
-
-      if (isCached && chart.indicators?.quote?.[0]?.close) {
-        const quote = chart.indicators.quote[0];
-        closes = (quote.close || []).filter((p: any) => p !== null);
-        volumes = (quote.volume || []).filter((v: any) => v !== null);
-        opens = (quote.open || []).filter((o: any) => o !== null);
-        highs = (quote.high || []).filter((h: any) => h !== null);
-        lows = (quote.low || []).filter((l: any) => l !== null);
-
-        const lastFew = closes.slice(-5);
-        logger.info(`✅ CACHE HIT: Loaded cached market data for ${symbol}`, {
-          count: closes.length,
-          lastFivePrices: lastFew,
-          cacheAge: Date.now() - (cacheData?.updated || 0),
-          source: "cache",
-        });
-        return { closes, volumes, opens, highs, lows };
-      } else {
-        logger.info(`❌ CACHE MISS: Cached market data for ${symbol} is ` +
-          "stale, fetching fresh data");
-      }
-    }
-  } catch (err) {
-    logger.warn(`Failed to load cached market data for ${symbol}`, err);
-  }
-
-  // Fetch fresh data from Yahoo Finance
-  try {
-    const baseUrl = "https://query1.finance.yahoo.com";
-    const url = `${baseUrl}/v8/finance/chart/${symbol}` +
-      "?interval=1d&range=1y";
-    const resp = await fetch(url);
-    const data: any = await resp.json();
-    const result = data?.chart?.result?.[0];
-
-    if (result &&
-      Array.isArray(result?.indicators?.quote?.[0]?.close) &&
-      Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
-      // Remove nested arrays that cause Firestore errors
-      delete result.meta?.tradingPeriods;
-
-      const quote = result.indicators.quote[0];
-      closes = (quote.close || []).filter((p: any) => p !== null);
-      volumes = (quote.volume || []).filter((v: any) => v !== null);
-      opens = (quote.open || []).filter((o: any) => o !== null);
-      highs = (quote.high || []).filter((h: any) => h !== null);
-      lows = (quote.low || []).filter((l: any) => l !== null);
-
-      const lastFew = closes.slice(-5);
-      logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} prices ` +
-        `for ${symbol} from Yahoo Finance`, {
-        lastFivePrices: lastFew,
-        source: "yahoo-finance",
-      });
-
-      // Cache the data
-      try {
-        await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
-        logger.info(`💾 Cached market data for ${symbol} in Firestore`);
-      } catch (err) {
-        logger.warn(`Failed to cache market data for ${symbol}`, err);
-      }
-
-      return { closes, volumes, opens, highs, lows };
-    }
-  } catch (err) {
-    logger.warn(`Failed to fetch market data for ${symbol}`, err);
-  }
-
-  return { closes: [], volumes: [], opens: [], highs: [], lows: [] };
-}
 
 /**
  * Handle Alpha agent logic for trade signal and risk assessment.
@@ -231,7 +37,12 @@ export async function handleAlphaTask(marketData: any,
   // Fetch market index data (SPY by default, or QQQ if configured)
   const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
   const [marketIndexData, macroAssessment] = await Promise.all([
-    fetchMarketData(marketIndexSymbol),
+    getMarketData(
+      marketIndexSymbol,
+      config?.smaPeriodFast || 10,
+      config?.smaPeriodSlow || 30,
+      "1d"
+    ),
     getMacroAssessment(),
   ]);
 
@@ -612,12 +423,22 @@ export async function handleAlphaTask(marketData: any,
   };
 
   // Call riskguard to assess
-  const assessment = await riskguard.assessTrade(
-    proposal, portfolioState, config,
-    {
-      ...marketData,
-      marketIndexCloses: marketIndexData.closes,
-    });
+  let assessment;
+  if (config?.skipRiskGuard) {
+    logger.info("Skipping RiskGuard assessment due to skipRiskGuard config");
+    assessment = {
+      approved: true,
+      reason: "RiskGuard skipped by configuration",
+      metrics: {},
+    };
+  } else {
+    assessment = await riskguard.assessTrade(
+      proposal, portfolioState, config,
+      {
+        ...marketData,
+        marketIndexCloses: marketIndexData.closes,
+      });
+  }
 
   // Persist trade signal to Firestore
   if (!config?.skipSignalUpdate) {

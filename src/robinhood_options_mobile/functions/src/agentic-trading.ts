@@ -16,8 +16,6 @@ const db = getFirestore();
  * @return {Promise<object>} The trade proposal result.
  */
 export async function performTradeProposal(request: any) {
-  logger.info("Initiate Trade Proposal called", { structuredData: true });
-
   const config = {
     smaPeriodFast: request.data.smaPeriodFast || 10,
     smaPeriodSlow: request.data.smaPeriodSlow || 30,
@@ -41,9 +39,11 @@ export async function performTradeProposal(request: any) {
     reduceSizeOnRiskOff: request.data.reduceSizeOnRiskOff || false,
     riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
+    skipRiskGuard: request.data.skipRiskGuard || false,
   };
 
-  logger.info("Agentic Trading Configuration:", config);
+  logger.info("Initiated Trade Proposal for symbol " +
+    `${request.data.symbol}`, config, { structuredData: true });
 
   const symbol = request.data.symbol || "SPY";
   const interval = request.data.interval || "1d";
@@ -67,51 +67,6 @@ export async function performTradeProposal(request: any) {
 
 export const initiateTradeProposal = onCall(async (request) => {
   return performTradeProposal(request);
-});
-
-export const getAgenticTradingConfig = onCall(async () => {
-  logger.info("Get Agentic Trading Config called", { structuredData: true });
-  // Try reading configuration from Firestore first
-  try {
-    const doc = await db.doc("agentic_trading/config").get();
-    if (doc.exists) {
-      const config = doc.data();
-      logger.info("Loaded config from Firestore", config);
-      return { status: "success", config };
-    }
-  } catch (err) {
-    logger.warn("Failed to read agentic trading config from Firestore", err);
-  }
-
-  // Return default configuration as fallback
-  const config = {
-    smaPeriodFast: 10,
-    smaPeriodSlow: 30,
-    tradeQuantity: 1,
-    maxPositionSize: 100,
-    maxPortfolioConcentration: 0.5,
-    rsiPeriod: 14,
-    marketIndexSymbol: "SPY",
-    enableDynamicPositionSizing: false,
-    riskPerTrade: 0.01,
-    atrMultiplier: 2,
-  };
-  return { status: "success", config };
-});
-
-/**
- * Persist agentic trading configuration to Firestore.
- */
-export const setAgenticTradingConfig = onCall(async (request) => {
-  const cfg = request.data || {};
-  try {
-    await db.doc("agentic_trading/config").set(cfg, { merge: true });
-    logger.info("Saved agentic trading config to Firestore", cfg);
-    return { status: "success", config: cfg };
-  } catch (err) {
-    logger.error("Failed to save config to Firestore", err);
-    return { status: "error", message: (err as Error).message || String(err) };
-  }
 });
 
 /**

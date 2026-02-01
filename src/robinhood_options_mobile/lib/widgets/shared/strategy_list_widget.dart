@@ -134,6 +134,7 @@ class StrategyListWidget extends StatelessWidget {
       controller: scrollController,
       itemCount: filtered.length,
       padding: const EdgeInsets.all(16),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       itemBuilder: (context, index) =>
           _buildStrategyCard(context, filtered[index]),
     );

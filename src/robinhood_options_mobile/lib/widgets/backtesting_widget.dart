@@ -1028,7 +1028,11 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BacktestingProvider>(
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Consumer<BacktestingProvider>(
       builder: (context, provider, child) {
         // Handle pending template loading
         if (provider.pendingTemplate != null) {
@@ -1042,6 +1046,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
         }
 
         return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
@@ -1202,6 +1207,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
           ),
         );
       },
+      ),
     );
   }
 
@@ -3892,23 +3898,6 @@ class _BacktestTemplatesTab extends StatefulWidget {
 }
 
 class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
-  static const Map<String, String> _indicatorNames = {
-    'priceMovement': 'Price Movement',
-    'momentum': 'RSI',
-    'marketDirection': 'Market Direction',
-    'volume': 'Volume',
-    'macd': 'MACD',
-    'bollingerBands': 'Bollinger Bands',
-    'stochastic': 'Stochastic',
-    'atr': 'ATR',
-    'obv': 'OBV',
-    'vwap': 'VWAP',
-    'adx': 'ADX',
-    'williamsR': 'Williams %R',
-    'ichimoku': 'Ichimoku',
-    'cci': 'CCI',
-    'parabolicSar': 'Parabolic SAR',
-  };
 
   @override
   Widget build(BuildContext context) {
