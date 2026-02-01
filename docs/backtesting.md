@@ -44,6 +44,11 @@ Comprehensive backtesting interface for testing trading strategies on historical
   - Interactive Equity Curve
   - Drawdown Chart (new)
   - Buy & Hold comparison line
+- **Advanced Filtering**:
+  - Filter trades by outcome (Win/Loss)
+  - Filter by direction (Long/Short)
+  - Filter by date range
+  - Filter by signal strength
 - **Trade-by-trade breakdown** with entry/exit reasons
 - **Performance Metrics**:
   - Sortino Ratio and Calmar Ratio

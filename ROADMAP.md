@@ -116,11 +116,17 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Charts:** TTM Squeeze visualization.
 - ✅ **iOS:** Build process enhancements.
 
+### v0.31.5 ✅ (Released Feb 1, 2026)
+**Backtest Filtering & CI Enhancements**
+- ✅ **Backtesting:** Advanced filtering options for backtest results.
+- ✅ **Backtesting:** Improved UI layout for results.
+- ✅ **Charts:** Enhanced layout for portfolio metrics.
+- ✅ **CI/CD:** Infrastructure improvements.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - Futures Roll Assistant
-- Advanced Backtesting Filters (4-way indicator support) ([Tracking: #136](https://github.com/CIInc/robinhood-options-mobile/issues/136))
 - Smart Order Routing (Intelligent execution across venues)
 
 ### v0.33.0 (Q1 2026 - Late Feb)

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.5] - 2026-02-01
+
+### Added
+- **Backtesting:** Added advanced filtering options for backtest results and improved UI layout.
+
+### Changed
+- **Charts:** Improved layout and styling of portfolio metrics in chart widget.
+- **CI/CD:** Enhanced iOS upload process with API Key authentication support.
+- **CI/CD:** Enhanced workflow to extract release notes from ROADMAP.md.
+
 ### Fixed
 - **ITMS-90725:** Updated iOS deployment target to 17.0 and ensured build uses iOS 26 SDK for App Store Connect compliance (required April 2026).
 
