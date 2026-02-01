@@ -13,6 +13,7 @@ on:
     # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
     paths:
       - 'src/robinhood_options_mobile/lib/**'
+      - 'src/robinhood_options_mobile/pubspec.yaml'
   pull_request:
     # branches: [ main ]
 
@@ -23,6 +24,7 @@ jobs:
   test_and_analyze:
     name: Test and Analyze
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -34,6 +36,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -90,6 +93,7 @@ jobs:
     needs: [test_and_analyze, check_version]
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -101,6 +105,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable # or: beta, master (or main)
+          cache: true
           # cache: true
           # # optional parameters follow
           # cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
@@ -168,6 +173,7 @@ jobs:
     needs: [test_and_analyze, check_version]
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: macos-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -179,6 +185,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
