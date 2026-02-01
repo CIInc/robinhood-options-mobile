@@ -2,6 +2,13 @@
 
 ## Completed Improvements
 
+### Paper Trading Dashboard (v0.31.4)
+- **Component**: `PaperTradingDashboardWidget`.
+- **Features**:
+  - **AI Portfolio Analysis**: New "AI Insights" card leveraging generative AI to analyze cash, equity, P&L, and positions for performance and risk assessment.
+  - **Asset Allocation**: Interactive Pie Chart visualizing portfolio distribution between Stocks, Options, and Cash.
+  - **Enhanced UI**: Added analytics action button and improved visual hierarchy.
+
 ### Chat Widget Enhancements (v0.30.1)
 - **Component**: Chat Widget (Market Assistant).
 - **Features**:

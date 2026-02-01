@@ -52,6 +52,7 @@
 - **[Sentiment Analysis](sentiment-analysis.md):** Visualize market mood (Bullish/Bearish/Neutral) with a dedicated dashboard and card widget.
 - **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
+- **[Paper Trading](ui-improvements.md#paper-trading-dashboard-v0314):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
 
 ## Investment Profile Feature
 

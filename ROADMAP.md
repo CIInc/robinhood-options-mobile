@@ -111,11 +111,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Macro Risk Control:** Implemented position size reduction based on RISK_OFF market conditions.
 
 ### v0.31.4 ✅ (Released Feb 01, 2026)
-**Alpha Factor Discovery & Technical Analysis**
+**Paper Trading AI, Alpha Factor Discovery & Technical Analysis**
+- ✅ **Paper Trading:** Enhanced dashboard with AI Portfolio Analysis and Asset Allocation charts.
 - ✅ **Alpha Factor Discovery:** Research engine for predictive signal analysis.
 - ✅ **Technical Indicators:** Pivot Points (Classic, Fibonacci, Woodie, Camarilla).
 - ✅ **Chart Analysis:** TTM Squeeze visualization.
 - ✅ **Enhancements:** Refined Chaikin Money Flow & Fibonacci Retracements.
+- ✅ **iOS Build:** Manual signing and provisioning profile extraction improvements.
 
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
