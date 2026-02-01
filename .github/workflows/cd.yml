@@ -10,7 +10,9 @@ on:
   push:
     branches:
       - main
-    paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
+    # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
+    paths:
+      - 'src/robinhood_options_mobile/lib/**'
   pull_request:
     # branches: [ main ]
 
@@ -220,6 +222,13 @@ jobs:
           sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $PROFILE_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
           
+          # Update ExportOptions.plist with the profile
+          /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions.plist || true
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile string $PROFILE_UUID" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Delete :signingStyle" ios/ExportOptions.plist || true
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions.plist
+          
           flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload iOS IPA Build Artifact
@@ -227,6 +236,7 @@ jobs:
         with:
           name: release-ipa
           path: src/robinhood_options_mobile/build/ios/ipa/*.ipa
+          # path: build/ios/ipa/*.ipa
 
       - name: Upload to App Store
         run: |
