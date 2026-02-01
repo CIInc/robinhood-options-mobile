@@ -314,7 +314,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                   : (changePercentInPeriod < 0 ? negative : neutralColor);
 
               return SizedBox(
-                height: 52,
+                height: 72,
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -325,7 +325,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -348,65 +348,51 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                               ),
                             ],
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: primary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(7),
-                                  border: Border.all(
-                                      color: primary.withValues(alpha: 0.3)),
+                              Text(
+                                'PORTFOLIO',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
-                                child: Icon(
-                                    Icons.account_balance_wallet_rounded,
-                                    size: 14,
-                                    color: primary),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(height: 2),
                               Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'PORTFOLIO',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.3,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
-                                      ),
+                                child: FittedBox(
+                                  alignment: Alignment.centerLeft,
+                                  fit: BoxFit.scaleDown,
+                                  child: AnimatedPriceText(
+                                    price: selection != null
+                                        ? selection.adjustedCloseEquity!
+                                        : close,
+                                    format: formatCurrency,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
                                     ),
-                                    AnimatedPriceText(
-                                      price: selection != null
-                                          ? selection.adjustedCloseEquity!
-                                          : close,
-                                      format: formatCurrency,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       // Change Badge
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -430,54 +416,59 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                             ],
                           ),
                           child: Column(
-                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 'CHANGE',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.3,
+                                  letterSpacing: 0.5,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurfaceVariant,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    changeInPeriod >= 0
-                                        ? Icons.trending_up_rounded
-                                        : Icons.trending_down_rounded,
-                                    size: 12,
-                                    color: changeColor,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Expanded(
-                                    child: Text(
-                                      returnText,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: changeColor,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                              const SizedBox(height: 2),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      changeInPeriod >= 0
+                                          ? Icons.trending_up_rounded
+                                          : Icons.trending_down_rounded,
+                                      size: 16,
+                                      color: changeColor,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: FittedBox(
+                                        alignment: Alignment.centerLeft,
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          returnText,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: changeColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       // Change % Badge
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -503,43 +494,48 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                             ],
                           ),
                           child: Column(
-                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 'CHANGE %',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.3,
+                                  letterSpacing: 0.5,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurfaceVariant,
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    changePercentInPeriod >= 0
-                                        ? Icons.percent_rounded
-                                        : Icons.percent_outlined,
-                                    size: 12,
-                                    color: changePercentColor,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Expanded(
-                                    child: Text(
-                                      returnPercentText,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: changePercentColor,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                              const SizedBox(height: 2),
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      changePercentInPeriod >= 0
+                                          ? Icons.percent_rounded
+                                          : Icons.percent_outlined,
+                                      size: 16,
+                                      color: changePercentColor,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: FittedBox(
+                                        alignment: Alignment.centerLeft,
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          returnPercentText,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: changePercentColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -889,7 +885,6 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       if (high <= low) {
         high = low + 0.0001;
       }
-
 
       // Volume is not available in EquityHistorical, set to 1 to avoid log10(0) error
       double volume = 1;
