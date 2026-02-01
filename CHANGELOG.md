@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.4] - 2026-01-31
+
+### Added
+- **Technical Indicators:** Added Pivot Points indicator with support for Classic, Fibonacci, Woodie, and Camarilla calculation methods.
+- **Chart Analysis:** Added TTM Squeeze indicator visualization.
+
+### Changed
+- **Technical Indicators:** Enhanced functionality for Chaikin Money Flow and Fibonacci Retracements.
+- **Risk Guard:** Improved RiskGuard handling in automated trading.
+
 ## [0.31.3] - 2026-01-31
 
 ### Added

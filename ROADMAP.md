@@ -110,6 +110,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Strategies:** Added MACD Zero Line Cross and Bollinger Band Squeeze Breakout strategies.
 - ✅ **Macro Risk Control:** Implemented position size reduction based on RISK_OFF market conditions.
 
+### v0.31.4 ✅ (Released Jan 31, 2026)
+**Pivot Points & Chart Visualization**
+- ✅ **Pivot Points:** Added Pivot Points indicator with support for multiple calculation methods.
+- ✅ **Chart Visualization:** TTM Squeeze indicator added to chart analysis.
+- ✅ **Enhancements:** Refined Chaikin Money Flow & Fibonacci Retracements.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))

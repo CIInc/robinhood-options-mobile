@@ -32,6 +32,7 @@ import * as optionsFlowCron from "./options-flow-cron";
 import * as sentimentAnalysis from "./sentiment-analysis";
 import * as chatNotifications from "./chat-notifications";
 import * as macroAgent from "./macro-agent";
+import * as alphaFactorDiscovery from "./alpha-factor-discovery";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -42,6 +43,8 @@ import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+
+export const discoverAlphaFactors = alphaFactorDiscovery.discoverAlphaFactors;
 
 export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
 export const exchangePublicTokenForAccessToken =

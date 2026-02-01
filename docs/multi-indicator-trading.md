@@ -35,7 +35,7 @@ The system uses a weighted scoring model to determine the overall strength of a 
 
 The final score (0-100) reflects the net positive influence of all indicators. A score > 75 is considered a **Strong BUY**, while a score < 25 is a **Strong SELL**.
 
-## The 18 Technical Indicators
+## The 19 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 

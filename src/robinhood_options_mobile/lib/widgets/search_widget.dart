@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -345,6 +346,54 @@ class _SearchWidgetState extends State<SearchWidget>
                             debugPrint(
                                 "SearchWidget: onChanged '$text'. Service: ${widget.service}");
                             setState(() {
+                              if (text.contains(',') &&
+                                  widget.service != null) {
+                                var queries = text
+                                    .split(',')
+                                    .map((e) => e.trim())
+                                    .where((e) => e.isNotEmpty)
+                                    .toList();
+                                if (queries.isNotEmpty) {
+                                  futureSearch = Future.wait(queries.map((q) =>
+                                          widget.service!.search(
+                                              widget.brokerageUser!, q)))
+                                      .then((results) {
+                                    var combined = [];
+                                    for (var result in results) {
+                                      if (result is List) {
+                                        combined.addAll(result);
+                                      } else if (result is Map) {
+                                        // Assume Robinhood structure
+                                        try {
+                                          var resList =
+                                              result['results'] as List?;
+                                          if (resList != null) {
+                                            for (var res in resList) {
+                                              var content = res['content'];
+                                              if (content != null) {
+                                                var data =
+                                                    content['data'] as List?;
+                                                if (data != null) {
+                                                  for (var d in data) {
+                                                    if (d['item'] != null) {
+                                                      combined.add(d['item']);
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                              'Error parsing search result: $e');
+                                        }
+                                      }
+                                    }
+                                    return combined;
+                                  });
+                                  return;
+                                }
+                              }
                               futureSearch =
                                   text.isEmpty || widget.service == null
                                       ? Future.value(null)
@@ -523,6 +572,86 @@ class _SearchWidgetState extends State<SearchWidget>
                   ),
                   const SliverToBoxAdapter(
                     child: MarketSentimentCardWidget(),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: Card(
+                        elevation: 0,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const AlphaFactorDiscoveryWidget(),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.analytics_outlined,
+                                      size: 24, color: Colors.purple),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Alpha Factor Discovery",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Backtest predictive factors & correlations",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.chevron_right,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   SliverToBoxAdapter(
                     child: OptionsFlowCardWidget(

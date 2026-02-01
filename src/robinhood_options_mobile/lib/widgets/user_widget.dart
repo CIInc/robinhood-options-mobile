@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
@@ -978,6 +979,33 @@ class _UserWidgetState extends State<UserWidget> {
                                                   widget.brokerageUser,
                                               service: widget.service,
                                             ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    // Alpha Factor Discovery
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child:
+                                            const Icon(Icons.science_outlined),
+                                      ),
+                                      title:
+                                          const Text('Alpha Factor Discovery'),
+                                      subtitle: const Text(
+                                          'Analyze predictive power of indicators'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AlphaFactorDiscoveryWidget(),
                                           ),
                                         );
                                       },

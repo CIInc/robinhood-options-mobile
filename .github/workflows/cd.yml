@@ -171,10 +171,11 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
 
           # Create ExportOptions.plist
-          echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
+          # echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
 
       - name: Build iOS IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: flutter build ipa --release
+        # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload iOS IPA Build Artifact
         uses: actions/upload-artifact@v4
