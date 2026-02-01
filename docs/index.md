@@ -19,7 +19,7 @@
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
 - **[Instrument Charting](index.md#instrument-charting):** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges and **interactive technical overlays** (SMA, EMA, VWAP, Bollinger Bands).
 - **[Instrument Notes](instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
-- Multi-indicator correlated trade signals (15 indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR) with confidence-scored pattern detection (Classic & Candlestick) and weighted signal strength visualization (Price > Momentum > Trend).
+- Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick) and weighted signal strength visualization (Price > Momentum > Trend).
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
 - **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
@@ -52,7 +52,8 @@
 - **[Sentiment Analysis](sentiment-analysis.md):** Visualize market mood (Bullish/Bearish/Neutral) with a dedicated dashboard and card widget.
 - **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
-- **[Paper Trading](ui-improvements.md#paper-trading-dashboard-v0314):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
+- **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
+- **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend.
 
 ## Investment Profile Feature
 
@@ -77,7 +78,7 @@ This feature adds investment profile configuration to user settings, allowing us
 The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
 
 ### Key Components
-- **Multi-Indicator Correlation:** Analyzes 15 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR) to generate high-confidence trade signals
+- **Multi-Indicator Correlation:** Analyzes 19 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) to generate high-confidence trade signals
 - **Signal Strength Visualization:** Color-coded signal strength scores (0-100) with filtering by minimum strength threshold
 - **Indicator Documentation Widget:** In-app technical reference for all 12 indicators with detailed explanations of signals, configuration, and technical details
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies

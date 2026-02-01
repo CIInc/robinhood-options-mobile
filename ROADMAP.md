@@ -98,26 +98,23 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Agentic Trading:** Auto-trade history loading from Firestore.
 
 ### v0.31.2 ✅ (Released Jan 29, 2026)
-**Options Flow Expiration Dates & Performance Analytics Paper Mode**
-- ✅ **Advanced Options Flow Filtering:** New filters for expiration dates (0DTE, etc.), premium, and flow types.
-- ✅ **Performance Analytics:** Enhanced paper mode filtering in Agentic Trading Performance widget.
-- ✅ **Backend Optimization:** Improved efficiency for trading cron jobs using `listDocuments`.
+**Options Flow & Agentic Filtering**
+- ✅ **Options Flow:** Added 0DTE/1DTE expiration filtering.
+- ✅ **Agentic Experience:** Paper mode filtering in performance widget.
 
 ### v0.31.3 ✅ (Released Jan 31, 2026)
-**Technical Indicator Expansion & Macro Risk Control**
-- ✅ **New Indicators:** Rate of Change (ROC), Chaikin Money Flow (CMF), Fibonacci Retracements.
-- ✅ **RiskGuard:** Added `skipRiskGuard` configuration for automated agents.
-- ✅ **Strategies:** Added MACD Zero Line Cross and Bollinger Band Squeeze Breakout strategies.
-- ✅ **Macro Risk Control:** Implemented position size reduction based on RISK_OFF market conditions.
+**New Indicators & Risk Off**
+- ✅ **New Indicators:** ROC, Chaikin Money Flow, Fibonacci Retracements.
+- ✅ **Strategies:** MACD Zero Line Cross, Bollinger Squeeze.
+- ✅ **Risk Guard:** `skipRiskGuard` support and macro-based position sizing.
 
-### v0.31.4 ✅ (Released Feb 01, 2026)
-**Paper Trading AI, Alpha Factor Discovery & Technical Analysis**
-- ✅ **Paper Trading:** Enhanced dashboard with AI Portfolio Analysis and Asset Allocation charts.
-- ✅ **Alpha Factor Discovery:** Research engine for predictive signal analysis.
-- ✅ **Technical Indicators:** Pivot Points (Classic, Fibonacci, Woodie, Camarilla).
-- ✅ **Chart Analysis:** TTM Squeeze visualization.
-- ✅ **Enhancements:** Refined Chaikin Money Flow & Fibonacci Retracements.
-- ✅ **iOS Build:** Manual signing and provisioning profile extraction improvements.
+### v0.31.4 ✅ (Released Feb 1, 2026)
+**Paper Portfolio AI & Alpha Discovery**
+- ✅ **Paper Trading Dashboard:** AI Portfolio Analysis and Allocation Charts.
+- ✅ **Alpha Factor Discovery:** Research engine for signal correlation analysis.
+- ✅ **Pivot Points:** Support for Classic, Fibonacci, Woodie, Camarilla.
+- ✅ **Charts:** TTM Squeeze visualization.
+- ✅ **iOS:** Build process enhancements.
 
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
@@ -144,13 +141,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Fidelity API Integration & Multi-Leg Orders**
 - Fidelity account integration ([Tracking: #33](https://github.com/CIInc/robinhood-options-mobile/issues/33))
 - Fidelity Multi-leg options execution
-- [x] Order Templates (save & reuse orders)
 - Portfolio aggregation across 3 brokerages
 
 ### v0.36.0 (Q2 2026 - May)
 **Quantitative Research Workbench**
-- [x] Alpha factor discovery engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
-- [x] Correlation matrix visualizer (multi-asset, multi-timeframe)
 - Event study analyzer
 - Rolling statistics dashboard
 - Custom screener builder
@@ -399,6 +393,12 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] **New:** Advanced filtering (Expiration Date, Premium, etc.)
 - [x] **Trade Signals Widget**:
     - [x] Dedicated home screen widget for viewing and filtering real-time signals
+
+### Quantitative Research
+- [x] **Alpha Factor Discovery** ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
+    - [x] Signal correlation analysis engine
+    - [x] Information Coefficient (IC) metrics
+    - [x] Symbol breakdown and stability analysis
 
 ### Backtesting
 - [x] **Backtesting Engine** ([#84](https://github.com/CIInc/robinhood-options-mobile/issues/84)):

@@ -306,14 +306,31 @@ The final score (0-100) reflects the net positive influence of all indicators. A
 
 ### 19. Pivot Points
 
-**Purpose:** Uses the previous period's high, low, and close to project support and resistance levels (Standard method).
+**Purpose:** Uses the previous period's high, low, and close to project support and resistance levels.
 
 **Implementation:** `evaluatePivotPoints()` in `technical-indicators.ts`
 
+**Variants Supported:**
+- **Classic:** Standard (High+Low+Close)/3 calculation.
+- **Fibonacci:** Uses Fibonacci ratios for levels.
+- **Woodie:** Weighted towards Close.
+- **Camarilla:** Mean reversion focus.
+
 **Signals:**
-- **BUY**: Price > Pivot Point (Bullish Bias)
-- **SELL**: Price < Pivot Point (Bearish Bias)
-- **HOLD**: Price at Pivot Point
+- **BUY**: Price > Pivot Point (Bullish Bias) or bouncing off Support.
+- **SELL**: Price < Pivot Point (Bearish Bias) or rejecting Resistance.
+- **HOLD**: Price consolidating around Pivot.
+
+### 20. TTM Squeeze (Visualization)
+
+**Purpose:** Visualizes volatility compression and momentum.
+
+**Implementation:** Chart overlay/indicator.
+
+**Signals:**
+- **Squeeze On (Red Dots):** Volatility compression (Bollinger Bands inside Keltner Channels). Potential breakout imminent.
+- **Squeeze Off (Green Dots):** Volatility expansion. Breakout occurring.
+- **Momentum Histogram:** Indicates direction of the move.
 
 ## Signal Strength Score
 
