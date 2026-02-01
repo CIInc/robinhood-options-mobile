@@ -14,6 +14,9 @@ on:
   pull_request:
     # branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   test_and_analyze:
     name: Test and Analyze
@@ -49,9 +52,41 @@ jobs:
         run: flutter test
         continue-on-error: true
 
+  check_version:
+    name: Check Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.check.outputs.new_version }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Check and Create Tag
+        id: check
+        working-directory: src/robinhood_options_mobile
+        run: |
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          TAG_NAME="v$VERSION"
+          
+          echo "Checking tag: $TAG_NAME"
+          
+          # Check if tag exists on remote
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists."
+            echo "new_version=false" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG_NAME does not exist. Creating..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+            echo "new_version=true" >> $GITHUB_OUTPUT
+          fi
+
   build_android:
     name: Build Android
-    needs: test_and_analyze
+    needs: [test_and_analyze, check_version]
+    if: needs.check_version.outputs.new_version == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -128,7 +163,8 @@ jobs:
 
   build_ios:
     name: Build iOS
-    needs: test_and_analyze
+    needs: [test_and_analyze, check_version]
+    if: needs.check_version.outputs.new_version == 'true'
     runs-on: macos-latest
     defaults:
       run:

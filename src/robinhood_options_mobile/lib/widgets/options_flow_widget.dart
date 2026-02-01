@@ -1329,7 +1329,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                       .colorScheme
                                       .primaryContainer,
                                   child: Text(
-                                    alert['symbol'][0],
+                                    alert.symbol[0],
                                     style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -1337,30 +1337,30 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                   ),
                                 ),
                                 title: Text(
-                                  alert['symbol'],
+                                  alert.symbol,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Row(
                                   children: [
-                                    if (alert['sentiment'] != 'any') ...[
+                                    if (alert.sentiment != 'any') ...[
                                       Icon(
-                                        alert['sentiment'] == 'bullish'
+                                        alert.sentiment == 'bullish'
                                             ? Icons.trending_up
                                             : Icons.trending_down,
                                         size: 14,
-                                        color: alert['sentiment'] == 'bullish'
+                                        color: alert.sentiment == 'bullish'
                                             ? Colors.green
                                             : Colors.red,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        alert['sentiment']
+                                        alert.sentiment
                                             .toString()
                                             .toUpperCase(),
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: alert['sentiment'] == 'bullish'
+                                          color: alert.sentiment == 'bullish'
                                               ? Colors.green
                                               : Colors.red,
                                           fontWeight: FontWeight.bold,
@@ -1369,7 +1369,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                       const SizedBox(width: 8),
                                     ],
                                     Text(
-                                      '> \$${_compactFormat.format(alert['targetPremium'])}',
+                                      '> \$${_compactFormat.format(alert.targetPremium)}',
                                       style:
                                           Theme.of(context).textTheme.bodySmall,
                                     ),
@@ -1379,16 +1379,16 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Switch(
-                                      value: alert['isActive'] ?? true,
+                                      value: alert.isActive,
                                       onChanged: (val) =>
-                                          store.toggleAlert(alert['id'], val),
+                                          store.toggleAlert(alert.id, val),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline),
                                       color:
                                           Theme.of(context).colorScheme.error,
                                       onPressed: () =>
-                                          store.deleteAlert(alert['id']),
+                                          store.deleteAlert(alert.id),
                                     ),
                                   ],
                                 ),

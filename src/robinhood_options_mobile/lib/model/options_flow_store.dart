@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'package:robinhood_options_mobile/model/option_flow_item.dart';
+import 'package:robinhood_options_mobile/model/option_flow_alert.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 
 enum FlowSortOption { time, premium, strike, expiration, volOi, score }
@@ -131,7 +132,7 @@ class OptionsFlowStore extends ChangeNotifier {
 
   List<OptionFlowItem> _allItems = [];
   List<OptionFlowItem> _items = [];
-  List<Map<String, dynamic>> _alerts = [];
+  List<OptionFlowAlert> _alerts = [];
   bool _isLoading = false;
   String? _filterSymbol;
   List<String>? _filterSymbols;
@@ -148,7 +149,7 @@ class OptionsFlowStore extends ChangeNotifier {
 
   List<OptionFlowItem> get items => _items;
   List<OptionFlowItem> get allItems => _allItems;
-  List<Map<String, dynamic>> get alerts => _alerts;
+  List<OptionFlowAlert> get alerts => _alerts;
   bool get isLoading => _isLoading;
   String? get filterSymbol => _filterSymbol;
   List<String>? get filterSymbols => _filterSymbols;
@@ -199,7 +200,10 @@ class OptionsFlowStore extends ChangeNotifier {
           .call();
       final data = Map<String, dynamic>.from(result.data);
       _alerts = (data['alerts'] as List)
-          .map((e) => Map<String, dynamic>.from(e as Map))
+          .map((e) {
+            final map = Map<String, dynamic>.from(e as Map);
+            return OptionFlowAlert.fromMap(map['id'] as String, map);
+          })
           .toList();
       notifyListeners();
     } catch (e) {
