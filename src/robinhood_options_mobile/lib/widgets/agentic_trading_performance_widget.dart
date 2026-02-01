@@ -6,7 +6,6 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
-import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 
 enum PerformanceViewMode { all, real, paper }
 
@@ -107,14 +106,11 @@ class _AgenticTradingPerformanceWidgetState
 
     return RefreshIndicator(
       onRefresh: () async {
-        await provider.fetchMacroAssessment();
         setState(() {});
       },
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const MacroAssessmentWidget(),
-          const SizedBox(height: 16),
           if (allHistory.isEmpty)
             Padding(
                 padding: const EdgeInsets.only(top: 60),

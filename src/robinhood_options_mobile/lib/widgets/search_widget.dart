@@ -165,10 +165,12 @@ class _SearchWidgetState extends State<SearchWidget>
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
-    return Column(
-      children: [
-        Expanded(child: _buildSearchContent()),
-      ],
+    return Scaffold(
+      body: Column(
+        children: [
+          Expanded(child: _buildSearchContent()),
+        ],
+      ),
     );
   }
 

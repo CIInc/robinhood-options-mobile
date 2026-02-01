@@ -907,7 +907,15 @@ class _UserWidgetState extends State<UserWidget> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                const PaperTradingDashboardWidget(),
+                                                PaperTradingDashboardWidget(
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              brokerageUser:
+                                                  widget.brokerageUser,
+                                              service: widget.service!,
+                                              user: user,
+                                              userDocRef: userDocumentReference,
+                                            ),
                                           ),
                                         );
                                       },

@@ -1352,7 +1352,7 @@ class OptionsFlowStore extends ChangeNotifier {
         if (_filterExpiration == '0-7') return days <= 7;
         if (_filterExpiration == '8-30') return days > 7 && days <= 30;
         if (_filterExpiration == '30+') return days > 30;
-        
+
         // Exact date match
         try {
           // Assume format yyyy-MM-dd

@@ -203,6 +203,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (store.isLoading && store.items.isNotEmpty)
+                        const LinearProgressIndicator(minHeight: 2),
                       _buildFilterBar(store),
                       _buildActiveFilters(store),
                     ],
@@ -498,59 +500,8 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                 ),
               ),
               const SizedBox(width: 8),
-              if (store.expirationDates.isNotEmpty) ...[
-                Container(
-                  width: 1,
-                  height: 24,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-                  color: Theme.of(context).dividerColor,
-                ),
-                const SizedBox(width: 8),
-                ...store.expirationDates.map((date) {
-                  final dateStr = DateFormat('yyyy-MM-dd').format(date);
-                  final displayStr = DateFormat('MMM d').format(date);
-                  final isSelected = store.filterExpiration == dateStr;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(displayStr),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        store.setFilterExpiration(selected ? dateStr : null);
-                      },
-                      avatar: isSelected
-                          ? null
-                          : Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: isDark
-                                  ? Colors.blue.shade200
-                                  : Colors.blue.shade700,
-                            ),
-                      selectedColor:
-                          isDark ? Colors.blue.shade200 : Colors.blue.shade700,
-                      labelStyle: TextStyle(
-                        color: isSelected
-                            ? Colors.black
-                            : (isDark
-                                ? Colors.blue.shade200
-                                : Colors.blue.shade700),
-                        fontWeight: isSelected ? FontWeight.bold : null,
-                      ),
-                      backgroundColor:
-                          (isDark ? Colors.blue.shade200 : Colors.blue.shade700)
-                              .withValues(alpha: 0.1),
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  );
-                }),
-              ],
               if (widget.initialSymbol == null) ...[
-                const SizedBox(width: 8),
+                // const SizedBox(width: 8),
                 Container(
                   width: 1,
                   height: 24,
@@ -587,6 +538,58 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             ],
           ),
         ),
+        if (store.expirationDates.isNotEmpty)
+          Container(
+            height: 50,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: store.expirationDates.map((date) {
+                final dateStr = DateFormat('yyyy-MM-dd').format(date);
+                final now = DateTime.now();
+                final format = date.year == now.year ? 'MMM d' : 'MMM d, yyyy';
+                final displayStr = DateFormat(format).format(date);
+                final isSelected = store.filterExpiration == dateStr;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(displayStr),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      store.setFilterExpiration(selected ? dateStr : null);
+                    },
+                    avatar: isSelected
+                        ? null
+                        : Icon(
+                            Icons.calendar_today,
+                            size: 14,
+                            color: isDark
+                                ? Colors.blue.shade200
+                                : Colors.blue.shade700,
+                          ),
+                    selectedColor:
+                        isDark ? Colors.blue.shade200 : Colors.blue.shade700,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? Colors.black
+                          : (isDark
+                              ? Colors.blue.shade200
+                              : Colors.blue.shade700),
+                      fontWeight: isSelected ? FontWeight.bold : null,
+                    ),
+                    backgroundColor:
+                        (isDark ? Colors.blue.shade200 : Colors.blue.shade700)
+                            .withValues(alpha: 0.1),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
       ],
     );
   }
@@ -669,7 +672,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
           if (parts.length == 3) {
             final date = DateTime(
                 int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
-            label = DateFormat('MMM d').format(date);
+            final now = DateTime.now();
+            final format = date.year == now.year ? 'MMM d' : 'MMM d, yyyy';
+            label = DateFormat(format).format(date);
           }
         } catch (e) {
           // ignore

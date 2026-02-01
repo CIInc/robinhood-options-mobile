@@ -406,11 +406,72 @@ export const fetchOptionsFlowForSymbols = async (
   return items;
 };
 
+const FLOW_CACHE_COLLECTION = "option_flows";
+const FLOW_CACHE_TTL = 60 * 60 * 1000; // 60 minutes
+
+const getCachedOptionFlows = async (
+  symbol: string
+): Promise<OptionFlowItem[] | null> => {
+  try {
+    const db = getFirestore();
+    const docRef = db.collection(FLOW_CACHE_COLLECTION).doc(symbol);
+    const doc = await docRef.get();
+
+    if (!doc.exists) return null;
+    const data = doc.data();
+    if (!data) return null;
+
+    if (Date.now() - (data.lastUpdated || 0) > FLOW_CACHE_TTL) {
+      console.log(`Flow cache for ${symbol} expired`);
+      return null;
+    }
+
+    return data.items as OptionFlowItem[];
+  } catch (e) {
+    console.error(`Error reading flow cache for ${symbol}:`, e);
+    return null;
+  }
+};
+
+const saveCachedOptionFlows = async (
+  symbol: string,
+  items: OptionFlowItem[]
+): Promise<void> => {
+  try {
+    const db = getFirestore();
+    await db.collection(FLOW_CACHE_COLLECTION).doc(symbol).set({
+      items,
+      lastUpdated: Date.now(),
+    });
+  } catch (e) {
+    console.error(`Error saving flow cache for ${symbol}:`, e);
+  }
+};
+
 const fetchForSymbol = async (
   symbol: string,
   expirationFilter?: string
 ): Promise<OptionFlowItem[]> => {
   console.log(`Processing symbol: ${symbol}`);
+
+  // Try Flow Cache FIRST
+  const cachedFlows = await getCachedOptionFlows(symbol);
+  if (cachedFlows) {
+    console.log(`Returning cached flow for ${symbol}`);
+    if (expirationFilter) {
+      const now = new Date();
+      return cachedFlows.filter((item) => {
+        const itemDate = new Date(item.expirationDate);
+        const days = getDaysDifference(now, itemDate);
+        if (expirationFilter === "0-7") return days >= -1 && days <= 7;
+        if (expirationFilter === "8-30") return days > 7 && days <= 30;
+        if (expirationFilter === "30+") return days > 30;
+        return true;
+      });
+    }
+    return cachedFlows;
+  }
+
   // Try Firestore cache (Document Store)
   let cachedResult = await getYahooOptionsResult(symbol);
 
@@ -496,6 +557,9 @@ const fetchForSymbol = async (
 
   // Process results
   const items = processOptionChains(symbol, [cachedResult], quoteInfo);
+
+  // Save to Flow Cache
+  await saveCachedOptionFlows(symbol, items);
 
   // Apply expiration filter to items if needed
   if (expirationFilter) {

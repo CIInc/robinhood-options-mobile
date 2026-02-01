@@ -60,7 +60,8 @@ class OptionInstrumentWidget extends StatefulWidget {
       this.optionPosition,
       this.heroTag,
       required this.user,
-      required this.userDocRef});
+      required this.userDocRef,
+      this.initialIsPaperTrade = false});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -73,6 +74,7 @@ class OptionInstrumentWidget extends StatefulWidget {
   final String? heroTag;
   final User? user;
   final DocumentReference<User>? userDocRef;
+  final bool initialIsPaperTrade;
 
   @override
   State<OptionInstrumentWidget> createState() => _OptionInstrumentWidgetState();
@@ -1770,6 +1772,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   positionType: "Buy",
                                   analytics: widget.analytics,
                                   observer: widget.observer,
+                                  initialIsPaperTrade:
+                                      widget.initialIsPaperTrade,
                                 )))),
               ),
               const SizedBox(width: 8),
@@ -1794,6 +1798,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   positionType: "Sell",
                                   analytics: widget.analytics,
                                   observer: widget.observer,
+                                  initialIsPaperTrade:
+                                      widget.initialIsPaperTrade,
                                 )))),
               ),
             ] else ...[
@@ -1813,6 +1819,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   optionInstrument: optionInstrument,
                                   analytics: widget.analytics,
                                   observer: widget.observer,
+                                  initialIsPaperTrade:
+                                      widget.initialIsPaperTrade,
                                 )))),
               ),
             ],

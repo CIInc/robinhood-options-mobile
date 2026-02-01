@@ -48,6 +48,7 @@ import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
@@ -988,6 +989,68 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ),
                 ),
               ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.school_outlined,
+                          size: 24,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer),
+                    ),
+                    title: const Text('Paper Trading Simulator',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: const Padding(
+                      padding: EdgeInsets.only(top: 4.0),
+                      child: Text('Practice trading with virtual money'),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    enabled: widget.service != null,
+                    onTap: widget.service == null
+                        ? null
+                        : () async {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PaperTradingDashboardWidget(
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  brokerageUser: widget.brokerageUser,
+                                  service: widget.service!,
+                                  user: widget.user,
+                                  userDocRef: widget.userDoc,
+                                ),
+                              ),
+                            );
+                          },
+                  ),
+                ),
+              ),
+            ),
 
             SliverToBoxAdapter(
               child: Padding(

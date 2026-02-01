@@ -29,6 +29,7 @@ class TradeOptionWidget extends StatefulWidget {
     this.optionPosition,
     this.optionInstrument,
     this.positionType = "Buy",
+    this.initialIsPaperTrade = false,
   });
 
   final FirebaseAnalytics analytics;
@@ -39,6 +40,7 @@ class TradeOptionWidget extends StatefulWidget {
   final OptionAggregatePosition? optionPosition;
   final OptionInstrument? optionInstrument;
   final String? positionType;
+  final bool initialIsPaperTrade;
 
   @override
   State<TradeOptionWidget> createState() => _TradeOptionWidgetState();
@@ -49,7 +51,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   String orderType = "Limit"; // Market, Limit, Stop, Stop Limit, Trailing Stop
   String timeInForce = "gtc";
   String trailingType = "Percentage"; // Percentage, Amount
-  bool _isPaperTrade = false;
+  late bool _isPaperTrade;
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
@@ -65,6 +67,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
+    _isPaperTrade = widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Option');
 
     double price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0.0;
@@ -411,28 +414,49 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Consumer<AccountStore>(
-                    builder: (context, accountStore, child) {
-                      final buyingPower = accountStore.items.isNotEmpty
-                          ? accountStore.items[0].buyingPower
-                          : 0.0;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Buying Power",
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                  if (_isPaperTrade)
+                    Consumer<PaperTradingStore>(
+                      builder: (context, paperStore, child) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Paper Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                          Text(
-                            formatCurrency.format(buyingPower),
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                            Text(
+                              formatCurrency.format(paperStore.cashBalance),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  else
+                    Consumer<AccountStore>(
+                      builder: (context, accountStore, child) {
+                        final buyingPower = accountStore.items.isNotEmpty
+                            ? accountStore.items[0].buyingPower
+                            : 0.0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -595,28 +619,49 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Consumer<AccountStore>(
-                    builder: (context, accountStore, child) {
-                      final buyingPower = accountStore.items.isNotEmpty
-                          ? accountStore.items[0].buyingPower
-                          : 0.0;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Buying Power",
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                  if (_isPaperTrade)
+                    Consumer<PaperTradingStore>(
+                      builder: (context, paperStore, child) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Paper Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                          Text(
-                            formatCurrency.format(buyingPower),
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                            Text(
+                              formatCurrency.format(paperStore.cashBalance),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  else
+                    Consumer<AccountStore>(
+                      builder: (context, accountStore, child) {
+                        final buyingPower = accountStore.items.isNotEmpty
+                            ? accountStore.items[0].buyingPower
+                            : 0.0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Buying Power",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              formatCurrency.format(buyingPower),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                 ],
               ),
             ),

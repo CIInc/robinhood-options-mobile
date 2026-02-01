@@ -74,7 +74,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
   final ESGService _esgService = ESGService();
   String _selectedBenchmark = 'SPY'; // Default to SPY
   bool _showAllInsights = false;
-  final bool _showAllBenchmarks = false;
+  bool _showAllBenchmarks = true;
   final List<String> _benchmarks = ['SPY', 'QQQ', 'DIA', 'IWM'];
   final List<String> _customBenchmarks = [];
   Future<dynamic>? _futureCustomBenchmark;
@@ -834,42 +834,63 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         subtitle: Text(
-                          "Compare market indices (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter!).toUpperCase()})",
+                          "Compare indices (${convertChartSpanFilter(widget.benchmarkChartDateSpanFilter!).toUpperCase()})",
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.fullscreen),
-                          tooltip: 'Full Screen',
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    FullScreenPerformanceChartWidget(
-                                  user: widget.user,
-                                  service: widget.service,
-                                  accountNumber: widget.accountNumber,
-                                  futureMarketIndexHistoricalsSp500:
-                                      widget.futureMarketIndexHistoricalsSp500,
-                                  futureMarketIndexHistoricalsNasdaq:
-                                      widget.futureMarketIndexHistoricalsNasdaq,
-                                  futureMarketIndexHistoricalsDow:
-                                      widget.futureMarketIndexHistoricalsDow,
-                                  futureMarketIndexHistoricalsRussell2000: widget
-                                      .futureMarketIndexHistoricalsRussell2000,
-                                  futurePortfolioHistoricalsYear:
-                                      widget.portfolioHistoricalsFuture,
-                                  benchmarkChartDateSpanFilter:
-                                      widget.benchmarkChartDateSpanFilter!,
-                                  onFilterChanged:
-                                      widget.onBenchmarkFilterChanged!,
-                                  selectedBenchmark: _selectedBenchmark,
-                                  showAllBenchmarks: _showAllBenchmarks,
-                                  customBenchmarkSymbol: _customBenchmarkSymbol,
-                                  futureCustomBenchmark: _futureCustomBenchmark,
-                                ),
-                              ),
-                            );
-                          },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(_showAllBenchmarks
+                                  ? Icons.visibility_off
+                                  : Icons.visibility),
+                              tooltip: _showAllBenchmarks
+                                  ? 'Hide Other Indices'
+                                  : 'Show All Indices',
+                              onPressed: () {
+                                setState(() {
+                                  _showAllBenchmarks = !_showAllBenchmarks;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen),
+                              tooltip: 'Full Screen',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        FullScreenPerformanceChartWidget(
+                                      user: widget.user,
+                                      service: widget.service,
+                                      accountNumber: widget.accountNumber,
+                                      futureMarketIndexHistoricalsSp500: widget
+                                          .futureMarketIndexHistoricalsSp500,
+                                      futureMarketIndexHistoricalsNasdaq: widget
+                                          .futureMarketIndexHistoricalsNasdaq,
+                                      futureMarketIndexHistoricalsDow: widget
+                                          .futureMarketIndexHistoricalsDow,
+                                      futureMarketIndexHistoricalsRussell2000:
+                                          widget
+                                              .futureMarketIndexHistoricalsRussell2000,
+                                      futurePortfolioHistoricalsYear:
+                                          widget.portfolioHistoricalsFuture,
+                                      benchmarkChartDateSpanFilter:
+                                          widget.benchmarkChartDateSpanFilter!,
+                                      onFilterChanged:
+                                          widget.onBenchmarkFilterChanged!,
+                                      selectedBenchmark: _selectedBenchmark,
+                                      showAllBenchmarks: _showAllBenchmarks,
+                                      customBenchmarkSymbol:
+                                          _customBenchmarkSymbol,
+                                      futureCustomBenchmark:
+                                          _futureCustomBenchmark,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       PerformanceChartWidget(

@@ -91,7 +91,8 @@ class InstrumentWidget extends StatefulWidget {
       required this.user,
       required this.userDocRef,
       this.heroTag,
-      this.scrollToTradeSignal = false});
+      this.scrollToTradeSignal = false,
+      this.initialIsPaperTrade = false});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -104,6 +105,7 @@ class InstrumentWidget extends StatefulWidget {
   final Instrument instrument;
   final String? heroTag;
   final bool scrollToTradeSignal;
+  final bool initialIsPaperTrade;
 
   @override
   State<InstrumentWidget> createState() => _InstrumentWidgetState();
@@ -1713,6 +1715,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               positionType: "Buy",
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              initialIsPaperTrade: widget.initialIsPaperTrade,
                             ))),
               ),
             ),
