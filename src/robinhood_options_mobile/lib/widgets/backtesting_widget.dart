@@ -1044,181 +1044,182 @@ class BacktestRunTabState extends State<BacktestRunTab> {
         FocusScope.of(context).unfocus();
       },
       child: Consumer<BacktestingProvider>(
-      builder: (context, provider, child) {
-        // Handle pending template loading
-        if (provider.pendingTemplate != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _loadFromTemplate(provider.pendingTemplate!);
-              // Clear pending template to prevent reload loops
-              provider.clearPendingTemplate();
-            }
-          });
-        }
+        builder: (context, provider, child) {
+          // Handle pending template loading
+          if (provider.pendingTemplate != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _loadFromTemplate(provider.pendingTemplate!);
+                // Clear pending template to prevent reload loops
+                provider.clearPendingTemplate();
+              }
+            });
+          }
 
-        return SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildStatusHeader(context),
-                _BacktestConfigSection(
-                  title: 'Execution Settings',
-                  icon: Icons.tune,
-                  initiallyExpanded: true,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            _initialCapitalController,
-                            'Initial Capital',
-                            prefixIcon: Icons.attach_money,
-                            helperText: 'Starting Value',
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildTextField(
-                            _tradeQuantityController,
-                            'Base Quantity',
-                            prefixIcon: Icons.pie_chart,
-                            helperText: 'Shares if sizing disabled',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                _BacktestConfigSection(
-                  title: 'Risk Management',
-                  icon: Icons.shield,
-                  initiallyExpanded: true,
-                  children: [
-                    _buildSwitchListTile(
-                      'Dynamic Position Sizing',
-                      'Calculate size based on ATR & Risk %',
-                      _enableDynamicPositionSizing,
-                      (val) =>
-                          setState(() => _enableDynamicPositionSizing = val),
-                    ),
-                    if (_enableDynamicPositionSizing) ...[
-                      const SizedBox(height: 12),
+          return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildStatusHeader(context),
+                  _BacktestConfigSection(
+                    title: 'Execution Settings',
+                    icon: Icons.tune,
+                    initiallyExpanded: true,
+                    children: [
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
-                                _riskPerTradeController, 'Risk per Trade',
-                                suffixText: '%'),
+                              _initialCapitalController,
+                              'Initial Capital',
+                              prefixIcon: Icons.attach_money,
+                              helperText: 'Starting Value',
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildTextField(
-                                _atrMultiplierController, 'ATR Multiplier',
-                                suffixText: 'x'),
+                              _tradeQuantityController,
+                              'Base Quantity',
+                              prefixIcon: Icons.pie_chart,
+                              helperText: 'Shares if sizing disabled',
+                            ),
                           ),
                         ],
                       ),
                     ],
-                  ],
-                ),
-                _BacktestConfigSection(
-                  title: 'Entry Strategies',
-                  icon: Icons.login,
-                  initiallyExpanded: true,
-                  children: [
-                    EntryStrategiesWidget(
-                      requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
-                      onRequireStrictEntryChanged: (val) {
-                        setState(() {
-                          _requireAllIndicatorsGreen = val;
-                          if (val) {
-                            _minSignalStrengthController.text = '100';
-                          }
-                        });
-                      },
-                      minSignalStrengthController: _minSignalStrengthController,
-                      enabledIndicators: _enabledIndicators,
-                      indicatorReasons: _indicatorReasons,
-                      onToggleIndicator: (key, val) =>
-                          setState(() => _enabledIndicators[key] = val),
-                      onToggleAllIndicators: () {
-                        setState(() {
-                          final allEnabled = _enabledIndicators.values
-                              .every((enabled) => enabled);
-                          _enabledIndicators
-                              .updateAll((key, value) => !allEnabled);
-                        });
-                      },
-                      rsiPeriodController: _rsiPeriodController,
-                      rocPeriodController: _rocPeriodController,
-                      smaFastController: _smaFastController,
-                      smaSlowController: _smaSlowController,
-                      marketIndexController: _marketIndexController,
-                      customIndicators: _customIndicators,
-                      onAddCustomIndicator: _addCustomIndicator,
-                      onEditCustomIndicator: _editCustomIndicator,
-                      onRemoveCustomIndicator: _removeCustomIndicator,
-                    ),
-                  ],
-                ),
-                _BacktestConfigSection(
-                  title: 'Exit Strategies',
-                  icon: Icons.logout,
-                  initiallyExpanded: true,
-                  children: [
-                    ExitStrategiesWidget(
-                      takeProfitController: _takeProfitController,
-                      stopLossController: _stopLossController,
-                      trailingStopController: _trailingStopController,
-                      timeBasedExitController: _timeBasedExitController,
-                      marketCloseExitController: _marketCloseExitController,
-                      rsiExitThresholdController: _rsiExitThresholdController,
-                      signalStrengthExitThresholdController:
-                          _signalStrengthExitThresholdController,
-                      trailingStopEnabled: _trailingStopEnabled,
-                      timeBasedExitEnabled: _timeBasedExitEnabled,
-                      marketCloseExitEnabled: _marketCloseExitEnabled,
-                      partialExitsEnabled: _enablePartialExits,
-                      rsiExitEnabled: _rsiExitEnabled,
-                      signalStrengthExitEnabled: _signalStrengthExitEnabled,
-                      exitStages: _exitStages,
-                      onTrailingStopChanged: (val) =>
-                          setState(() => _trailingStopEnabled = val),
-                      onTimeBasedExitChanged: (val) =>
-                          setState(() => _timeBasedExitEnabled = val),
-                      onMarketCloseExitChanged: (val) =>
-                          setState(() => _marketCloseExitEnabled = val),
-                      onPartialExitsChanged: (val) =>
-                          setState(() => _enablePartialExits = val),
-                      onRsiExitChanged: (val) =>
-                          setState(() => _rsiExitEnabled = val),
-                      onSignalStrengthExitChanged: (val) =>
-                          setState(() => _signalStrengthExitEnabled = val),
-                      onExitStagesChanged: (stages) =>
-                          setState(() => _exitStages = stages),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildStartButton(provider),
-                const SizedBox(height: 16),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () => _showSaveTemplateDialog(context),
-                    icon: const Icon(Icons.bookmark_border),
-                    label: const Text('Save Configuration as Template'),
                   ),
-                ),
-                const SizedBox(height: 32),
-              ],
+                  _BacktestConfigSection(
+                    title: 'Risk Management',
+                    icon: Icons.shield,
+                    initiallyExpanded: true,
+                    children: [
+                      _buildSwitchListTile(
+                        'Dynamic Position Sizing',
+                        'Calculate size based on ATR & Risk %',
+                        _enableDynamicPositionSizing,
+                        (val) =>
+                            setState(() => _enableDynamicPositionSizing = val),
+                      ),
+                      if (_enableDynamicPositionSizing) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                  _riskPerTradeController, 'Risk per Trade',
+                                  suffixText: '%'),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                  _atrMultiplierController, 'ATR Multiplier',
+                                  suffixText: 'x'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                  _BacktestConfigSection(
+                    title: 'Entry Strategies',
+                    icon: Icons.login,
+                    initiallyExpanded: true,
+                    children: [
+                      EntryStrategiesWidget(
+                        requireAllIndicatorsGreen: _requireAllIndicatorsGreen,
+                        onRequireStrictEntryChanged: (val) {
+                          setState(() {
+                            _requireAllIndicatorsGreen = val;
+                            if (val) {
+                              _minSignalStrengthController.text = '100';
+                            }
+                          });
+                        },
+                        minSignalStrengthController:
+                            _minSignalStrengthController,
+                        enabledIndicators: _enabledIndicators,
+                        indicatorReasons: _indicatorReasons,
+                        onToggleIndicator: (key, val) =>
+                            setState(() => _enabledIndicators[key] = val),
+                        onToggleAllIndicators: () {
+                          setState(() {
+                            final allEnabled = _enabledIndicators.values
+                                .every((enabled) => enabled);
+                            _enabledIndicators
+                                .updateAll((key, value) => !allEnabled);
+                          });
+                        },
+                        rsiPeriodController: _rsiPeriodController,
+                        rocPeriodController: _rocPeriodController,
+                        smaFastController: _smaFastController,
+                        smaSlowController: _smaSlowController,
+                        marketIndexController: _marketIndexController,
+                        customIndicators: _customIndicators,
+                        onAddCustomIndicator: _addCustomIndicator,
+                        onEditCustomIndicator: _editCustomIndicator,
+                        onRemoveCustomIndicator: _removeCustomIndicator,
+                      ),
+                    ],
+                  ),
+                  _BacktestConfigSection(
+                    title: 'Exit Strategies',
+                    icon: Icons.logout,
+                    initiallyExpanded: true,
+                    children: [
+                      ExitStrategiesWidget(
+                        takeProfitController: _takeProfitController,
+                        stopLossController: _stopLossController,
+                        trailingStopController: _trailingStopController,
+                        timeBasedExitController: _timeBasedExitController,
+                        marketCloseExitController: _marketCloseExitController,
+                        rsiExitThresholdController: _rsiExitThresholdController,
+                        signalStrengthExitThresholdController:
+                            _signalStrengthExitThresholdController,
+                        trailingStopEnabled: _trailingStopEnabled,
+                        timeBasedExitEnabled: _timeBasedExitEnabled,
+                        marketCloseExitEnabled: _marketCloseExitEnabled,
+                        partialExitsEnabled: _enablePartialExits,
+                        rsiExitEnabled: _rsiExitEnabled,
+                        signalStrengthExitEnabled: _signalStrengthExitEnabled,
+                        exitStages: _exitStages,
+                        onTrailingStopChanged: (val) =>
+                            setState(() => _trailingStopEnabled = val),
+                        onTimeBasedExitChanged: (val) =>
+                            setState(() => _timeBasedExitEnabled = val),
+                        onMarketCloseExitChanged: (val) =>
+                            setState(() => _marketCloseExitEnabled = val),
+                        onPartialExitsChanged: (val) =>
+                            setState(() => _enablePartialExits = val),
+                        onRsiExitChanged: (val) =>
+                            setState(() => _rsiExitEnabled = val),
+                        onSignalStrengthExitChanged: (val) =>
+                            setState(() => _signalStrengthExitEnabled = val),
+                        onExitStagesChanged: (stages) =>
+                            setState(() => _exitStages = stages),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildStartButton(provider),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _showSaveTemplateDialog(context),
+                      icon: const Icon(Icons.bookmark_border),
+                      label: const Text('Save Configuration as Template'),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
       ),
     );
   }
@@ -1359,6 +1360,14 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 }
 
 /// Detail page showing backtest results
+
+class BacktestFilter {
+  final String indicatorKey;
+  final String signal; // 'BUY', 'SELL'
+
+  BacktestFilter({required this.indicatorKey, required this.signal});
+}
+
 class _BacktestResultPage extends StatefulWidget {
   final BacktestResult result;
   final User? user;
@@ -1386,6 +1395,36 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
   String _tradeFilter = 'All'; // All, BUY, SELL
   String _chartType = 'Equity'; // Equity, Drawdown
   String? _templateName;
+  final List<BacktestFilter> _advancedFilters = [];
+
+  Map<String, dynamic>? _getIndicatorResult(
+      Map<String, dynamic> signalData, String key) {
+    // Check nested under 'indicators' (standard)
+    if (signalData['indicators'] is Map) {
+      final indicators = signalData['indicators'] as Map;
+      if (indicators.containsKey(key)) {
+        return indicators[key] != null
+            ? Map<String, dynamic>.from(indicators[key] as Map)
+            : null;
+      }
+    }
+    // Check nested under 'customIndicators'
+    if (signalData['customIndicators'] is Map) {
+      final custom = signalData['customIndicators'] as Map;
+      if (custom.containsKey(key)) {
+        return custom[key] != null
+            ? Map<String, dynamic>.from(custom[key] as Map)
+            : null;
+      }
+    }
+    // Fallback: Check top level (legacy or direct)
+    if (signalData.containsKey(key)) {
+      return signalData[key] is Map
+          ? Map<String, dynamic>.from(signalData[key] as Map)
+          : null;
+    }
+    return null;
+  }
 
   String _getSymbolDisplay(List<String> symbols) {
     if (symbols.isEmpty) return "Multi-Symbol";
@@ -2414,39 +2453,110 @@ Generated by RealizeAlpha
     }
 
     final filteredTrades = widget.result.trades.where((trade) {
-      if (_tradeFilter == 'All') return true;
-      return trade.action == _tradeFilter;
+      // 1. Basic filter (BUY/SELL)
+      if (_tradeFilter != 'All' && trade.action != _tradeFilter) return false;
+
+      // 2. Advanced Indicator Filters
+      if (_advancedFilters.isNotEmpty) {
+        // Only verify filters if signalData is present (usually Entry/BUY)
+        // If it's a SELL, we might not have signalData unless we enrich it.
+        // For now, if signalData is missing, we exclude it if filters are engaged,
+        // unless the user specifically wants to filter "Exits" which usually don't have signalData.
+        // But the requirement is likely about finding specific Entry setups.
+        if (trade.signalData == null) {
+          // Allow exits if they are linked to a filtered entry?
+          // Too complex for now. Just filter based on available data.
+          // If a filter is set, and data is missing, it doesn't match.
+          return false;
+        }
+
+        for (final filter in _advancedFilters) {
+          final indicatorResult =
+              _getIndicatorResult(trade.signalData!, filter.indicatorKey);
+          if (indicatorResult == null) return false;
+
+          final signal = indicatorResult['signal'] as String?;
+          if (signal != filter.signal) return false;
+        }
+      }
+
+      return true;
     }).toList();
 
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Filter: ',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              Wrap(
-                spacing: 8,
-                children: ['All', 'BUY', 'SELL'].map((type) {
-                  return ChoiceChip(
-                    label: Text(type),
-                    selected: _tradeFilter == type,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _tradeFilter = type;
-                        });
-                      }
-                    },
-                    visualDensity: VisualDensity.compact,
-                  );
-                }).toList(),
+              Row(
+                children: [
+                  const Text('Filter: ',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['All', 'BUY', 'SELL'].map((type) {
+                      return ChoiceChip(
+                        label: Text(type),
+                        selected: _tradeFilter == type,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _tradeFilter = type;
+                            });
+                          }
+                        },
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                  const Spacer(),
+                  Text('${filteredTrades.length} trades',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                ],
               ),
-              const Spacer(),
-              Text('${filteredTrades.length} trades',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              if (_advancedFilters.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    ..._advancedFilters.asMap().entries.map((entry) {
+                      final meta = EntryStrategiesWidget
+                          .indicatorMetadata[entry.value.indicatorKey];
+                      return Chip(
+                        label: Text(
+                            '${meta?.label ?? entry.value.indicatorKey}: ${entry.value.signal}'),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          setState(() {
+                            _advancedFilters.removeAt(entry.key);
+                          });
+                        },
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }),
+                    if (_advancedFilters.length < 4)
+                      ActionChip(
+                        avatar: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Filter'),
+                        onPressed: _showAddFilterDialog,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: ActionChip(
+                    avatar: const Icon(Icons.filter_list, size: 16),
+                    label: const Text('Advanced Filters'),
+                    onPressed: _showAddFilterDialog,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
             ],
           ),
         ),
@@ -2484,6 +2594,33 @@ Generated by RealizeAlpha
                       Text(DateFormat('MMM dd, yyyy HH:mm')
                           .format(trade.timestamp)),
                       Text(trade.reason, style: const TextStyle(fontSize: 12)),
+                      if (_advancedFilters.isNotEmpty &&
+                          trade.signalData != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Wrap(
+                            spacing: 4,
+                            children: _advancedFilters.map((f) {
+                              final d = _getIndicatorResult(
+                                  trade.signalData!, f.indicatorKey);
+                              final val = d?['value'];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${EntryStrategiesWidget.indicatorMetadata[f.indicatorKey]?.label ?? f.indicatorKey}: ${val is double ? val.toStringAsFixed(2) : val}',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
                     ],
                   ),
                   trailing: Text(
@@ -2497,6 +2634,78 @@ Generated by RealizeAlpha
           ),
         ),
       ],
+    );
+  }
+
+  void _showAddFilterDialog() {
+    String selectedIndicator =
+        EntryStrategiesWidget.indicatorMetadata.keys.first;
+    String selectedSignal = 'BUY';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Add Trade Filter'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedIndicator,
+                decoration: const InputDecoration(labelText: 'Indicator'),
+                items: EntryStrategiesWidget.indicatorMetadata.entries
+                    .map((entry) => DropdownMenuItem(
+                          value: entry.key,
+                          child: Text(entry.value.label),
+                        ))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => selectedIndicator = val);
+                  }
+                },
+                isExpanded: true,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: selectedSignal,
+                decoration: const InputDecoration(labelText: 'Condition'),
+                items: ['BUY', 'SELL'].map((s) {
+                  return DropdownMenuItem(
+                    value: s,
+                    child: Text(s == 'BUY'
+                        ? 'Signal: BUY (Green)'
+                        : 'Signal: SELL (Red)'),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => selectedSignal = val);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                this.setState(() {
+                  _advancedFilters.add(BacktestFilter(
+                    indicatorKey: selectedIndicator,
+                    signal: selectedSignal,
+                  ));
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -3910,7 +4119,6 @@ class _BacktestTemplatesTab extends StatefulWidget {
 }
 
 class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
-
   @override
   Widget build(BuildContext context) {
     return Consumer<BacktestingProvider>(
