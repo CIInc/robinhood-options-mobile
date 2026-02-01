@@ -41,8 +41,9 @@ To improve risk models and track user safety:
 ## Automated Trading Protection
 
 For the **Agentic Trading** system, RiskGuard acts as a hard gatekeeper.
-*   **Strict Enforcement**: Unlike manual trading, automated agents *cannot* override RiskGuard. If a trade fails validation, it is rejected immediately.
+*   **Strict Enforcement**: Unlike manual trading, automated agents *cannot* override RiskGuard by default. If a trade fails validation, it is rejected immediately.
 *   **Configuration**: Risk parameters for automated trading are configurable in the [Agentic Trading Settings](agentic-trading.md).
+*   **Skip Option**: For specific high-conviction strategies, users can enable `skipRiskGuard` in the configuration to bypass these checks (use with caution).
 
 ## Architecture
 

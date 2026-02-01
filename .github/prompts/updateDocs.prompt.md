@@ -51,7 +51,7 @@ Update all markdown documentation based on recently closed or merged pull reques
 7. **Update ROADMAP.md**:
    - Mark completed features as done (check off items)
    - Add new planned features based on PR discussions or future enhancements mentioned
-   - Add entry in release versions & timeline if applicable
+   - Add entry in "Release Versions & Timeline" for the new version
    - Reorder priorities if necessary
 
 8. **Update Developer Instructions**:

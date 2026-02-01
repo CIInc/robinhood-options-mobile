@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.3] - 2026-01-31
+
+### Added
+- **Technical Indicators:** Added 3 new indicators: Rate of Change (ROC), Chaikin Money Flow (CMF), and Fibonacci Retracements.
+- **Strategies:** Added "MACD Zero Line Cross" and "Bollinger Band Squeeze Breakout" strategies.
+- **Risk Guard:** Added `skipRiskGuard` configuration option for automated trading.
+- **Macro Risk Control:** Implemented position size reduction based on `RISK_OFF` macro conditions.
+- **Market Data:** Enhanced caching logic and added Open, High, Low price fetching.
+- **Trade History:** Now displays specific rejection reasons for updated orders.
+- **Custom Indicators:** Added `signalType` configuration and component selection UI.
+
+### Changed
+- **Technical Indicators:** Enhanced Bollinger Bands with array computation and divergence detection.
+- **Technical Indicators:** Added VWAP crossover signals.
+
+
 ## [0.31.2] - 2026-01-29
 
 ### Added

@@ -973,6 +973,7 @@ Potential improvements:
    - ✅ Fibonacci Retracements - **IMPLEMENTED**
    - ✅ Parabolic SAR - **IMPLEMENTED**
    - ✅ Chaikin Money Flow - **IMPLEMENTED**
+   - ✅ Rate of Change (ROC) - **IMPLEMENTED**
 
 2. **Machine Learning:**
    - Pattern recognition using historical data
