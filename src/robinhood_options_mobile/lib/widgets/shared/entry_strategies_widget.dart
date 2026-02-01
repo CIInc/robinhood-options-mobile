@@ -18,6 +18,7 @@ class EntryStrategiesWidget extends StatelessWidget {
   final Function(String key, bool value) onToggleIndicator;
   final VoidCallback onToggleAllIndicators;
   final TextEditingController rsiPeriodController;
+  final TextEditingController rocPeriodController;
   final TextEditingController smaFastController;
   final TextEditingController smaSlowController;
   final TextEditingController marketIndexController;
@@ -65,6 +66,12 @@ class EntryStrategiesWidget extends StatelessWidget {
         'Commodity Channel Index - identifies cyclical trends', Icons.cyclone),
     'parabolicSar': IndicatorMetadata('Parabolic SAR',
         'Price trends and reversals - stop and reverse', Icons.trending_up),
+    'roc': IndicatorMetadata(
+        'ROC', 'Rate of Change - price momentum', Icons.show_chart),
+    'chaikinMoneyFlow': IndicatorMetadata('Chaikin Money Flow',
+        'Buying/selling pressure based on Volume and Price', Icons.payments),
+    'fibonacciRetracements': IndicatorMetadata('Fibonacci Retracements',
+        'Support/Resistance levels based on Golden Ratio', Icons.table_rows),
   };
 
   static final TextEditingController _disabled100Controller =
@@ -80,6 +87,7 @@ class EntryStrategiesWidget extends StatelessWidget {
     required this.onToggleIndicator,
     required this.onToggleAllIndicators,
     required this.rsiPeriodController,
+    required this.rocPeriodController,
     required this.smaFastController,
     required this.smaSlowController,
     required this.marketIndexController,
@@ -225,8 +233,19 @@ class EntryStrategiesWidget extends StatelessWidget {
                       color: colorScheme.onSurface)),
               childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
               children: [
-                _buildTextField(context, rsiPeriodController, 'RSI Period',
-                    prefixIcon: Icons.speed_rounded),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _buildTextField(
+                            context, rsiPeriodController, 'RSI Period',
+                            prefixIcon: Icons.speed_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: _buildTextField(
+                            context, rocPeriodController, 'ROC Period',
+                            prefixIcon: Icons.show_chart_rounded)),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [

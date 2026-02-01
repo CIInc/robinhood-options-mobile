@@ -1804,6 +1804,11 @@ class _AgenticTradingPerformanceWidgetState
       'adx': 'ADX',
       'williamsR': 'Williams %R',
       'ichimoku': 'Ichimoku Cloud',
+      'cci': 'CCI',
+      'parabolicSar': 'Parabolic SAR',
+      'roc': 'Rate of Change',
+      'chaikinMoneyFlow': 'Chaikin Money Flow',
+      'fibonacciRetracements': 'Fibonacci Retracements',
     };
     return labels[key] ?? key;
   }

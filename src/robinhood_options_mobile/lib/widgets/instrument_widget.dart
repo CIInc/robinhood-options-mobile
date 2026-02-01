@@ -4050,6 +4050,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'ichimoku',
             'cci',
             'parabolicSar',
+            'roc',
+            'chaikinMoneyFlow',
+            'fibonacciRetracements',
           ]) {
             if (enabledIndicators[key] == true) {
               final indicator = indicators[key] as Map<String, dynamic>?;
@@ -4093,7 +4096,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'williamsR': 'williamsR',
             'ichimoku': 'ichimoku',
             'cci': 'cci',
-            'parabolicSar': 'parabolicSar'
+            'parabolicSar': 'parabolicSar',
+            'roc': 'roc',
+            'chaikinMoneyFlow': 'chaikinMoneyFlow',
+            'fibonacciRetracements': 'fibonacciRetracements',
           }.entries) {
             final configKey = entry.key;
             final indicatorKey = entry.value;
@@ -4286,6 +4292,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           _buildDocSection('ichimoku'),
                                           _buildDocSection('cci'),
                                           _buildDocSection('sar'),
+                                          _buildDocSection('roc'),
+                                          _buildDocSection('chaikinMoneyFlow'),
+                                          _buildDocSection(
+                                              'fibonacciRetracements'),
                                         ],
                                       ),
                                     ),
@@ -4445,6 +4455,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           {'label': 'Ichimoku Cloud', 'key': 'ichimoku'},
                           {'label': 'CCI', 'key': 'cci'},
                           {'label': 'Parabolic SAR', 'key': 'parabolicSar'},
+                          {'label': 'Rate of Change', 'key': 'roc'},
+                          {'label': 'Chaikin Money Flow', 'key': 'chaikinMoneyFlow'},
+                          {'label': 'Fibonacci Retracements', 'key': 'fibonacciRetracements'},
                         ];
 
                         final enabledList = <Widget>[];

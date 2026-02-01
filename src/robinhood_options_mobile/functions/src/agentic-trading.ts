@@ -27,6 +27,7 @@ export async function performTradeProposal(request: any) {
     riskPerTrade: request.data.riskPerTrade || 0.01,
     atrMultiplier: request.data.atrMultiplier || 2,
     rsiPeriod: request.data.rsiPeriod || 14,
+    rocPeriod: request.data.rocPeriod || 9,
     enableSectorLimits: request.data.enableSectorLimits || false,
     maxSectorExposure: request.data.maxSectorExposure || 0.2,
     enableCorrelationChecks: request.data.enableCorrelationChecks || false,

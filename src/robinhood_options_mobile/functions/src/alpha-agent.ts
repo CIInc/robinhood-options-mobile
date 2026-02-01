@@ -59,9 +59,15 @@ export async function handleAlphaTask(marketData: any,
   // Evaluate all 9 technical indicators
   const indicatorConfig = {
     rsiPeriod: config?.rsiPeriod || 14,
+    rocPeriod: config?.rocPeriod || 9,
     marketFastPeriod: config?.smaPeriodFast || 10,
     marketSlowPeriod: config?.smaPeriodSlow || 30,
     customIndicators: config?.customIndicators || [],
+    enabledIndicators: config?.enabledIndicators ?
+      Object.entries(config.enabledIndicators)
+        .filter(([, v]) => v === true)
+        .map(([k]) => k) :
+      undefined,
   };
 
   logger.info(`📊 Evaluating indicators for ${symbol} with config`, {

@@ -371,6 +371,63 @@ class TradeSignalsProvider with ChangeNotifier {
               '**Usage**: Excellent for setting trailing stops in strong trends. '
               'Prone to whipsaws in ranging/sideways markets.'
         };
+      case 'roc':
+        return {
+          'title': 'ROC (Rate of Change)',
+          'description':
+              'Rate of Change (ROC) is a momentum oscillator that measures the percentage change '
+                  'in price between the current price and the price n periods ago. '
+                  'Values above 0 indicate sufficient upside momentum (BUY), while values below 0 indicate '
+                  'downside momentum (SELL).',
+          'technicalDetails':
+              '**Formula**: `((Price - Price[n]) / Price[n]) * 100`\n'
+                  '\n'
+                  '**Parameters**:\n'
+                  '- Period: `9 bars` by default\n'
+                  '\n'
+                  '**Signals**:\n'
+                  '- **Bullish**: ROC > 5% → BUY (Strong Momentum)\n'
+                  '- **Bearish**: ROC < -5% → SELL (Strong Drop)\n'
+                  '- **Neutral**: -5% ≤ ROC ≤ 5% → HOLD\n'
+                  '\n'
+                  '_Pure momentum indicator showing the speed of price change._'
+        };
+      case 'chaikinMoneyFlow':
+        return {
+          'title': 'Chaikin Money Flow (CMF)',
+          'description':
+              'Combines price and volume to measure buying and selling pressure based on the close relative to the high-low range. '
+                  'Values above zero indicate accumulation (buying pressure), while values below zero indicate distribution (selling pressure).',
+          'technicalDetails': '**Formula**:\n'
+              '- `MF Multiplier = ((Close - Low) - (High - Close)) / (High - Low)`\n'
+              '- `MF Volume = MF Multiplier × Volume`\n'
+              '- `CMF = Sum(MF Volume, n) / Sum(Volume, n)`\n'
+              '\n'
+              '**Parameters**: `20-period` default.\n'
+              '\n'
+              '**Signals**:\n'
+              '- **BUY**: CMF > 0.05 (Buying Pressure)\n'
+              '- **SELL**: CMF < -0.05 (Selling Pressure)\n'
+              '- **HOLD**: -0.05 ≤ CMF ≤ 0.05 (Neutral)\n'
+              '\n'
+              '_Confirms trend strength with volume flow._'
+        };
+      case 'fibonacciRetracements':
+        return {
+          'title': 'Fibonacci Retracements',
+          'description':
+              'Identifies potential support and resistance levels using horizontal lines at key Fibonacci ratios '
+                  '(23.6%, 38.2%, 50%, 61.8%). Prices often retrace a portion of a move before continuing in the original direction.',
+          'technicalDetails': '**Logic**:\n'
+              '- Identifies significant High and Low over lookback period (e.g. 50 bars).\n'
+              '- Calculates vertical distance (Range = High - Low).\n'
+              '- Projects levels: 23.6%, 38.2%, 50%, 61.8%.\n'
+              '\n'
+              '**Signals**:\n'
+              '- **BUY**: Price bounces off support level (e.g. 61.8% or 50% retracement in uptrend).\n'
+              '- **SELL**: Price rejects resistance level (in downtrend).\n'
+              '- **Golden Ratio**: 61.8% level is considered strongest support/resistance.\n'
+        };
       default:
         return {
           'title': 'Technical Indicator',

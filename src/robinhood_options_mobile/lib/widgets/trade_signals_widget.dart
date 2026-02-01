@@ -1197,6 +1197,9 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
       'ichimoku',
       'cci',
       'parabolicSar',
+      'roc',
+      'chaikinMoneyFlow',
+      'fibonacciRetracements',
     ];
 
     return indicatorOptions.map((indicator) {
@@ -1288,6 +1291,12 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
         return 'CCI';
       case 'parabolicSar':
         return 'SAR';
+      case 'roc':
+        return 'ROC';
+      case 'chaikinMoneyFlow':
+        return 'CMF';
+      case 'fibonacciRetracements':
+        return 'Fib';
       default:
         return indicator.toUpperCase();
     }
@@ -2002,6 +2011,8 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         return 'ATR';
       case 'macd':
         return 'MACD';
+      case 'roc':
+        return 'ROC';
       default:
         // Simple manual capitalization to avoid import if strings extension not avail
         return "${indicatorName[0].toUpperCase()}${indicatorName.substring(1)}";

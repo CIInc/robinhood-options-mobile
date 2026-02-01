@@ -2,7 +2,7 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates **15 technical indicators** to generate trade signals.
+The multi-indicator automatic trading system correlates **18 technical indicators** to generate trade signals.
 
 This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. It uses a **Weighted Signal Strength system** where indicators are weighted by importance (Price Movement > Momentum/Trend > Others) to calculate a final **Signal Strength score (0-100)**.
 
@@ -28,13 +28,14 @@ The system uses a weighted scoring model to determine the overall strength of a 
 2.  **Medium Impact (Weight 1.2):**
     *   **Momentum**: RSI, Stochastic (Leading indicators).
     *   **Trend**: MACD, ADX, Market Direction (Trend confirmation).
+    *   **Support/Resistance**: Fibonacci Retracements, VWAP.
 
 3.  **Standard Impact (Weight 1.0):**
-    *   **Volume/Volatility**: Volume, Bollinger Bands, ATR, OBV, VWAP, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR.
+    *   **Volume/Volatility**: Volume, Bollinger Bands, ATR, OBV, Chaikin Money Flow, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC.
 
 The final score (0-100) reflects the net positive influence of all indicators. A score > 75 is considered a **Strong BUY**, while a score < 25 is a **Strong SELL**.
 
-## The 15 Technical Indicators
+## The 18 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 
@@ -267,6 +268,41 @@ The final score (0-100) reflects the net positive influence of all indicators. A
 - **SELL**: Price crosses below the SAR dots (Bearish reversal).
 - **HOLD**: Trend continuation (dots remain on same side).
 
+### 16. ROC (Rate of Change)
+
+**Purpose:** Momentum oscillator measuring the percentage change in price over a given period.
+
+**Implementation:** `evaluateROC()` in `technical-indicators.ts`
+
+**Parameters:**
+- Period: `9 bars` (default)
+
+**Signals:**
+- **BUY**: ROC > 5% (Strong Upward Momentum).
+- **SELL**: ROC < -5% (Strong Downward Momentum).
+- **HOLD**: -5% ≤ ROC ≤ 5% (Neutral momentum).
+
+### 17. Chaikin Money Flow (CMF)
+
+**Purpose:** Combines price and volume to measure buying and selling pressure.
+
+**Implementation:** `evaluateChaikinMoneyFlow()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: CMF > 0.05 (Buying Pressure)
+- **SELL**: CMF < -0.05 (Selling Pressure)
+- **HOLD**: Neutral
+
+### 18. Fibonacci Retracements
+
+**Purpose:** Identifies potential support and resistance levels based on recent high/low range.
+
+**Implementation:** `evaluateFibonacciRetracements()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price bounces off support level (e.g., 61.8% or 50% retracement in uptrend)
+- **SELL**: Price rejects resistance level (in downtrend)
+- **HOLD**: No significant interaction
 
 ## Signal Strength Score
 
@@ -278,11 +314,11 @@ signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicato
 ```
 
 **Interpretation:**
-- **100**: All 15 indicators are BUY (perfect bullish alignment)
+- **100**: All 18 indicators are BUY (perfect bullish alignment)
 - **75-99**: Strong bullish bias, most indicators aligned
 - **50**: Neutral (equal BUY and SELL signals, or all HOLD)
 - **25-49**: Strong bearish bias
-- **0**: All 15 indicators are SELL (perfect bearish alignment)
+- **0**: All 18 indicators are SELL (perfect bearish alignment)
 
 **Use Cases:**
 - Filter signals by strength threshold (e.g., only act on strength > 75)
@@ -933,10 +969,10 @@ Potential improvements:
    - ✅ ADX (Average Directional Index) - **IMPLEMENTED v3**
    - ✅ Williams %R - **IMPLEMENTED v3**
    - ✅ RSI Divergence Detection - **IMPLEMENTED v3**
-   - Ichimoku Cloud
-   - Fibonacci Retracements
-   - Parabolic SAR
-   - Chaikin Money Flow
+   - ✅ Ichimoku Cloud - **IMPLEMENTED**
+   - ✅ Fibonacci Retracements - **IMPLEMENTED**
+   - ✅ Parabolic SAR - **IMPLEMENTED**
+   - ✅ Chaikin Money Flow - **IMPLEMENTED**
 
 2. **Machine Learning:**
    - Pattern recognition using historical data

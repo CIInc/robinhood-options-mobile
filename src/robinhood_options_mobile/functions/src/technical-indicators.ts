@@ -41,6 +41,9 @@ export interface MultiIndicatorResult {
     ichimoku: IndicatorResult;
     cci: IndicatorResult;
     parabolicSar: IndicatorResult;
+    roc: IndicatorResult;
+    chaikinMoneyFlow: IndicatorResult;
+    fibonacciRetracements: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
   macroAssessment?: {
@@ -3374,6 +3377,7 @@ export function evaluateAllIndicators(
   marketData: { closes: number[]; volumes?: number[] },
   config: {
     rsiPeriod?: number;
+    rocPeriod?: number;
     marketFastPeriod?: number;
     marketSlowPeriod?: number;
     customIndicators?: CustomIndicatorConfig[];
@@ -3521,6 +3525,21 @@ export function evaluateAllIndicators(
     evaluateParabolicSAR(highs, lows, symbolData.closes) :
     disabledResult;
 
+  // 16. ROC
+  const roc = isEnabled("roc") ?
+    evaluateROC(symbolData.closes, config.rocPeriod || 9) :
+    disabledResult;
+
+  // 17. Chaikin Money Flow
+  const chaikinMoneyFlow = isEnabled("chaikinMoneyFlow") ?
+    evaluateChaikinMoneyFlow(highs, lows, symbolData.closes, volumes) :
+    disabledResult;
+
+  // 18. Fibonacci Retracements
+  const fibonacciRetracements = isEnabled("fibonacciRetracements") ?
+    evaluateFibonacciRetracements(highs, lows, symbolData.closes) :
+    disabledResult;
+
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
@@ -3553,6 +3572,9 @@ export function evaluateAllIndicators(
     ichimoku,
     cci,
     parabolicSar,
+    roc,
+    chaikinMoneyFlow,
+    fibonacciRetracements,
   };
 
   // Calculate weighted signal strength (0-100)
@@ -3578,6 +3600,9 @@ export function evaluateAllIndicators(
     parabolicSar: 1.0,
     williamsR: 1.0,
     volume: 1.0,
+    roc: 1.0,
+    chaikinMoneyFlow: 1.0,
+    fibonacciRetracements: 1.2,
   };
 
   let totalWeight = 0;
@@ -3745,6 +3770,189 @@ export function computeROC(prices: number[], period = 9): number | null {
 
   if (prevPrice === 0) return 0;
   return ((currentPrice - prevPrice) / prevPrice) * 100;
+}
+
+/**
+ * Compute Chaikin Money Flow (CMF)
+ * @param {number[]} highs - Array of high prices
+ * @param {number[]} lows - Array of low prices
+ * @param {number[]} closes - Array of close prices
+ * @param {number[]} volumes - Array of volume data
+ * @param {number} period - CMF period (default 20)
+ * @return {number|null} CMF value
+ */
+export function computeChaikinMoneyFlow(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  volumes: number[],
+  period = 20
+): number | null {
+  if (
+    !highs || !lows || !closes || !volumes ||
+    highs.length < period ||
+    lows.length < period ||
+    closes.length < period ||
+    volumes.length < period
+  ) {
+    return null;
+  }
+
+  const len = Math.min(
+    highs.length, lows.length, closes.length, volumes.length
+  );
+  const moneyFlowVolumes: number[] = [];
+  const validVolumes: number[] = [];
+
+  for (let i = 0; i < len; i++) {
+    const h = highs[i];
+    const l = lows[i];
+    const c = closes[i];
+    const v = volumes[i];
+
+    // Avoid division by zero if High == Low
+    const divisor = h - l === 0 ? 0.000001 : h - l;
+    const mfm = ((c - l) - (h - c)) / divisor;
+    const mfv = mfm * v;
+
+    moneyFlowVolumes.push(mfv);
+    validVolumes.push(v);
+  }
+
+  // Calculate sum for the last period
+  let sumMfv = 0;
+  let sumVol = 0;
+
+  for (let i = len - period; i < len; i++) {
+    sumMfv += moneyFlowVolumes[i];
+    sumVol += validVolumes[i];
+  }
+
+  if (sumVol === 0) return 0;
+  return sumMfv / sumVol;
+}
+
+/**
+ * Evaluate Chaikin Money Flow (CMF)
+ * @param {number[]} highs - High prices
+ * @param {number[]} lows - Low prices
+ * @param {number[]} closes - Close prices
+ * @param {number[]} volumes - Volume data
+ * @param {number} period - CMF period (default 20)
+ * @return {IndicatorResult} Result
+ */
+export function evaluateChaikinMoneyFlow(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  volumes: number[],
+  period = 20
+): IndicatorResult {
+  const cmf = computeChaikinMoneyFlow(highs, lows, closes, volumes, period);
+
+  if (cmf === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for CMF",
+    };
+  }
+
+  const signal = cmf > 0.05 ? "BUY" : cmf < -0.05 ? "SELL" : "HOLD";
+
+  return {
+    value: cmf,
+    signal,
+    reason: `CMF is ${cmf.toFixed(3)} (${signal})`,
+  };
+}
+
+/**
+ * Evaluate Fibonacci Retracements
+ * Finds significant high/low in recent period and checks if price is near level
+ * @param {number[]} highs - High prices
+ * @param {number[]} lows - Low prices
+ * @param {number[]} closes - Close prices
+ * @param {number} period - Lookback period (default 50)
+ * @return {IndicatorResult} Result
+ */
+export function evaluateFibonacciRetracements(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 50
+): IndicatorResult {
+  if (!closes || closes.length < period) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for Fibonacci",
+    };
+  }
+
+  const len = closes.length;
+  // Lookback slice
+  const recentHighs = highs.slice(len - period);
+  const recentLows = lows.slice(len - period);
+
+  const maxHigh = Math.max(...recentHighs);
+  const minLow = Math.min(...recentLows);
+  const currentPrice = closes[len - 1];
+
+  if (maxHigh === minLow) {
+    return { value: 0, signal: "HOLD", reason: "Flat range (High=Low)" };
+  }
+
+  // Determine trend direction and levels
+  const range = maxHigh - minLow;
+  const threshold = currentPrice * 0.01; // 1% tolerance
+
+  let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
+  let reason = "No significant Fib level interaction";
+  let bestLevel = 0;
+
+  const isUptrend = closes[len - 1] > closes[len - period];
+
+  if (isUptrend) {
+    // Uptrend: Retracement to support
+    const lvl618 = maxHigh - (0.618 * range);
+    const lvl50 = maxHigh - (0.5 * range);
+
+    if (Math.abs(currentPrice - lvl618) < threshold) {
+      signal = "BUY";
+      reason = "Price bounce at 61.8% Fib (Golden Ratio)";
+      bestLevel = 0.618;
+    } else if (Math.abs(currentPrice - lvl50) < threshold) {
+      signal = "BUY";
+      reason = "Price bounce at 50% Fib";
+      bestLevel = 0.5;
+    }
+  } else {
+    // Downtrend: Rally to resistance
+    const lvl618 = minLow + (0.618 * range);
+    const lvl50 = minLow + (0.5 * range);
+
+    if (Math.abs(currentPrice - lvl618) < threshold) {
+      signal = "SELL";
+      reason = "Price rejection at 61.8% Fib";
+      bestLevel = 0.618;
+    } else if (Math.abs(currentPrice - lvl50) < threshold) {
+      signal = "SELL";
+      reason = "Price rejection at 50% Fib";
+      bestLevel = 0.5;
+    }
+  }
+
+  return {
+    value: bestLevel,
+    signal,
+    reason,
+    metadata: {
+      maxHigh,
+      minLow,
+      isUptrend,
+    },
+  };
 }
 
 /**

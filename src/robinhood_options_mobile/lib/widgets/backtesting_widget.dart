@@ -162,6 +162,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   final _stopLossController = TextEditingController(text: '5');
   final _trailingStopController = TextEditingController(text: '5');
   final _rsiPeriodController = TextEditingController(text: '14');
+  final _rocPeriodController = TextEditingController(text: '9');
   final _smaFastController = TextEditingController(text: '10');
   final _smaSlowController = TextEditingController(text: '30');
   final _marketIndexController = TextEditingController(text: 'SPY');
@@ -210,6 +211,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     'ichimoku': false,
     'cci': false,
     'parabolicSar': false,
+    'roc': false,
   };
   final Map<String, String> _indicatorReasons = {};
 
@@ -231,6 +233,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _trailingStopEnabled = config.strategyConfig.trailingStopEnabled;
       _trailingStopController.text =
           config.strategyConfig.trailingStopPercent.toString();
+      _rocPeriodController.text = config.strategyConfig.rocPeriod.toString();
       _rsiPeriodController.text = config.strategyConfig.rsiPeriod.toString();
       _smaFastController.text = config.strategyConfig.smaPeriodFast.toString();
       _smaSlowController.text = config.strategyConfig.smaPeriodSlow.toString();
@@ -278,6 +281,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _trailingStopEnabled = config.trailingStopEnabled;
       _trailingStopController.text = config.trailingStopPercent.toString();
       _rsiPeriodController.text = config.rsiPeriod.toString();
+      _rocPeriodController.text = config.rocPeriod.toString();
       _smaFastController.text = config.smaPeriodFast.toString();
       _smaSlowController.text = config.smaPeriodSlow.toString();
       _marketIndexController.text = config.marketIndexSymbol;
@@ -320,6 +324,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     _stopLossController.dispose();
     _trailingStopController.dispose();
     _rsiPeriodController.dispose();
+    _rocPeriodController.dispose();
     _smaFastController.dispose();
     _smaSlowController.dispose();
     _marketIndexController.dispose();
@@ -343,6 +348,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _stopLossController.text = '5';
       _trailingStopController.text = '5';
       _rsiPeriodController.text = '14';
+      _rocPeriodController.text = '9';
       _smaFastController.text = '10';
       _smaSlowController.text = '30';
       _marketIndexController.text = 'SPY';
@@ -399,6 +405,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       trailingStopEnabled: _trailingStopEnabled,
       trailingStopPercent: double.tryParse(_trailingStopController.text) ?? 5.0,
       rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      rocPeriod: int.tryParse(_rocPeriodController.text) ?? 9,
       smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
       smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
       marketIndexSymbol: _marketIndexController.text,
@@ -438,6 +445,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _takeProfitController.text = config.takeProfitPercent.toString();
       _stopLossController.text = config.stopLossPercent.toString();
       _trailingStopController.text = config.trailingStopPercent.toString();
+      _rocPeriodController.text = config.rocPeriod.toString();
       _rsiPeriodController.text = config.rsiPeriod.toString();
       _smaFastController.text = config.smaPeriodFast.toString();
       _smaSlowController.text = config.smaPeriodSlow.toString();
@@ -1143,6 +1151,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                         });
                       },
                       rsiPeriodController: _rsiPeriodController,
+                      rocPeriodController: _rocPeriodController,
                       smaFastController: _smaFastController,
                       smaSlowController: _smaSlowController,
                       marketIndexController: _marketIndexController,

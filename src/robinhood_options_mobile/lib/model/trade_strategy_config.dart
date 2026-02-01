@@ -14,6 +14,7 @@ class TradeStrategyConfig {
   final bool trailingStopEnabled;
   final double trailingStopPercent;
   final int rsiPeriod;
+  final int rocPeriod;
   final int smaPeriodFast;
   final int smaPeriodSlow;
   final String marketIndexSymbol;
@@ -69,6 +70,7 @@ class TradeStrategyConfig {
     bool? trailingStopEnabled,
     double? trailingStopPercent,
     int? rsiPeriod,
+    int? rocPeriod,
     int? smaPeriodFast,
     int? smaPeriodSlow,
     String? marketIndexSymbol,
@@ -118,6 +120,7 @@ class TradeStrategyConfig {
       stopLossPercent: stopLossPercent ?? this.stopLossPercent,
       trailingStopEnabled: trailingStopEnabled ?? this.trailingStopEnabled,
       trailingStopPercent: trailingStopPercent ?? this.trailingStopPercent,
+      rocPeriod: rocPeriod ?? this.rocPeriod,
       rsiPeriod: rsiPeriod ?? this.rsiPeriod,
       smaPeriodFast: smaPeriodFast ?? this.smaPeriodFast,
       smaPeriodSlow: smaPeriodSlow ?? this.smaPeriodSlow,
@@ -178,6 +181,7 @@ class TradeStrategyConfig {
     this.takeProfitPercent = 10.0,
     this.stopLossPercent = 5.0,
     this.trailingStopEnabled = false,
+    this.rocPeriod = 9,
     this.trailingStopPercent = 5.0,
     this.rsiPeriod = 14,
     this.smaPeriodFast = 10,
@@ -230,8 +234,11 @@ class TradeStrategyConfig {
           'adx': false,
           'williamsR': false,
           'ichimoku': false,
+          'roc': false,
           'cci': false,
           'parabolicSar': false,
+          'chaikinMoneyFlow': false,
+          'fibonacciRetracements': false,
         }..addAll(enabledIndicators ?? {}),
         indicatorReasons = indicatorReasons ?? {};
 
@@ -246,6 +253,7 @@ class TradeStrategyConfig {
         'takeProfitPercent': takeProfitPercent,
         'stopLossPercent': stopLossPercent,
         'trailingStopEnabled': trailingStopEnabled,
+        'rocPeriod': rocPeriod,
         'trailingStopPercent': trailingStopPercent,
         'rsiPeriod': rsiPeriod,
         'smaPeriodFast': smaPeriodFast,
@@ -303,6 +311,7 @@ class TradeStrategyConfig {
             (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
         stopLossPercent: (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
         trailingStopEnabled: json['trailingStopEnabled'] as bool? ?? false,
+        rocPeriod: json['rocPeriod'] as int? ?? 9,
         trailingStopPercent:
             (json['trailingStopPercent'] as num?)?.toDouble() ?? 5.0,
         rsiPeriod: json['rsiPeriod'] as int? ?? 14,
@@ -402,6 +411,10 @@ class TradeStrategyConfig {
     check('Trailing Stop Enabled', other.trailingStopEnabled,
         trailingStopEnabled);
     check('Trailing Stop %', other.trailingStopPercent, trailingStopPercent);
+    check('RSI Period', other.rsiPeriod, rsiPeriod);
+    check('ROC Period', other.rocPeriod, rocPeriod);
+    check('SMA Fast', other.smaPeriodFast, smaPeriodFast);
+    check('SMA Slow', other.smaPeriodSlow, smaPeriodSlow);
     check('Initial Capital', other.initialCapital, initialCapital);
     check('Trade Quantity', other.tradeQuantity, tradeQuantity);
     check('Max Pos Size', other.maxPositionSize, maxPositionSize);
@@ -462,6 +475,7 @@ class TradeStrategyConfig {
       'adx': false,
       'williamsR': false,
       'ichimoku': false,
+      'roc': false,
       'cci': false,
       'parabolicSar': false,
     };

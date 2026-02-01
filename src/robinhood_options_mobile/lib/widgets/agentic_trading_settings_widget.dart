@@ -68,6 +68,7 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _riskPerTradeController;
   late TextEditingController _atrMultiplierController;
   late TextEditingController _rsiPeriodController;
+  late TextEditingController _rocPeriodController;
   late TextEditingController _smaFastController;
   late TextEditingController _smaSlowController;
   late TextEditingController _marketIndexController;
@@ -219,6 +220,8 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.atrMultiplier.toString() ?? '2.0');
     _rsiPeriodController =
         TextEditingController(text: strategy?.rsiPeriod.toString() ?? '14');
+    _rocPeriodController =
+        TextEditingController(text: strategy?.rocPeriod.toString() ?? '9');
     _smaFastController =
         TextEditingController(text: strategy?.smaPeriodFast.toString() ?? '10');
     _smaSlowController =
@@ -249,6 +252,7 @@ class _AgenticTradingSettingsWidgetState
     _rsiExitThresholdController.dispose();
     _signalStrengthExitThresholdController.dispose();
     _riskPerTradeController.dispose();
+    _rocPeriodController.dispose();
     _atrMultiplierController.dispose();
     _rsiPeriodController.dispose();
     _smaFastController.dispose();
@@ -458,6 +462,7 @@ class _AgenticTradingSettingsWidgetState
       trailingStopPercent:
           double.tryParse(_trailingStopPercentController.text) ?? 3.0,
       rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      rocPeriod: int.tryParse(_rocPeriodController.text) ?? 9,
       smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
       smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
       marketIndexSymbol: _marketIndexController.text,
@@ -969,6 +974,7 @@ class _AgenticTradingSettingsWidgetState
       trailingStopPercent:
           double.tryParse(_trailingStopPercentController.text) ?? 3.0,
       rsiPeriod: int.tryParse(_rsiPeriodController.text) ?? 14,
+      rocPeriod: int.tryParse(_rocPeriodController.text) ?? 9,
       smaPeriodFast: int.tryParse(_smaFastController.text) ?? 10,
       smaPeriodSlow: int.tryParse(_smaSlowController.text) ?? 30,
       marketIndexSymbol: _marketIndexController.text,
@@ -1662,6 +1668,9 @@ class _AgenticTradingSettingsWidgetState
       'ichimoku': 'Ichi',
       'cci': 'CCI',
       'parabolicSar': 'SAR',
+      'roc': 'ROC',
+      'chaikinMoneyFlow': 'CMF',
+      'fibonacciRetracements': 'Fib',
     };
 
     final activeKeys = config.enabledIndicators.entries
@@ -3324,6 +3333,7 @@ class _AgenticTradingSettingsWidgetState
                         .copyWith(enabledIndicators: currentIndicators)));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
+          rocPeriodController: _rocPeriodController,
           rsiPeriodController: _rsiPeriodController,
           smaFastController: _smaFastController,
           smaSlowController: _smaSlowController,
