@@ -147,12 +147,6 @@ jobs:
         with:
           channel: stable # or: beta, master (or main)
           cache: true
-          # cache: true
-          # # optional parameters follow
-          # cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
-          # cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-          # pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
-          # pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
 
       - name: Install dependencies
         run: flutter pub get
@@ -167,6 +161,7 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Android Signing
         run: |
@@ -230,6 +225,14 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: src/robinhood_options_mobile/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('src/robinhood_options_mobile/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
 
       - name: Install CocoaPods
         run: |
@@ -335,7 +338,7 @@ jobs:
           path: release-artifacts/ios/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.check_version.outputs.tag_name }}
           body: ${{ needs.check_version.outputs.release_notes }}
