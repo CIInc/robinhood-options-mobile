@@ -1422,6 +1422,22 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       return const SizedBox.shrink();
     }
 
+    // If chart is flat (e.g. market closed for 1D view), don't show analysis
+    if (widget.chartDateSpanFilter == ChartDateSpan.day) {
+      final historicals = _lastValidHistoricals!.historicals;
+      double minPrice = double.maxFinite;
+      double maxPrice = -double.maxFinite;
+      for (var h in historicals) {
+        final p = h.closePrice ?? h.openPrice ?? 0;
+        if (p < minPrice) minPrice = p;
+        if (p > maxPrice) maxPrice = p;
+      }
+
+      if ((maxPrice - minPrice).abs() < 0.0001) {
+        return const SizedBox.shrink();
+      }
+    }
+
     // Generate Candles (reused logic efficiently)
     // Use fullResolution=true to get all available data points for accurate indicator calculation (especially SMA 200)
     final candles = _generateCandles(_lastValidHistoricals!.historicals,

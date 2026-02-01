@@ -41,7 +41,7 @@ import 'package:robinhood_options_mobile/widgets/institutional_ownership_widget.
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_note_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
@@ -152,6 +152,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final ValueNotifier<bool> _showAllSimilarNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _showAllPositionOrdersNotifier =
       ValueNotifier(false);
+  final ValueNotifier<bool> _showAllOptionOrdersNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _showAllNewsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _showAllEarningsNotifier = ValueNotifier(false);
   // Controls visibility of AI reasoning details in trade signals
@@ -1550,47 +1551,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //var positionOrders = stockOrderStore.items.where(
             //    (element) => element.instrumentId == widget.instrument.id);
 
-            if (instrument.positionOrders != null) {
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 8.0,
-                    )),
-                    positionOrdersWidget(instrument.positionOrders!)
-                  ]));
+            if (instrument.positionOrders != null &&
+                instrument.positionOrders!.isNotEmpty) {
+              return positionOrdersWidget(instrument.positionOrders!);
             }
-            return SliverToBoxAdapter(child: Container());
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
           }),
           Consumer<OptionOrderStore>(
               builder: (context, optionOrderStore, child) {
             //var optionOrders = optionOrderStore.items.where(
             //    (element) => element.chainSymbol == widget.instrument.symbol);
-            if (instrument.optionOrders != null) {
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 8.0,
-                    )),
-                    OptionOrdersWidget(
-                      widget.brokerageUser,
-                      widget.service,
-                      instrument.optionOrders!,
-                      const ["confirmed", "filled", "queued"],
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                      authUser: widget.user,
-                      userDocRef: widget.userDocRef,
-                    )
-                  ]));
+            if (instrument.optionOrders != null &&
+                instrument.optionOrders!.isNotEmpty) {
+              return _buildOptionOrdersWidget(instrument.optionOrders!);
             }
-            return SliverToBoxAdapter(child: Container());
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
           }),
           // TODO: Introduce web banner
           if (!kIsWeb) ...[
@@ -2635,50 +2610,86 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     style: TextStyle(fontSize: 20),
                   ),
                 ),
-                Card(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      for (var earning in displayEarnings) ...[
+                ListView.separated(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayEarnings.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                  ),
+                  itemBuilder: (context, index) {
+                    var earning = displayEarnings[index];
+                    return Column(
+                      children: [
                         ListTile(
                             title: Text(
                               "${earning!["year"]} Q${earning!["quarter"]}",
-                              style: const TextStyle(fontSize: 18.0),
-                              //overflow: TextOverflow.visible
+                              style: const TextStyle(
+                                  fontSize: 16.0, fontWeight: FontWeight.w500),
                             ),
                             subtitle: Text(
                                 earning!["report"] != null
                                     ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
                                     : "",
-                                style: const TextStyle(fontSize: 14)),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
+                                )),
                             trailing: (earning!["eps"]["estimate"] != null ||
                                     earning!["eps"]["actual"] != null)
-                                ? Wrap(spacing: 10.0, children: [
+                                ? Wrap(spacing: 16.0, children: [
                                     if (earning!["eps"]["estimate"] !=
                                         null) ...[
                                       Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
-                                          const Text("Estimate",
-                                              style: TextStyle(fontSize: 11)),
+                                          Text("Estimate",
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color)),
                                           Text(
                                               formatCurrency.format(
                                                   double.parse(earning!["eps"]
                                                       ["estimate"])),
                                               style: const TextStyle(
-                                                  fontSize: 18)),
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500)),
                                         ],
                                       )
                                     ],
                                     if (earning!["eps"]["actual"] != null) ...[
-                                      Column(children: [
-                                        const Text("Actual",
-                                            style: TextStyle(fontSize: 11)),
-                                        Text(
-                                            formatCurrency.format(double.parse(
-                                                earning!["eps"]["actual"])),
-                                            style:
-                                                const TextStyle(fontSize: 18))
-                                      ])
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text("Actual",
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.color)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.parse(earning!["eps"]
+                                                      ["actual"])),
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold))
+                                        ],
+                                      )
                                     ]
                                   ])
                                 : null),
@@ -2689,53 +2700,72 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 (futureEarning["year"] == earning!["year"] &&
                                     futureEarning["quarter"] ==
                                         earning!["quarter"]))) ...[
-                          if (!earning!["report"]["verified"]) ...[
-                            ListTile(
-                              title: Text(
-                                  "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                                  style: const TextStyle(fontSize: 18)),
-                              subtitle: Text(
-                                  formatLongDate.format(DateTime.parse(earning![
-                                          "call"][
-                                      "datetime"])), // ${earning!["report"]["timing"]}",
-                                  style: const TextStyle(fontSize: 16)),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (!earning!["report"]["verified"]) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    formatLongDate.format(DateTime.parse(
+                                        earning!["call"]["datetime"])),
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color),
+                                  ),
+                                ],
+                                Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: <Widget>[
+                                      if (earning!["call"]["replay_url"] !=
+                                          null) ...[
+                                        TextButton(
+                                          child: const Text('LISTEN TO REPLAY'),
+                                          onPressed: () async {
+                                            var url =
+                                                earning!["call"]["replay_url"];
+                                            var uri = Uri.parse(url);
+                                            await canLaunchUrl(uri)
+                                                ? await launchUrl(uri)
+                                                : throw 'Could not launch $url';
+                                          },
+                                        ),
+                                      ],
+                                      if (earning!["call"]["broadcast_url"] !=
+                                          null) ...[
+                                        const SizedBox(width: 8),
+                                        TextButton(
+                                          child:
+                                              const Text('LISTEN TO BROADCAST'),
+                                          onPressed: () async {
+                                            var url = earning!["call"]
+                                                ["broadcast_url"];
+                                            var uri = Uri.parse(url);
+                                            await canLaunchUrl(uri)
+                                                ? await launchUrl(uri)
+                                                : throw 'Could not launch $url';
+                                          },
+                                        ),
+                                      ],
+                                    ])
+                              ],
                             ),
-                          ],
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: <Widget>[
-                                if (earning!["call"]["replay_url"] != null) ...[
-                                  TextButton(
-                                    child: const Text('LISTEN TO REPLAY'),
-                                    onPressed: () async {
-                                      var url = earning!["call"]["replay_url"];
-                                      var uri = Uri.parse(url);
-                                      await canLaunchUrl(uri)
-                                          ? await launchUrl(uri)
-                                          : throw 'Could not launch $url';
-                                    },
-                                  ),
-                                ],
-                                if (earning!["call"]["broadcast_url"] !=
-                                    null) ...[
-                                  Container(width: 50),
-                                  TextButton(
-                                    child: const Text('LISTEN TO BROADCAST'),
-                                    onPressed: () async {
-                                      var url =
-                                          earning!["call"]["broadcast_url"];
-                                      var uri = Uri.parse(url);
-                                      await canLaunchUrl(uri)
-                                          ? await launchUrl(uri)
-                                          : throw 'Could not launch $url';
-                                    },
-                                  ),
-                                ],
-                              ])
+                          ),
                         ],
                       ],
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 if (earnings.length > 3)
                   Align(
@@ -2750,7 +2780,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: Text(showAllEarnings
                             ? 'Show Less'
                             : 'Show All (${earnings.length})')),
-                  )
+                  ),
+                const SizedBox(height: 16),
               ],
             );
           }),
@@ -2774,142 +2805,71 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           showYield: true,
           analytics: widget.analytics,
           observer: widget.observer),
-      // const SliverToBoxAdapter(
-      //     child: Column(children: [
-      //   ListTile(
-      //     title: Text(
-      //       "Dividends",
-      //       style: TextStyle(fontSize: 19.0),
-      //     ),
-      //   )
-      // ])),
-      // SliverToBoxAdapter(
-      //     child: Card(
-      //         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      //   for (var dividend in instrument.dividendsObj!) ...[
-      //     ListTile(
-      //         title: Text(
-      //           "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-      //           style: const TextStyle(fontSize: 18.0),
-      //           //overflow: TextOverflow.visible
-      //         ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-      //         subtitle: Text(
-      //             "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-      //             style: const TextStyle(fontSize: 14)),
-      //         trailing: Wrap(spacing: 10.0, children: [
-      //           Column(children: [
-      //             // const Text("Actual", style: TextStyle(fontSize: 11)),
-      //             Text(formatCurrency.format(double.parse(dividend!["amount"])),
-      //                 style: const TextStyle(fontSize: 18))
-      //           ])
-      //         ])),
-      //   ],
-      // ])))
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
     ]));
   }
 
   Widget _buildSplitsWidget(Instrument instrument) {
+    var splits = instrument.splitsObj ?? [];
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(
-            offset: ViewportOffset.zero(),
-            slivers: const [
-          SliverToBoxAdapter(
-              child: Column(children: [
-            ListTile(
-              title: Text(
-                "Splits",
-                style: TextStyle(fontSize: 20),
-              ),
-            )
-          ])),
-          SliverToBoxAdapter(
-              child: Card(
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            /*
-          for (var split in instrument.splitsObj!) ...[
-            ListTile(
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text(
+              "Splits",
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+          ListView.separated(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: splits.length,
+            separatorBuilder: (context, index) => const Divider(
+              height: 1,
+              indent: 16,
+              endIndent: 16,
+            ),
+            itemBuilder: (BuildContext context, int index) {
+              var split = splits[index]; // Note: Assumes splitsObj existence
+              var splitText = "${split["multiplier"]} Split";
+              try {
+                var multiplier = double.parse(split["multiplier"]);
+                if (multiplier > 1) {
+                  if (multiplier % 1 == 0) {
+                    splitText = "${multiplier.toInt()} for 1 Split";
+                  } else {
+                    splitText = "$multiplier for 1 Split";
+                  }
+                } else if (multiplier > 0 && multiplier < 1) {
+                  var reverse = 1 / multiplier;
+                  if ((reverse - reverse.round()).abs() < 0.001) {
+                    splitText = "1 for ${reverse.round()} Reverse Split";
+                  } else {
+                    splitText = "1 for $reverse Reverse Split";
+                  }
+                }
+              } catch (e) {
+                // ignore
+              }
+              return ListTile(
                 title: Text(
-                  "${earning!["year"]} Q${earning!["quarter"]}",
-                  style: const TextStyle(fontSize: 18.0),
-                  //overflow: TextOverflow.visible
+                  splitText,
+                  style: const TextStyle(
+                      fontSize: 16.0, fontWeight: FontWeight.w500),
                 ),
                 subtitle: Text(
-                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                    style: const TextStyle(fontSize: 14)),
-                trailing: (earning!["eps"]["estimate"] != null ||
-                        earning!["eps"]["actual"] != null)
-                    ? Wrap(spacing: 10.0, children: [
-                        if (earning!["eps"]["estimate"] != null) ...[
-                          Column(
-                            children: [
-                              const Text("Estimate",
-                                  style: TextStyle(fontSize: 11)),
-                              Text(
-                                  formatCurrency.format(double.parse(
-                                      earning!["eps"]["estimate"])),
-                                  style: const TextStyle(fontSize: 18)),
-                            ],
-                          )
-                        ],
-                        if (earning!["eps"]["actual"] != null) ...[
-                          Column(children: [
-                            const Text("Actual",
-                                style: TextStyle(fontSize: 11)),
-                            Text(
-                                formatCurrency.format(
-                                    double.parse(earning!["eps"]["actual"])),
-                                style: const TextStyle(fontSize: 18))
-                          ])
-                        ]
-                      ])
-                    : null),
-            if (earning!["call"] != null &&
-                ((pastEarning["year"] == earning!["year"] &&
-                        pastEarning["quarter"] == earning!["quarter"]) ||
-                    (futureEarning["year"] == earning!["year"] &&
-                        futureEarning["quarter"] == earning!["quarter"]))) ...[
-              if (!earning!["report"]["verified"]) ...[
-                ListTile(
-                  title: Text(
-                      "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                      style: const TextStyle(fontSize: 18)),
-                  subtitle: Text(
-                      formatLongDate.format(DateTime.parse(earning!["call"]
-                          ["datetime"])), // ${earning!["report"]["timing"]}",
-                      style: const TextStyle(fontSize: 16)),
-                ),
-              ],
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
-                if (earning!["call"]["replay_url"] != null) ...[
-                  TextButton(
-                    child: const Text('LISTEN TO REPLAY'),
-                    onPressed: () async {
-                      var _url = earning!["call"]["replay_url"];
-                      await canLaunch(_url)
-                          ? await launch(_url)
-                          : throw 'Could not launch $_url';
-                    },
-                  ),
-                ],
-                if (earning!["call"]["broadcast_url"] != null) ...[
-                  Container(width: 50),
-                  TextButton(
-                    child: const Text('LISTEN TO BROADCAST'),
-                    onPressed: () async {
-                      var _url = earning!["call"]["broadcast_url"];
-                      await canLaunch(_url)
-                          ? await launch(_url)
-                          : throw 'Could not launch $_url';
-                    },
-                  ),
-                ],
-              ])
-            ],
-          ],
-              */
-          ])))
-        ]));
+                    "Ex-Date: ${formatDate.format(DateTime.parse(split["execution_date"]))}",
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.bodySmall?.color)),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
@@ -2922,116 +2882,142 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final displayCount = showAllSimilar
                   ? similar.length
                   : (similar.length > 3 ? 3 : similar.length);
-              return ShrinkWrappingViewport(
-                  offset: ViewportOffset.zero(),
-                  slivers: [
-                    const SliverToBoxAdapter(
-                        child: Column(children: [
-                      ListTile(
-                        title: Text(
-                          "Similar",
-                          style: TextStyle(fontSize: 20),
+
+              return Column(children: [
+                const ListTile(
+                  title: Text(
+                    "Similar",
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
+                ListView.separated(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: displayCount,
+                    separatorBuilder: (context, index) => const Divider(
+                          height: 1,
+                          indent: 72,
+                          endIndent: 16,
                         ),
-                      )
-                    ])),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                        return Card(
-                            child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            ListTile(
-                              leading: Hero(
-                                  tag: 'logo_${similar[index]["symbol"]}',
-                                  child: similar[index]["logo_url"] != null
-                                      ? Image.network(
-                                          similar[index]["logo_url"]
-                                              .toString()
-                                              .replaceAll(
-                                                  "https:////", "https://"),
-                                          width: 50,
-                                          height: 50,
-                                          errorBuilder: (BuildContext context,
-                                              Object exception,
-                                              StackTrace? stackTrace) {
-                                            return CircleAvatar(
-                                                radius: 25,
-                                                child: Text(
-                                                  similar[index]["symbol"],
-                                                  overflow: TextOverflow.fade,
-                                                  maxLines: 1,
-                                                ));
-                                          },
-                                        )
-                                      : CircleAvatar(
-                                          radius: 25,
-                                          child: Text(
-                                            similar[index]["symbol"],
-                                            overflow: TextOverflow.fade,
-                                            maxLines: 1,
-                                          ))),
-                              title: Text(
-                                "${similar[index]["symbol"]}",
+                    itemBuilder: (BuildContext context, int index) {
+                      var logoUrl = similar[index]["logo_url"]
+                          ?.toString()
+                          .replaceAll("https:////", "https://");
+                      return InkWell(
+                        onTap: () async {
+                          var similarInstruments = await widget.service
+                              .getInstrumentsByIds(
+                                  widget.brokerageUser,
+                                  Provider.of<InstrumentStore>(context,
+                                      listen: false),
+                                  [similar[index]["instrument_id"]]);
+                          if (logoUrl != null &&
+                              logoUrl != similarInstruments[0].logoUrl &&
+                              auth.currentUser != null) {
+                            similarInstruments[0].logoUrl = logoUrl;
+                            await _firestoreService
+                                .upsertInstrument(similarInstruments[0]);
+                          }
+                          if (context.mounted) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => InstrumentWidget(
+                                          widget.brokerageUser,
+                                          widget.service,
+                                          similarInstruments[0],
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                        )));
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 12.0),
+                          child: Row(
+                            children: [
+                              Hero(
+                                tag: 'logo_${similar[index]["symbol"]}',
+                                child: logoUrl != null
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: logoUrl,
+                                          width: 40,
+                                          height: 40,
+                                          fit: BoxFit.cover,
+                                          errorWidget: (context, url, error) =>
+                                              CircleAvatar(
+                                                  radius: 20,
+                                                  child: Text(
+                                                      similar[index]["symbol"]
+                                                          .substring(0, 1),
+                                                      style: const TextStyle(
+                                                          fontSize: 16))),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 20,
+                                        child: Text(
+                                            similar[index]["symbol"]
+                                                .substring(0, 1),
+                                            style:
+                                                const TextStyle(fontSize: 16))),
                               ),
-                              subtitle: Text("${similar[index]["name"]}"),
-                              onTap: () async {
-                                var similarInstruments = await widget.service
-                                    .getInstrumentsByIds(
-                                        widget.brokerageUser,
-                                        Provider.of<InstrumentStore>(context,
-                                            listen: false),
-                                        [similar[index]["instrument_id"]]);
-                                if (similar[index]["logo_url"] != null &&
-                                    similar[index]["logo_url"] !=
-                                        similarInstruments[0].logoUrl &&
-                                    auth.currentUser != null) {
-                                  similarInstruments[0].logoUrl = similar[index]
-                                          ["logo_url"]
-                                      .toString()
-                                      .replaceAll("https:////", "https://");
-                                  await _firestoreService
-                                      .upsertInstrument(similarInstruments[0]);
-                                }
-                                if (context.mounted) {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              InstrumentWidget(
-                                                widget.brokerageUser,
-                                                widget.service,
-                                                similarInstruments[0],
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService,
-                                                user: widget.user,
-                                                userDocRef: widget.userDocRef,
-                                              )));
-                                }
-                              },
-                            ),
-                          ],
-                        ));
-                      }, childCount: displayCount),
-                    ),
-                    if (similar.length > 5)
-                      SliverToBoxAdapter(
-                          child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                            onPressed: () {
-                              _showAllSimilarNotifier.value = !showAllSimilar;
-                            },
-                            icon: Icon(showAllSimilar
-                                ? Icons.expand_less
-                                : Icons.expand_more),
-                            label: Text(showAllSimilar
-                                ? 'Show Less'
-                                : 'Show All (${similar.length})')),
-                      ))
-                  ]);
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "${similar[index]["symbol"]}",
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                    Text(
+                                      "${similar[index]["name"]}",
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                if (similar.length > 5)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                        onPressed: () {
+                          _showAllSimilarNotifier.value = !showAllSimilar;
+                        },
+                        icon: Icon(showAllSimilar
+                            ? Icons.expand_less
+                            : Icons.expand_more),
+                        label: Text(showAllSimilar
+                            ? 'Show Less'
+                            : 'Show All (${similar.length})')),
+                  ),
+                const SizedBox(height: 16),
+              ]);
             }));
   }
 
@@ -3298,6 +3284,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           : 'Show All (${rhLists.length})')),
                 )));
               }
+              slivers
+                  .add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
             }
 
             return ShrinkWrappingViewport(
@@ -3307,36 +3295,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildListItem(dynamic list) {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
+    return Column(
+      children: [
         ListTile(
-          // minTileHeight: 10,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
           leading: list["image_urls"] != null
-              ? CircleAvatar(
-                  backgroundColor: Colors.transparent,
-                  child: Image.network(list["image_urls"]
-                      ["circle_64:3"])) //,width: 96, height: 56
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: list["image_urls"]["circle_64:3"],
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) =>
+                        const CircleAvatar(child: Icon(Icons.list)),
+                  ),
+                )
               : (list["icon_emoji"] != null
                   ? CircleAvatar(
                       backgroundColor: Colors.transparent,
                       child: Text(list["icon_emoji"],
-                          style: const TextStyle(fontSize: 32))) // 28
+                          style: const TextStyle(fontSize: 24)))
                   : const CircleAvatar(
                       child: Icon(Icons.list),
-                    )), //SizedBox(width: 96, height: 56),
+                    )),
           title: Text(
-            "${list["display_name"]} - ${list["item_count"]} items",
-          ), //style: TextStyle(fontSize: 17.0)),
-          subtitle: list["display_description"] != null
-              ? Text("${list["display_description"]}")
-              : null,
-          /*
-                  trailing: Image.network(
-                      instrument.newsObj![index]["preview_image_url"])
-                      */
-          isThreeLine: list["display_description"] != null,
+            "${list["display_name"]}",
+            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500),
+          ),
+          subtitle: Text(
+            "${list["item_count"]} items${list["display_description"] != null ? " • ${list["display_description"]}" : ""}",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).textTheme.bodySmall?.color),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           onTap: () async {
             Navigator.push(
                 context,
@@ -3351,8 +3345,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         ownerType: list["owner_type"] ?? "robinhood")));
           },
         ),
+        const Divider(
+          height: 1,
+          indent: 72,
+          endIndent: 16,
+        )
       ],
-    ));
+    );
   }
 
   Widget _buildNewsWidget(Instrument instrument) {
@@ -3372,40 +3371,86 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     style: TextStyle(fontSize: 20),
                   ),
                 ),
-                ListView.builder(
+                ListView.separated(
                   padding: EdgeInsets.zero,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: displayCount,
+                  separatorBuilder: (context, index) => const Divider(
+                    height: 1,
+                  ),
                   itemBuilder: (BuildContext context, int index) {
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          leading: news[index]["preview_image_url"] != null &&
-                                  news[index]["preview_image_url"]
-                                      .toString()
-                                      .isNotEmpty
-                              ? Image.network(news[index]["preview_image_url"],
-                                  width: 96, height: 56)
-                              : const SizedBox(width: 96, height: 56),
-                          title: Text(
-                            "${news[index]["title"]}",
-                          ), //style: TextStyle(fontSize: 17.0)),
-                          subtitle: Text(
-                              "Published ${formatDate.format(DateTime.parse(news[index]["published_at"]!))} by ${news[index]["source"]}"),
-                          isThreeLine: true,
-                          onTap: () async {
-                            var url = news[index]["url"];
-                            var uri = Uri.parse(url);
-                            await canLaunchUrl(uri)
-                                ? await launchUrl(uri)
-                                : throw 'Could not launch $url';
-                          },
+                    var item = news[index];
+                    return InkWell(
+                      onTap: () async {
+                        var url = item["url"];
+                        var uri = Uri.parse(url);
+                        await canLaunchUrl(uri)
+                            ? await launchUrl(uri)
+                            : throw 'Could not launch $url';
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 12.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "${item["source"]}",
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        "• ${formatDate.format(DateTime.parse(item["published_at"]!))}",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "${item["title"]}",
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500),
+                                    maxLines: 4,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (item["preview_image_url"] != null &&
+                                item["preview_image_url"]
+                                    .toString()
+                                    .isNotEmpty) ...[
+                              const SizedBox(width: 16),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: CachedNetworkImage(
+                                  imageUrl: item["preview_image_url"],
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                      color: Colors.grey.withOpacity(0.1)),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.error),
+                                ),
+                              ),
+                            ]
+                          ],
                         ),
-                      ],
-                    ));
+                      ),
+                    );
                   },
                 ),
                 if (news.length > 3)
@@ -3421,7 +3466,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: Text(showAllNews
                             ? 'Show Less'
                             : 'Show All (${news.length})')),
-                  )
+                  ),
+                const SizedBox(height: 16),
               ],
             );
           }),
@@ -3455,168 +3501,283 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   : (filteredPositionOrders.length > 3
                       ? 3
                       : filteredPositionOrders.length);
-              return ShrinkWrappingViewport(
-                  offset: ViewportOffset.zero(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                        child: Column(children: [
-                      ListTile(
-                          title: const Text(
-                            "Position Orders",
-                            style: TextStyle(fontSize: 20.0),
-                          ),
-                          subtitle: Text(
-                              "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                          trailing: IconButton(
-                              icon: const Icon(Icons.filter_list),
-                              onPressed: () {
-                                showModalBottomSheet<void>(
-                                  context: context,
-                                  showDragHandle: true,
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 260),
-                                  builder: (BuildContext context) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          // tileColor: Theme.of(context).colorScheme.primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Position Orders",
-                                            style: TextStyle(
-                                                fontSize: 20.0,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          /*
+
+              return Column(
+                children: [
+                  ListTile(
+                      title: const Text(
+                        "Position Orders",
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              constraints: const BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const ListTile(
+                                      // tileColor: Theme.of(context).colorScheme.primary,
+                                      leading: Icon(Icons.filter_list),
+                                      title: Text(
+                                        "Filter Position Orders",
+                                        style: TextStyle(fontSize: 20.0),
+                                      ),
+                                      /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        orderFilterWidget,
-                                      ],
-                                    );
-                                  },
+                                    ),
+                                    orderFilterWidget,
+                                  ],
                                 );
-                              })),
-                    ])),
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                        return Card(
-                            child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            ListTile(
-                              leading: CircleAvatar(
-                                  //backgroundImage: AssetImage(user.profilePicture),
-                                  child: Text(
-                                      '${filteredPositionOrders[index].quantity!.round()}',
-                                      style: const TextStyle(fontSize: 18))),
-                              title: Text(
-                                  "${filteredPositionOrders[index].side == "buy" ? "Buy" : filteredPositionOrders[index].side == "sell" ? "Sell" : filteredPositionOrders[index].side} ${filteredPositionOrders[index].quantity} at \$${filteredPositionOrders[index].averagePrice != null ? formatCompactNumber.format(filteredPositionOrders[index].averagePrice) : (filteredPositionOrders[index].price != null ? formatCompactNumber.format(filteredPositionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
-                              subtitle: Text(
-                                  "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}${filteredPositionOrders[index].trailingPeg != null ? "\nTrailing: ${filteredPositionOrders[index].trailingPeg!['percentage'] != null ? "${filteredPositionOrders[index].trailingPeg!['percentage']}%" : (filteredPositionOrders[index].trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(filteredPositionOrders[index].trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}"),
-                              trailing: Wrap(spacing: 8, children: [
-                                Text(
-                                  (filteredPositionOrders[index].side == "sell"
-                                          ? "+"
-                                          : "-") +
-                                      (filteredPositionOrders[index]
-                                                  .averagePrice !=
-                                              null
-                                          ? formatCurrency.format(
-                                              filteredPositionOrders[index]
-                                                      .averagePrice! *
-                                                  filteredPositionOrders[index]
-                                                      .quantity!)
-                                          : ""),
-                                  style: const TextStyle(fontSize: 18.0),
-                                  textAlign: TextAlign.right,
-                                )
-                              ]),
-
-                              /*Wrap(
-            spacing: 12,
-            children: [
-              Column(children: [
-                Text(
-                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-                  style: const TextStyle(fontSize: 15.0),
-                  textAlign: TextAlign.right,
-                ),
-                Icon(
-                    gainLossPerContract > 0
-                        ? Icons.trending_up
-                        : (gainLossPerContract < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (gainLossPerContract > 0
-                        ? Colors.green
-                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
-              ]),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "${formatCurrency.format(marketValue)}",
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.right,
-                  ),
-                ],
-              )
-            ],
-          ),*/
-                              //isThreeLine: true,
-                              onTap: () {
-                                filteredPositionOrders[index].instrumentObj =
-                                    widget.instrument;
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            PositionOrderWidget(
-                                              widget.brokerageUser,
-                                              widget.service,
-                                              filteredPositionOrders[index],
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              generativeService:
-                                                  widget.generativeService,
-                                              user: widget.user,
-                                              userDocRef: widget.userDocRef,
-                                            )));
                               },
-                            ),
-                          ],
-                        ));
-
-                        //if (positionOrders.length > index) {
-                        //}
-                      }, childCount: displayCount),
+                            );
+                          })),
+                  ListView.separated(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayCount,
+                      separatorBuilder: (context, index) => const Divider(
+                            height: 1,
+                            indent: 72,
+                            endIndent: 16,
+                          ),
+                      itemBuilder: (BuildContext context, int index) {
+                        var order = filteredPositionOrders[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                              //backgroundImage: AssetImage(user.profilePicture),
+                              child: Text('${order.quantity!.round()}',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold))),
+                          title: Text(
+                              "${order.side == "buy" ? "Buy" : order.side == "sell" ? "Sell" : order.side} ${order.quantity} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "")}",
+                              style: const TextStyle(
+                                  fontSize: 16.0, fontWeight: FontWeight.w500)),
+                          subtitle: Text(
+                              "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color)),
+                          trailing: Text(
+                            (order.side == "sell" ? "+" : "-") +
+                                (order.averagePrice != null
+                                    ? formatCurrency.format(
+                                        order.averagePrice! * order.quantity!)
+                                    : ""),
+                            style: const TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.right,
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => PositionOrderWidget(
+                                          widget.brokerageUser,
+                                          widget.service,
+                                          order,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                        )));
+                          },
+                        );
+                      }),
+                  if (filteredPositionOrders.length > 3)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                          onPressed: () {
+                            _showAllPositionOrdersNotifier.value =
+                                !showAllPositionOrders;
+                          },
+                          icon: Icon(showAllPositionOrders
+                              ? Icons.expand_less
+                              : Icons.expand_more),
+                          label: Text(showAllPositionOrders
+                              ? 'Show Less'
+                              : 'Show All (${filteredPositionOrders.length})')),
                     ),
-                    if (filteredPositionOrders.length > 3)
-                      SliverToBoxAdapter(
-                          child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                            onPressed: () {
-                              _showAllPositionOrdersNotifier.value =
-                                  !showAllPositionOrders;
-                            },
-                            icon: Icon(showAllPositionOrders
-                                ? Icons.expand_less
-                                : Icons.expand_more),
-                            label: Text(showAllPositionOrders
-                                ? 'Show Less'
-                                : 'Show All (${filteredPositionOrders.length})')),
-                      ))
-                  ]);
+                  const SizedBox(height: 16),
+                ],
+              );
+            }));
+  }
+
+  Widget _buildOptionOrdersWidget(List<OptionOrder> optionOrders) {
+    if (optionOrders.isNotEmpty) {
+      optionOrdersPremiumBalance = optionOrders
+          .map((e) =>
+              (e.processedPremium != null ? e.processedPremium! : 0) *
+              (e.direction == "credit" ? 1 : -1))
+          .reduce((a, b) => a + b) as double;
+    } else {
+      optionOrdersPremiumBalance = 0;
+    }
+
+    var filteredOptionOrders = optionOrders
+        .where((element) =>
+            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .toList();
+    filteredOptionOrders.sort((a, b) =>
+        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+
+    return SliverToBoxAdapter(
+        child: ValueListenableBuilder<bool>(
+            valueListenable: _showAllOptionOrdersNotifier,
+            builder: (context, showAllOptionOrders, child) {
+              final displayCount = showAllOptionOrders
+                  ? filteredOptionOrders.length
+                  : (filteredOptionOrders.length > 3
+                      ? 3
+                      : filteredOptionOrders.length);
+
+              return Column(
+                children: [
+                  ListTile(
+                      title: const Text(
+                        "Option Orders",
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              constraints: const BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const ListTile(
+                                      leading: Icon(Icons.filter_list),
+                                      title: Text(
+                                        "Filter Option Orders",
+                                        style: TextStyle(fontSize: 20.0),
+                                      ),
+                                    ),
+                                    orderFilterWidget,
+                                  ],
+                                );
+                              },
+                            );
+                          })),
+                  ListView.separated(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayCount,
+                      separatorBuilder: (context, index) => const Divider(
+                            height: 1,
+                            indent: 72,
+                            endIndent: 16,
+                          ),
+                      itemBuilder: (BuildContext context, int index) {
+                        var optionOrder = filteredOptionOrders[index];
+
+                        var subtitle = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color)),
+                              if (optionOrder.optionEvents != null) ...[
+                                Text(
+                                    "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color))
+                              ]
+                            ]);
+
+                        return ListTile(
+                          leading: CircleAvatar(
+                              child: optionOrder.optionEvents != null
+                                  ? const Icon(Icons.check)
+                                  : Text('${optionOrder.quantity!.round()}',
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold))),
+                          title: Text(
+                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                              style: const TextStyle(
+                                  fontSize: 16.0, fontWeight: FontWeight.w500)),
+                          subtitle: subtitle,
+                          trailing: Text(
+                            (optionOrder.direction == "credit" ? "+" : "-") +
+                                (optionOrder.processedPremium != null
+                                    ? formatCurrency
+                                        .format(optionOrder.processedPremium)
+                                    : ""),
+                            style: const TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.right,
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => OptionOrderWidget(
+                                          widget.brokerageUser,
+                                          widget.service,
+                                          optionOrder,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                        )));
+                          },
+                        );
+                      }),
+                  if (filteredOptionOrders.length > 3)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                          onPressed: () {
+                            _showAllOptionOrdersNotifier.value =
+                                !showAllOptionOrders;
+                          },
+                          icon: Icon(showAllOptionOrders
+                              ? Icons.expand_less
+                              : Icons.expand_more),
+                          label: Text(showAllOptionOrders
+                              ? 'Show Less'
+                              : 'Show All (${filteredOptionOrders.length})')),
+                    ),
+                  const SizedBox(height: 16),
+                ],
+              );
             }));
   }
 
@@ -4601,11 +4762,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         bgColor = isDark
             ? Colors.grey.shade800.withValues(alpha: 0.5)
             : Colors.grey.shade200;
-    }
-
-    if (!isEnabled) {
-      signalColor = Colors.grey;
-      bgColor = Colors.transparent;
     }
 
     return ValueListenableBuilder<Set<String>>(
@@ -5599,7 +5755,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     // Multi-Indicator Display
                     if (multiIndicator != null)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0.0),
+                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
                         child: _buildMultiIndicatorDisplay(multiIndicator),
                       ),
 

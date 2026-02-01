@@ -122,11 +122,7 @@ jobs:
             echo "new_version=false" >> $GITHUB_OUTPUT
             echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           else
-            echo "Tag $TAG_NAME does not exist. Creating..."
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag $TAG_NAME
-            git push origin $TAG_NAME
+            echo "Tag $TAG_NAME does not exist. Will be created after successful builds."
             echo "new_version=true" >> $GITHUB_OUTPUT
             echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           fi
@@ -314,6 +310,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.check_version.outputs.tag_name }}
+          git push origin ${{ needs.check_version.outputs.tag_name }}
+
       - name: Download Android Artifacts
         uses: actions/download-artifact@v4
         with:
