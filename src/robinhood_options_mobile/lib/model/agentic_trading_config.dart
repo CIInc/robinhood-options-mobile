@@ -117,8 +117,7 @@ class AgenticTradingConfig {
       notifyDailySummary: notifyDailySummary ?? this.notifyDailySummary,
       paperTradingMode: paperTradingMode ?? this.paperTradingMode,
       requireApproval: requireApproval ?? this.requireApproval,
-      tradeStrategyTemplateId:
-          selectedTemplateId ?? this.tradeStrategyTemplateId,
+      tradeStrategyTemplateId: selectedTemplateId ?? tradeStrategyTemplateId,
     );
   }
 }

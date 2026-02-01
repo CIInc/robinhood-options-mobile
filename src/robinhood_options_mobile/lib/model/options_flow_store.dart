@@ -476,8 +476,9 @@ class OptionsFlowStore extends ChangeNotifier {
       final expirationDatesRaw = cachedResult['expirationDates'] as List?;
       final List<DateTime> expirationDates = expirationDatesRaw?.map((e) {
             if (e is Timestamp) return e.toDate().toUtc();
-            if (e is int)
+            if (e is int) {
               return DateTime.fromMillisecondsSinceEpoch(e * 1000, isUtc: true);
+            }
             if (e is DateTime) return e.isUtc ? e : e.toUtc();
             return DateTime.now().toUtc(); // Should not happen
           }).toList() ??

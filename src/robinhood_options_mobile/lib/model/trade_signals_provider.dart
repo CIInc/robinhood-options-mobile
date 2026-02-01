@@ -36,24 +36,28 @@ class TradeSignalsProvider with ChangeNotifier {
           'description':
               'Relative Strength Index (RSI) measures the speed and magnitude of price changes. '
                   'Values above 70 indicate overbought conditions (potential SELL), while values below 30 '
-                  'indicate oversold conditions (potential BUY). RSI between 30-70 suggests neutral momentum.',
-          'technicalDetails':
-              '**Formula**: `RSI = 100 - (100 / (1 + RS))` where `RS = Avg Gain / Avg Loss`\n'
-                  '\n'
-                  '**Parameters**:\n'
-                  '- Period: `14 bars` (smoothed using Wilder\'s method)\n'
-                  '\n'
-                  '**Thresholds**:\n'
-                  '- **Oversold**: `RSI < 30` → BUY signal\n'
-                  '- **Overbought**: `RSI > 70` → SELL signal\n'
-                  '- **Bullish momentum**: `RSI 60-70` → BUY\n'
-                  '- **Bearish momentum**: `RSI 30-40` → SELL\n'
-                  '\n'
-                  '**Divergence Detection** (requires 20+ bars):\n'
-                  '- **Bullish**: Price falling (-1%) but RSI rising (+3) when `RSI < 50`\n'
-                  '- **Bearish**: Price rising (+1%) but RSI falling (-3) when `RSI > 50`\n'
-                  '\n'
-                  '_Note: Divergence signals override standard thresholds._'
+                  'indicate oversold conditions (potential BUY). Trend filters adjust these thresholds.',
+          'technicalDetails': '**Formula**: `RSI = 100 - (100 / (1 + RS))` where `RS = Avg Gain / Avg Loss`\n'
+              '\n'
+              '**Parameters**:\n'
+              '- Period: `14 bars` (smoothed using Wilder\'s method)\n'
+              '- Trend Filter: `Price > SMA200` (Bullish Trend) or `Price < SMA200` (Bearish Trend)\n'
+              '\n'
+              '**Thresholds**:\n'
+              '- **Oversold**: `RSI < 30` → BUY signal\n'
+              '- **Overbought**: `RSI > 70` → SELL signal\n'
+              '- **Bullish momentum**: `RSI 60-70` → BUY\n'
+              '- **Bearish momentum**: `RSI 30-40` → SELL\n'
+              '\n'
+              '**Thresholds with Trend Context**:\n'
+              '- **Uptrend (Bull Market)**: Oversold at 40 (Aggressive Buy), Overbought at 80.\n'
+              '- **Downtrend (Bear Market)**: Oversold at 20, Overbought at 60 (Aggressive Short).\n'
+              '\n'
+              '**Divergence Detection** (requires 20+ bars):\n'
+              '- **Bullish**: Price falling but RSI rising (divergence).\n'
+              '- **Bearish**: Price rising but RSI falling (divergence).\n'
+              '\n'
+              '_Note: Divergence signals or trend-aligned signals carry higher weight._'
         };
       case 'marketDirection':
         return {
@@ -98,10 +102,10 @@ class TradeSignalsProvider with ChangeNotifier {
       case 'macd':
         return {
           'title': 'MACD',
-          'description':
-              'Moving Average Convergence Divergence (MACD) shows the relationship between two moving averages. '
-                  'When the MACD line crosses above the signal line, it generates a BUY signal. When MACD crosses below the signal line, '
-                  'it generates a SELL signal. The histogram shows the strength of the trend.',
+          'description': 'Moving Average Convergence Divergence (MACD) shows the relationship between two moving averages. '
+              'When the MACD line crosses above the signal line, it generates a BUY signal. When MACD crosses below the signal line, '
+              'it generates a SELL signal. The histogram shows the strength of the trend. '
+              'Additionally, Histogram momentum reversals often precede crossovers, providing earlier entries.',
           'technicalDetails': '**Components**:\n'
               '- Fast EMA: `12-period`\n'
               '- Slow EMA: `26-period`\n'
@@ -116,21 +120,23 @@ class TradeSignalsProvider with ChangeNotifier {
               '- **Bearish Crossover**: Histogram crosses below `0` → SELL\n'
               '- **Bullish Momentum**: Histogram `> 0` → BUY\n'
               '- **Bearish Momentum**: Histogram `< 0` → SELL\n'
+              '- **Momentum Reversal**: Histogram reversal (2+ bars) indicates slowing momentum before a cross.\n'
               '\n'
-              '_Minimum 35 periods (26 + 9) required. Histogram magnitude indicates momentum strength._'
+              '_Reversal signals are "Early Warnings" that often eventually lead to full crossovers._'
         };
       case 'bollingerBands':
         return {
           'title': 'Bollinger Bands',
-          'description':
-              'Volatility indicator using standard deviations around a moving average. Price near the lower band '
-                  'suggests oversold conditions (potential BUY), while price near the upper band suggests overbought (potential SELL). '
-                  'Price in the middle suggests neutral conditions. Band width indicates volatility levels.',
+          'description': 'Volatility indicator using standard deviations around a moving average. Price near the lower band '
+              'suggests oversold conditions (potential BUY), while price near the upper band suggests overbought (potential SELL). '
+              'Price in the middle suggests neutral conditions. Band width indicates volatility levels. '
+              'A "Squeeze" (very narrow bands) alerts to an impending explosive move, while a "Breakout" from a Squeeze is a high-conviction signal.',
           'technicalDetails': '**Band Calculation**:\n'
               '- Middle Band: `20-period SMA`\n'
               '- Upper Band: `Middle + (2 × StdDev)`\n'
               '- Lower Band: `Middle - (2 × StdDev)`\n'
               '- StdDev: Sample standard deviation (N-1 denominator)\n'
+              '- **Bandwidth**: `(Upper - Lower) / Middle`\n'
               '\n'
               '**Position Formula**: `(Price - Lower) / (Upper - Lower) × 100`\n'
               '\n'
@@ -140,8 +146,11 @@ class TradeSignalsProvider with ChangeNotifier {
               '- **Lower Region**: Position `< 30%` → BUY\n'
               '- **Upper Region**: Position `> 70%` → SELL\n'
               '- **Neutral**: `30% ≤ Position ≤ 70%` → HOLD\n'
+              '- **Squeeze**: Bandwidth < 6-month low (within 5%) → HOLD (Warning of big move).\n'
+              '- **Squeeze Breakout**: Price breaking bands after a Squeeze → STRONG BUY/SELL.\n'
+              '- **Mean Reversion**: Price touching bands in ranging market → Reversal.\n'
               '\n'
-              '_Band width indicates volatility: narrow = low vol, wide = high vol._'
+              '_Squeezes are the most powerful signal in this system._'
         };
       case 'stochastic':
         return {
@@ -149,7 +158,7 @@ class TradeSignalsProvider with ChangeNotifier {
           'description':
               'Stochastic Oscillator compares the closing price to its price range over a period. Values above 80 indicate '
                   'overbought conditions (potential SELL), below 20 indicates oversold (potential BUY). Crossovers of %K and %D '
-                  'lines provide additional signals. Works best in ranging markets.',
+                  'lines provide additional signals. Works best in ranging markets, but can identify momentum shifts in trends.',
           'technicalDetails': '**Parameters**:\n'
               '- %K Period: `14 bars`\n'
               '- %D Period: `3 bars` (SMA of %K)\n'
@@ -161,11 +170,14 @@ class TradeSignalsProvider with ChangeNotifier {
               '**Signals**:\n'
               '- **Oversold**: `%K < 20` and `%D < 20` → BUY\n'
               '- **Overbought**: `%K > 80` and `%D > 80` → SELL\n'
-              '- **Bullish Crossover**: %K crosses above %D in oversold region → BUY\n'
-              '- **Bearish Crossover**: %K crosses below %D in overbought region → SELL\n'
-              '- **Neutral**: `20 ≤ %K ≤ 80` → HOLD\n'
+              '- **Bullish Crossover**: %K crosses above %D in Low/Oversold region → BUY\n'
+              '- **Bearish Crossover**: %K crosses below %D in High/Overbought region → SELL\n'
+              '- **Stochastic Pop**: %K crosses above 80 and sustains → BUY (Momentum)\n'
+              '- **Stochastic Drop**: %K crosses below 20 and sustains → SELL (Momentum)\n'
+              '- **Bullish Divergence**: Price Lower Low, %K Higher Low (< 30) → BUY\n'
+              '- **Bearish Divergence**: Price Higher High, %K Lower High (> 70) → SELL\n'
               '\n'
-              '_Best used in ranging/sideways markets. Fast-reacting momentum oscillator._'
+              '_Best used in ranging markets, but Divergence signals are powerful reversal indicators._'
         };
       case 'atr':
         return {
@@ -184,10 +196,11 @@ class TradeSignalsProvider with ChangeNotifier {
               '\n'
               '**Interpretation**:\n'
               '- **High Volatility**: ATR ratio `> 1.5` → HOLD (caution, wide swings)\n'
-              '- **Low Volatility**: ATR ratio `< 0.6` → BUY (breakout setup, tight ranges)\n'
-              '- **Normal**: `0.6 ≤ ATR ratio ≤ 1.5` → HOLD\n'
+              '- **Extreme Volatility**: ATR ratio `> 2.0` → HOLD (Exhaustion Risk)\n'
+              '- **Squeeze (Low Volatility)**: ATR ratio `< 0.7` → BUY (Potential Breakout)\n'
+              '- **Normal**: `0.7 ≤ ATR ratio ≤ 1.5` → HOLD\n'
               '\n'
-              '_Used for stop-loss placement (2-3× ATR) and position sizing. Not directional._'
+              '_Used for stop-loss placement (2-3× ATR) and position sizing. Low ATR Squeezes often precede breakouts._'
         };
       case 'obv':
         return {
@@ -205,11 +218,12 @@ class TradeSignalsProvider with ChangeNotifier {
               '- Price Trend: Compare recent 10-bar price avg vs previous 10-bar avg\n'
               '\n'
               '**Signals**:\n'
-              '- **Bullish Divergence**: OBV trend `> +5%` while price trend `< 0%` → BUY (strong)\n'
-              '- **Bearish Divergence**: OBV trend `< -5%` while price trend `> 0%` → SELL (strong)\n'
-              '- **Confirmed Uptrend**: OBV trend `> +10%` with price rising → BUY\n'
-              '- **Confirmed Downtrend**: OBV trend `< -10%` with price falling → SELL\n'
-              '- **Neutral**: `-5% ≤ OBV trend ≤ +5%` → HOLD\n'
+              '- **OBV Breakout**: OBV makes new high before Price → BUY (Accumulation)\n'
+              '- **OBV Breakdown**: OBV makes new low before Price → SELL (Distribution)\n'
+              '- **Bullish Divergence**: OBV trend `> +5%` while price trend `< 0%` → BUY\n'
+              '- **Bearish Divergence**: OBV trend `< -5%` while price trend `> 0%` → SELL\n'
+              '- **Confirmed Uptrend**: OBV trend `> +5%` with price rising → BUY\n'
+              '- **Confirmed Downtrend**: OBV trend `< -5%` with price falling → SELL\n'
               '\n'
               '_Leading indicator: volume changes often precede price movements._'
         };
@@ -232,10 +246,12 @@ class TradeSignalsProvider with ChangeNotifier {
               '- Lower Band 2σ: `VWAP - 2 StdDev`\n'
               '\n'
               '**Signals**:\n'
-              '- **Below -2σ**: Oversold → BUY (strong)\n'
+              '- **Bullish Crossover**: Price crosses VWAP from below → BUY\n'
+              '- **Bearish Crossover**: Price crosses VWAP from above → SELL\n'
+              '- **Below -2σ**: Extended/Oversold → BUY (Mean Reversion)\n'
               '- **Below -1σ**: Undervalued → BUY\n'
               '- **Above +1σ**: Overvalued → SELL\n'
-              '- **Above +2σ**: Overbought → SELL (strong)\n'
+              '- **Above +2σ**: Extended/Overbought → SELL (Mean Reversion)\n'
               '\n'
               '_Institutional benchmark for execution quality. Resets each trading session._'
         };
@@ -258,6 +274,8 @@ class TradeSignalsProvider with ChangeNotifier {
               '- `ADX = 14-period smoothed average of DX` (Wilder\'s smoothing)\n'
               '\n'
               '**Signals**:\n'
+              '- **New Trend**: ADX crosses above 20 → BUY/SELL (based on DI)\n'
+              '- **Trend Exhaustion**: ADX > 50 and turning down → HOLD (Take Profit)\n'
               '- **Bullish**: `ADX > 25` and `+DI > -DI` → BUY (strong if `ADX > 40`)\n'
               '- **Bearish**: `ADX > 25` and `-DI > +DI` → SELL (strong if `ADX > 40`)\n'
               '- **Weak/Ranging**: `ADX < 20` → HOLD\n'
@@ -377,7 +395,7 @@ class TradeSignalsProvider with ChangeNotifier {
   bool _isLoading = false;
   Map<String, dynamic>? _tradeSignal;
 
-  String _sortBy = 'timestamp';
+  String _sortBy = 'signalStrength';
   String get sortBy => _sortBy;
   set sortBy(String value) {
     if (_sortBy != value) {
@@ -806,7 +824,8 @@ class TradeSignalsProvider with ChangeNotifier {
       'enableVolatilityFilters': config.strategyConfig.enableVolatilityFilters,
       'minVolatility': config.strategyConfig.minVolatility,
       'maxVolatility': config.strategyConfig.maxVolatility,
-      'enableDrawdownProtection': config.strategyConfig.enableDrawdownProtection,
+      'enableDrawdownProtection':
+          config.strategyConfig.enableDrawdownProtection,
       'maxDrawdown': config.strategyConfig.maxDrawdown,
       'skipSignalUpdate': skipSignalUpdate,
     };

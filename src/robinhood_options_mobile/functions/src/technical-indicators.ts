@@ -313,6 +313,52 @@ export function computeBollingerBands(
 }
 
 /**
+ * Compute array of Bollinger Bands
+ * @param {number[]} prices - Array of prices
+ * @param {number} period - Period (default 20)
+ * @param {number} stdDev - Standard deviations (default 2)
+ * @return {Array<{upper: number, middle: number, lower: number}|null>}
+ */
+export function computeBollingerBandsArray(
+  prices: number[],
+  period = 20,
+  stdDev = 2
+): ({ upper: number; middle: number; lower: number } | null)[] {
+  if (!prices || prices.length < period) return Array(prices.length).fill(null);
+
+  const smaValues = computeSMAArray(prices, period);
+  const result: ({ upper: number; middle: number; lower: number } | null)[] =
+    [];
+
+  // For valid SMA values, calculate stdDev
+  // smaValues[i] corresponds to prices[i].
+  // SMA is valid starting from index (period - 1).
+  for (let i = 0; i < prices.length; i++) {
+    const middle = smaValues[i];
+    if (middle === null) {
+      result.push(null);
+      continue;
+    }
+
+    // Calculate StdDev for window ending at i
+    const start = i - period + 1;
+    const slice = prices.slice(start, i + 1);
+    const squaredDiffs = slice.map((p) => Math.pow(p - middle, 2));
+    const varianceDenom = period > 1 ? (period - 1) : period; // Sample StdDev
+    const variance = squaredDiffs.reduce((a, b) => a + b, 0) / varianceDenom;
+    const standardDeviation = Math.sqrt(variance);
+
+    result.push({
+      upper: middle + stdDev * standardDeviation,
+      middle: middle,
+      lower: middle - stdDev * standardDeviation,
+    });
+  }
+
+  return result;
+}
+
+/**
  * Compute array of Stochastic values
  * @param {number[]} highs - Array of high prices
  * @param {number[]} lows - Array of low prices
@@ -1396,10 +1442,13 @@ export function evaluateMomentum(
       }
     }
 
-    // Simplified Trend Fallback (Visual Metadata)
+    // Simplified RSI Trend (Short term momentum direction)
+    // Compare last 3 bars vs previous 3 bars
     const recentAvg = recentRSI.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const olderAvg = recentRSI.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
-    rsiTrend = recentAvg - olderAvg;
+    const prevAvg = recentRSI.length >= 6 ?
+      recentRSI.slice(-6, -3).reduce((a, b) => a + b, 0) / 3 :
+      recentRSI[0];
+    rsiTrend = recentAvg - prevAvg;
 
     const recentP = prices.slice(-5).reduce((a, b) => a + b, 0) / 5;
     const olderP = prices.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
@@ -1443,7 +1492,7 @@ export function evaluateMomentum(
       signal: "BUY",
       reason: "RSI indicates oversold condition " +
         `(${rsi.toFixed(2)} < ${oversoldThreshold})`,
-      metadata: { rsi, interpretation: "oversold" },
+      metadata: { rsi, interpretation: "oversold", rsiTrend },
     };
   }
 
@@ -1453,7 +1502,7 @@ export function evaluateMomentum(
       signal: "SELL",
       reason: "RSI indicates overbought condition " +
         `(${rsi.toFixed(2)} > ${overboughtThreshold})`,
-      metadata: { rsi, interpretation: "overbought" },
+      metadata: { rsi, interpretation: "overbought", rsiTrend },
     };
   }
 
@@ -1463,7 +1512,7 @@ export function evaluateMomentum(
       value: rsi,
       signal: "BUY",
       reason: `RSI shows strong bullish momentum (${rsi.toFixed(2)})`,
-      metadata: { rsi, interpretation: "bullish" },
+      metadata: { rsi, interpretation: "bullish", rsiTrend },
     };
   }
 
@@ -1473,15 +1522,17 @@ export function evaluateMomentum(
       value: rsi,
       signal: "SELL",
       reason: `RSI shows bearish momentum (${rsi.toFixed(2)})`,
-      metadata: { rsi, interpretation: "bearish" },
+      metadata: { rsi, interpretation: "bearish", rsiTrend },
     };
   }
 
+  const trendDesc = rsiTrend > 2 ? "rising" :
+    (rsiTrend < -2 ? "falling" : "flat");
   return {
     value: rsi,
     signal: "HOLD",
-    reason: `RSI in neutral zone (${rsi.toFixed(2)})`,
-    metadata: { rsi, interpretation: "neutral" },
+    reason: `RSI in neutral zone (${rsi.toFixed(2)}) and ${trendDesc}`,
+    metadata: { rsi, interpretation: "neutral", rsiTrend },
   };
 }
 
@@ -1813,6 +1864,36 @@ export function evaluateMACD(
     };
   }
 
+  // Histogram Reversal (Early Signal)
+  if (prevHistogram !== null) {
+    // Histogram is negative but rising (e.g., -0.5 -> -0.2)
+    // = Bullish divergence / Momentum shift
+    if (histogram < 0 && prevHistogram < 0 && histogram > prevHistogram) {
+      // Only if it's significant rise (e.g. > 5% of magnitude)
+      if (histogram > prevHistogram * 0.95) {
+        return {
+          value: histogram,
+          signal: "BUY",
+          reason: "MACD bearish momentum weakening " +
+            `(hist: ${histogram.toFixed(4)})`,
+          metadata: { ...macd, reversal: "bullish_weakening" },
+        };
+      }
+    }
+    // Histogram is positive but falling (e.g. 0.5 -> 0.2)
+    if (histogram > 0 && prevHistogram > 0 && histogram < prevHistogram) {
+      if (histogram < prevHistogram * 0.95) {
+        return {
+          value: histogram,
+          signal: "BUY", // Trend following maintained
+          reason: "MACD bullish trend (momentum weakening) " +
+            `(hist: ${histogram.toFixed(4)})`,
+          metadata: { ...macd, reversal: "bearish_weakening" },
+        };
+      }
+    }
+  }
+
   // Strong positive histogram (bullish momentum)
   if (histogram > 0) {
     return {
@@ -1861,7 +1942,10 @@ export function evaluateBollingerBands(
     };
   }
 
-  const bb = computeBollingerBands(prices, period, stdDev);
+  // Use array computation to check for squeeze/expansion
+  const bbArray = computeBollingerBandsArray(prices, period, stdDev);
+  const bb = bbArray[bbArray.length - 1];
+
   if (!bb) {
     return {
       value: null,
@@ -1874,10 +1958,35 @@ export function evaluateBollingerBands(
   const bandwidth = (bb.upper - bb.lower) / bb.middle;
   const position = (currentPrice - bb.lower) / (bb.upper - bb.lower);
 
+  // Check for Squeeze (bandwidth is lowest in 6 months - approx 126 bars)
+  let isSqueeze = false;
+  if (bbArray.length >= 20) {
+    const recentBandwidths = bbArray
+      .slice(-120) // Check last ~6 months of data if available
+      .filter((b) => b !== null)
+      .map((b) => (b!.upper - b!.lower) / b!.middle);
+
+    if (recentBandwidths.length > 0) {
+      const minBandwidth = Math.min(...recentBandwidths);
+      if (bandwidth <= minBandwidth * 1.05) { // Within 5% of 6-month low
+        isSqueeze = true;
+      }
+    }
+  }
+
   // Price at or below lower band (oversold)
   if (currentPrice <= bb.lower * 1.005) {
     const cp = currentPrice.toFixed(2);
     const low = bb.lower.toFixed(2);
+    // Squeeze at bottom band is high risk breakdown or huge reversal
+    if (isSqueeze) {
+      return {
+        value: position,
+        signal: "SELL", // Breakdown from squeeze
+        reason: `Bollinger Squeeze Breakdown! Price at lower BB (${cp})`,
+        metadata: { ...bb, currentPrice, bandwidth, position, isSqueeze },
+      };
+    }
     return {
       value: position,
       signal: "BUY",
@@ -1890,11 +1999,47 @@ export function evaluateBollingerBands(
   if (currentPrice >= bb.upper * 0.995) {
     const cp = currentPrice.toFixed(2);
     const up = bb.upper.toFixed(2);
+    if (isSqueeze) {
+      return {
+        value: position,
+        signal: "BUY", // Breakout from squeeze
+        reason: `Bollinger Squeeze Breakout! Price at upper BB (${cp})`,
+        metadata: { ...bb, currentPrice, bandwidth, position, isSqueeze },
+      };
+    }
     return {
       value: position,
       signal: "SELL",
       reason: `Price at upper BB (${cp} ≥ ${up})`,
       metadata: { ...bb, currentPrice, bandwidth, position },
+    };
+  }
+
+  // Walk the bands?
+  // If price > upper band and bandwidth is expanding = Strong Trend
+  // Need Check previous bandwidth
+  let isExpanding = false;
+  if (bbArray.length >= 2) {
+    const prevBB = bbArray[bbArray.length - 2];
+    if (prevBB) {
+      const prevBW = (prevBB.upper - prevBB.lower) / prevBB.middle;
+      if (bandwidth > prevBW * 1.05) isExpanding = true;
+    }
+  }
+
+  // Squeeze "The Squeeze" (John Carter)
+  // Usually Keltner Channels inside Bollinger Bands.
+  // Approximate here: Low Bandwidth
+  if (isSqueeze) {
+    return {
+      value: position,
+      signal: "HOLD",
+      reason: "Volatility Squeeze detected (Bandwidth " +
+        `${(bandwidth * 100).toFixed(2)}%). Prepare for breakout.`,
+      metadata: {
+        ...bb, currentPrice, bandwidth, position, isSqueeze,
+        isExpanding,
+      },
     };
   }
 
@@ -1982,54 +2127,165 @@ export function evaluateStochastic(
     prevStoch = stochArray[stochArray.length - 2];
   }
 
-  // Bullish crossover in oversold region
-  const bullishCross = prevStoch && k > d &&
-    prevStoch.k <= prevStoch.d && k < oversoldThreshold;
-  if (bullishCross) {
+  // --- NEW: Divergence Detection ---
+  let divergence: "bullish" | "bearish" | null = null;
+
+  // Need at least ~20 bars for divergence check
+  if (stochArray.length >= 20) {
+    const lookback = 20;
+    const recentStoch = stochArray.slice(-lookback);
+    const recentPrices = closes.slice(-lookback);
+
+    // Find K troughs (< 30) for bullish divergence
+    const troughs: number[] = [];
+    for (let i = 1; i < recentStoch.length - 1; i++) {
+      const currK = recentStoch[i]?.k;
+      const prevK = recentStoch[i - 1]?.k;
+      const nextK = recentStoch[i + 1]?.k;
+      if (currK !== undefined && prevK !== undefined && nextK !== undefined) {
+        if (currK < prevK && currK < nextK && currK < 30) {
+          troughs.push(i);
+        }
+      }
+    }
+
+    if (troughs.length >= 2) {
+      const t2 = troughs[troughs.length - 1]; // Most recent
+      const t1 = troughs[troughs.length - 2]; // Previous
+      const k2 = recentStoch[t2]!.k;
+      const k1 = recentStoch[t1]!.k;
+      const p2 = recentPrices[t2];
+      const p1 = recentPrices[t1];
+
+      // Higher Low in Stochastic + Lower Low in Price
+      if (k2 > k1 && p2 < p1) {
+        divergence = "bullish";
+      }
+    }
+
+    // Find K peaks (> 70) for bearish divergence
+    const peaks: number[] = [];
+    for (let i = 1; i < recentStoch.length - 1; i++) {
+      const currK = recentStoch[i]?.k;
+      const prevK = recentStoch[i - 1]?.k;
+      const nextK = recentStoch[i + 1]?.k;
+      if (currK !== undefined && prevK !== undefined && nextK !== undefined) {
+        if (currK > prevK && currK > nextK && currK > 70) {
+          peaks.push(i);
+        }
+      }
+    }
+
+    if (peaks.length >= 2) {
+      const p2 = peaks[peaks.length - 1];
+      const p1 = peaks[peaks.length - 2];
+      const k2 = recentStoch[p2]!.k;
+      const k1 = recentStoch[p1]!.k;
+      const price2 = recentPrices[p2];
+      const price1 = recentPrices[p1];
+
+      // Lower High in Stochastic + Higher High in Price
+      if (k2 < k1 && price2 > price1) {
+        divergence = "bearish";
+      }
+    }
+  }
+
+  // Priority 1: Divergence (Reversal Signals)
+  if (divergence === "bullish") {
     const kStr = k.toFixed(1);
-    const dStr = d.toFixed(1);
     return {
       value: k,
       signal: "BUY",
-      reason: `Stochastic bullish cross oversold (K:${kStr}, D:${dStr})`,
+      reason: `Stochastic Bullish Divergence (Higher Lows on K ${kStr})`,
+      metadata: { k, d, interpretation: "bullish_divergence" },
+    };
+  }
+  if (divergence === "bearish") {
+    const kStr = k.toFixed(1);
+    return {
+      value: k,
+      signal: "SELL",
+      reason: `Stochastic Bearish Divergence (Lower Highs on K ${kStr})`,
+      metadata: { k, d, interpretation: "bearish_divergence" },
+    };
+  }
+
+  // Bullish crossover in oversold region
+  const bullishCross = prevStoch && k > d &&
+    prevStoch.k <= prevStoch.d && k < 40; // Relaxed from 20 to 40 for crossover
+  if (bullishCross) {
+    const kStr = k.toFixed(1);
+    const dStr = d.toFixed(1);
+    const region = k < 20 ? "Oversold" : "Low";
+    return {
+      value: k,
+      signal: "BUY",
+      reason: `Stochastic Bullish Cross in ${region} Zone ` +
+        `(K:${kStr} > D:${dStr})`,
       metadata: { k, d, crossover: "bullish" },
     };
   }
 
   // Bearish crossover in overbought region
   const bearishCross = prevStoch && k < d &&
-    prevStoch.k >= prevStoch.d && k > overboughtThreshold;
+    prevStoch.k >= prevStoch.d && k > 60; // Relaxed from 80 to 60
   if (bearishCross) {
     const kStr = k.toFixed(1);
     const dStr = d.toFixed(1);
+    const region = k > 80 ? "Overbought" : "High";
     return {
       value: k,
       signal: "SELL",
-      reason: `Stochastic bearish cross overbought (K:${kStr}, D:${dStr})`,
+      reason: `Stochastic Bearish Cross in ${region} Zone ` +
+        `(K:${kStr} < D:${dStr})`,
       metadata: { k, d, crossover: "bearish" },
     };
   }
 
-  // Oversold condition
+  // Stochastic Pop (Momentum): K > 80 and D > 80 and Rising
+  // Often indicates strong trend (not just "overbought")
+  if (k > 80 && d > 80 && prevStoch && k > prevStoch.k) {
+    const kStr = k.toFixed(1);
+    return {
+      value: k,
+      signal: "BUY", // Momentum buy
+      reason: `Stochastic Momentum Pop (K:${kStr} > 80)`,
+      metadata: { k, d, interpretation: "momentum_pop" },
+    };
+  }
+
+  // Stochastic Drop (Momentum): K < 20 and D < 20 and Falling
+  if (k < 20 && d < 20 && prevStoch && k < prevStoch.k) {
+    const kStr = k.toFixed(1);
+    return {
+      value: k,
+      signal: "SELL", // Momentum sell
+      reason: `Stochastic Momentum Drop (K:${kStr} < 20)`,
+      metadata: { k, d, interpretation: "momentum_drop" },
+    };
+  }
+
+  // Oversold condition (if no crossover yet)
   if (k < oversoldThreshold && d < oversoldThreshold) {
     const kStr = k.toFixed(1);
     const dStr = d.toFixed(1);
     return {
       value: k,
       signal: "BUY",
-      reason: `Stochastic oversold (K:${kStr}, D:${dStr})`,
+      reason: `Stochastic Oversold (K:${kStr}, D:${dStr}) - Watch for cross`,
       metadata: { k, d, interpretation: "oversold" },
     };
   }
 
-  // Overbought condition
+  // Overbought condition (if no crossover yet)
   if (k > overboughtThreshold && d > overboughtThreshold) {
     const kStr = k.toFixed(1);
     const dStr = d.toFixed(1);
     return {
       value: k,
       signal: "SELL",
-      reason: `Stochastic overbought (K:${kStr}, D:${dStr})`,
+      reason: `Stochastic Overbought (K:${kStr}, D:${dStr}) - Watch for cross`,
       metadata: { k, d, interpretation: "overbought" },
     };
   }
@@ -2102,6 +2358,22 @@ export function evaluateATR(
     atrValues.reduce((a, b) => a + b, 0) / atrValues.length : 0;
   const atrRatio = avgATR > 0 ? atr / avgATR : 1.0;
 
+  // Extremely High Volatility (Climax / Exhaustion risk)
+  if (atrRatio > 2.0) {
+    const atrStr = atr.toFixed(2);
+    const pct = (atrRatio * 100).toFixed(0);
+    return {
+      value: atr,
+      signal: "HOLD", // Risk off
+      reason: "Extreme Volatility (Exhaustion Risk): " +
+        `ATR ${atrStr} is ${pct}% of avg`,
+      metadata: {
+        atr, atrPercent, avgATR, atrRatio,
+        interpretation: "extreme_volatility",
+      },
+    };
+  }
+
   // High volatility (expanding ranges) - caution
   if (atrRatio > 1.5) {
     const atrStr = atr.toFixed(2);
@@ -2117,17 +2389,18 @@ export function evaluateATR(
     };
   }
 
-  // Low volatility (contracting ranges) - potential breakout
-  if (atrRatio < 0.6) {
+  // Low volatility (Squeeze) - Potential Breakout
+  if (atrRatio < 0.7) {
     const atrStr = atr.toFixed(2);
     const pct = (atrRatio * 100).toFixed(0);
     return {
       value: atr,
-      signal: "BUY",
-      reason: `Low volatility - breakout setup (ATR: ${atrStr}, ${pct}%)`,
+      signal: "BUY", // Signal to watch for breakout
+      reason: "Low Volatility Squeeze " +
+        `(ATR ${atrStr} is ${pct}% of avg) - Expect Move`,
       metadata: {
         atr, atrPercent, avgATR, atrRatio,
-        interpretation: "low_volatility",
+        interpretation: "volatility_squeeze",
       },
     };
   }
@@ -2173,6 +2446,21 @@ export function evaluateOBV(
   const recentOBV = obv.slice(-10);
   const olderOBV = obv.slice(-20, -10);
 
+  // Helper to check for new highs/lows
+  const lookbackPeriod = 20;
+  const recentObvWindow = obv.slice(-lookbackPeriod);
+  const maxObv = Math.max(...recentObvWindow);
+  const minObv = Math.min(...recentObvWindow);
+  const isNewHighOBV = currentOBV >= maxObv;
+  const isNewLowOBV = currentOBV <= minObv;
+
+  const recentPrices = closes.slice(-lookbackPeriod);
+  const maxPrice = Math.max(...recentPrices);
+  const minPrice = Math.min(...recentPrices);
+  const currentPrice = closes[closes.length - 1];
+  const isNewHighPrice = currentPrice >= maxPrice;
+  const isNewLowPrice = currentPrice <= minPrice;
+
   const recentAvg = recentOBV.reduce((a, b) => a + b, 0) / recentOBV.length;
   const olderAvg = olderOBV.reduce((a, b) => a + b, 0) / olderOBV.length;
   // Guard against division by zero when olderAvg is ~0
@@ -2181,10 +2469,35 @@ export function evaluateOBV(
     ((recentAvg - olderAvg) / denom) * 100 :
     0;
 
-  const currentPrice = closes[closes.length - 1];
   const priceChange = closes.length >= 10 ?
     ((currentPrice - closes[closes.length - 10]) /
       closes[closes.length - 10]) * 100 : 0;
+
+  // OBV Breakout: OBV makes new high but Price hasn't yet (Accumulation)
+  if (isNewHighOBV && !isNewHighPrice) {
+    return {
+      value: currentOBV,
+      signal: "BUY",
+      reason: "OBV Breakout (New High) preceding Price - Accumulation",
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "obv_breakout",
+      },
+    };
+  }
+
+  // OBV Breakdown: OBV makes new low but Price hasn't yet (Distribution)
+  if (isNewLowOBV && !isNewLowPrice) {
+    return {
+      value: currentOBV,
+      signal: "SELL",
+      reason: "OBV Breakdown (New Low) preceding Price - Distribution",
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "obv_breakdown",
+      },
+    };
+  }
 
   // Bullish divergence: OBV rising while price falling
   if (obvTrend > 5 && priceChange < 0) {
@@ -2217,7 +2530,7 @@ export function evaluateOBV(
   }
 
   // Strong OBV uptrend with price confirmation
-  if (obvTrend > 10 && priceChange > 0) {
+  if (obvTrend > 5 && priceChange > 0) { // Relaxed from 10 to 5
     const obvStr = obvTrend.toFixed(1);
     return {
       value: currentOBV,
@@ -2231,7 +2544,7 @@ export function evaluateOBV(
   }
 
   // Strong OBV downtrend with price confirmation
-  if (obvTrend < -10 && priceChange < 0) {
+  if (obvTrend < -5 && priceChange < 0) { // Relaxed from -10 to -5
     const obvStr = obvTrend.toFixed(1);
     return {
       value: currentOBV,
@@ -2286,6 +2599,7 @@ export function evaluateVWAP(
   }
 
   const currentPrice = closes[closes.length - 1];
+  const prevPrice = closes.length >= 2 ? closes[closes.length - 2] : null;
   const deviation = ((currentPrice - vwap) / vwap) * 100;
 
   // Calculate VWAP bands (1 and 2 standard deviations)
@@ -2303,12 +2617,39 @@ export function evaluateVWAP(
   const upperBand2 = vwap + 2 * stdDev;
   const lowerBand2 = vwap - 2 * stdDev;
 
-  // Price significantly below VWAP (potential buy)
+  // VWAP Crossover: Price crosses above VWAP (Bullish)
+  if (prevPrice !== null && prevPrice < vwap && currentPrice >= vwap) {
+    return {
+      value: vwap,
+      signal: "BUY",
+      reason: "Bullish Crossover: Price crossed above VWAP",
+      metadata: {
+        vwap, currentPrice, deviation,
+        interpretation: "vwap_crossover_bullish",
+      },
+    };
+  }
+
+  // VWAP Crossover: Price crosses below VWAP (Bearish)
+  if (prevPrice !== null && prevPrice > vwap && currentPrice <= vwap) {
+    return {
+      value: vwap,
+      signal: "SELL",
+      reason: "Bearish Crossover: Price crossed below VWAP",
+      metadata: {
+        vwap, currentPrice, deviation,
+        interpretation: "vwap_crossover_bearish",
+      },
+    };
+  }
+
+  // Price significantly below VWAP (potential buy - Mean Reversion)
   if (currentPrice <= lowerBand2) {
     return {
       value: vwap,
       signal: "BUY",
-      reason: `Price below VWAP -2σ (${deviation.toFixed(2)}% below VWAP)`,
+      reason: `Price extended below VWAP -2σ (${deviation.toFixed(2)}%)` +
+        " - Mean Reversion",
       metadata: {
         vwap, currentPrice, deviation,
         upperBand1, lowerBand1, upperBand2, lowerBand2,
@@ -2321,7 +2662,7 @@ export function evaluateVWAP(
     return {
       value: vwap,
       signal: "BUY",
-      reason: `Price below VWAP -1σ (${deviation.toFixed(2)}% below VWAP)`,
+      reason: `Price below VWAP -1σ (${deviation.toFixed(2)}%)`,
       metadata: {
         vwap, currentPrice, deviation,
         upperBand1, lowerBand1, upperBand2, lowerBand2,
@@ -2330,12 +2671,13 @@ export function evaluateVWAP(
     };
   }
 
-  // Price significantly above VWAP (potential sell)
+  // Price significantly above VWAP (potential sell - Mean Reversion)
   if (currentPrice >= upperBand2) {
     return {
       value: vwap,
       signal: "SELL",
-      reason: `Price above VWAP +2σ (${deviation.toFixed(2)}% above VWAP)`,
+      reason: `Price extended above VWAP +2σ (${deviation.toFixed(2)}%)` +
+        " - Mean Reversion",
       metadata: {
         vwap, currentPrice, deviation,
         upperBand1, lowerBand1, upperBand2, lowerBand2,
@@ -2348,7 +2690,7 @@ export function evaluateVWAP(
     return {
       value: vwap,
       signal: "SELL",
-      reason: `Price above VWAP +1σ (${deviation.toFixed(2)}% above VWAP)`,
+      reason: `Price above VWAP +1σ (${deviation.toFixed(2)}%)`,
       metadata: {
         vwap, currentPrice, deviation,
         upperBand1, lowerBand1, upperBand2, lowerBand2,
@@ -2400,6 +2742,49 @@ export function evaluateADX(
   }
 
   const { adx, plusDI, minusDI } = adxResult;
+
+  // Previous ADX for trend change detection
+  let prevAdx: number | null = null;
+  if (closes.length > period * 2 + 1) {
+    const prevRes = computeADX(
+      highs.slice(0, -1),
+      lows.slice(0, -1),
+      closes.slice(0, -1),
+      period
+    );
+    if (prevRes) prevAdx = prevRes.adx;
+  }
+
+  const adxSlope = prevAdx !== null ? adx - prevAdx : 0;
+
+  // Trend Exhaustion (ADX extremely high and flattening/turning down)
+  if (adx > 50 && adxSlope <= 0) {
+    return {
+      value: adx,
+      signal: "HOLD", // Take profit warning
+      reason: `Trend Exhaustion Risk (ADX ${adx.toFixed(1)} peaking/falling)`,
+      metadata: {
+        adx, plusDI, minusDI, prevAdx,
+        interpretation: "trend_exhaustion",
+      },
+    };
+  }
+
+  // Emerging Trend (ADX crossing above 20)
+  if (prevAdx !== null && prevAdx <= 20 && adx > 20 && adxSlope > 0) {
+    const dir = plusDI > minusDI ? "Bullish" : "Bearish";
+    const signal = plusDI > minusDI ? "BUY" : "SELL";
+    return {
+      value: adx,
+      signal: signal,
+      reason: `New ${dir} Trend Emerging ` +
+        `(ADX crossing 20 to ${adx.toFixed(1)})`,
+      metadata: {
+        adx, plusDI, minusDI, prevAdx,
+        interpretation: "new_trend",
+      },
+    };
+  }
 
   // Strong trend with bullish direction (+DI > -DI and ADX > 25)
   if (adx > 25 && plusDI > minusDI) {
@@ -3172,17 +3557,27 @@ export function evaluateAllIndicators(
 
   // Calculate weighted signal strength (0-100)
   // Weight distribution:
-  // - High (1.5): Price Movement (Patterns)
-  // - Medium (1.2): Momentum (RSI, Stochastic),
-  //   Trend (MACD, ADX, Market Direction)
-  // - Low (1.0): Others
+  // - Critical: Price Patterns (2.0), Ichimoku (1.5), MACD (1.5),
+  //   Momentum (1.5)
+  // - High: Bollinger (1.2), ADX (1.2), VWAP (1.2), Market Direction (1.2)
+  // - Medium: Stochastic (1.0), ATR (1.0), OBV (1.0), CCI (1.0),
+  //   Parabolic (1.0)
   const weights: Record<string, number> = {
-    priceMovement: 1.5,
-    momentum: 1.2,
-    marketDirection: 1.2,
-    macd: 1.2,
+    priceMovement: 2.0,
+    momentum: 1.5,
+    macd: 1.5,
+    ichimoku: 1.5,
+    bollingerBands: 1.2,
     adx: 1.2,
-    // Default others to 1.0
+    vwap: 1.2,
+    marketDirection: 1.2,
+    stochastic: 1.0,
+    atr: 1.0,
+    obv: 1.0,
+    cci: 1.0,
+    parabolicSar: 1.0,
+    williamsR: 1.0,
+    volume: 1.0,
   };
 
   let totalWeight = 0;
@@ -3197,10 +3592,17 @@ export function evaluateAllIndicators(
 
   const buyCount = allVals.filter((i) => i.signal === "BUY").length;
   const sellCount = allVals.filter((i) => i.signal === "SELL").length;
-  const holdCount = allVals.filter((i) => i.signal === "HOLD").length;
-  const totalIndicators = allVals.length;
+  // Counts unused removed
 
   // Process standard indicators
+  interface SignalInfo {
+    name: string;
+    signal: string;
+    reason: string;
+    weight: number;
+  }
+  const activeSignals: SignalInfo[] = [];
+
   for (const [key, indicator] of Object.entries(indicators)) {
     if (!isEnabled(key)) continue;
 
@@ -3208,25 +3610,47 @@ export function evaluateAllIndicators(
     totalWeight += weight;
     if (indicator.signal === "BUY") {
       weightedScore += weight;
+      activeSignals.push({
+        name: key,
+        signal: "BUY",
+        reason: indicator.reason,
+        weight,
+      });
     } else if (indicator.signal === "SELL") {
       weightedScore -= weight;
+      activeSignals.push({
+        name: key,
+        signal: "SELL",
+        reason: indicator.reason,
+        weight,
+      });
     }
     // HOLD adds 0
   }
 
   // Process custom indicators (weight 1.0)
-  for (const indicator of customVals) {
+  for (const [key, indicator] of Object.entries(customResults)) {
     totalWeight += 1.0;
     if (indicator.signal === "BUY") {
       weightedScore += 1.0;
+      activeSignals.push({
+        name: key,
+        signal: "BUY",
+        reason: indicator.reason,
+        weight: 1.0,
+      });
     } else if (indicator.signal === "SELL") {
       weightedScore -= 1.0;
+      activeSignals.push({
+        name: key,
+        signal: "SELL",
+        reason: indicator.reason,
+        weight: 1.0,
+      });
     }
   }
 
   // Normalize to 0-100 range
-  // Range of weightedScore is [-totalWeight, +totalWeight]
-  // Shift to [0, 2*totalWeight] then divide by 2*totalWeight
   const normalizedScore = totalWeight > 0 ?
     (weightedScore + totalWeight) / (2 * totalWeight) :
     0.5;
@@ -3245,34 +3669,46 @@ export function evaluateAllIndicators(
     undefined;
 
   let overallSignal: "BUY" | "SELL" | "HOLD";
-  let reason: string;
 
   if (allGreen) {
     overallSignal = "BUY";
-    reason = `All ${totalIndicators} indicators are GREEN - ` +
-      `Strong BUY signal (strength: ${signalStrength})`;
-  } else if (signalStrength >= 75) {
+  } else if (signalStrength >= 70) {
+    // Lowered slightly from 75 to 70 for actionable limit
     overallSignal = "BUY";
-    reason = `Strong BUY signal (strength: ${signalStrength}). ` +
-      `BUY: ${buyCount}, SELL: ${sellCount}, HOLD: ${holdCount}.`;
   } else if (allRed) {
     overallSignal = "SELL";
-    reason = `All ${totalIndicators} indicators are RED - ` +
-      `Strong SELL signal (strength: ${signalStrength})`;
-  } else if (signalStrength <= 25) {
+  } else if (signalStrength <= 30) {
+    // Raised slightly from 25 to 30
     overallSignal = "SELL";
-    reason = `Strong SELL signal (strength: ${signalStrength}). ` +
-      `BUY: ${buyCount}, SELL: ${sellCount}, HOLD: ${holdCount}.`;
   } else {
     overallSignal = "HOLD";
-    reason = `BUY: ${buyCount}, ` + // Removed 'Mixed signals' it was redundant
-      `SELL: ${sellCount}, HOLD: ${holdCount}. ` +
-      `Signal strength: ${signalStrength}/100.`;
   }
 
-  if (macroAssessment && macroAssessment.status !== "NEUTRAL") {
-    reason += ` Market: ${macroAssessment.status}.`;
+  // Construct detailed reason from top drivers
+  // Sort signals by weight descending
+  const topSignals = activeSignals
+    .filter((s) => s.signal === overallSignal)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 3);
+
+  let summary = "";
+  if (overallSignal === "HOLD") {
+    summary = `Mixed Signals (Strength ${signalStrength}). ` +
+      `Buy: ${buyCount}, Sell: ${sellCount}.`;
+  } else {
+    const mainReasons = topSignals.map((s) => s.reason).join("; ");
+    summary = `Strong ${overallSignal} (${signalStrength}/100) driven by: ` +
+      `${mainReasons || "multiple factors"}.`;
   }
+
+  // Add Macro context if significant conflict
+  if (macroAssessment &&
+    ((overallSignal === "BUY" && macroAssessment.status === "RISK_OFF") ||
+      (overallSignal === "SELL" && macroAssessment.status === "RISK_ON"))) {
+    summary += ` Warning: Market is ${macroAssessment.status}.`;
+  }
+
+  const reason = summary;
 
   // Optimized: Removed dense logging per evaluation
   /*

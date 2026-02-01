@@ -17,7 +17,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
+// import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:intl/intl.dart';
@@ -1251,7 +1251,7 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
           backgroundColor: Colors.transparent,
           selectedColor: chipColor,
           side: BorderSide(
-            color: borderColor ?? theme.colorScheme.outlineVariant,
+            color: borderColor,
             width: 1,
           ),
           labelStyle: TextStyle(
@@ -1721,6 +1721,18 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                       _buildStrengthBadge(displayStrength),
                   ],
                 ),
+                if (widget.signal['reason'] != null &&
+                    widget.signal['reason'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.signal['reason'],
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 if (indicatorSignals.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Row(

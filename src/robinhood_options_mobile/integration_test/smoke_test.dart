@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -178,8 +177,8 @@ void main() {
         // 2. Switch to Puts
         debugPrint('Switching to Puts...');
         await tester.tap(find.text('Put'));
-        await tester.pump(const Duration(milliseconds: 500)); 
-         
+        await tester.pump(const Duration(milliseconds: 500));
+
         // 3. Verify $150 is GONE (as we only have a Call in mock)
         expect(find.text('\$150'), findsNothing);
 
@@ -187,7 +186,7 @@ void main() {
         debugPrint('Switching back to Calls...');
         await tester.tap(find.text('Call'));
         await tester.pump(const Duration(milliseconds: 500));
-         
+
         // 5. Verify $150 is BACK
         expect(find.text('\$150'), findsOneWidget);
 
@@ -205,7 +204,7 @@ void main() {
       debugPrint('Exiting Instrument Details...');
       await tester.pageBack();
       await tester.pump(const Duration(seconds: 1));
-      
+
       // 6. Navigate to Signals (Index 3)
       debugPrint('Navigating to Signals...');
       final signalsTab = find.descendant(

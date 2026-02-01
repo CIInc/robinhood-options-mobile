@@ -143,12 +143,16 @@ export async function getMarketData(symbol: string,
         }
       }
 
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${dataRange}`;
+      // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
+      const querySymbol = symbol.replace(/\./g, "-");
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=${interval}&range=${dataRange}`;
       const resp = await fetch(url);
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
       // Fix for Firebase which does not support arrays inside arrays
-      delete result.meta?.tradingPeriods;
+      if (result) {
+        delete result.meta?.tradingPeriods;
+      }
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         const opes = result.indicators.quote[0].open;
