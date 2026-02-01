@@ -171,11 +171,20 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
 
           # Create ExportOptions.plist
-          # echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
+          echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
 
       - name: Build iOS IPA
-        run: flutter build ipa --release
         # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: |
+          # Extract Profile UUID
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision))
+          echo "Using Profile UUID: $PROFILE_UUID"
+          
+          # Force Manual Signing and set Profile match
+          sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $PROFILE_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
+          
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
 
       - name: Upload iOS IPA Build Artifact
         uses: actions/upload-artifact@v4
