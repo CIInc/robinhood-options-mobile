@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **ITMS-90725:** Updated iOS deployment target to 17.0 and ensured build uses iOS 26 SDK for App Store Connect compliance (required April 2026).
+
 ## [0.31.4] - 2026-02-01
 
 ### Added

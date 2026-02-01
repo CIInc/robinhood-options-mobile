@@ -1,6 +1,6 @@
 # Uncomment this line to define a global platform for your project
-# Added to set minimum deployment target to iOS 15
-platform :ios, '15.0'
+# Updated to iOS 17.0 to support building with iOS 26 SDK (required April 2026)
+platform :ios, '17.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -41,9 +41,9 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    # Added to set minimum deployment target to iOS 15
+    # Updated to iOS 17.0 to support building with iOS 26 SDK (required April 2026)
     target.build_configurations.each do |config|
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
     end
   end
 end

@@ -13,6 +13,8 @@ on:
     # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
     paths:
       - 'src/robinhood_options_mobile/lib/**'
+      - 'src/robinhood_options_mobile/android/**'
+      - 'src/robinhood_options_mobile/ios/**'
       - 'src/robinhood_options_mobile/pubspec.yaml'
   pull_request:
     # branches: [ main ]
@@ -211,7 +213,7 @@ jobs:
     name: Build iOS
     needs: [test_and_analyze, check_version]
     if: needs.check_version.outputs.new_version == 'true'
-    runs-on: macos-latest
+    runs-on: macos-latest # Uses Xcode 16+ which includes iOS 26 SDK (required for ITMS-90725 compliance)
     timeout-minutes: 45
     defaults:
       run:
