@@ -110,10 +110,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Strategies:** Added MACD Zero Line Cross and Bollinger Band Squeeze Breakout strategies.
 - ✅ **Macro Risk Control:** Implemented position size reduction based on RISK_OFF market conditions.
 
-### v0.31.4 ✅ (Released Jan 31, 2026)
-**Pivot Points & Chart Visualization**
-- ✅ **Pivot Points:** Added Pivot Points indicator with support for multiple calculation methods.
-- ✅ **Chart Visualization:** TTM Squeeze indicator added to chart analysis.
+### v0.31.4 ✅ (Released Feb 01, 2026)
+**Alpha Factor Discovery & Technical Analysis**
+- ✅ **Alpha Factor Discovery:** Research engine for predictive signal analysis.
+- ✅ **Technical Indicators:** Pivot Points (Classic, Fibonacci, Woodie, Camarilla).
+- ✅ **Chart Analysis:** TTM Squeeze visualization.
 - ✅ **Enhancements:** Refined Chaikin Money Flow & Fibonacci Retracements.
 
 ### v0.32.0 (Q1 2026 - Feb)
@@ -146,7 +147,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.36.0 (Q2 2026 - May)
 **Quantitative Research Workbench**
-- Alpha factor discovery engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
+- [x] Alpha factor discovery engine ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] Correlation matrix visualizer (multi-asset, multi-timeframe)
 - Event study analyzer
 - Rolling statistics dashboard

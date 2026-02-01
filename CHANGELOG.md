@@ -7,10 +7,12 @@ All notable changes to this project will be documented in this file.
 ## [0.31.4] - 2026-01-31
 
 ### Added
+- **Alpha Factor Discovery:** Added Alpha Factor Discovery engine to identify predictive signals by analyzing correlations with future returns.
 - **Technical Indicators:** Added Pivot Points indicator with support for Classic, Fibonacci, Woodie, and Camarilla calculation methods.
 - **Chart Analysis:** Added TTM Squeeze indicator visualization.
 
 ### Changed
+- **Macro Assessment:** Enhanced Macro Assessment with yield curve evaluation, sector rotation, and asset allocation details.
 - **Technical Indicators:** Enhanced functionality for Chaikin Money Flow and Fibonacci Retracements.
 - **Risk Guard:** Improved RiskGuard handling in automated trading.
 

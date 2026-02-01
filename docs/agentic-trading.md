@@ -797,6 +797,24 @@ enabledIndicators: {
 }
 ```
 
+## Macro Assessment
+
+The system integrates a high-level macroeconomic analysis engine to contextually adjust trading behavior. This ensures that the agent is not just reacting to individual stock charts but is aware of the broader economic environment.
+
+### Core Metrics
+
+*   **Risk Status:** The system determines a global state of `RISK_ON`, `RISK_OFF`, or `NEUTRAL`.
+    *   **RISK_ON:** Favorable conditions (Good growth, low volatility). Position sizes may be increased.
+    *   **RISK_OFF:** Dangerous conditions (High volatility, recession fears). Position sizes are reduced, and defensive sectors are prioritized.
+*   **Yield Curve (10Y - 13W):** Monitors for inversion as a leading recession indicator.
+*   **Sector Rotation:** Dynamically identifies which sectors are Bullish (e.g., Tech, Discretionary) vs Bearish (e.g., Utilities, Consumer Staples) based on momentum.
+*   **Asset Allocation:** Provides a recommended split between Equity, Fixed Income, Cash, and Commodities based on the current cycle.
+
+### Integration with Trading
+
+*   **Position Sizing:** In `RISK_OFF` scenarios, the system automatically acts to preserve capital by reducing the size of new entries.
+*   **Validation:** Trades in sectors currently flagged as "Bearish" by the macro model require higher conviction signals to be executed.
+
 ## User Interface
 
 ### Settings Screen

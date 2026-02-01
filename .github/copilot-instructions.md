@@ -67,6 +67,7 @@ Examples of specific file references an agent can use in patches:
 - Analytics Utils: `src/robinhood_options_mobile/lib/utils/analytics_utils.dart` (Advanced portfolio metrics calculation).
 - Agentic Trading Analytics UI: `src/robinhood_options_mobile/lib/widgets/agentic_trading_settings_widget.dart` (auto-trade configuration with real-time countdown, paper trading toggle, emergency stop), `agentic_trading_performance_widget.dart` (9 analytics cards with comprehensive metrics and trade filtering).
 - Backtesting UI: `src/robinhood_options_mobile/lib/widgets/backtesting_widget.dart` (3-tab interface with Run/History/Templates tabs, result page with 4 tabs, interactive equity curve chart).
+- **Research UI:** `src/robinhood_options_mobile/lib/widgets/alpha_factor_discovery_widget.dart` (Alpha Factor Discovery), `macro_assessment_widget.dart` (Macro Economic Dashboard).
 - Strategy Management UI: `src/robinhood_options_mobile/lib/widgets/trading_strategies_page.dart` (Strategy listing, sorting, and template management), `src/robinhood_options_mobile/lib/widgets/shared/entry_strategies_widget.dart` (visual entry strategy configuration).
 - Investor Groups UI: `src/robinhood_options_mobile/lib/widgets/investor_groups_widget.dart` (main 3-tab layout), `investor_group_detail_widget.dart` (member list, portfolio navigation), `investor_group_manage_members_widget.dart` (admin 3-tab interface: Members/Pending/Invite), `investor_group_create_widget.dart` (creation form).
 - Watchlist UI: `src/robinhood_options_mobile/lib/widgets/lists_widget.dart` (main lists view), `list_widget.dart` (individual list details).
@@ -81,6 +82,7 @@ Examples of specific file references an agent can use in patches:
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
 - Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD with manual callable endpoint), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
 - Backtesting function: `src/robinhood_options_mobile/functions/src/backtesting.ts` (runBacktest callable function for historical simulation).
+- Macro & Research functions: `src/robinhood_options_mobile/functions/src/macro-agent.ts` (Macro Assessment logic), `alpha-factor-discovery.ts` (Alpha Factor research engine).
 - Firestore indexes: `src/robinhood_options_mobile/firebase/firestore.indexes.json` (deploy with `firebase deploy --only firestore:indexes`).
 - Firestore rules: `src/robinhood_options_mobile/firebase/firestore.rules` (includes investor_groups rules for public/private access, invitation permissions, backtest collections rules).
 

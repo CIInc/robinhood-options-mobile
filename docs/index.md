@@ -27,6 +27,7 @@
 - **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
 - **[Correlation Analysis](correlation-analysis.md):** Portfolio diversification analysis with correlation matrix heatmap.
 - **[Stock Universe](agentic-trading.md#stock-universe--seeding):** Monitoring of S&P 500 and popular high-volume stocks with automated database seeding.
+- **[Alpha Factor Discovery](alpha-factor-discovery.md):** Research engine to discovering predictive alpha factors by analyzing correlation with future returns.
 - **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
 - **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
 - **[Approval Workflow](copy-trading.md#3-approval-workflow):** Review and approve auto-generated copy trade requests.
