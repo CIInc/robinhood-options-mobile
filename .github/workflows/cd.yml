@@ -15,15 +15,12 @@ on:
     # branches: [ main ]
 
 jobs:
-  build:
+  test_and_analyze:
+    name: Test and Analyze
     runs-on: ubuntu-latest
-    # TODO: Reintroduce macos-latest once we resolve the IPA build failure below. 
-    #runs-on: macos-latest
-
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -31,13 +28,7 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable # or: beta, master (or main)
-          # cache: true
-          # # optional parameters follow
-          # cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
-          # cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-          # pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
-          # pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          channel: stable
 
       - name: Install dependencies
         run: flutter pub get
@@ -57,6 +48,30 @@ jobs:
       - name: Run tests
         run: flutter test
         continue-on-error: true
+
+  build_android:
+    needs: test_and_analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable # or: beta, master (or main)
+          # cache: true
+          # # optional parameters follow
+          # cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
+          # cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          # pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+          # pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+
+      - name: Install dependencies
+        run: flutter pub get
 
       # - name: Build web
       #   run: flutter build web --web-renderer html
@@ -102,26 +117,72 @@ jobs:
         continue-on-error: false
 
       - name: Upload to Play Store
-        uses: r0adkll/upload-google-play@v1.0.15
+        uses: r0adkll/upload-google-play@v1.0.19
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
           packageName: com.cidevelop.robinhood_options_mobile
           releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
           track: internal
+          status: draft
 
+  build_ios:
+    name: Build iOS
+    needs: test_and_analyze
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-      # - name: Build iOS IPA
-      #   id: build-ipa
-      #   run: flutter build ipa --release
-      #   continue-on-error: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
 
-      # - name: Upload iOS IPA Build Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     # Artifact name
-      #     name: release-ipa
-      #     # A file, directory or wildcard pattern that describes what to upload
-      #     path: src/robinhood_options_mobile/build/ios/ipa/robinhood_options_mobile.ipa
-      #     # The desired behavior if no files are found using the provided path.
-      #   continue-on-error: false
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Setup iOS Signing
+        run: |
+          # Import Certificate
+          echo "${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+          
+          # Import Provisioning Profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          
+          # Create and configure Keychain
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -l ~/Library/Keychains/build.keychain
+          
+          # Import Certificate to Keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+          # Create ExportOptions.plist
+          echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
+
+      - name: Build iOS IPA
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload iOS IPA Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: src/robinhood_options_mobile/build/ios/ipa/*.ipa
+
+      - name: Upload to App Store
+        run: |
+          xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
+
 

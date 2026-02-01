@@ -434,6 +434,7 @@ export async function handleAlphaTask(marketData: any,
     logger.info("Skipping RiskGuard assessment due to skipRiskGuard config");
     assessment = {
       approved: true,
+      skipped: true,
       reason: "RiskGuard skipped by configuration",
       metrics: {},
     };

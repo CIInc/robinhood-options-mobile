@@ -4456,8 +4456,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           {'label': 'CCI', 'key': 'cci'},
                           {'label': 'Parabolic SAR', 'key': 'parabolicSar'},
                           {'label': 'Rate of Change', 'key': 'roc'},
-                          {'label': 'Chaikin Money Flow', 'key': 'chaikinMoneyFlow'},
-                          {'label': 'Fibonacci Retracements', 'key': 'fibonacciRetracements'},
+                          {
+                            'label': 'Chaikin Money Flow',
+                            'key': 'chaikinMoneyFlow'
+                          },
+                          {
+                            'label': 'Fibonacci Retracements',
+                            'key': 'fibonacciRetracements'
+                          },
                         ];
 
                         final enabledList = <Widget>[];
@@ -5023,7 +5029,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ],
                     ),
                   ),
-                  if (provider.tradeSignal?['assessment'] != null) ...[
+                  if (provider.tradeSignal?['assessment'] != null &&
+                      (provider.tradeSignal?['assessment']['skipped'] == null ||
+                          provider.tradeSignal?['assessment']['skipped'] !=
+                              true)) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 8.0),

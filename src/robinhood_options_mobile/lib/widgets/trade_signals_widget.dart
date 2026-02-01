@@ -1461,6 +1461,9 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         'ichimoku',
         'cci',
         'parabolicSar',
+        'roc',
+        'chaikinMoneyFlow',
+        'fibonacciRetracements',
       ];
 
       for (final indicator in indicatorNames) {
@@ -1474,6 +1477,10 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
             if (val is num) {
               if (indicator == 'volume' || indicator == 'obv') {
                 indicatorValues[indicator] = NumberFormat.compact().format(val);
+              } else if (indicator == 'roc') {
+                indicatorValues[indicator] = "${val.toStringAsFixed(2)}%";
+              } else if (indicator == 'fibonacciRetracements') {
+                // Value is price, don't show to avoid confusion
               } else {
                 indicatorValues[indicator] = val.toStringAsFixed(2);
               }
@@ -2013,6 +2020,10 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         return 'MACD';
       case 'roc':
         return 'ROC';
+      case 'chaikinMoneyFlow':
+        return 'CMF';
+      case 'fibonacciRetracements':
+        return 'Fib';
       default:
         // Simple manual capitalization to avoid import if strings extension not avail
         return "${indicatorName[0].toUpperCase()}${indicatorName.substring(1)}";
