@@ -67,7 +67,7 @@ jobs:
         id: check
         working-directory: src/robinhood_options_mobile
         run: |
-          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           TAG_NAME="v$VERSION"
           
           echo "Checking tag: $TAG_NAME"
