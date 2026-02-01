@@ -25,7 +25,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
    - Fetches signals from Firestore with real-time listeners
-   - Provides indicator documentation for all 18 indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements)
+   - Provides indicator documentation for all 19 indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points)
    - Used across InstrumentWidget, SearchWidget for consistent signal display
    - Separates signal management from execution logic
 

@@ -4053,6 +4053,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'roc',
             'chaikinMoneyFlow',
             'fibonacciRetracements',
+            'pivotPoints',
           ]) {
             if (enabledIndicators[key] == true) {
               final indicator = indicators[key] as Map<String, dynamic>?;
@@ -4100,6 +4101,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'roc': 'roc',
             'chaikinMoneyFlow': 'chaikinMoneyFlow',
             'fibonacciRetracements': 'fibonacciRetracements',
+            'pivotPoints': 'pivotPoints',
           }.entries) {
             final configKey = entry.key;
             final indicatorKey = entry.value;
@@ -4296,6 +4298,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           _buildDocSection('chaikinMoneyFlow'),
                                           _buildDocSection(
                                               'fibonacciRetracements'),
+                                          _buildDocSection('pivotPoints'),
                                         ],
                                       ),
                                     ),
@@ -4464,6 +4467,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             'label': 'Fibonacci Retracements',
                             'key': 'fibonacciRetracements'
                           },
+                          {'label': 'Pivot Points', 'key': 'pivotPoints'},
                         ];
 
                         final enabledList = <Widget>[];

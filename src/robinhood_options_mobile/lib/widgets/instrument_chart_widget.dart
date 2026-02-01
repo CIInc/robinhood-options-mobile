@@ -65,6 +65,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   List<double?> _bbLowerValues = [];
   List<_IndicatorPoint> _bbUpperPoints = [];
   List<_IndicatorPoint> _bbLowerPoints = [];
+  // Cached Squeeze (dots on midline)
+  List<_IndicatorPoint> _squeezePoints = [];
 
   InstrumentHistoricals? _cachedHistoricals;
 
@@ -156,9 +158,38 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     final bb = TechnicalIndicators.calculateBollingerBands(candles);
     _bbUpperValues = bb['upper'] ?? <double?>[];
     _bbLowerValues = bb['lower'] ?? <double?>[];
+    final bbMiddle = bb['middle'] ?? <double?>[];
 
     _bbUpperPoints = _buildIndicatorPoints(historicals, _bbUpperValues);
     _bbLowerPoints = _buildIndicatorPoints(historicals, _bbLowerValues);
+
+    // Calculate Squeeze (TTM Squeeze: BB inside KC)
+    final kc = TechnicalIndicators.calculateKeltnerChannels(candles);
+    final kcUpper = kc['upper'] ?? <double?>[];
+    final kcLower = kc['lower'] ?? <double?>[];
+
+    _squeezePoints = [];
+    final count = math.min(historicals.length, bbMiddle.length);
+    for (int i = 0; i < count; i++) {
+      final bbUp = _bbUpperValues.elementAtOrNull(i);
+      final bbLow = _bbLowerValues.elementAtOrNull(i);
+      final mid = bbMiddle.elementAtOrNull(i);
+      final kcUp = kcUpper.elementAtOrNull(i);
+      final kcLow = kcLower.elementAtOrNull(i);
+
+      if (bbUp != null &&
+          bbLow != null &&
+          kcUp != null &&
+          kcLow != null &&
+          mid != null) {
+        if (bbUp < kcUp && bbLow > kcLow) {
+          final time = historicals[i].beginsAt;
+          if (time != null) {
+            _squeezePoints.add(_IndicatorPoint(time: time, value: mid));
+          }
+        }
+      }
+    }
 
     _cachedHistoricals = _lastValidHistoricals;
   }
@@ -306,6 +337,17 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 color: _indicatorColor(_OverlayIndicator.bollinger, context)));
             addIndicatorValues(_bbUpperPoints);
             addIndicatorValues(_bbLowerPoints);
+
+            // Add Squeeze Points (Red dots on the midline/SMA20)
+            if (_squeezePoints.isNotEmpty) {
+              seriesList.add(charts.Series<_IndicatorPoint, DateTime>(
+                id: 'TTM Squeeze',
+                colorFn: (_, __) => charts.ColorUtil.fromDartColor(Colors.red),
+                domainFn: (point, _) => point.time,
+                measureFn: (point, _) => point.value,
+                data: _squeezePoints,
+              )..setAttribute(charts.rendererIdKey, 'squeezePoints'));
+            }
           }
 
           seriesList.addAll(indicatorSeries);
@@ -393,6 +435,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                     includeArea: false,
                     strokeWidthPx: 1.5,
                     symbolRenderer: CustomLineSymbolRenderer()),
+                charts.PointRendererConfig<DateTime>(
+                    customRendererId: 'squeezePoints', radiusPx: 3.5),
                 if (_showVolume)
                   charts.BarRendererConfig<DateTime>(
                       customRendererId: 'volume',
@@ -1339,7 +1383,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               _buildHelpItem('VWAP', 'Volume Weighted Average Price',
                   'Average price weighted by volume. Intraday benchmark.'),
               _buildHelpItem('Bollinger Bands', 'Volatility Bands',
-                  'Shows price volatility. Price near upper band = overbought, near lower = oversold.'),
+                  'Shows price volatility. Price near upper band = overbought, near lower = oversold. Includes TTM Squeeze detection (Red dots).'),
             ],
           ),
         ),
@@ -1418,6 +1462,39 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     // Williams R
     var williamsR = TechnicalIndicators.calculateWilliamsR(sortedCandles).last;
 
+    // ROC
+    var roc = TechnicalIndicators.calculateROC(sortedCandles).last;
+
+    // CMF
+    var cmf = TechnicalIndicators.calculateChaikinMoneyFlow(sortedCandles).last;
+
+    // Ichimoku
+    var ichimoku = TechnicalIndicators.calculateIchimokuCloud(sortedCandles);
+    var spanA = ichimoku['spanA']?.last;
+    var spanB = ichimoku['spanB']?.last;
+
+    // Parabolic SAR
+    var sarData = TechnicalIndicators.calculateParabolicSAR(sortedCandles);
+    var sar = sarData['sar']?.last as double?;
+    var isUptrendSar = sarData['isUptrend']?.last as bool?;
+
+    // Bollinger Bands & Keltner Channels for Squeeze
+    var bbData = TechnicalIndicators.calculateBollingerBands(sortedCandles);
+    var bbUp = bbData['upper']!.last;
+    var bbLow = bbData['lower']!.last;
+
+    var kcData = TechnicalIndicators.calculateKeltnerChannels(
+        sortedCandles, 20, 10, 1.5);
+    var kcUp = kcData['upper']!.last;
+    var kcLow = kcData['lower']!.last;
+
+    bool isSqueeze = false;
+    if (bbUp != null && bbLow != null && kcUp != null && kcLow != null) {
+      if (bbUp < kcUp && bbLow > kcLow) {
+        isSqueeze = true;
+      }
+    }
+
     // Current Price
     double currentPrice = sortedCandles.last.close;
 
@@ -1466,6 +1543,22 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
+    }
+    if (roc != null) {
+      vote(roc > 0);
+    }
+    if (cmf != null) {
+      if (cmf > 0.05) vote(true);
+      else if (cmf < -0.05) vote(false);
+    }
+    if (spanA != null && spanB != null) {
+      bool aboveCloud = currentPrice > math.max(spanA, spanB);
+      bool belowCloud = currentPrice < math.min(spanA, spanB);
+      if (aboveCloud) vote(true);
+      else if (belowCloud) vote(false);
+    }
+    if (sar != null && isUptrendSar != null) {
+      vote(isUptrendSar);
     }
 
     String summaryText = "Neutral";
@@ -1567,6 +1660,39 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                         .onSurfaceVariant,
                                   ),
                                 ),
+                                if (isSqueeze)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                            color: Colors.red
+                                                .withValues(alpha: 0.3),
+                                            width: 1),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.compress,
+                                              size: 10, color: Colors.red),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            "TTM Squeeze",
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -1799,6 +1925,35 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     // Williams R
     var williamsR = TechnicalIndicators.calculateWilliamsR(sortedCandles).last;
 
+    // Keltner Channels for Squeeze
+    var kcData = TechnicalIndicators.calculateKeltnerChannels(
+        sortedCandles, 20, 10, 1.5);
+    var kcUp = kcData['upper']!.last;
+    var kcLow = kcData['lower']!.last;
+
+    // ROC
+    var roc = TechnicalIndicators.calculateROC(sortedCandles).last;
+
+    // CMF
+    var cmf = TechnicalIndicators.calculateChaikinMoneyFlow(sortedCandles).last;
+
+    // Ichimoku
+    var ichimoku = TechnicalIndicators.calculateIchimokuCloud(sortedCandles);
+    var spanA = ichimoku['spanA']?.last;
+    var spanB = ichimoku['spanB']?.last;
+
+    // Parabolic SAR
+    var sarData = TechnicalIndicators.calculateParabolicSAR(sortedCandles);
+    var sar = sarData['sar']?.last as double?;
+    var isUptrendSar = sarData['isUptrend']?.last as bool?;
+
+    bool isSqueezeIndepth = false;
+    if (upper != null && lower != null && kcUp != null && kcLow != null) {
+      if (upper < kcUp && lower > kcLow) {
+        isSqueezeIndepth = true;
+      }
+    }
+
     // OBV
     var obv = TechnicalIndicators.calculateOBV(sortedCandles).last;
 
@@ -1850,6 +2005,22 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     }
     if (macd != null && signal != null) {
       vote(macd > signal);
+    }
+    if (roc != null) {
+      vote(roc > 0);
+    }
+    if (cmf != null) {
+      if (cmf > 0.05) vote(true);
+      else if (cmf < -0.05) vote(false);
+    }
+    if (spanA != null && spanB != null) {
+      bool aboveCloud = currentPrice > math.max(spanA, spanB);
+      bool belowCloud = currentPrice < math.min(spanA, spanB);
+      if (aboveCloud) vote(true);
+      else if (belowCloud) vote(false);
+    }
+    if (sar != null && isUptrendSar != null) {
+      vote(isUptrendSar);
     }
 
     String summaryText = "Neutral";
@@ -2008,6 +2179,26 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               return const Signal(
                                   text: "Bearish", color: Colors.red);
                             }, valueText: "${macd?.toStringAsFixed(2)}"),
+                            _buildIndicatorWithSignal("ROC (9)", roc, (v) {
+                              if (v > 0) {
+                                return const Signal(
+                                    text: "Bullish", color: Colors.green);
+                              }
+                              return const Signal(
+                                  text: "Bearish", color: Colors.red);
+                            }),
+                            _buildIndicatorWithSignal("CMF (20)", cmf, (v) {
+                              if (v > 0.05) {
+                                return const Signal(
+                                    text: "Accumulation", color: Colors.green);
+                              }
+                              if (v < -0.05) {
+                                return const Signal(
+                                    text: "Distribution", color: Colors.red);
+                              }
+                              return const Signal(
+                                  text: "Neutral", color: Colors.grey);
+                            }, valueText: cmf?.toStringAsFixed(3)),
 
                             const Divider(),
                             _buildSectionHeader(context, "Trend Strength"),
@@ -2019,6 +2210,44 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               return const Signal(
                                   text: "Weak Trend", color: Colors.grey);
                             }),
+                            _buildIndicatorWithSignal("Ichimoku Cloud", spanA,
+                                (v) {
+                              final sA = spanA;
+                              final sB = spanB;
+                              if (sA == null || sB == null) {
+                                return const Signal(
+                                    text: "N/A", color: Colors.grey);
+                              }
+                              bool aboveCloud =
+                                  currentPrice > math.max(sA, sB);
+                              bool belowCloud =
+                                  currentPrice < math.min(sA, sB);
+
+                              if (aboveCloud) {
+                                return const Signal(
+                                    text: "Bullish (Above)",
+                                    color: Colors.green);
+                              }
+                              if (belowCloud) {
+                                return const Signal(
+                                    text: "Bearish (Below)", color: Colors.red);
+                              }
+                              return const Signal(
+                                  text: "Neutral (In Cloud)",
+                                  color: Colors.grey);
+                            },
+                                valueText:
+                                    "A: ${spanA?.toStringAsFixed(2)} B: ${spanB?.toStringAsFixed(2)}"),
+                            if (sar != null)
+                              _buildIndicatorWithSignal("Parabolic SAR", sar,
+                                  (v) {
+                                if (isUptrendSar == true) {
+                                  return const Signal(
+                                      text: "Bullish", color: Colors.green);
+                                }
+                                return const Signal(
+                                    text: "Bearish", color: Colors.red);
+                              }),
 
                             const Divider(),
                             _buildSectionHeader(context, "Moving Averages"),
@@ -2066,6 +2295,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                             },
                                 valueText:
                                     "U: ${upper?.toStringAsFixed(2)} / L: ${lower?.toStringAsFixed(2)}"),
+                            _buildIndicatorWithSignal(
+                                "TTM Squeeze", isSqueezeIndepth ? 1.0 : 0.0,
+                                (v) {
+                              if (v == 1.0) {
+                                return const Signal(
+                                    text: "Squeeze ON", color: Colors.red);
+                              }
+                              return const Signal(
+                                  text: "No Squeeze", color: Colors.grey);
+                            }, valueText: isSqueezeIndepth ? "Active" : "Inactive"),
                           ])));
             },
           );

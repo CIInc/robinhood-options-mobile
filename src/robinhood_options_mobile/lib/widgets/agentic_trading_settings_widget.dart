@@ -1671,6 +1671,7 @@ class _AgenticTradingSettingsWidgetState
       'roc': 'ROC',
       'chaikinMoneyFlow': 'CMF',
       'fibonacciRetracements': 'Fib',
+      'pivotPoints': 'Pivots',
     };
 
     final activeKeys = config.enabledIndicators.entries

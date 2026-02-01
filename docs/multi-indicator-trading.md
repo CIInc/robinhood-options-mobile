@@ -2,7 +2,7 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates **18 technical indicators** to generate trade signals.
+The multi-indicator automatic trading system correlates **19 technical indicators** to generate trade signals.
 
 This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. It uses a **Weighted Signal Strength system** where indicators are weighted by importance (Price Movement > Momentum/Trend > Others) to calculate a final **Signal Strength score (0-100)**.
 
@@ -304,6 +304,17 @@ The final score (0-100) reflects the net positive influence of all indicators. A
 - **SELL**: Price rejects resistance level (in downtrend)
 - **HOLD**: No significant interaction
 
+### 19. Pivot Points
+
+**Purpose:** Uses the previous period's high, low, and close to project support and resistance levels (Standard method).
+
+**Implementation:** `evaluatePivotPoints()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price > Pivot Point (Bullish Bias)
+- **SELL**: Price < Pivot Point (Bearish Bias)
+- **HOLD**: Price at Pivot Point
+
 ## Signal Strength Score
 
 **Purpose:** Quantifies overall indicator alignment on a 0-100 scale.
@@ -314,11 +325,11 @@ signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicato
 ```
 
 **Interpretation:**
-- **100**: All 18 indicators are BUY (perfect bullish alignment)
+- **100**: All 19 indicators are BUY (perfect bullish alignment)
 - **75-99**: Strong bullish bias, most indicators aligned
 - **50**: Neutral (equal BUY and SELL signals, or all HOLD)
 - **25-49**: Strong bearish bias
-- **0**: All 18 indicators are SELL (perfect bearish alignment)
+- **0**: All 19 indicators are SELL (perfect bearish alignment)
 
 **Use Cases:**
 - Filter signals by strength threshold (e.g., only act on strength > 75)
@@ -335,13 +346,13 @@ signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicato
    - Minimum 30-60 periods of data required
 
 2. **Indicator Evaluation**
-   - Each of the 15 indicators is evaluated independently
+   - Each of the 19 indicators is evaluated independently
    - Each returns: `{ signal: "BUY"|"SELL"|"HOLD", reason: string, value: number }`
 
 3. **Multi-Indicator Correlation**
    - Function: `evaluateAllIndicators()` in `technical-indicators.ts`
-   - Checks if ALL 15 indicators signal BUY
-   - Returns `allGreen: true` only when all 15 are BUY
+   - Checks if ALL 19 indicators signal BUY
+   - Returns `allGreen: true` only when all 19 are BUY
 
 4. **Trade Decision**
    - Alpha agent (`alpha-agent.ts`) calls multi-indicator evaluation

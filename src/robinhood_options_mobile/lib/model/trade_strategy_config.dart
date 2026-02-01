@@ -239,6 +239,7 @@ class TradeStrategyConfig {
           'parabolicSar': false,
           'chaikinMoneyFlow': false,
           'fibonacciRetracements': false,
+          'pivotPoints': false,
         }..addAll(enabledIndicators ?? {}),
         indicatorReasons = indicatorReasons ?? {};
 

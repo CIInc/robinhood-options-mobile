@@ -117,6 +117,27 @@ class TechnicalIndicators {
     return {'middle': sma, 'upper': upper, 'lower': lower};
   }
 
+  /// Calculates Keltner Channels
+  static Map<String, List<double?>> calculateKeltnerChannels(
+      List<Candle> candles,
+      [int period = 20,
+      int atrPeriod = 10,
+      double multiplier = 1.5]) {
+    List<double?> ema = calculateEMA(candles, period);
+    List<double?> atr = calculateATR(candles, atrPeriod);
+    List<double?> upper = List.filled(candles.length, null);
+    List<double?> lower = List.filled(candles.length, null);
+
+    for (int i = 0; i < candles.length; i++) {
+      if (ema[i] != null && atr[i] != null) {
+        upper[i] = ema[i]! + (atr[i]! * multiplier);
+        lower[i] = ema[i]! - (atr[i]! * multiplier);
+      }
+    }
+
+    return {'middle': ema, 'upper': upper, 'lower': lower};
+  }
+
   /// Calculates MACD (Moving Average Convergence Divergence)
   static Map<String, List<double?>> calculateMACD(List<Candle> candles,
       [int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9]) {
@@ -459,5 +480,270 @@ class TechnicalIndicators {
     }
 
     return {'adx': adx, 'pdi': diPlus, 'mdi': diMinus};
+  }
+
+  /// Calculates Rate of Change (ROC)
+  static List<double?> calculateROC(List<Candle> candles, [int period = 9]) {
+    if (candles.length < period + 1) return List.filled(candles.length, null);
+
+    List<double?> roc = List.filled(candles.length, null);
+
+    for (int i = period; i < candles.length; i++) {
+      double currentPrice = candles[i].close;
+      double prevPrice = candles[i - period].close;
+
+      if (prevPrice != 0) {
+        roc[i] = ((currentPrice - prevPrice) / prevPrice) * 100;
+      } else {
+        roc[i] = 0;
+      }
+    }
+
+    return roc;
+  }
+
+  /// Calculates Chaikin Money Flow (CMF)
+  static List<double?> calculateChaikinMoneyFlow(List<Candle> candles,
+      [int period = 20]) {
+    if (candles.length < period) return List.filled(candles.length, null);
+
+    List<double?> cmf = List.filled(candles.length, null);
+    List<double> moneyFlowVolumes = [];
+    List<double> volumes = [];
+
+    for (int i = 0; i < candles.length; i++) {
+      double h = candles[i].high;
+      double l = candles[i].low;
+      double c = candles[i].close;
+      double v = candles[i].volume;
+
+      double divisor = (h - l) == 0 ? 0.000001 : (h - l);
+      double mfm = ((c - l) - (h - c)) / divisor;
+      double mfv = mfm * v;
+
+      moneyFlowVolumes.add(mfv);
+      volumes.add(v);
+    }
+
+    for (int i = period - 1; i < candles.length; i++) {
+      double sumMfv = 0;
+      double sumVol = 0;
+
+      for (int j = 0; j < period; j++) {
+        sumMfv += moneyFlowVolumes[i - j];
+        sumVol += volumes[i - j];
+      }
+
+      if (sumVol != 0) {
+        cmf[i] = sumMfv / sumVol;
+      } else {
+        cmf[i] = 0;
+      }
+    }
+
+    return cmf;
+  }
+
+  /// Calculates Ichimoku Cloud
+  static Map<String, List<double?>> calculateIchimokuCloud(List<Candle> candles,
+      [int conversionPeriod = 9,
+      int basePeriod = 26,
+      int spanBPeriod = 52,
+      int displacement = 26]) {
+    int len = candles.length;
+    List<double?> conversionLine = List.filled(len, null);
+    List<double?> baseLine = List.filled(len, null);
+    List<double?> spanA = List.filled(len, null);
+    List<double?> spanB = List.filled(len, null);
+    List<double?> laggingSpan = List.filled(len, null);
+
+    // Helper to get midpoint
+    double? getMidpoint(int idx, int period) {
+      if (idx < period - 1) return null;
+      double highestHigh = -double.maxFinite;
+      double lowestLow = double.maxFinite;
+      for (int i = 0; i < period; i++) {
+        if (candles[idx - i].high > highestHigh) {
+          highestHigh = candles[idx - i].high;
+        }
+        if (candles[idx - i].low < lowestLow) {
+          lowestLow = candles[idx - i].low;
+        }
+      }
+      return (highestHigh + lowestLow) / 2;
+    }
+
+    for (int i = 0; i < len; i++) {
+      conversionLine[i] = getMidpoint(i, conversionPeriod);
+      baseLine[i] = getMidpoint(i, basePeriod);
+
+      // Span A is (Conversion + Base) / 2, shifted forward by displacement
+      // So Span A at [i + displacement] = (conv[i] + base[i]) / 2
+      if (conversionLine[i] != null && baseLine[i] != null) {
+        if (i + displacement < len) {
+          spanA[i + displacement] = (conversionLine[i]! + baseLine[i]!) / 2;
+        }
+      }
+
+      // Span B is midpoint of spanBPeriod, shifted forward
+      double? midpointB = getMidpoint(i, spanBPeriod);
+      if (midpointB != null) {
+        if (i + displacement < len) {
+          spanB[i + displacement] = midpointB;
+        }
+      }
+
+      // Lagging Span is close price shifted backwards
+      // laggingSpan[i - displacement] = close[i]
+      if (i - displacement >= 0) {
+        laggingSpan[i - displacement] = candles[i].close;
+      }
+    }
+
+    return {
+      'conversionLine': conversionLine,
+      'baseLine': baseLine,
+      'spanA': spanA,
+      'spanB': spanB,
+      'laggingSpan': laggingSpan
+    };
+  }
+
+  /// Calculates Parabolic SAR
+  static Map<String, List<dynamic>> calculateParabolicSAR(List<Candle> candles,
+      [double startStep = 0.02, double maxStep = 0.2]) {
+    if (candles.length < 2) {
+      return {
+        'sar': List<double?>.filled(candles.length, null),
+        'isUptrend': List<bool?>.filled(candles.length, null)
+      };
+    }
+
+    List<double?> sarList = List.filled(candles.length, null);
+    List<bool?> isUptrendList = List.filled(candles.length, null);
+
+    bool isUptrend = true;
+    double ep = candles[0].high;
+    double sar = candles[0].low;
+    double af = startStep;
+
+    sarList[0] = sar;
+    isUptrendList[0] = isUptrend;
+
+    for (int i = 1; i < candles.length; i++) {
+      double prevSar = sar;
+      sar = prevSar + af * (ep - prevSar);
+
+      if (isUptrend) {
+        if (i >= 1) sar = min(sar, candles[i - 1].low);
+        if (i >= 2) sar = min(sar, candles[i - 2].low);
+
+        if (candles[i].low < sar) {
+          isUptrend = false;
+          sar = ep;
+          ep = candles[i].low;
+          af = startStep;
+        } else {
+          if (candles[i].high > ep) {
+            ep = candles[i].high;
+            af = min(af + startStep, maxStep);
+          }
+        }
+      } else {
+        if (i >= 1) sar = max(sar, candles[i - 1].high);
+        if (i >= 2) sar = max(sar, candles[i - 2].high);
+
+        if (candles[i].high > sar) {
+          isUptrend = true;
+          sar = ep;
+          ep = candles[i].high;
+          af = startStep;
+        } else {
+          if (candles[i].low < ep) {
+            ep = candles[i].low;
+            af = min(af + startStep, maxStep);
+          }
+        }
+      }
+
+      sarList[i] = sar;
+      isUptrendList[i] = isUptrend;
+    }
+
+    return {'sar': sarList, 'isUptrend': isUptrendList};
+  }
+
+  /// Calculates Fibonacci Levels (Retracements)
+  /// Returns a map of levels for the latest window of [period]
+  static Map<String, double>? calculateFibonacciLevels(List<Candle> candles,
+      [int period = 50]) {
+    if (candles.length < period) return null;
+
+    // Use the latest 'period' candles
+    int startIdx = candles.length - period;
+    List<Candle> window = candles.sublist(startIdx);
+
+    double maxHigh = -double.maxFinite;
+    double minLow = double.maxFinite;
+
+    for (var c in window) {
+      if (c.high > maxHigh) maxHigh = c.high;
+      if (c.low < minLow) minLow = c.low;
+    }
+
+    bool isUptrend = candles.last.close > candles[startIdx].close;
+    double diff = maxHigh - minLow;
+
+    if (diff == 0) return null;
+
+    if (isUptrend) {
+      // Retracement from High
+      return {
+        '0.0': maxHigh,
+        '0.236': maxHigh - 0.236 * diff,
+        '0.382': maxHigh - 0.382 * diff,
+        '0.5': maxHigh - 0.5 * diff,
+        '0.618': maxHigh - 0.618 * diff,
+        '0.786': maxHigh - 0.786 * diff,
+        '1.0': minLow,
+      };
+    } else {
+      // Retracement from Low (bounce)
+      return {
+        '0.0': minLow,
+        '0.236': minLow + 0.236 * diff,
+        '0.382': minLow + 0.382 * diff,
+        '0.5': minLow + 0.5 * diff,
+        '0.618': minLow + 0.618 * diff,
+        '0.786': minLow + 0.786 * diff,
+        '1.0': maxHigh,
+      };
+    }
+  }
+
+  /// Calculates Pivot Points (Standard) for the latest candle based on previous
+  static Map<String, double>? calculatePivotPoints(List<Candle> candles) {
+    if (candles.length < 2) return null;
+
+    // Previous candle (yesterday/last period)
+    Candle prev = candles[candles.length - 2];
+
+    double pp = (prev.high + prev.low + prev.close) / 3;
+    double r1 = 2 * pp - prev.low;
+    double s1 = 2 * pp - prev.high;
+    double r2 = pp + (prev.high - prev.low);
+    double s2 = pp - (prev.high - prev.low);
+    double r3 = prev.high + 2 * (pp - prev.low);
+    double s3 = prev.low - 2 * (prev.high - pp);
+
+    return {
+      'pp': pp,
+      'r1': r1,
+      's1': s1,
+      'r2': r2,
+      's2': s2,
+      'r3': r3,
+      's3': s3
+    };
   }
 }

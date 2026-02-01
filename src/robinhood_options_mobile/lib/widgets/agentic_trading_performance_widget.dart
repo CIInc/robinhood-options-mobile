@@ -1809,6 +1809,7 @@ class _AgenticTradingPerformanceWidgetState
       'roc': 'Rate of Change',
       'chaikinMoneyFlow': 'Chaikin Money Flow',
       'fibonacciRetracements': 'Fibonacci Retracements',
+      'pivotPoints': 'Pivot Points',
     };
     return labels[key] ?? key;
   }

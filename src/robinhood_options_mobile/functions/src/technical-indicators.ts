@@ -44,6 +44,7 @@ export interface MultiIndicatorResult {
     roc: IndicatorResult;
     chaikinMoneyFlow: IndicatorResult;
     fibonacciRetracements: IndicatorResult;
+    pivotPoints: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
   macroAssessment?: {
@@ -551,6 +552,84 @@ export function computeATRArray(
   for (let i = period; i < trueRanges.length; i++) {
     atr = (atr * (period - 1) + trueRanges[i]) / period;
     result.push(atr);
+  }
+
+  return result;
+}
+
+/**
+ * Compute Keltner Channels
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - EMA period for midline (default 20).
+ * @param {number} atrPeriod - ATR period for band width (default 10).
+ * @param {number} multiplier - ATR multiplier (default 1.5).
+ * @return {{upper: number, middle: number, lower: number}|null}
+ */
+export function computeKeltnerChannels(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 20,
+  atrPeriod = 10,
+  multiplier = 1.5
+): { upper: number; middle: number; lower: number } | null {
+  const arr = computeKeltnerChannelsArray(
+    highs,
+    lows,
+    closes,
+    period,
+    atrPeriod,
+    multiplier
+  );
+  if (arr.length === 0) return null;
+  return arr[arr.length - 1];
+}
+
+/**
+ * Compute array of Keltner Channels
+ * @param {number[]} highs
+ * @param {number[]} lows
+ * @param {number[]} closes
+ * @param {number} period
+ * @param {number} atrPeriod
+ * @param {number} multiplier
+ * @return {Array<{upper: number, middle: number, lower: number}|null>}
+ */
+export function computeKeltnerChannelsArray(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 20,
+  atrPeriod = 10,
+  multiplier = 1.5
+): ({ upper: number; middle: number; lower: number } | null)[] {
+  if (!highs || !lows || !closes || closes.length < period) {
+    return Array(closes.length).fill(null);
+  }
+
+  // Middle Line: EMA of closes
+  const emaValues = computeEMAArray(closes, period);
+  // ATR
+  const atrValues = computeATRArray(highs, lows, closes, atrPeriod);
+
+  const result: ({ upper: number; middle: number; lower: number } | null)[] =
+    [];
+
+  for (let i = 0; i < closes.length; i++) {
+    const middle = emaValues[i];
+    const atr = atrValues[i];
+
+    if (middle === null || atr === null) {
+      result.push(null);
+    } else {
+      result.push({
+        upper: middle + (atr * multiplier),
+        middle: middle,
+        lower: middle - (atr * multiplier),
+      });
+    }
   }
 
   return result;
@@ -1930,12 +2009,18 @@ export function evaluateMACD(
  * @param {number[]} prices - Array of historical prices.
  * @param {number} period - Period for calculation (default 20).
  * @param {number} stdDev - Standard deviation multiplier (default 2).
+ * @param {number[]} [highs] - Optional array of high prices for advanced
+ * squeeze detection.
+ * @param {number[]} [lows] - Optional array of low prices for advanced
+ * squeeze detection.
  * @return {IndicatorResult} The Bollinger Bands evaluation result.
  */
 export function evaluateBollingerBands(
   prices: number[],
   period = 20,
-  stdDev = 2
+  stdDev = 2,
+  highs?: number[],
+  lows?: number[]
 ): IndicatorResult {
   if (!prices || prices.length < period) {
     return {
@@ -1961,18 +2046,41 @@ export function evaluateBollingerBands(
   const bandwidth = (bb.upper - bb.lower) / bb.middle;
   const position = (currentPrice - bb.lower) / (bb.upper - bb.lower);
 
-  // Check for Squeeze (bandwidth is lowest in 6 months - approx 126 bars)
+  // Check for Squeeze
   let isSqueeze = false;
-  if (bbArray.length >= 20) {
-    const recentBandwidths = bbArray
-      .slice(-120) // Check last ~6 months of data if available
-      .filter((b) => b !== null)
-      .map((b) => (b!.upper - b!.lower) / b!.middle);
 
-    if (recentBandwidths.length > 0) {
-      const minBandwidth = Math.min(...recentBandwidths);
-      if (bandwidth <= minBandwidth * 1.05) { // Within 5% of 6-month low
-        isSqueeze = true;
+  // 1. Advanced TTM Squeeze (if Highs/Lows available)
+  // Squeeze is on when Bollinger Bands are completely inside Keltner Channels
+  if (highs && lows &&
+      highs.length === prices.length &&
+      lows.length === prices.length) {
+    // Default TTM settings: KC(20, 1.5) vs BB(20, 2.0)
+    const kcArray = computeKeltnerChannelsArray(
+      highs,
+      lows,
+      prices,
+      period,
+      period, // ATR period same as EMA period usually
+      1.5
+    );
+    const kc = kcArray[kcArray.length - 1];
+
+    if (kc && bb.upper < kc.upper && bb.lower > kc.lower) {
+      isSqueeze = true;
+    }
+  } else {
+    // 2. Fallback: Bandwidth Squeeze (bandwidth is lowest in 6 months)
+    if (bbArray.length >= 20) {
+      const recentBandwidths = bbArray
+        .slice(-120) // Check last ~6 months of data if available
+        .filter((b) => b !== null)
+        .map((b) => (b!.upper - b!.lower) / b!.middle);
+
+      if (recentBandwidths.length > 0) {
+        const minBandwidth = Math.min(...recentBandwidths);
+        if (bandwidth <= minBandwidth * 1.05) { // Within 5% of 6-month low
+          isSqueeze = true;
+        }
       }
     }
   }
@@ -3477,7 +3585,13 @@ export function evaluateAllIndicators(
 
   // 6. Bollinger Bands
   const bollingerBands = isEnabled("bollingerBands") ?
-    evaluateBollingerBands(symbolData.closes) :
+    evaluateBollingerBands(
+      symbolData.closes,
+      20,
+      2,
+      highs,
+      lows
+    ) :
     disabledResult;
 
   // 7. Stochastic
@@ -3540,6 +3654,11 @@ export function evaluateAllIndicators(
     evaluateFibonacciRetracements(highs, lows, symbolData.closes) :
     disabledResult;
 
+  // 19. Pivot Points
+  const pivotPoints = isEnabled("pivotPoints") ?
+    evaluatePivotPoints(highs, lows, symbolData.closes) :
+    disabledResult;
+
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
@@ -3575,13 +3694,15 @@ export function evaluateAllIndicators(
     roc,
     chaikinMoneyFlow,
     fibonacciRetracements,
+    pivotPoints,
   };
 
   // Calculate weighted signal strength (0-100)
   // Weight distribution:
   // - Critical: Price Patterns (2.0), Ichimoku (1.5), MACD (1.5),
   //   Momentum (1.5)
-  // - High: Bollinger (1.2), ADX (1.2), VWAP (1.2), Market Direction (1.2)
+  // - High: Bollinger (1.2), ADX (1.2), VWAP (1.2), Market Direction (1.2),
+  //   Fibonacci (1.2), Pivot Points (1.2)
   // - Medium: Stochastic (1.0), ATR (1.0), OBV (1.0), CCI (1.0),
   //   Parabolic (1.0)
   const weights: Record<string, number> = {
@@ -3603,6 +3724,7 @@ export function evaluateAllIndicators(
     roc: 1.0,
     chaikinMoneyFlow: 1.0,
     fibonacciRetracements: 1.2,
+    pivotPoints: 1.2,
   };
 
   let totalWeight = 0;
@@ -3997,6 +4119,100 @@ export function evaluateROC(
     value: roc,
     signal: "HOLD",
     reason: `ROC neutral (${roc.toFixed(2)}%)`,
+  };
+}
+
+/**
+ * Evaluate Pivot Points (Standard)
+ * Uses the previous day's High, Low, Close
+ * to determine intraday support/resistance
+ * @param {number[]} highs - Array of high prices
+ * @param {number[]} lows - Array of low prices
+ * @param {number[]} closes - Array of closing information
+ * @return {IndicatorResult} Result object
+ */
+export function evaluatePivotPoints(
+  highs: number[],
+  lows: number[],
+  closes: number[]
+): IndicatorResult {
+  // Need at least 2 bars: yesterday for calculation, today for comparison
+  if (!highs || !lows || !closes || closes.length < 2) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for Pivot Points",
+    };
+  }
+
+  const len = closes.length;
+  // Use previous bar (yesterday) to calculate pivots for current bar (today)
+  const prevHigh = highs[len - 2];
+  const prevLow = lows[len - 2];
+  const prevClose = closes[len - 2];
+  const currentPrice = closes[len - 1];
+
+  const pp = (prevHigh + prevLow + prevClose) / 3;
+  const r1 = 2 * pp - prevLow;
+  const s1 = 2 * pp - prevHigh;
+  const r2 = pp + (prevHigh - prevLow);
+  const s2 = pp - (prevHigh - prevLow);
+  const r3 = prevHigh + 2 * (pp - prevLow);
+  const s3 = prevLow - 2 * (prevHigh - pp);
+
+  let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
+  let reason = "Price within range";
+
+  const threshold = currentPrice * 0.003; // 0.3% proximity
+
+  // Check proximity to Support (Buy signals)
+  if (Math.abs(currentPrice - s1) < threshold) {
+    signal = "BUY";
+    reason = "Bounce at S1 Support";
+  } else if (Math.abs(currentPrice - s2) < threshold) {
+    signal = "BUY";
+    reason = "Bounce at S2 Support";
+  } else if (Math.abs(currentPrice - s3) < threshold) {
+    signal = "BUY";
+    reason = "Bounce at S3 Support";
+  } else if (Math.abs(currentPrice - r1) < threshold) {
+    // Check proximity to Resistance (Sell signals)
+    signal = "SELL";
+    reason = `Resistance at R1 (${r1.toFixed(2)})`;
+  } else if (Math.abs(currentPrice - r2) < threshold) {
+    signal = "SELL";
+    reason = `Resistance at R2 (${r2.toFixed(2)})`;
+  } else if (Math.abs(currentPrice - r3) < threshold) {
+    signal = "SELL";
+    reason = `Resistance at R3 (${r3.toFixed(2)})`;
+  } else {
+    // Trend context based on position relative to Pivot
+    if (currentPrice > pp) {
+      // Bullish bias, but HOLD if not at key level
+      signal = "HOLD";
+      reason = `Bullish bias > Pivot (${pp.toFixed(2)})`;
+    } else {
+      signal = "HOLD";
+      reason = `Bearish bias < Pivot (${pp.toFixed(2)})`;
+    }
+  }
+
+  return {
+    value: pp,
+    signal,
+    reason,
+    metadata: {
+      pp,
+      r1,
+      r2,
+      r3,
+      s1,
+      s2,
+      s3,
+      prevHigh,
+      prevLow,
+      prevClose,
+    },
   };
 }
 

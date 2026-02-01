@@ -118,8 +118,8 @@ class TradeSignalsProvider with ChangeNotifier {
               '**Signals**:\n'
               '- **Bullish Crossover**: Histogram crosses above `0` → BUY\n'
               '- **Bearish Crossover**: Histogram crosses below `0` → SELL\n'
-              '- **Bullish Momentum**: Histogram `> 0` → BUY\n'
-              '- **Bearish Momentum**: Histogram `< 0` → SELL\n'
+              '- **Bullish Momentum**: Histogram `> 0` and expanding → BUY\n'
+              '- **Bearish Momentum**: Histogram `< 0` and expanding (more negative) → SELL\n'
               '- **Momentum Reversal**: Histogram reversal (2+ bars) indicates slowing momentum before a cross.\n'
               '\n'
               '_Reversal signals are "Early Warnings" that often eventually lead to full crossovers._'
@@ -351,6 +351,7 @@ class TradeSignalsProvider with ChangeNotifier {
               '\n'
               '_Versatile indicator for both cyclical range trading and trend following._'
         };
+      case 'sar':
       case 'parabolicSar':
         return {
           'title': 'Parabolic SAR',
@@ -427,6 +428,26 @@ class TradeSignalsProvider with ChangeNotifier {
               '- **BUY**: Price bounces off support level (e.g. 61.8% or 50% retracement in uptrend).\n'
               '- **SELL**: Price rejects resistance level (in downtrend).\n'
               '- **Golden Ratio**: 61.8% level is considered strongest support/resistance.\n'
+        };
+      case 'pivotPoints':
+        return {
+          'title': 'Pivot Points',
+          'description':
+              'Calculates intraday support and resistance levels based on the previous day\'s High, Low, and Close. '
+                  'Pivot Points are used to identify potential turning points and trend direction.',
+          'technicalDetails': '**Formulas** (Standard Method):\n'
+              '- **Pivot Point (P)**: `(High + Low + Close) / 3`\n'
+              '- **Resistance 1 (R1)**: `(2 * P) - Low`\n'
+              '- **Support 1 (S1)**: `(2 * P) - High`\n'
+              '- **Resistance 2 (R2)**: `P + (High - Low)`\n'
+              '- **Support 2 (S2)**: `P - (High - Low)`\n'
+              '- **Resistance 3 (R3)**: `High + 2 * (P - Low)`\n'
+              '- **Support 3 (S3)**: `Low - 2 * (High - P)`\n'
+              '\n'
+              '**Signals**:\n'
+              '- **BUY**: Price bounces off S1, S2, or S3 support levels.\n'
+              '- **SELL**: Price rejects R1, R2, or R3 resistance levels.\n'
+              '- **Trend Context**: Price above Pivot suggests bullish bias; price below suggest bearish bias.\n'
         };
       default:
         return {
@@ -874,6 +895,28 @@ class TradeSignalsProvider with ChangeNotifier {
       'riskPerTrade': config.strategyConfig.riskPerTrade,
       'atrMultiplier': config.strategyConfig.atrMultiplier,
       'rsiPeriod': config.strategyConfig.rsiPeriod,
+      'rocPeriod': config.strategyConfig.rocPeriod,
+      'marketIndexSymbol': config.strategyConfig.marketIndexSymbol,
+      'dailyTradeLimit': config.strategyConfig.dailyTradeLimit,
+      'minSignalStrength': config.strategyConfig.minSignalStrength,
+      'requireAllIndicatorsGreen':
+          config.strategyConfig.requireAllIndicatorsGreen,
+      'timeBasedExitEnabled': config.strategyConfig.timeBasedExitEnabled,
+      'timeBasedExitMinutes': config.strategyConfig.timeBasedExitMinutes,
+      'marketCloseExitEnabled': config.strategyConfig.marketCloseExitEnabled,
+      'marketCloseExitMinutes': config.strategyConfig.marketCloseExitMinutes,
+      'enablePartialExits': config.strategyConfig.enablePartialExits,
+      // Pass exit stages as list of maps
+      'exitStages':
+          config.strategyConfig.exitStages.map((e) => e.toJson()).toList(),
+      'reduceSizeOnRiskOff': config.strategyConfig.reduceSizeOnRiskOff,
+      'riskOffSizeReduction': config.strategyConfig.riskOffSizeReduction,
+      'rsiExitEnabled': config.strategyConfig.rsiExitEnabled,
+      'rsiExitThreshold': config.strategyConfig.rsiExitThreshold,
+      'signalStrengthExitEnabled':
+          config.strategyConfig.signalStrengthExitEnabled,
+      'signalStrengthExitThreshold':
+          config.strategyConfig.signalStrengthExitThreshold,
       'enableSectorLimits': config.strategyConfig.enableSectorLimits,
       'maxSectorExposure': config.strategyConfig.maxSectorExposure,
       'enableCorrelationChecks': config.strategyConfig.enableCorrelationChecks,

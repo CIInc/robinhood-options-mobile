@@ -72,6 +72,8 @@ class EntryStrategiesWidget extends StatelessWidget {
         'Buying/selling pressure based on Volume and Price', Icons.payments),
     'fibonacciRetracements': IndicatorMetadata('Fibonacci Retracements',
         'Support/Resistance levels based on Golden Ratio', Icons.table_rows),
+    'pivotPoints': IndicatorMetadata('Pivot Points',
+        'Support/Resistance based on previous day prices', Icons.pivot_table_chart),
   };
 
   static final TextEditingController _disabled100Controller =
