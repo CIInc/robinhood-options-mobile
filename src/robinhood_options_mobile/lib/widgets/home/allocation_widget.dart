@@ -157,6 +157,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
             getDarkerColorForTheme(colorScheme.tertiary)),
         charts.ColorUtil.fromDartColor(
             getDarkerColorForTheme(colorScheme.inversePrimary)),
+        charts.ColorUtil.fromDartColor(getDarkerColorForTheme(
+            colorScheme.onSecondaryFixedVariant)), //secondaryFixedDim
       ];
 
       final assetColorMap = {
@@ -164,6 +166,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         'Options': assetPalette[3],
         'Crypto': assetPalette[2],
         'Cash': assetPalette[1],
+        'Cash ETFs': assetPalette[4],
       };
 
       var positionPalette = PieChart.makeShades(
@@ -421,11 +424,13 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           forexHoldingStore
               .equity)); //  ${formatPercentageInteger.format(percent)}
     }
-    double totalCash = portfolioCash + cashEtfsValue;
-    if (totalCash > 0) {
+    if (portfolioCash > 0) {
       // final percent = portfolioCash / totalAssets;
-      data.add(PieChartData(
-          'Cash', totalCash)); //  ${formatPercentageInteger.format(percent)}
+      data.add(PieChartData('Cash',
+          portfolioCash)); //  ${formatPercentageInteger.format(percent)}
+    }
+    if (cashEtfsValue > 0) {
+      data.add(PieChartData('Cash ETFs', cashEtfsValue));
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;
