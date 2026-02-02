@@ -776,6 +776,8 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return results;
   }
 
+// https://api.robinhood.com/arsenal/v1/futures/margin_requirement?contractId=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&marginType=MARGIN_TYPE_OVERNIGHT&accountType=ACCOUNT_TYPE_MARGIN_LIMITED
+
   Future<dynamic> getFuturesProduct(
       BrokerageUser user, String productId) async {
     var url = "$endpoint/arsenal/v1/futures/products/$productId";

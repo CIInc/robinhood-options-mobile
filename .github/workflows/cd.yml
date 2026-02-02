@@ -208,7 +208,7 @@ jobs:
     name: Build iOS
     needs: [test_and_analyze, check_version]
     if: needs.check_version.outputs.new_version == 'true'
-    runs-on: macos-latest # Uses Xcode 16+ which includes iOS 26 SDK (required for ITMS-90725 compliance)
+    runs-on: macos-16 # Uses Xcode 26+ which includes iOS 26 SDK (required for ITMS-90725 compliance)
     timeout-minutes: 45
     defaults:
       run:
@@ -302,7 +302,8 @@ jobs:
             xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --apiKey "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" --apiIssuer "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
           else
             echo "Using Username/Password for authentication"
-            xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}" --verbose
+            xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
+            # --verbose
           fi
 
 
