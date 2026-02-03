@@ -1,4 +1,7 @@
 import 'package:collection/collection.dart';
+import 'dart:convert';
+import 'package:csv/csv.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -551,6 +554,11 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
 
     if (metrics.isEmpty) return {};
 
+    // Add raw data for export
+    metrics['alignedDates'] = alignedDates;
+    metrics['alignedPortfolioPrices'] = alignedPortfolioPrices;
+    metrics['alignedBenchmarkPrices'] = alignedBenchmarkPrices;
+
     // Add extra fields needed for UI
     metrics['periodDays'] = periodDays;
     metrics['excessReturn'] = (metrics['portfolioCumulative'] ?? 0.0) -
@@ -778,7 +786,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context),
+              _buildHeader(context, data),
               const SizedBox(height: 16),
               if (widget.benchmarkChartDateSpanFilter != null &&
                   widget.onBenchmarkFilterChanged != null) ...[
@@ -2140,7 +2148,80 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  void _exportPortfolioAnalysisToCsv(
+      Map<String, dynamic> metrics, Rect? sharePositionOrigin) async {
+    if (!metrics.containsKey('alignedDates') ||
+        !metrics.containsKey('alignedPortfolioPrices') ||
+        !metrics.containsKey('alignedBenchmarkPrices')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to export.')),
+      );
+      return;
+    }
+
+    final List<DateTime> dates = metrics['alignedDates'];
+    final List<double> portfolioPrices = metrics['alignedPortfolioPrices'];
+    final List<double> benchmarkPrices = metrics['alignedBenchmarkPrices'];
+
+    List<List<dynamic>> rows = [];
+
+    // Header
+    rows.add([
+      "Date",
+      "Portfolio Value",
+      "$_selectedBenchmark Value",
+      "Portfolio Return %",
+      "Benchmark Return %",
+      "Excess Return %"
+    ]);
+
+    double p0 = portfolioPrices.isNotEmpty ? portfolioPrices[0] : 1.0;
+    double b0 = benchmarkPrices.isNotEmpty ? benchmarkPrices[0] : 1.0;
+
+    for (int i = 0; i < dates.length; i++) {
+        double pVal = portfolioPrices[i];
+        double bVal = benchmarkPrices[i];
+        double pRet = (pVal / p0) - 1.0;
+        double bRet = (bVal / b0) - 1.0;
+        double excess = pRet - bRet;
+
+        rows.add([
+            DateFormat('yyyy-MM-dd').format(dates[i]),
+            pVal,
+            bVal,
+            pRet,
+            bRet,
+            excess
+        ]);
+    }
+
+    // Add summary metrics
+    rows.add([]);
+    rows.add(["Metric", "Value"]);
+    metrics.forEach((key, value) {
+        if (value is num) {
+             rows.add([key, value]);
+        }
+    });
+
+    String csvContent = const ListToCsvConverter().convert(rows);
+
+    final xFile = XFile.fromData(
+      utf8.encode(csvContent),
+      mimeType: 'text/csv',
+      name: 'portfolio_analytics_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
+    );
+
+    // Using share_plus to export/share the file
+    final result = await Share.shareXFiles([xFile],
+        text: 'Portfolio Analytics Export',
+        sharePositionOrigin: sharePositionOrigin);
+    if (result.status == ShareResultStatus.success) {
+      // Optional: show success message
+    }
+  }
+
+  Widget _buildHeader(BuildContext context, Map<String, dynamic> metrics) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0.0),
       child: Row(
@@ -2151,6 +2232,20 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Builder(builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.download),
+                  tooltip: 'Export to CSV',
+                  onPressed: () {
+                    final box = context.findRenderObject() as RenderBox?;
+                    Rect? shareOrigin;
+                    if (box != null) {
+                      shareOrigin = box.localToGlobal(Offset.zero) & box.size;
+                    }
+                    _exportPortfolioAnalysisToCsv(metrics, shareOrigin);
+                  },
+                );
+              }),
               // Container(
               //   padding:
               //       const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
