@@ -21,9 +21,8 @@ class RemoteConfigService {
   Future<void> _initConfig() async {
     await _remoteConfig.setConfigSettings(RemoteConfigSettings(
       fetchTimeout: const Duration(minutes: 1),
-      minimumFetchInterval: kDebugMode
-          ? const Duration(minutes: 5)
-          : const Duration(hours: 12),
+      minimumFetchInterval:
+          kDebugMode ? const Duration(minutes: 5) : const Duration(hours: 12),
     ));
 
     await _remoteConfig.setDefaults(const {
@@ -42,7 +41,8 @@ class RemoteConfigService {
 
   String get minAppVersion => _remoteConfig.getString('min_app_version');
   String get aiModelName => _remoteConfig.getString('ai_model_name');
-  bool get showPersonalizedAds => _remoteConfig.getBool('show_personalized_ads');
+  bool get showPersonalizedAds =>
+      _remoteConfig.getBool('show_personalized_ads');
   String get experimentGroup => _remoteConfig.getString('experiment_group');
 
   bool isUpdateRequired(String currentVersion) {
@@ -54,8 +54,12 @@ class RemoteConfigService {
       List<String> min = minAppVersion.split('.');
 
       // Pad with zeros if necessary
-      while (current.length < 3) current.add('0');
-      while (min.length < 3) min.add('0');
+      while (current.length < 3) {
+        current.add('0');
+      }
+      while (min.length < 3) {
+        min.add('0');
+      }
 
       for (int i = 0; i < 3; i++) {
         int currentParam = int.tryParse(current[i]) ?? 0;

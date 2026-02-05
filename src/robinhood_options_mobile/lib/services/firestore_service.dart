@@ -298,6 +298,15 @@ class FirestoreService {
 
   /// InstrumentPosition Methods
 
+  Future<List<InstrumentPosition>> getInstrumentPositions(
+      DocumentReference userDoc) async {
+    var querySnapshot =
+        await userDoc.collection(instrumentPositionCollectionName).get();
+    return querySnapshot.docs
+        .map((doc) => InstrumentPosition.fromJson(doc.data()))
+        .toList();
+  }
+
   Future<DocumentReference<Map<String, dynamic>>> addInstrumentPosition(
       InstrumentPosition instrument, DocumentReference userDoc) {
     return userDoc
@@ -312,7 +321,7 @@ class FirestoreService {
   }
 
   Future<void> deleteInstrumentPosition(String id, DocumentReference doc) {
-    return doc.collection(instrumentCollectionName).doc(id).delete();
+    return doc.collection(instrumentPositionCollectionName).doc(id).delete();
   }
 
   Future<DocumentReference> upsertInstrumentPosition(
@@ -333,6 +342,15 @@ class FirestoreService {
   }
 
   /// OptionPosition Methods
+
+  Future<List<OptionAggregatePosition>> getOptionPositions(
+      DocumentReference userDoc) async {
+    var querySnapshot =
+        await userDoc.collection(optionPositionCollectionName).get();
+    return querySnapshot.docs
+        .map((doc) => OptionAggregatePosition.fromJson(doc.data()))
+        .toList();
+  }
 
   Future<DocumentReference<Map<String, dynamic>>> addOptionPosition(
       OptionAggregatePosition option, DocumentReference userDoc) {

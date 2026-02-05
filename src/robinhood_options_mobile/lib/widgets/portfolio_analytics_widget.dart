@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/services/csv_import_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
 import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
@@ -2232,6 +2233,11 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                icon: const Icon(Icons.upload_file),
+                tooltip: 'Import from Fidelity CSV',
+                onPressed: () => CsvImportService.importFidelityCsv(context),
+              ),
               Builder(builder: (context) {
                 return IconButton(
                   icon: const Icon(Icons.download),

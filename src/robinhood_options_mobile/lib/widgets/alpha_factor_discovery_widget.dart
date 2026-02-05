@@ -496,8 +496,8 @@ class _AlphaFactorDiscoveryWidgetState
                   shrinkWrap: true,
                   children: sortedKeys.expand((cat) {
                     final factors = grouped[cat]!;
-                    final bool isAllSelected =
-                        factors.every((f) => _selectedFactorIds.contains(f['id']));
+                    final bool isAllSelected = factors
+                        .every((f) => _selectedFactorIds.contains(f['id']));
 
                     return [
                       Padding(
@@ -648,19 +648,19 @@ class _AlphaFactorDiscoveryWidgetState
                 )
               ],
             ),
-          SliverToBoxAdapter(child: _buildHeader(theme)),
-          if (_error != null) SliverToBoxAdapter(child: _buildError()),
-          if (_isLoading)
-            SliverFillRemaining(
-              child: _buildLoadingState(theme),
-            )
-          else if (_results.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _buildEmptyState(theme),
-            )
-          else
-            ..._buildResultsSlivers(theme),
+            SliverToBoxAdapter(child: _buildHeader(theme)),
+            if (_error != null) SliverToBoxAdapter(child: _buildError()),
+            if (_isLoading)
+              SliverFillRemaining(
+                child: _buildLoadingState(theme),
+              )
+            else if (_results.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState(theme),
+              )
+            else
+              ..._buildResultsSlivers(theme),
           ],
         ),
       ),
@@ -900,7 +900,7 @@ class _AlphaFactorDiscoveryWidgetState
                                   : null,
                               onTap: () {
                                 setModalState(() => _selectedUniverse = option);
-                                this.setState(() {});
+                                setState(() {});
                                 _savePreferences();
                               },
                             ),
@@ -916,7 +916,7 @@ class _AlphaFactorDiscoveryWidgetState
                                         border: OutlineInputBorder(),
                                       ),
                                       onChanged: (_) {
-                                        this.setState(() {});
+                                        setState(() {});
                                         _savePreferences();
                                       }))
                           ]);
@@ -933,7 +933,7 @@ class _AlphaFactorDiscoveryWidgetState
                               : null,
                           onTap: () {
                             setModalState(() => _selectedUniverse = option);
-                            this.setState(() {});
+                            setState(() {});
                             _savePreferences();
                             Navigator.pop(context);
                           },
@@ -1319,25 +1319,25 @@ class _AlphaFactorDiscoveryWidgetState
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                   TextField(
-                     decoration: InputDecoration(
-                       hintText: "Search factors (e.g. 'RSI', 'MACD')...",
-                       prefixIcon: const Icon(Icons.search),
-                       border: OutlineInputBorder(
-                           borderRadius: BorderRadius.circular(12),
-                           borderSide: BorderSide.none),
-                       filled: true,
-                       fillColor: theme.colorScheme.surfaceContainerHighest
-                           .withValues(alpha: 0.5),
-                       contentPadding: const EdgeInsets.symmetric(
-                           horizontal: 16, vertical: 0),
-                     ),
-                     onChanged: (val) { 
-                        setState(() => _searchQuery = val);
-                        _savePreferences();
-                     },
-                   ),
-                   const SizedBox(height: 12),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: "Search factors (e.g. 'RSI', 'MACD')...",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 0),
+                    ),
+                    onChanged: (val) {
+                      setState(() => _searchQuery = val);
+                      _savePreferences();
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1553,7 +1553,8 @@ class _AlphaFactorDiscoveryWidgetState
                                                 fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 4),
                                     Text(
-                                        "${(best['correlation'] as num).toStringAsFixed(2)}",
+                                        (best['correlation'] as num)
+                                            .toStringAsFixed(2),
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                                 color: Colors.green,
@@ -1561,7 +1562,8 @@ class _AlphaFactorDiscoveryWidgetState
                                   ]),
                                   Row(children: [
                                     Text(
-                                        "${(worst['correlation'] as num).toStringAsFixed(2)}",
+                                        (worst['correlation'] as num)
+                                            .toStringAsFixed(2),
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                                 color: Colors.red,
@@ -1881,9 +1883,13 @@ class _AlphaFactorDiscoveryWidgetState
 
     for (var r in _results) {
       if (((r['globalIC'] ?? 0) as num).abs() >
-          ((bestIC['globalIC'] ?? 0) as num).abs()) bestIC = r;
+          ((bestIC['globalIC'] ?? 0) as num).abs()) {
+        bestIC = r;
+      }
       if (((r['icir'] ?? 0) as num).abs() >
-          ((bestICIR['icir'] ?? 0) as num).abs()) bestICIR = r;
+          ((bestICIR['icir'] ?? 0) as num).abs()) {
+        bestICIR = r;
+      }
     }
 
     // Category Analysis

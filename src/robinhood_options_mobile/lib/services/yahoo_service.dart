@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
 import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 
 // Yahoo Finance screener ID with display name
 class ScreenerId {
@@ -669,7 +671,7 @@ class YahooService {
     var url =
         "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
     var entryJson = await getCachedJson(url,
-        cacheKey: 'marketIndexHistoricals_${symbol}_${range}_${interval}',
+        cacheKey: 'marketIndexHistoricals_${symbol}_${range}_$interval',
         ttl: const Duration(hours: 4));
     return entryJson;
   }
@@ -1106,6 +1108,74 @@ class YahooService {
       debugPrint('Error fetching insider transactions: $e');
     }
     return [];
+  }
+
+  /// Fetch quote for a given symbol
+  Future<Quote> getQuote(String symbol) async {
+    // https://query1.finance.yahoo.com/v7/finance/quote?symbols=AAPL
+    var url =
+        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbol';
+    var json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null &&
+        (json['quoteResponse']['result'] as List).isNotEmpty) {
+      var result = json['quoteResponse']['result'][0];
+      // Map Yahoo result to Quote
+      return Quote(
+          symbol: result['symbol'],
+          askPrice: (result['ask'] as num?)?.toDouble(),
+          askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+          bidPrice: (result['bid'] as num?)?.toDouble(),
+          bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+          lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble(),
+          previousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble(),
+          adjustedPreviousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble(),
+          previousCloseDate: null,
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'yahoo',
+          updatedAt: DateTime.now(),
+          instrument: 'https://api.robinhood.com/instruments/$symbol/', // Dummy
+          instrumentId: symbol // Dummy
+          );
+    }
+    throw Exception('Quote not found for $symbol');
+  }
+
+  /// Fetch historicals for a given symbol
+  Future<List<InstrumentHistorical>> getHistoricals(
+      String symbol, String range, String interval) async {
+    // https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
+    var url =
+        'https://query1.finance.yahoo.com/v8/finance/chart/$symbol?range=$range&interval=$interval';
+    var json = await getJson(url);
+    List<InstrumentHistorical> candles = [];
+    if (json['chart'] != null &&
+        json['chart']['result'] != null &&
+        (json['chart']['result'] as List).isNotEmpty) {
+      var res = json['chart']['result'][0];
+      var timestamp = res['timestamp'] as List<dynamic>?;
+      var indicators = res['indicators'];
+      var quote = indicators['quote'][0];
+
+      if (timestamp != null) {
+        for (int i = 0; i < timestamp.length; i++) {
+          if (quote['open'][i] == null) continue;
+          candles.add(InstrumentHistorical(
+              DateTime.fromMillisecondsSinceEpoch(timestamp[i] * 1000),
+              (quote['open'][i] as num?)?.toDouble(),
+              (quote['close'][i] as num?)?.toDouble(),
+              (quote['high'][i] as num?)?.toDouble(),
+              (quote['low'][i] as num?)?.toDouble(),
+              (quote['volume'][i] as num?)?.toInt() ?? 0,
+              'reg',
+              false));
+        }
+      }
+    }
+    return candles;
   }
 }
 

@@ -396,7 +396,7 @@ class _AgenticTradingSettingsWidgetState
                 : null,
             value: isEnabled,
             onChanged: onChanged,
-            activeColor: effectiveActiveColor,
+            activeThumbColor: effectiveActiveColor,
             activeTrackColor:
                 activeTrackColor ?? effectiveActiveColor.withValues(alpha: 0.5),
             contentPadding: contentPadding ??
@@ -1041,30 +1041,31 @@ class _AgenticTradingSettingsWidgetState
             return Form(
               key: _formKey,
               child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                children: [
-                  _buildStatusHeader(context, agenticTradingProvider),
-                  const SizedBox(height: 16),
-                  // _buildSignalQueue(context, agenticTradingProvider),
-                  _buildPendingOrders(context, agenticTradingProvider),
-                  _buildTemplateList(context),
-                  _buildExecutionSettings(context, agenticTradingProvider),
-                  _buildRiskManagement(context, agenticTradingProvider),
-                  _buildEntryStrategies(context, agenticTradingProvider,
-                      initiallyExpanded:
-                          widget.initialSection == 'entryStrategies',
-                      key: _entryStrategiesKey),
-                  _buildExitStrategies(context, agenticTradingProvider),
-                  _buildNotificationSettings(context, agenticTradingProvider),
-                  _buildBacktesting(context, agenticTradingProvider),
-                ],
+                  children: [
+                    _buildStatusHeader(context, agenticTradingProvider),
+                    const SizedBox(height: 16),
+                    // _buildSignalQueue(context, agenticTradingProvider),
+                    _buildPendingOrders(context, agenticTradingProvider),
+                    _buildTemplateList(context),
+                    _buildExecutionSettings(context, agenticTradingProvider),
+                    _buildRiskManagement(context, agenticTradingProvider),
+                    _buildEntryStrategies(context, agenticTradingProvider,
+                        initiallyExpanded:
+                            widget.initialSection == 'entryStrategies',
+                        key: _entryStrategiesKey),
+                    _buildExitStrategies(context, agenticTradingProvider),
+                    _buildNotificationSettings(context, agenticTradingProvider),
+                    _buildBacktesting(context, agenticTradingProvider),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -2775,8 +2776,8 @@ class _AgenticTradingSettingsWidgetState
               child: SegmentedButton<String>(
                 style: ButtonStyle(
                   visualDensity: VisualDensity.compact,
-                  padding: MaterialStateProperty.all(EdgeInsets.zero),
-                  shape: MaterialStateProperty.all(
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
+                  shape: WidgetStateProperty.all(
                     RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

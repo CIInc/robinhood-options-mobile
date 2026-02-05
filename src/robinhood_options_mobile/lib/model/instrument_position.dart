@@ -117,7 +117,10 @@ class InstrumentPosition {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
             json['created_at'] is Timestamp
                 ? (json['created_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['created_at']);
+                : DateTime.tryParse(json['created_at']),
+        instrumentObj = json['instrument_obj'] != null
+            ? Instrument.fromJson(json['instrument_obj'])
+            : null;
   // instrumentDocRef = json['instrumentDocRef'] != null
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
   //     : null;
@@ -230,6 +233,7 @@ class InstrumentPosition {
         'avg_cost_affected': averageCostAffected,
         'updated_at': updatedAt,
         'created_at': createdAt,
+        'instrument_obj': instrumentObj?.toJson(),
         // 'instrumentDocRef': instrumentDocRef
       };
 

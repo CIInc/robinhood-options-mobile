@@ -107,58 +107,55 @@ class OptionMarketData {
       this.updatedAt);
 
   OptionMarketData.fromJson(dynamic json)
-      : adjustedMarkPrice = double.tryParse(json['adjusted_mark_price']),
-        askPrice = double.tryParse(json['ask_price']),
+      : adjustedMarkPrice =
+            double.tryParse(json['adjusted_mark_price'].toString()),
+        askPrice = double.tryParse(json['ask_price'].toString()),
         askSize = json['ask_size'],
-        bidPrice = double.tryParse(json['bid_price']),
+        bidPrice = double.tryParse(json['bid_price'].toString()),
         bidSize = json['bid_size'],
-        breakEvenPrice = double.tryParse(json['break_even_price']),
-        highPrice = json['high_price'] != null
-            ? double.tryParse(json['high_price'])
-            : null,
+        breakEvenPrice = double.tryParse(json['break_even_price'].toString()),
+        highPrice = double.tryParse(json['high_price'].toString()),
         instrument = json['instrument'],
         instrumentId = json['instrument_id'],
         lastTradePrice = double.tryParse(json['last_trade_price'].toString()),
         lastTradeSize = json['last_trade_size'] ?? 0,
-        lowPrice = json['low_price'] != null
-            ? double.tryParse(json['low_price'])
-            : null,
-        markPrice = double.tryParse(json['mark_price']),
+        lowPrice = double.tryParse(json['low_price'].toString()),
+        markPrice = double.tryParse(json['mark_price'].toString()),
         openInterest = json['open_interest'],
-        previousCloseDate = DateTime.tryParse(json['previous_close_date']),
-        previousClosePrice = double.tryParse(json['previous_close_price']),
+        previousCloseDate = json['previous_close_date'] is Timestamp
+            ? (json['previous_close_date'] as Timestamp).toDate()
+            : (json['previous_close_date'] != null
+                ? DateTime.tryParse(json['previous_close_date'].toString())
+                : null),
+        previousClosePrice =
+            double.tryParse(json['previous_close_price'].toString()),
         volume = json['volume'],
         symbol = json['symbol'],
         occSymbol = json['occ_symbol'],
-        chanceOfProfitLong = json['chance_of_profit_long'] != null
-            ? double.tryParse(json['chance_of_profit_long'])
-            : null,
-        chanceOfProfitShort = json['chance_of_profit_short'] != null
-            ? double.tryParse(json['chance_of_profit_short'])
-            : null,
-        delta = json['delta'] != null ? double.tryParse(json['delta']) : null,
-        gamma = json['gamma'] != null ? double.tryParse(json['gamma']) : null,
-        impliedVolatility = json['implied_volatility'] != null
-            ? double.tryParse(json['implied_volatility'])
-            : null,
-        rho = json['rho'] != null ? double.tryParse(json['rho']) : null,
-        theta = json['theta'] != null ? double.tryParse(json['theta']) : null,
-        vega = json['vega'] != null ? double.tryParse(json['vega']) : null,
-        highFillRateBuyPrice = json['high_fill_rate_buy_price'] != null
-            ? double.tryParse(json['high_fill_rate_buy_price'])
-            : null,
-        highFillRateSellPrice = json['high_fill_rate_sell_price'] != null
-            ? double.tryParse(json['high_fill_rate_sell_price'])
-            : null,
-        lowFillRateBuyPrice = json['low_fill_rate_buy_price'] != null
-            ? double.tryParse(json['low_fill_rate_buy_price'])
-            : null,
-        lowFillRateSellPrice = json['low_fill_rate_sell_price'] != null
-            ? double.tryParse(json['low_fill_rate_sell_price'])
-            : null,
+        chanceOfProfitLong =
+            double.tryParse(json['chance_of_profit_long'].toString()),
+        chanceOfProfitShort =
+            double.tryParse(json['chance_of_profit_short'].toString()),
+        delta = double.tryParse(json['delta'].toString()),
+        gamma = double.tryParse(json['gamma'].toString()),
+        impliedVolatility =
+            double.tryParse(json['implied_volatility'].toString()),
+        rho = double.tryParse(json['rho'].toString()),
+        theta = double.tryParse(json['theta'].toString()),
+        vega = double.tryParse(json['vega'].toString()),
+        highFillRateBuyPrice =
+            double.tryParse(json['high_fill_rate_buy_price'].toString()),
+        highFillRateSellPrice =
+            double.tryParse(json['high_fill_rate_sell_price'].toString()),
+        lowFillRateBuyPrice =
+            double.tryParse(json['low_fill_rate_buy_price'].toString()),
+        lowFillRateSellPrice =
+            double.tryParse(json['low_fill_rate_sell_price'].toString()),
         updatedAt = json['updated_at'] is Timestamp
             ? (json['updated_at'] as Timestamp).toDate()
-            : DateTime.tryParse(json['updated_at']);
+            : (json['updated_at'] != null
+                ? DateTime.tryParse(json['updated_at'].toString())
+                : null);
 
   // toMarkdownTable generates a markdown table from a list of OptionMarketData populating the table with all properties of the class
   static String toMarkdownTable(List<OptionMarketData> data) {

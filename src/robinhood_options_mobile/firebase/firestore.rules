@@ -97,6 +97,12 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
     
+    # match /option_instrument/{doc} {
+    #   allow read: if true;
+    #   allow create, update: if request.auth.uid != null;
+    #   allow delete: if request.auth.token.role == 'admin';
+    # }
+
     match /agentic_trading/{doc} {
       allow read: if true;
       allow create, update: if request.auth.uid != null;

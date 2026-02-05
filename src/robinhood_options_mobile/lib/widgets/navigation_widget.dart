@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/services/subscription_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
@@ -42,7 +43,7 @@ import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
-import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
+//import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
@@ -123,9 +124,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           ? RobinhoodService()
           : userStore.currentUser!.source == BrokerageSource.schwab
               ? SchwabService()
-              : userStore.currentUser!.source == BrokerageSource.plaid
-                  ? PlaidService()
-                  : DemoService();
+              : userStore.currentUser!.source == BrokerageSource.fidelity
+                  ? FidelityService()
+                  : userStore.currentUser!.source == BrokerageSource.plaid
+                      ? PlaidService()
+                      : DemoService();
 
       var futureUserInfo = service!.getUser(userStore.currentUser!);
       futureArr.add(futureUserInfo.catchError((e) => null));
@@ -185,9 +188,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               ? RobinhoodService()
               : brokerageUser.source == BrokerageSource.schwab
                   ? SchwabService()
-                  : brokerageUser.source == BrokerageSource.plaid
-                      ? PlaidService()
-                      : DemoService();
+                  : brokerageUser.source == BrokerageSource.fidelity
+                      ? FidelityService()
+                      : brokerageUser.source == BrokerageSource.plaid
+                          ? PlaidService()
+                          : DemoService();
 
           service!
               .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
@@ -228,9 +233,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 ? RobinhoodService()
                 : brokerageUser.source == BrokerageSource.schwab
                     ? SchwabService()
-                    : brokerageUser.source == BrokerageSource.plaid
-                        ? PlaidService()
-                        : DemoService();
+                    : brokerageUser.source == BrokerageSource.fidelity
+                        ? FidelityService()
+                        : brokerageUser.source == BrokerageSource.plaid
+                            ? PlaidService()
+                            : DemoService();
 
             service!
                 .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)

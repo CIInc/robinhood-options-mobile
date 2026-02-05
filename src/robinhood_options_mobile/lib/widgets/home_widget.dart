@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/futures_position_store.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 // import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -251,6 +252,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           Provider.of<QuoteStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1],
           userDoc: widget.userDoc);
+    } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
+      futureStockPositions = widget.service!.getStockPositionStore(
+          widget.brokerageUser!,
+          Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+
+      futureOptionPositions = widget.service!.getOptionPositionStore(
+          widget.brokerageUser!,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
     }
   }
 
@@ -396,11 +412,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    bool isSessionExpired =
-        widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true;
-    if (widget.brokerageUser != null &&
-        widget.brokerageUser!.source == BrokerageSource.demo) {
-      isSessionExpired = false;
+    bool isSessionExpired = false;
+    if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
+      isSessionExpired =
+          widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true;
     }
 
     if (widget.brokerageUser == null ||
@@ -522,6 +537,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               userDocRef: widget.userDoc,
               service: widget.service!,
             ),
+            if (widget.brokerageUser!.source == BrokerageSource.fidelity) ...[
+              SliverToBoxAdapter(
+                  child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Wrap(
+                  spacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (widget.service is FidelityService) {
+                          (widget.service as FidelityService)
+                              .importFidelityCsv(context);
+                        }
+                      },
+                      icon: const Icon(Icons.file_upload),
+                      label: const Text("Import CSV"),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        if (widget.service is FidelityService) {
+                          (widget.service as FidelityService)
+                              .clearImportedData(context);
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text("Reset Data"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+            ],
 
             if (welcomeWidget != null) ...[
               const SliverToBoxAdapter(
@@ -1291,7 +1341,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           );
         });
       }
-      if (widget.brokerageUser!.source == BrokerageSource.schwab) {
+      if (widget.brokerageUser!.source == BrokerageSource.schwab ||
+          widget.brokerageUser!.source == BrokerageSource.fidelity) {
         futureAccounts = widget.service!.getAccounts(
             widget.brokerageUser!,
             Provider.of<AccountStore>(context, listen: false),

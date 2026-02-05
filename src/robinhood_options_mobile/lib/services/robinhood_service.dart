@@ -688,6 +688,7 @@ Response: {
       String account,
       Bounds chartBoundsFilter,
       ChartDateSpan chartDateSpanFilter) async {
+    await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
@@ -2534,6 +2535,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
       String? chartInterval}) async {
+    await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
@@ -3368,6 +3370,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
       BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
       {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    await Future.delayed(Duration.zero);
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
@@ -3377,6 +3380,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         "$endpoint/marketdata/options/strategy/historicals/?bounds=$bounds&ids=${Uri.encodeComponent(ids.join(","))}&interval=$interval&span=$span&types=long&ratios=1";
     var result = await RobinhoodService.getJson(user, url); //${account}/
     var optionHistoricals = OptionHistoricals.fromJson(result);
+    // Use Future.microtask to avoid setState during build if this method is called inside build but completed synchronously (unlikely here due to await getJson, but safe)
     store.addOrUpdate(optionHistoricals);
     return optionHistoricals;
   }

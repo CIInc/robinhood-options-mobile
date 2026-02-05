@@ -127,6 +127,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
   //   _fetchTradeSignalsWithFilters();
   //override
+  @override
   Widget build(BuildContext context) {
     super.build(context);
 
@@ -196,8 +197,9 @@ class _SearchWidgetState extends State<SearchWidget>
             // var listMostPopular =
             //     data.length > 4 ? data[4] as List<Instrument> : null;
 
-            if (search != null)
+            if (search != null) {
               debugPrint("SearchWidget: has search results: $search");
+            }
 
             return _buildPage(
                 search: search,

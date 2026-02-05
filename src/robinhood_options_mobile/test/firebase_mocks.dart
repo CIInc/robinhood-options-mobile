@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
-import 'package:flutter/services.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:robinhood_options_mobile/main.dart' as app_main;
@@ -13,12 +12,14 @@ import 'package:firebase_core/firebase_core.dart';
 class MockFirebasePlatform extends FirebasePlatform {
   @override
   FirebaseAppPlatform app([String name = defaultFirebaseAppName]) {
-    return FirebaseAppPlatform(name, const FirebaseOptions(
-      apiKey: 'test',
-      appId: 'test',
-      messagingSenderId: 'test',
-      projectId: 'test',
-    ));
+    return FirebaseAppPlatform(
+        name,
+        const FirebaseOptions(
+          apiKey: 'test',
+          appId: 'test',
+          messagingSenderId: 'test',
+          projectId: 'test',
+        ));
   }
 
   @override
@@ -28,12 +29,13 @@ class MockFirebasePlatform extends FirebasePlatform {
   }) async {
     return FirebaseAppPlatform(
       name ?? defaultFirebaseAppName,
-      options ?? const FirebaseOptions(
-        apiKey: 'test',
-        appId: 'test',
-        messagingSenderId: 'test',
-        projectId: 'test',
-      ),
+      options ??
+          const FirebaseOptions(
+            apiKey: 'test',
+            appId: 'test',
+            messagingSenderId: 'test',
+            projectId: 'test',
+          ),
     );
   }
 }
@@ -57,7 +59,7 @@ class MockRemoteConfig extends Fake implements FirebaseRemoteConfig {
 
   @override
   Future<bool> fetchAndActivate() async => true;
-  
+
   @override
   String getString(String key) {
     if (key == 'ai_model_name') return 'gemini-2.0-flash-exp';
@@ -83,7 +85,7 @@ Future<void> setupFirebaseMocks() async {
 
   // Initialize Firebase App
   final app = await Firebase.initializeApp();
-  
+
   // Set globals in main.dart
   // Using try-catch regarding late final reassignment in case of shared isolate (rare in flutter test but possible)
   try {
@@ -91,13 +93,13 @@ Future<void> setupFirebaseMocks() async {
   } catch (_) {}
 
   try {
-     app_main.auth = FakeFirebaseAuth();
+    app_main.auth = FakeFirebaseAuth();
   } catch (_) {}
 
   try {
     app_main.authUtil = AuthUtil(app_main.auth);
   } catch (_) {}
-  
+
   try {
     app_main.userRole = UserRole.user;
   } catch (_) {}

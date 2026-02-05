@@ -498,7 +498,8 @@ class _PersonalizedCoachingWidgetState
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Text(reason,
                         style: TextStyle(
@@ -4134,7 +4135,6 @@ class _InsightItem extends StatelessWidget {
   final bool isPositive;
 
   const _InsightItem({
-    super.key,
     required this.text,
     required this.icon,
     required this.color,
@@ -4220,7 +4220,7 @@ class _InsightItem extends StatelessWidget {
 
 class _LoadingSkeleton extends StatefulWidget {
   final String status;
-  const _LoadingSkeleton({super.key, required this.status});
+  const _LoadingSkeleton({required this.status});
 
   @override
   State<_LoadingSkeleton> createState() => _LoadingSkeletonState();

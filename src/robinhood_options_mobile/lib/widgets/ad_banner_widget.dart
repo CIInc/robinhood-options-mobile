@@ -16,9 +16,11 @@ class AdBannerWidget extends StatefulWidget {
   }
 }
 
-class _AdBannerWidget extends State<AdBannerWidget> with AutomaticKeepAliveClientMixin {
-  late BannerAd _bannerAd;
+class _AdBannerWidget extends State<AdBannerWidget>
+    with AutomaticKeepAliveClientMixin {
+  BannerAd? _bannerAd;
   bool _bannerReady = false;
+  AdWidget? _adWidget;
 
   @override
   bool get wantKeepAlive => true;
@@ -46,14 +48,23 @@ class _AdBannerWidget extends State<AdBannerWidget> with AutomaticKeepAliveClien
           if (mounted) {
             setState(() {
               _bannerReady = true;
+              if (_bannerAd != null) {
+                _adWidget = AdWidget(ad: _bannerAd!);
+              }
             });
           }
         },
         // Called when an ad request failed.
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          debugPrint('Ad failed to load: $error');
           // Dispose the ad here to free resources.
           ad.dispose();
-          debugPrint('Ad failed to load: $error');
+          if (mounted) {
+            setState(() {
+              _bannerAd = null;
+              _bannerReady = false;
+            });
+          }
         },
         // Called when an ad opens an overlay that covers the screen.
         onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
@@ -63,23 +74,24 @@ class _AdBannerWidget extends State<AdBannerWidget> with AutomaticKeepAliveClien
         onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
       ),
     );
-    _bannerAd.load();
+    _bannerAd!.load();
   }
 
   @override
   void dispose() {
+    _bannerAd?.dispose();
+    _bannerAd = null;
     super.dispose();
-    _bannerAd.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return _bannerReady
+    return _bannerReady && _bannerAd != null && _adWidget != null
         ? SizedBox(
-            width: _bannerAd.size.width.toDouble(),
-            height: _bannerAd.size.height.toDouble(),
-            child: AdWidget(ad: _bannerAd),
+            width: _bannerAd!.size.width.toDouble(),
+            height: _bannerAd!.size.height.toDouble(),
+            child: _adWidget,
           )
         : Container();
   }

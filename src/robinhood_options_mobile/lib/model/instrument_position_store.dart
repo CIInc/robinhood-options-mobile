@@ -44,6 +44,11 @@ class InstrumentPositionStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeWhere(bool Function(InstrumentPosition) test) {
+    _items.removeWhere(test);
+    notifyListeners();
+  }
+
   bool update(InstrumentPosition item) {
     var index = _items.indexWhere((element) =>
         //element.url == item.url);

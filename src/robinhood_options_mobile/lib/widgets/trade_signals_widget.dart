@@ -1362,7 +1362,9 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
     if (symbol == null ||
         symbol == 'N/A' ||
         widget.brokerageUser == null ||
-        widget.service == null) return;
+        widget.service == null) {
+      return;
+    }
 
     if (!mounted) return;
     final quoteStore = Provider.of<QuoteStore>(context, listen: false);
@@ -1395,7 +1397,9 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
     if (symbol == null ||
         symbol == 'N/A' ||
         widget.brokerageUser == null ||
-        widget.service == null) return;
+        widget.service == null) {
+      return;
+    }
 
     // Check store first
     if (!mounted) return;

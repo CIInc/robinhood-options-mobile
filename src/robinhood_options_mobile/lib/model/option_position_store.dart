@@ -49,6 +49,11 @@ class OptionPositionStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeWhere(bool Function(OptionAggregatePosition) test) {
+    _items.removeWhere(test);
+    notifyListeners();
+  }
+
   bool update(OptionAggregatePosition item) {
     var index = _items.indexWhere((element) => element.id == item.id);
     if (index == -1) {

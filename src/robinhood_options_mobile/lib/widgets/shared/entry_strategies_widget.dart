@@ -72,8 +72,10 @@ class EntryStrategiesWidget extends StatelessWidget {
         'Buying/selling pressure based on Volume and Price', Icons.payments),
     'fibonacciRetracements': IndicatorMetadata('Fibonacci Retracements',
         'Support/Resistance levels based on Golden Ratio', Icons.table_rows),
-    'pivotPoints': IndicatorMetadata('Pivot Points',
-        'Support/Resistance based on previous day prices', Icons.pivot_table_chart),
+    'pivotPoints': IndicatorMetadata(
+        'Pivot Points',
+        'Support/Resistance based on previous day prices',
+        Icons.pivot_table_chart),
   };
 
   static final TextEditingController _disabled100Controller =
@@ -646,7 +648,7 @@ class EntryStrategiesWidget extends StatelessWidget {
               Switch(
                 value: isEnabled,
                 onChanged: (val) => onToggleIndicator(key, val),
-                activeColor: colorScheme.primary,
+                activeThumbColor: colorScheme.primary,
               ),
             ],
           ),
@@ -711,7 +713,7 @@ class EntryStrategiesWidget extends StatelessWidget {
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8))),
         value: value,
         onChanged: onChanged,
-        activeColor: colorScheme.primary,
+        activeThumbColor: colorScheme.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

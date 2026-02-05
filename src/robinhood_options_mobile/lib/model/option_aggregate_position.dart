@@ -81,7 +81,13 @@ class OptionAggregatePosition {
             : (json['updated_at'] is String
                 ? DateTime.tryParse(json['updated_at'])
                 : null),
-        strategyCode = json['strategy_code'];
+        strategyCode = json['strategy_code'],
+        optionInstrument = json['option_instrument'] != null
+            ? OptionInstrument.fromJson(json['option_instrument'])
+            : null,
+        instrumentObj = json['instrument_obj'] != null
+            ? Instrument.fromJson(json['instrument_obj'])
+            : null;
 
   /*
   {shortQuantity: 0.0, averagePrice: 3.8266, currentDayProfitLoss: -83.0, currentDayProfitLossPercentage: -22.93, longQuantity: 2.0, settledLongQuantity: 2.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0AMAT.KF40210000, symbol: AMAT  241115C00210000, description: APPLIED MATLS INC 11/15/2024 $210 Call, netChange: -0.41, type: VANILLA, putCall: CALL, underlyingSymbol: AMAT}, marketValue: 279.0, maintenanceRequirement: 0.0, averageLongPrice: 3.82, taxLotAverageLongPrice: 3.8266, longOpenProfitLoss: -486.32, previousSessionLongQuantity: 2.0, currentDayCost: 0.0}
@@ -272,7 +278,9 @@ class OptionAggregatePosition {
         'trade_value_multiplier': tradeValueMultiplier,
         'created_at': createdAt,
         'updated_at': updatedAt,
-        'strategy_code': strategyCode
+        'strategy_code': strategyCode,
+        'option_instrument': optionInstrument?.toJson(),
+        'instrument_obj': instrumentObj?.toJson(),
       };
 
   // Helpers

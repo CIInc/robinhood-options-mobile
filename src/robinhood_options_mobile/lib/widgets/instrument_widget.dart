@@ -1838,12 +1838,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     //     displayValue: DisplayValue.totalReturnPercent);
 
     double? todayReturn = ops.quoteObj?.changeToday;
-    String? todayReturnText = widget.brokerageUser
-        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser.getDisplayText(
+        todayReturn ?? 0,
+        displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = ops.quoteObj?.changePercentToday;
     String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
-        todayReturnPercent!,
+        todayReturnPercent ?? 0,
         displayValue: DisplayValue.todayReturnPercent);
 
     tiles = [
@@ -1870,11 +1871,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             PnlBadge(
                 text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj!.bidPrice!,
+                    ops.quoteObj?.bidPrice ?? 0,
                     displayValue: DisplayValue.lastPrice),
                 fontSize: valueFontSize,
                 neutral: true),
-            Text("Bid x ${ops.quoteObj!.bidSize}",
+            Text("Bid x ${ops.quoteObj?.bidSize ?? 0}",
                 style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
@@ -1882,11 +1883,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             PnlBadge(
                 text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj!.askPrice!,
+                    ops.quoteObj?.askPrice ?? 0,
                     displayValue: DisplayValue.lastPrice),
                 fontSize: valueFontSize,
                 neutral: true),
-            Text("Ask x ${ops.quoteObj!.askSize}",
+            Text("Ask x ${ops.quoteObj?.askSize ?? 0}",
                 style: TextStyle(fontSize: labelFontSize))
           ])),
       Padding(
@@ -1894,7 +1895,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             PnlBadge(
                 text: widget.brokerageUser.getDisplayText(
-                    ops.quoteObj!.adjustedPreviousClose!,
+                    ops.quoteObj?.adjustedPreviousClose ?? 0,
                     displayValue: DisplayValue.lastPrice),
                 fontSize: valueFontSize,
                 neutral: true),

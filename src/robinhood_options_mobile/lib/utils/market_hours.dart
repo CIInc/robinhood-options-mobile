@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Trading session types
 enum TradingSession {
   preMarket, // 4:00 AM - 9:30 AM ET

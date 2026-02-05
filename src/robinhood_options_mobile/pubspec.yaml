@@ -105,6 +105,7 @@ dependencies:
   in_app_purchase: ^3.2.3
   firebase_remote_config: ^5.5.0
   local_auth: ^3.0.0
+  file_picker: ^10.3.10
 
 dev_dependencies:
   integration_test:

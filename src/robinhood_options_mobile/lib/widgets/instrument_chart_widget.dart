@@ -1564,14 +1564,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       vote(roc > 0);
     }
     if (cmf != null) {
-      if (cmf > 0.05) vote(true);
-      else if (cmf < -0.05) vote(false);
+      if (cmf > 0.05) {
+        vote(true);
+      } else if (cmf < -0.05) vote(false);
     }
     if (spanA != null && spanB != null) {
       bool aboveCloud = currentPrice > math.max(spanA, spanB);
       bool belowCloud = currentPrice < math.min(spanA, spanB);
-      if (aboveCloud) vote(true);
-      else if (belowCloud) vote(false);
+      if (aboveCloud) {
+        vote(true);
+      } else if (belowCloud) vote(false);
     }
     if (sar != null && isUptrendSar != null) {
       vote(isUptrendSar);
@@ -2026,14 +2028,16 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       vote(roc > 0);
     }
     if (cmf != null) {
-      if (cmf > 0.05) vote(true);
-      else if (cmf < -0.05) vote(false);
+      if (cmf > 0.05) {
+        vote(true);
+      } else if (cmf < -0.05) vote(false);
     }
     if (spanA != null && spanB != null) {
       bool aboveCloud = currentPrice > math.max(spanA, spanB);
       bool belowCloud = currentPrice < math.min(spanA, spanB);
-      if (aboveCloud) vote(true);
-      else if (belowCloud) vote(false);
+      if (aboveCloud) {
+        vote(true);
+      } else if (belowCloud) vote(false);
     }
     if (sar != null && isUptrendSar != null) {
       vote(isUptrendSar);
@@ -2234,10 +2238,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                 return const Signal(
                                     text: "N/A", color: Colors.grey);
                               }
-                              bool aboveCloud =
-                                  currentPrice > math.max(sA, sB);
-                              bool belowCloud =
-                                  currentPrice < math.min(sA, sB);
+                              bool aboveCloud = currentPrice > math.max(sA, sB);
+                              bool belowCloud = currentPrice < math.min(sA, sB);
 
                               if (aboveCloud) {
                                 return const Signal(
@@ -2320,7 +2322,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "No Squeeze", color: Colors.grey);
-                            }, valueText: isSqueezeIndepth ? "Active" : "Inactive"),
+                            },
+                                valueText:
+                                    isSqueezeIndepth ? "Active" : "Inactive"),
                           ])));
             },
           );

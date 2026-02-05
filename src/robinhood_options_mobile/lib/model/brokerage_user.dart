@@ -38,9 +38,11 @@ class BrokerageUser {
             ? BrokerageSource.robinhood
             : json['source'] == BrokerageSource.schwab.toString()
                 ? BrokerageSource.schwab
-                : json['source'] == BrokerageSource.plaid.toString()
-                    ? BrokerageSource.plaid
-                    : BrokerageSource.demo,
+                : json['source'] == BrokerageSource.fidelity.toString()
+                    ? BrokerageSource.fidelity
+                    : json['source'] == BrokerageSource.plaid.toString()
+                        ? BrokerageSource.plaid
+                        : BrokerageSource.demo,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,

@@ -31,6 +31,11 @@ class InstrumentOrderStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeWhere(bool Function(InstrumentOrder) test) {
+    _items.removeWhere(test);
+    notifyListeners();
+  }
+
   bool update(InstrumentOrder item) {
     var index = _items.indexWhere((element) => element.id == item.id);
     if (index == -1) {

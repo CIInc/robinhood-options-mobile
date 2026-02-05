@@ -1,9 +1,7 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:robinhood_options_mobile/main.dart';
-import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'firebase_mocks.dart';
 
 void main() {

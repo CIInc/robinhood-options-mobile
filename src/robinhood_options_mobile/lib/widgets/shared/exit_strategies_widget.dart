@@ -493,7 +493,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
               onChanged(val);
               _notifySettingsChanged();
             },
-            activeColor: colorScheme.primary,
+            activeThumbColor: colorScheme.primary,
             secondary: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

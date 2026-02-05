@@ -24,6 +24,11 @@ class DividendStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeWhere(bool Function(dynamic) test) {
+    _items.removeWhere(test);
+    notifyListeners();
+  }
+
   bool update(dynamic item) {
     var index = _items.indexWhere((element) => element["id"] == item["id"]);
     if (index == -1) {

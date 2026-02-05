@@ -421,7 +421,7 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                     ),
                                   ),
                                 );
-                              }).toList()
+                              })
                             else if (!_isLoading)
                               const Padding(
                                 padding: EdgeInsets.all(16.0),

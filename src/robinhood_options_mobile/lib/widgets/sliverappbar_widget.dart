@@ -7,6 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as app_user;
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -43,8 +50,83 @@ class ExpandedSliverAppBar extends StatelessWidget {
     this.service,
   });
 
+  Future<void> showAccountSwitcher(
+      BuildContext context, BrokerageUserStore brokerageUserStore) async {
+    await showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (BuildContext context) {
+          return SafeArea(
+            child: Wrap(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Switch Account',
+                      style: Theme.of(context).textTheme.titleLarge),
+                ),
+                ...brokerageUserStore.items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final user = entry.value;
+                  final isSelected =
+                      index == brokerageUserStore.currentUserIndex;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      child: Text(user.source
+                          .enumValue()
+                          .substring(0, 1)
+                          .toUpperCase()),
+                    ),
+                    title: Text(user.userName ?? 'Unknown'),
+                    subtitle: Text(user.source.enumValue().capitalize()),
+                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (!isSelected) {
+                        Provider.of<AccountStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<PortfolioStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<PortfolioHistoricalsStore>(context,
+                                listen: false)
+                            .removeAll();
+                        Provider.of<ForexHoldingStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<OptionPositionStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<InstrumentPositionStore>(context,
+                                listen: false)
+                            .removeAll();
+
+                        brokerageUserStore.setCurrentUserIndex(index);
+                        await brokerageUserStore.save();
+                      }
+                    },
+                  );
+                }),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: const Text('Add Account'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final authUtil = AuthUtil(auth);
+                    authUtil.openLogin(
+                        context, firestoreService, analytics, observer);
+                  },
+                )
+              ],
+            ),
+          );
+        });
+    if (onChange != null) {
+      onChange!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    var brokerageUserStore = Provider.of<BrokerageUserStore>(context);
+    var hasMultipleAccounts = brokerageUserStore.items.length > 1;
     return StreamBuilder<User?>(
         stream: auth.authStateChanges(),
         builder: (context, snapshot) {
@@ -60,6 +142,13 @@ class ExpandedSliverAppBar extends StatelessWidget {
                     userDocRef: userDocRef,
                     service: service,
                   ),
+                if (hasMultipleAccounts)
+                  IconButton(
+                      icon: const Icon(Icons.account_balance),
+                      tooltip: 'Switch Account',
+                      onPressed: () {
+                        showAccountSwitcher(context, brokerageUserStore);
+                      }),
                 IconButton(
                     icon: auth.currentUser != null
                         ? (auth.currentUser!.photoURL == null

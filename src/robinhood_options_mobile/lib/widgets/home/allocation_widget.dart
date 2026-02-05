@@ -166,7 +166,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         'Options': assetPalette[3],
         'Crypto': assetPalette[2],
         'Cash': assetPalette[1],
-        'Cash ETFs': assetPalette[4],
+        'Cash Equivalents': assetPalette[4],
       };
 
       var positionPalette = PieChart.makeShades(
@@ -395,10 +395,14 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       'VGSH',
       'SCHO'
     ];
+    double cashPositionsValue = 0.0;
     for (var position in stockPositionStore.items) {
-      if (position.instrumentObj?.symbol != null &&
-          cashEtfSymbols.contains(position.instrumentObj!.symbol)) {
-        cashEtfsValue += position.marketValue;
+      if (position.instrumentObj?.symbol != null) {
+        if (cashEtfSymbols.contains(position.instrumentObj!.symbol)) {
+          cashEtfsValue += position.marketValue;
+        } else if (position.instrumentObj!.symbol.endsWith('**')) {
+          cashPositionsValue += position.marketValue;
+        }
       }
     }
 
@@ -411,7 +415,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     }
     if (stockPositionStore.equity > 0) {
       // final percent = stockPositionStore.equity / totalAssets;
-      double adjustedStockEquity = stockPositionStore.equity - cashEtfsValue;
+      double adjustedStockEquity =
+          stockPositionStore.equity - cashEtfsValue - cashPositionsValue;
       if (adjustedStockEquity > 0) {
         data.add(PieChartData('Stocks',
             adjustedStockEquity)); //  ${formatPercentageInteger.format(percent)}
@@ -430,7 +435,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           portfolioCash)); //  ${formatPercentageInteger.format(percent)}
     }
     if (cashEtfsValue > 0) {
-      data.add(PieChartData('Cash ETFs', cashEtfsValue));
+      data.add(PieChartData('Cash Equivalents', cashEtfsValue));
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;

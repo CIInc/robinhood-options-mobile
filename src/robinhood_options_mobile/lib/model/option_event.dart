@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class OptionEvent {
   final String account;
   final String? cashComponent;
@@ -40,23 +42,41 @@ class OptionEvent {
       : account = json['account'],
         cashComponent = json['cash_component'],
         chainId = json['chain_id'],
-        createdAt = DateTime.tryParse(json['created_at']),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String
+                ? DateTime.tryParse(json['created_at'])
+                : null),
         direction = json['direction'],
         equityComponents =
-            json['equity_components'].map<String>((e) => e.toString()).toList(),
-        eventDate = DateTime.tryParse(json['event_date']),
+            List<String>.from(json['equity_components']?.map((e) => e.toString()) ?? []),
+        eventDate = json['event_date'] is Timestamp
+            ? (json['event_date'] as Timestamp).toDate()
+            : (json['event_date'] is String
+                ? DateTime.tryParse(json['event_date'])
+                : null),
         id = json['id'],
         option = json['option'],
         position = json['position'],
-        quantity = double.tryParse(json['quantity']),
+        quantity = json['quantity'] is num
+            ? (json['quantity'] as num).toDouble()
+            : double.tryParse(json['quantity'] ?? ''),
         sourceRefId = json['source_ref_id'],
         state = json['state'],
-        totalCashAmount = double.tryParse(json['total_cash_amount']),
+        totalCashAmount = json['total_cash_amount'] is num
+             ? (json['total_cash_amount'] as num).toDouble()
+             : double.tryParse(json['total_cash_amount'] ?? ''),
         type = json['type'],
-        underlyingPrice = json['underlying_price'] != null
-            ? double.tryParse(json['underlying_price'])
-            : null,
-        updatedAt = DateTime.tryParse(json['updated_at']);
+        underlyingPrice = json['underlying_price'] is num
+            ? (json['underlying_price'] as num).toDouble()
+            : (json['underlying_price'] != null
+                ? double.tryParse(json['underlying_price'])
+                : null),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null);
 
   Map<String, dynamic> toJson() => {
         'account': account,

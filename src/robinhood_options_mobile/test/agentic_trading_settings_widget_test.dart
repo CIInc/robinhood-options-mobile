@@ -12,12 +12,11 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
-import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'firebase_mocks.dart';
 
-class MockBacktestingProvider extends ChangeNotifier implements BacktestingProvider {
+class MockBacktestingProvider extends ChangeNotifier
+    implements BacktestingProvider {
   @override
   List<TradeStrategyTemplate> get templates => [];
 
@@ -81,7 +80,8 @@ void main() {
           .collection('user')
           .doc('test_user_123')
           .withConverter<User>(
-            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data() ?? {}),
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
             toFirestore: (user, _) => user.toJson(),
           );
 
@@ -91,7 +91,8 @@ void main() {
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
-              ChangeNotifierProvider<BacktestingProvider>(create: (_) => MockBacktestingProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,
@@ -114,7 +115,8 @@ void main() {
           .collection('user')
           .doc('test_user_123')
           .withConverter<User>(
-            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data() ?? {}),
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
             toFirestore: (user, _) => user.toJson(),
           );
 
@@ -124,7 +126,8 @@ void main() {
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
-              ChangeNotifierProvider<BacktestingProvider>(create: (_) => MockBacktestingProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
             ],
             child: AgenticTradingSettingsWidget(
               user: testUser,

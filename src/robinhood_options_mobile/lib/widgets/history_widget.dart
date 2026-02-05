@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -170,7 +171,9 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildScaffold() {
     if (widget.brokerageUser == null ||
         widget.service == null ||
-        (widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true)) {
+        (widget.brokerageUser!.source != BrokerageSource.fidelity &&
+            (widget.brokerageUser?.oauth2Client?.credentials.isExpired ??
+                true))) {
       return Scaffold(
           body: RefreshIndicator(
         onRefresh: () async {

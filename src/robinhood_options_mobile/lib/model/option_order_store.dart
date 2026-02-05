@@ -30,6 +30,11 @@ class OptionOrderStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeWhere(bool Function(OptionOrder) test) {
+    _items.removeWhere(test);
+    notifyListeners();
+  }
+
   bool update(OptionOrder item) {
     var index = _items.indexWhere((element) => element.id == item.id);
     if (index == -1) {

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
-import 'package:robinhood_options_mobile/model/trade_strategy_config.dart';
 
 void main() {
   group('AgenticTradingConfig Tests', () {
@@ -161,7 +160,8 @@ void main() {
       // Verify all indicators are disabled by default for safety
       expect(config.strategyConfig.enabledIndicators['priceMovement'],
           equals(false));
-      expect(config.strategyConfig.enabledIndicators['momentum'], equals(false));
+      expect(
+          config.strategyConfig.enabledIndicators['momentum'], equals(false));
       expect(config.strategyConfig.enabledIndicators['marketDirection'],
           equals(false));
       expect(config.strategyConfig.enabledIndicators['volume'], equals(false));

@@ -459,6 +459,29 @@ class _LoginWidgetState extends State<LoginWidget> {
                         },
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar: const Icon(Icons.file_upload, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                            width: 110,
+                            child: Text(
+                              'Fidelity',
+                              textAlign: TextAlign.center,
+                            )),
+                        selected: source == BrokerageSource.fidelity,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.fidelity;
+                          });
+                        },
+                      ),
+                    ),
                   ],
                 )),
             const SizedBox(height: 24),
@@ -478,7 +501,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00C805).withValues(alpha: 0.1),
+                              color: const Color(0xFF00C805)
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.account_balance_wallet,
@@ -604,7 +628,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00A3E0).withValues(alpha: 0.1),
+                              color: const Color(0xFF00A3E0)
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.account_balance,
@@ -704,6 +729,57 @@ class _LoginWidgetState extends State<LoginWidget> {
                               : _handleChallenge,
                         ),
                       ),
+                    ] else if (source == BrokerageSource.fidelity) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.file_upload,
+                                color: Colors.green, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Manual / CSV Import',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Import your Fidelity data via CSV files (Positions / History). No account credentials required.',
+                        style: TextStyle(
+                            fontSize: 15,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 340.0,
+                        height: 58,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            shadowColor: Colors.green.withValues(alpha: 0.3),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                          ),
+                          label: const Text(
+                            "Create Manual Account",
+                            style: TextStyle(
+                                fontSize: 18.0, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.add, size: 24),
+                          onPressed: _login,
+                        ),
+                      ),
                     ] else if (source == BrokerageSource.plaid) ...[
                       Row(
                         children: [
@@ -740,7 +816,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                             backgroundColor: Colors.deepPurple,
                             foregroundColor: Colors.white,
                             elevation: 3,
-                            shadowColor: Colors.deepPurple.withValues(alpha: 0.3),
+                            shadowColor:
+                                Colors.deepPurple.withValues(alpha: 0.3),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(
@@ -795,6 +872,17 @@ class _LoginWidgetState extends State<LoginWidget> {
         if (mounted) {
           Navigator.pop(context, user);
         }
+      }
+    } else if (source == BrokerageSource.fidelity) {
+      var user = BrokerageUser(source, "Fidelity Manual", null, null);
+      if (mounted) {
+        var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+        userStore.addOrUpdate(user);
+        userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+        await userStore.save();
+      }
+      if (mounted) {
+        Navigator.pop(context, user);
       }
     } else if (source == BrokerageSource.robinhood) {
       setState(() {
