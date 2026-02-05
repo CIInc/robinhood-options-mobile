@@ -123,6 +123,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Charts:** Enhanced layout for portfolio metrics.
 - ✅ **CI/CD:** Infrastructure improvements.
 
+### v0.31.6 ✅ (Released Feb 05, 2026)
+**Fidelity Import & Analytics Export**
+- ✅ **Fidelity Integration:** Import positions and history via CSV.
+- ✅ **Analytics Export:** Export portfolio analytics to CSV.
+- ✅ **Asset Allocation:** Enhanced color mapping and Cash ETF support.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))

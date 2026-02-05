@@ -78,6 +78,7 @@ Examples of specific file references an agent can use in patches:
 - Chart widgets: `src/robinhood_options_mobile/lib/widgets/chart_pie_widget.dart` (reusable PieChart with selection handling), `chart_time_series_widget.dart`, `chart_bar_widget.dart`, `instrument_chart_widget.dart` (enhanced instrument charting with benchmark comparison supporting SPY, QQQ, DIA, IWM).
 - Common UI Components: `src/robinhood_options_mobile/lib/widgets/animated_price_text.dart` (dynamic price display with color animations).
 - Schwab Integration: `src/robinhood_options_mobile/lib/services/schwab_service.dart` (Schwab API integration).
+- **Fidelity & Import Services:** `src/robinhood_options_mobile/lib/services/fidelity_service.dart` (Fidelity CSV parsing), `csv_import_service.dart` (Generic CSV handling).
 - Monetization: `src/robinhood_options_mobile/lib/services/subscription_service.dart` (In-App Purchases management), `paywall_widget.dart` (premium feature gating).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
 - Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD with manual callable endpoint), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).

@@ -1,29 +1,29 @@
 ---
 name: updateDocs
-description: Update markdown documentation based on recently closed or merged pull requests, or the latest commits if none specified.
-argument-hint: PR numbers or "latest" to use most recent closed PRs, or the new version number.
+description: Update markdown documentation based on recent changes.
+argument-hint: Provide a version number to base the updates on recent commits since the previous version (e.g., 0.31.6).
 ---
 
-Update all markdown documentation based on recently closed or merged pull requests. If a version number is specified, use the recent commits since the previous version.
+Update all markdown documentation based on recent commits since the previous version.
 
 ## Process:
 
-1. **Fetch PR or Commit Information**: Retrieve details from the specified pull requests or commits including:
-   - PR title and description
+1. **Fetch Commit Information**: Retrieve details from the commits including:
+   - Commit message and description
    - File changes and patches
-   - Merge date and author
+   - Commit date and author
 
 2. **Identify Documentation Files**: Locate all markdown files in the repository:
    - CHANGELOG.md
    - README.md
    - ROADMAP.md
    - Documentation files (docs/ directory)
-   - Developer instruction files (.github/ directory)
+   - Developer instruction files (.github/ directory, especially .github/copilot-instructions.md)
    - Any other .md files
 
 3. **Update pubspec.yaml**:
-   - Check the current version number compared the argument provided (if any)
-   - If different, increment a new version in pubspec.yaml based on semantic versioning rules:
+   - Check the current version number in src/robinhood_options_mobile/pubspec.yaml and compare it to the argument provided (if any)
+   - If different, update the version in pubspec.yaml based on semantic versioning rules:
      - Major version for breaking changes
      - Minor version for new features
      - Patch version for bug fixes
@@ -55,6 +55,7 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Reorder priorities if necessary
 
 8. **Update Developer Instructions**:
+   - Update .github/copilot-instructions.md with new patterns, file references, or architecture notes
    - Add references to new providers, services, or components
    - Update architecture notes with new patterns
    - Add file references for new modules
@@ -69,7 +70,7 @@ Update all markdown documentation based on recently closed or merged pull reques
 
 10. **Verify Technical Accuracy**:
    - Ensure any mentioned indexes, configurations, or deployment steps are accurate
-   - Verify file paths and code references exist
+   - Verify file paths and code references exist (check src/robinhood_options_mobile/, src/robinhood_options_mobile/functions/, and src/robinhood_options_mobile/firebase/)
    - Check that API parameters match implementation
 
 Provide a summary of all documentation updates made and any consistency issues found.

@@ -298,3 +298,9 @@ Access the complete, categorized glossary by tapping the Help icon and selecting
 - How to interpret it
 - Good vs. bad threshold values
 - Practical implications for your portfolio
+
+## Data Export
+
+You can export your complete portfolio analytics data to a CSV file for further analysis in Excel or other tools.
+- Tap the **Export icon** in the top-right corner of the dashboard.
+- The CSV includes all calculated metrics, benchmark comparisons, and historical return data.

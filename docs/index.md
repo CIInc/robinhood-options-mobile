@@ -40,9 +40,10 @@
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
+- **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators.
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
-- **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**).
+- **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals.
 - **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.

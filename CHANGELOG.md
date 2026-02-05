@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.6] - 2026-02-05
+
+### Added
+- **Integrations:** Added Fidelity account CSV import integration to import positions and history.
+- **Analytics:** Added CSV export functionality for portfolio analytics.
+
+### Changed
+- **UI:** Enhanced asset color mapping and added Cash ETFs to allocation chart.
+
 ## [0.31.5] - 2026-02-01
 
 ### Added
