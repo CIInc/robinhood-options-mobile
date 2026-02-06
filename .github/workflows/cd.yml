@@ -209,7 +209,7 @@ jobs:
     name: Build iOS
     needs: [analyze_and_test, check_version]
     if: needs.check_version.outputs.new_version == 'true'
-    runs-on: macos-15 # Uses latest available macOS runner (macos-16 does not exist)
+    runs-on: macos-latest # Uses latest available macOS runner
     timeout-minutes: 45
     defaults:
       run:

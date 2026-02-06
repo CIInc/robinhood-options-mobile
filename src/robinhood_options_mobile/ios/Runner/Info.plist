@@ -4,6 +4,8 @@
 	<dict>
 		<key>NSFaceIDUsageDescription</key>
 		<string>BioAuth is needed to login</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>We need access to your photo library to let you upload images for documents, screenshots, and portfolio documentation.</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>CFBundleDevelopmentRegion</key>
