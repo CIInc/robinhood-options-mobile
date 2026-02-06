@@ -681,6 +681,9 @@ class _UserWidgetState extends State<UserWidget> {
                                                                 .removeAll();
 
                                                             userStore
+                                                                .setAggregateAllAccounts(
+                                                                    false);
+                                                            userStore
                                                                 .setCurrentUserIndex(
                                                                     userIndex);
                                                             await userStore

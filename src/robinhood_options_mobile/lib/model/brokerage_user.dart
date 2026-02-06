@@ -34,15 +34,7 @@ class BrokerageUser {
       {this.accounts = const []});
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'] == BrokerageSource.robinhood.toString()
-            ? BrokerageSource.robinhood
-            : json['source'] == BrokerageSource.schwab.toString()
-                ? BrokerageSource.schwab
-                : json['source'] == BrokerageSource.fidelity.toString()
-                    ? BrokerageSource.fidelity
-                    : json['source'] == BrokerageSource.plaid.toString()
-                        ? BrokerageSource.plaid
-                        : BrokerageSource.demo,
+      : source = _parseSource(json['source']),
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -64,6 +56,37 @@ class BrokerageUser {
         accounts = json['accounts'] != null
             ? Account.fromJsonArray(json['accounts'])
             : [];
+
+  static BrokerageSource _parseSource(dynamic raw) {
+    if (raw is BrokerageSource) {
+      return raw;
+    }
+    if (raw is String) {
+      var normalized = raw.trim();
+      if (normalized.contains('.')) {
+        normalized = normalized.split('.').last;
+      }
+      normalized = normalized.toLowerCase();
+      switch (normalized) {
+        case 'robinhood':
+          return BrokerageSource.robinhood;
+        case 'schwab':
+          return BrokerageSource.schwab;
+        case 'fidelity':
+          return BrokerageSource.fidelity;
+        case 'plaid':
+          return BrokerageSource.plaid;
+        case 'demo':
+          return BrokerageSource.demo;
+      }
+    }
+    if (raw is int) {
+      if (raw >= 0 && raw < BrokerageSource.values.length) {
+        return BrokerageSource.values[raw];
+      }
+    }
+    return BrokerageSource.demo;
+  }
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),

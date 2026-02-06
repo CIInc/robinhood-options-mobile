@@ -22,11 +22,13 @@ import 'package:robinhood_options_mobile/widgets/trade_signal_notification_setti
 class TradeSignalNotificationsPage extends StatelessWidget {
   final User user;
   final DocumentReference<User> userDocRef;
+  final bool fromSettings;
 
   const TradeSignalNotificationsPage({
     super.key,
     required this.user,
     required this.userDocRef,
+    this.fromSettings = false,
   });
 
   @override
@@ -35,21 +37,22 @@ class TradeSignalNotificationsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Notification Settings',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => TradeSignalNotificationSettingsWidget(
-                    user: user,
-                    userDocRef: userDocRef,
-                    hideNotificationIcon: true,
+          if (!fromSettings)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Notification Settings',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TradeSignalNotificationSettingsWidget(
+                      user: user,
+                      userDocRef: userDocRef,
+                      hideNotificationIcon: true,
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
           Consumer<TradeSignalNotificationsStore>(
             builder: (context, store, child) {
               if (store.unreadCount == 0) return const SizedBox.shrink();

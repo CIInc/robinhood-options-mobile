@@ -1031,9 +1031,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   @override
   Stream<List> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) {
-    // TODO: implement streamDividends
-    throw UnimplementedError();
+      {DocumentReference? userDoc}) async* {
+    yield [];
   }
 
   @override
@@ -2080,9 +2079,9 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
       BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20, DocumentReference? userDoc}) {
-    // TODO: implement streamOptionEvents
-    throw UnimplementedError();
+      {int pageSize = 20, DocumentReference? userDoc}) async* {
+    // Schwab does not expose an option event feed yet, so emit an empty list to keep the History UI running.
+    yield [];
   }
 
   @override
@@ -2207,9 +2206,8 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   @override
   Stream<List> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore,
-      {DocumentReference? userDoc}) {
-    // TODO: implement streamInterests
-    throw UnimplementedError();
+      {DocumentReference? userDoc}) async* {
+    yield [];
   }
 
   @override

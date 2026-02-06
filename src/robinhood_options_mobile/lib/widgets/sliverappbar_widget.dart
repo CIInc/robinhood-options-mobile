@@ -64,24 +64,19 @@ class ExpandedSliverAppBar extends StatelessWidget {
                   child: Text('Switch Account',
                       style: Theme.of(context).textTheme.titleLarge),
                 ),
-                ...brokerageUserStore.items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final user = entry.value;
-                  final isSelected =
-                      index == brokerageUserStore.currentUserIndex;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(user.source
-                          .enumValue()
-                          .substring(0, 1)
-                          .toUpperCase()),
+                if (brokerageUserStore.items.length > 1)
+                  ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.all_inbox),
                     ),
-                    title: Text(user.userName ?? 'Unknown'),
-                    subtitle: Text(user.source.enumValue().capitalize()),
-                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    title: const Text('All Accounts'),
+                    subtitle: const Text('Aggregate view'),
+                    trailing: brokerageUserStore.aggregateAllAccounts
+                        ? const Icon(Icons.check)
+                        : null,
                     onTap: () async {
                       Navigator.pop(context);
-                      if (!isSelected) {
+                      if (!brokerageUserStore.aggregateAllAccounts) {
                         Provider.of<AccountStore>(context, listen: false)
                             .removeAll();
                         Provider.of<PortfolioStore>(context, listen: false)
@@ -97,6 +92,46 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                 listen: false)
                             .removeAll();
 
+                        brokerageUserStore.setAggregateAllAccounts(true);
+                        await brokerageUserStore.save();
+                      }
+                    },
+                  ),
+                ...brokerageUserStore.items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final user = entry.value;
+                  final isSelected = !brokerageUserStore.aggregateAllAccounts &&
+                      index == brokerageUserStore.currentUserIndex;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      child: Text(user.source
+                          .enumValue()
+                          .substring(0, 1)
+                          .toUpperCase()),
+                    ),
+                    title: Text(user.userName ?? 'Unknown'),
+                    subtitle: Text(user.source.enumValue().capitalize()),
+                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    onTap: () async {
+                      Navigator.pop(context);
+                      if (!isSelected ||
+                          brokerageUserStore.aggregateAllAccounts) {
+                        Provider.of<AccountStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<PortfolioStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<PortfolioHistoricalsStore>(context,
+                                listen: false)
+                            .removeAll();
+                        Provider.of<ForexHoldingStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<OptionPositionStore>(context, listen: false)
+                            .removeAll();
+                        Provider.of<InstrumentPositionStore>(context,
+                                listen: false)
+                            .removeAll();
+
+                        brokerageUserStore.setAggregateAllAccounts(false);
                         brokerageUserStore.setCurrentUserIndex(index);
                         await brokerageUserStore.save();
                       }

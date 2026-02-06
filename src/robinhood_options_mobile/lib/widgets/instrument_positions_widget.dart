@@ -34,6 +34,7 @@ class InstrumentPositionsWidget extends StatefulWidget {
     //this.account,
     this.filteredPositions, {
     this.showList = true,
+    this.disableNavigation = false,
     super.key,
     required this.analytics,
     required this.observer,
@@ -48,6 +49,7 @@ class InstrumentPositionsWidget extends StatefulWidget {
   final IBrokerageService service;
   final GenerativeService generativeService;
   final bool showList;
+  final bool disableNavigation;
   final User? user;
   final DocumentReference<User>? userDocRef;
   //final Account account;
@@ -60,6 +62,26 @@ class InstrumentPositionsWidget extends StatefulWidget {
 
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
+
+  void _showAggregateTradeDisabled(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _handleNavigation(BuildContext context, VoidCallback action) {
+    if (widget.disableNavigation) {
+      _showAggregateTradeDisabled(context);
+      return;
+    }
+    action();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -381,19 +403,17 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               style: TextStyle(fontSize: 20.0),
             ),
             if (!widget.showList) ...[
-              SizedBox(
-                height: 28,
-                child: IconButton(
-                  // iconSize: 16,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(Icons.chevron_right),
-                  onPressed: () {
-                    navigateToFullPage(context);
-                  },
-                ),
-              )
-            ]
-          ]),
+                  SizedBox(
+                    height: 28,
+                    child: IconButton(
+                      // iconSize: 16,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.chevron_right),
+                      onPressed: () => navigateToFullPage(context),
+                    ),
+                  )
+                ]
+              ]),
           subtitle: Text(
               "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
           trailing: InkWell(
@@ -563,19 +583,21 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   }
 
   void navigateToFullPage(BuildContext context) {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => InstrumentPositionsPageWidget(
-                  widget.brokerageUser,
-                  widget.service,
-                  widget.filteredPositions,
-                  analytics: widget.analytics,
-                  observer: widget.observer,
-                  generativeService: widget.generativeService,
-                  user: widget.user,
-                  userDocRef: widget.userDocRef,
-                )));
+    _handleNavigation(context, () {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => InstrumentPositionsPageWidget(
+                    widget.brokerageUser,
+                    widget.service,
+                    widget.filteredPositions,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                  )));
+    });
   }
 
   Widget _buildPositionRow(
@@ -690,22 +712,24 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   positions[index].instrumentObj as Instrument,
                   position: positions[index])));
                   */
-              // var futureFromInstrument =
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            instrument!,
-                            heroTag:
-                                'logo_${instrument.symbol}${instrument.id}',
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
+              _handleNavigation(context, () {
+                // var futureFromInstrument =
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              instrument!,
+                              heroTag:
+                                  'logo_${instrument.symbol}${instrument.id}',
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              });
               // Refresh in case settings were updated.
               // futureFromInstrument.then((value) => setState(() {}));
             },

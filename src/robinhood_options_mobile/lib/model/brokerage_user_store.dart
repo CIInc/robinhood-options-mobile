@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class BrokerageUserStore extends ChangeNotifier {
   int currentUserIndex = 0;
+  bool aggregateAllAccounts = false;
 
   /// Internal, private state of the store.
   final List<BrokerageUser> _items;
@@ -18,7 +19,8 @@ class BrokerageUserStore extends ChangeNotifier {
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
-  BrokerageUserStore(this._items, this.currentUserIndex);
+  BrokerageUserStore(this._items, this.currentUserIndex,
+      {this.aggregateAllAccounts = false});
 
   void add(BrokerageUser item) {
     _items.add(item);
@@ -68,13 +70,22 @@ class BrokerageUserStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setAggregateAllAccounts(bool enabled) {
+    if (aggregateAllAccounts != enabled) {
+      aggregateAllAccounts = enabled;
+      notifyListeners();
+    }
+  }
+
   BrokerageUserStore.fromJson(Map<String, dynamic> json)
       : currentUserIndex = json['currentUserIndex'],
+        aggregateAllAccounts = json['aggregateAllAccounts'] ?? false,
         _items = BrokerageUser.fromJsonArray(json['users']);
 
   Map<String, dynamic> toJson() {
     return {
       'currentUserIndex': currentUserIndex,
+      'aggregateAllAccounts': aggregateAllAccounts,
       'users': items.map((e) => e.toJson()).toList(),
     };
   }
@@ -102,6 +113,7 @@ class BrokerageUserStore extends ChangeNotifier {
       if (storeData is Map<String, dynamic>) {
         var userStore = BrokerageUserStore.fromJson(storeData);
         setCurrentUserIndex(userStore.currentUserIndex);
+        setAggregateAllAccounts(userStore.aggregateAllAccounts);
         for (var element in userStore.items) {
           add(element);
         }

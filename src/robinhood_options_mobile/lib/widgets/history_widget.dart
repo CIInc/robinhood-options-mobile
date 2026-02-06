@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -13,18 +13,24 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/plaid_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -41,6 +47,22 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
+
+class _AggregateStreamState<T> {
+  StreamController<List<T>>? controller;
+  final List<StreamSubscription<List<T>>> subscriptions = [];
+  List<List<T>> latest = [];
+
+  void reset() {
+    for (final sub in subscriptions) {
+      sub.cancel();
+    }
+    subscriptions.clear();
+    latest = [];
+    controller?.close();
+    controller = null;
+  }
+}
 
 class HistoryPage extends StatefulWidget {
   /*
@@ -110,6 +132,260 @@ class _HistoryPageState extends State<HistoryPage>
     return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
   }
 
+  bool _isAggregateMode() {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    return userStore.aggregateAllAccounts && userStore.items.length > 1;
+  }
+
+  List<BrokerageUser> _aggregateUsers({bool onlyValid = true}) {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    final users = userStore.items;
+    if (!onlyValid) {
+      return users;
+    }
+    return users.where(_isUserValidForHistory).toList();
+  }
+
+  bool _isUserValidForHistory(BrokerageUser user) {
+    if (user.source == BrokerageSource.fidelity ||
+        user.source == BrokerageSource.demo) {
+      return true;
+    }
+    return !(user.oauth2Client?.credentials.isExpired ?? true);
+  }
+
+  bool _hasValidAggregateUser(List<BrokerageUser> users) {
+    return users.any(_isUserValidForHistory);
+  }
+
+  String _aggregateSignature(List<BrokerageUser> users) {
+    return users
+        .map((user) =>
+            '${user.source}:${user.userName ?? ''}:${user.credentials?.hashCode ?? 0}')
+        .join('|');
+  }
+
+  IBrokerageService _serviceForUser(BrokerageUser user) {
+    return user.source == BrokerageSource.robinhood
+        ? RobinhoodService()
+        : user.source == BrokerageSource.schwab
+            ? SchwabService()
+            : user.source == BrokerageSource.fidelity
+                ? FidelityService()
+                : user.source == BrokerageSource.plaid
+                    ? PlaidService()
+                    : DemoService();
+  }
+
+  void _showReadOnlySnack() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Aggregate View is read-only. Switch to a single account to manage orders.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _handleReadOnlyAction(VoidCallback action) {
+    if (_isAggregateMode()) {
+      _showReadOnlySnack();
+      return;
+    }
+    action();
+  }
+
+  void _resetStreams() {
+    optionOrderStream = null;
+    positionOrderStream = null;
+    optionEventStream = null;
+    dividendStream = null;
+    interestStream = null;
+    optionOrders = null;
+    positionOrders = null;
+    optionEvents = null;
+    dividends = null;
+    interests = null;
+    _disposeAggregateStreams();
+  }
+
+  void _disposeAggregateStreams() {
+    _aggregateOptionOrders.reset();
+    _aggregatePositionOrders.reset();
+    _aggregateOptionEvents.reset();
+    _aggregateDividends.reset();
+    _aggregateInterests.reset();
+  }
+
+  List<T> _mergeAggregateLists<T>(List<List<T>> lists,
+      {String Function(T)? keyOf, int Function(T, T)? sort}) {
+    final merged = <T>[];
+    if (keyOf == null) {
+      for (final list in lists) {
+        merged.addAll(list);
+      }
+    } else {
+      final seen = <String>{};
+      for (final list in lists) {
+        for (final item in list) {
+          final key = keyOf(item);
+          if (seen.add(key)) {
+            merged.add(item);
+          }
+        }
+      }
+    }
+    if (sort != null) {
+      merged.sort(sort);
+    }
+    return merged;
+  }
+
+  Stream<List<T>> _initAggregateStream<T>({
+    required List<BrokerageUser> users,
+    required _AggregateStreamState<T> state,
+    required Stream<List<T>> Function(BrokerageUser, IBrokerageService)
+        streamBuilder,
+    String Function(T)? keyOf,
+    int Function(T, T)? sort,
+  }) {
+    if (state.controller != null) {
+      return state.controller!.stream;
+    }
+
+    state.controller = StreamController<List<T>>.broadcast();
+    state.latest = List.generate(users.length, (_) => <T>[]);
+
+    for (int i = 0; i < users.length; i++) {
+      final user = users[i];
+      final service = _serviceForUser(user);
+      final stream = streamBuilder(user, service);
+      final sub = stream.listen((items) {
+        if (i >= state.latest.length) {
+          return;
+        }
+        state.latest[i] = items;
+        final merged =
+            _mergeAggregateLists(state.latest, keyOf: keyOf, sort: sort);
+        state.controller?.add(merged);
+      }, onError: (error, stack) {
+        state.controller?.addError(error, stack);
+      });
+      state.subscriptions.add(sub);
+    }
+
+    final merged = _mergeAggregateLists(state.latest, keyOf: keyOf, sort: sort);
+    state.controller!.add(merged);
+    return state.controller!.stream;
+  }
+
+  String _dynamicKey(dynamic item) {
+    if (item is Map && item['id'] != null) {
+      return item['id'].toString();
+    }
+    return item.hashCode.toString();
+  }
+
+  void _ensureAggregateStreams(List<BrokerageUser> users) {
+    if (optionOrderStream == null) {
+      optionOrderStream = _initAggregateStream<OptionOrder>(
+        users: users,
+        state: _aggregateOptionOrders,
+        streamBuilder: (user, service) =>
+            service.streamOptionOrders(user, OptionOrderStore(),
+                userDoc: widget.userDoc),
+        keyOf: (order) => order.id,
+        sort: (a, b) => b.createdAt!.compareTo(a.createdAt!),
+      );
+    }
+
+    if (positionOrderStream == null) {
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      positionOrderStream = _initAggregateStream<InstrumentOrder>(
+        users: users,
+        state: _aggregatePositionOrders,
+        streamBuilder: (user, service) => service.streamPositionOrders(
+            user, InstrumentOrderStore(), instrumentStore,
+            userDoc: widget.userDoc),
+        keyOf: (order) => order.id,
+        sort: (a, b) => b.updatedAt!.compareTo(a.updatedAt!),
+      );
+    }
+
+    if (optionEventStream == null) {
+      optionEventStream = _initAggregateStream<OptionEvent>(
+        users: users,
+        state: _aggregateOptionEvents,
+        streamBuilder: (user, service) =>
+            service.streamOptionEvents(user, OptionEventStore(),
+                userDoc: widget.userDoc),
+        keyOf: (event) => event.id,
+        sort: (a, b) => b.updatedAt!.compareTo(a.updatedAt!),
+      );
+    }
+
+    if (dividendStream == null) {
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      dividendStream = _initAggregateStream<dynamic>(
+        users: users,
+        state: _aggregateDividends,
+        streamBuilder: (user, service) =>
+            service.streamDividends(user, instrumentStore,
+                userDoc: widget.userDoc),
+        keyOf: _dynamicKey,
+      );
+    }
+
+    if (interestStream == null) {
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      interestStream = _initAggregateStream<dynamic>(
+        users: users,
+        state: _aggregateInterests,
+        streamBuilder: (user, service) =>
+            service.streamInterests(user, instrumentStore,
+                userDoc: widget.userDoc),
+        keyOf: _dynamicKey,
+      );
+    }
+  }
+
+  Widget _buildAggregateBanner(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Card(
+        elevation: 0,
+        color: Theme.of(context)
+            .colorScheme
+            .primaryContainer
+            .withValues(alpha: 0.35),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+        child: ListTile(
+          leading: Icon(
+            Icons.layers_outlined,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          title: const Text(
+            'Aggregate View',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          subtitle: const Text(
+              'History is combined across accounts. Actions are disabled.'),
+        ),
+      ),
+    );
+  }
+
   double dividendBalance = 0;
   double balance = 0;
 
@@ -133,6 +409,20 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareText = true;
   bool shareLink = true;
 
+  bool _lastAggregateMode = false;
+  String? _lastAggregateSignature;
+
+  final _AggregateStreamState<OptionOrder> _aggregateOptionOrders =
+      _AggregateStreamState<OptionOrder>();
+  final _AggregateStreamState<InstrumentOrder> _aggregatePositionOrders =
+      _AggregateStreamState<InstrumentOrder>();
+  final _AggregateStreamState<OptionEvent> _aggregateOptionEvents =
+      _AggregateStreamState<OptionEvent>();
+  final _AggregateStreamState<dynamic> _aggregateDividends =
+      _AggregateStreamState<dynamic>();
+  final _AggregateStreamState<dynamic> _aggregateInterests =
+      _AggregateStreamState<dynamic>();
+
   @override
   bool get wantKeepAlive => true;
 
@@ -143,10 +433,29 @@ class _HistoryPageState extends State<HistoryPage>
     widget.analytics.logScreenView(screenName: 'History');
   }
 
-  // @override
-  // void dispose() {
-  //   super.dispose();
-  // }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isAggregate = _isAggregateMode();
+    final users = isAggregate ? _aggregateUsers() : const <BrokerageUser>[];
+    final signature = isAggregate ? _aggregateSignature(users) : null;
+    if (_lastAggregateMode != isAggregate ||
+        _lastAggregateSignature != signature) {
+      _lastAggregateMode = isAggregate;
+      _lastAggregateSignature = signature;
+      _resetStreams();
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposeAggregateStreams();
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +478,49 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    if (widget.brokerageUser == null ||
+    final isAggregateMode = _isAggregateMode();
+    final aggregateUsers =
+        isAggregateMode ? _aggregateUsers() : const <BrokerageUser>[];
+
+    if (isAggregateMode) {
+      if (aggregateUsers.isEmpty || !_hasValidAggregateUser(aggregateUsers)) {
+        return Scaffold(
+            body: RefreshIndicator(
+          onRefresh: () async {
+            if (widget.onLogin != null) {
+              widget.onLogin!();
+            }
+          },
+          child: CustomScrollView(
+            slivers: [
+              ExpandedSliverAppBar(
+                title: const Text(Constants.appTitle), // History
+                auth: auth,
+                firestoreService: _firestoreService,
+                automaticallyImplyLeading: true,
+                onChange: () {
+                  setState(() {});
+                },
+                analytics: widget.analytics,
+                observer: widget.observer,
+                user: widget.brokerageUser,
+                firestoreUser: widget.user,
+                userDocRef: widget.userDoc,
+                service: widget.service,
+              ),
+              SliverFillRemaining(
+                child: WelcomeWidget(
+                  onLogin: widget.onLogin,
+                  message: aggregateUsers.isEmpty
+                      ? "No linked accounts found. Please log in."
+                      : "Session expired. Please log in again.",
+                ),
+              ),
+            ],
+          ),
+        ));
+      }
+    } else if (widget.brokerageUser == null ||
         widget.service == null ||
         (widget.brokerageUser!.source != BrokerageSource.fidelity &&
             (widget.brokerageUser?.oauth2Client?.credentials.isExpired ??
@@ -213,10 +564,14 @@ class _HistoryPageState extends State<HistoryPage>
       ));
     }
 
-    optionOrderStream ??= widget.service!.streamOptionOrders(
-        widget.brokerageUser!,
-        Provider.of<OptionOrderStore>(context, listen: false),
-        userDoc: widget.userDoc);
+    if (isAggregateMode) {
+      _ensureAggregateStreams(aggregateUsers);
+    } else {
+      optionOrderStream ??= widget.service!.streamOptionOrders(
+          widget.brokerageUser!,
+          Provider.of<OptionOrderStore>(context, listen: false),
+          userDoc: widget.userDoc);
+    }
 
     return StreamBuilder(
         stream: optionOrderStream,
@@ -224,11 +579,15 @@ class _HistoryPageState extends State<HistoryPage>
           if (optionOrdersSnapshot.hasData) {
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
-            positionOrderStream ??= widget.service!.streamPositionOrders(
-                widget.brokerageUser!,
-                Provider.of<InstrumentOrderStore>(context, listen: false),
-                Provider.of<InstrumentStore>(context, listen: false),
-                userDoc: widget.userDoc);
+            if (isAggregateMode) {
+              _ensureAggregateStreams(aggregateUsers);
+            } else {
+              positionOrderStream ??= widget.service!.streamPositionOrders(
+                  widget.brokerageUser!,
+                  Provider.of<InstrumentOrderStore>(context, listen: false),
+                  Provider.of<InstrumentStore>(context, listen: false),
+                  userDoc: widget.userDoc);
+            }
 
             return StreamBuilder(
                 stream: positionOrderStream,
@@ -237,10 +596,14 @@ class _HistoryPageState extends State<HistoryPage>
                     positionOrders =
                         positionOrdersSnapshot.data as List<InstrumentOrder>;
 
-                    optionEventStream ??= widget.service!.streamOptionEvents(
-                        widget.brokerageUser!,
-                        Provider.of<OptionEventStore>(context, listen: false),
-                        userDoc: widget.userDoc);
+                    if (isAggregateMode) {
+                      _ensureAggregateStreams(aggregateUsers);
+                    } else {
+                      optionEventStream ??= widget.service!.streamOptionEvents(
+                          widget.brokerageUser!,
+                          Provider.of<OptionEventStore>(context, listen: false),
+                          userDoc: widget.userDoc);
+                    }
                     return StreamBuilder(
                         stream: optionEventStream,
                         builder: (context6, optionEventSnapshot) {
@@ -249,7 +612,7 @@ class _HistoryPageState extends State<HistoryPage>
                                 optionEventSnapshot.data as List<OptionEvent>;
 
                             // Map options events to options orders.
-                            if (optionOrders != null) {
+                            if (!isAggregateMode && optionOrders != null) {
                               for (var optionEvent in optionEvents!) {
                                 var originalOptionOrder = optionOrders!
                                     .firstWhereOrNull((element) =>
@@ -263,11 +626,16 @@ class _HistoryPageState extends State<HistoryPage>
                               }
                             }
 
-                            dividendStream ??= widget.service!.streamDividends(
-                                widget.brokerageUser!,
-                                Provider.of<InstrumentStore>(context,
-                                    listen: false),
-                                userDoc: widget.userDoc);
+                            if (isAggregateMode) {
+                              _ensureAggregateStreams(aggregateUsers);
+                            } else {
+                              dividendStream ??=
+                                  widget.service!.streamDividends(
+                                      widget.brokerageUser!,
+                                      Provider.of<InstrumentStore>(context,
+                                          listen: false),
+                                      userDoc: widget.userDoc);
+                            }
                             return StreamBuilder(
                                 stream: dividendStream,
                                 builder: (context6, dividendSnapshot) {
@@ -279,13 +647,17 @@ class _HistoryPageState extends State<HistoryPage>
                                         .compareTo(
                                             DateTime.parse(a["payable_date"])));
 
-                                    interestStream ??= widget.service!
-                                        .streamInterests(
-                                            widget.brokerageUser!,
-                                            Provider.of<InstrumentStore>(
-                                                context,
-                                                listen: false),
-                                            userDoc: widget.userDoc);
+                                    if (isAggregateMode) {
+                                      _ensureAggregateStreams(aggregateUsers);
+                                    } else {
+                                      interestStream ??= widget.service!
+                                          .streamInterests(
+                                              widget.brokerageUser!,
+                                              Provider.of<InstrumentStore>(
+                                                  context,
+                                                  listen: false),
+                                              userDoc: widget.userDoc);
+                                    }
 
                                     return StreamBuilder<Object>(
                                         stream: interestStream,
@@ -387,6 +759,7 @@ class _HistoryPageState extends State<HistoryPage>
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
+    final isAggregateMode = _isAggregateMode();
     int days = 0;
 
     switch (orderDateFilterSelection) {
@@ -550,180 +923,28 @@ class _HistoryPageState extends State<HistoryPage>
           floatHeaderSlivers: true,
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
-              SliverAppBar(
-                  floating: true,
-                  snap: true,
-                  pinned: true,
-                  centerTitle: false,
-                  title: const Text(Constants.appTitle), // History
-                  // title: Wrap(
-                  //     crossAxisAlignment: WrapCrossAlignment.end,
-                  //     //runAlignment: WrapAlignment.end,
-                  //     //alignment: WrapAlignment.end,
-                  //     spacing: 20,
-                  //     //runSpacing: 5,
-                  //     children: [
-                  //       const Text('Transactions',
-                  //           style: TextStyle(fontSize: 20.0)),
-                  //       Text(
-                  //           "$orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                  //           //  ${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length + filteredDividends!.length) : "0"}
-                  //           //  of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"}
-                  //           style: const TextStyle(
-                  //               fontSize: 16.0, color: Colors.white70)),
-                  //     ]),
-                  actions: [
-                    if (auth.currentUser != null)
-                      AutoTradeStatusBadgeWidget(
-                        user: widget.user,
-                        userDocRef: widget.userDoc,
-                        service: widget.service!,
-                      ),
-                    IconButton(
-                        icon: auth.currentUser != null
-                            ? (auth.currentUser!.photoURL == null
-                                ? const Icon(Icons.account_circle)
-                                : CircleAvatar(
-                                    maxRadius: 12,
-                                    backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
-                            : const Icon(Icons.account_circle_outlined),
-                        onPressed: () async {
-                          var response = await showProfile(
-                              context,
-                              auth,
-                              _firestoreService,
-                              widget.analytics,
-                              widget.observer,
-                              widget.brokerageUser!,
-                              widget.service!);
-                          if (response != null) {
-                            setState(() {});
-                          }
-                        }),
-                    // IconButton(
-                    //     icon: const Icon(Icons.more_vert_sharp),
-                    //     onPressed: () {
-                    //       showModalBottomSheet<void>(
-                    //         context: context,
-                    //         showDragHandle: true,
-                    //         //constraints: BoxConstraints(maxHeight: 260),
-                    //         builder: (BuildContext context) {
-                    //           return Scaffold(
-                    //               // appBar: AppBar(
-                    //               //     // leading: const CloseButton(),
-                    //               //     title: const Text('History Settings')),
-                    //               body: ListView(
-                    //             //Column(
-                    //             //mainAxisAlignment: MainAxisAlignment.start,
-                    //             //crossAxisAlignment: CrossAxisAlignment.center,
-                    //             children: [
-                    //               ListTile(
-                    //                 leading: Icon(Icons.share),
-                    //                 title: const Text(
-                    //                   "Share",
-                    //                   style: TextStyle(fontSize: 19.0),
-                    //                 ),
-                    //                 trailing: TextButton.icon(
-                    //                   onPressed: _closeAndShowShareView,
-                    //                   label: showShareView
-                    //                       ? Text(
-                    //                           'Preview ${selectedPositionOrdersToShare.length + selectedOptionOrdersToShare.length + selectionsToShare.length} selections')
-                    //                       : Text('Select items'),
-                    //                   // icon: showShareView
-                    //                   //     ? const Icon(Icons.preview)
-                    //                   //     : const Icon(Icons.checkbox),
-                    //                 ),
-                    //               ),
-                    //               const ListTile(
-                    //                 leading: Icon(Icons.filter_list),
-                    //                 title: Text(
-                    //                   "Filters",
-                    //                   style: TextStyle(fontSize: 19.0),
-                    //                   // style: TextStyle(fontWeight: FontWeight.bold),
-                    //                 ),
-                    //               ),
-                    //               // const ListTile(
-                    //               //   title: Text("Order State & Date"),
-                    //               // ),
-                    //               // orderFilterWidget,
-                    //               orderDateFilterWidget,
-                    //               // const ListTile(
-                    //               //   title: Text("Symbols"),
-                    //               // ),
-                    //               SizedBox(
-                    //                 height: 25,
-                    //               ),
-                    //               stockOrderSymbolFilterWidget(4),
-                    //               /*
-                    //       Column(
-                    //         mainAxisAlignment: MainAxisAlignment.start,
-                    //         crossAxisAlignment: CrossAxisAlignment.start,
-                    //         children: [
-                    //           RadioListTile<SortType>(
-                    //             title: const Text('Alphabetical (Ascending)'),
-                    //             value: SortType.alphabetical,
-                    //             groupValue: _sortType,
-                    //             onChanged: (SortType? value) {
-                    //               Navigator.pop(context);
-                    //               setState(() {
-                    //                 _sortType = value;
-                    //                 _sortDirection = SortDirection.asc;
-                    //               });
-                    //             },
-                    //           ),
-                    //           RadioListTile<SortType>(
-                    //             title: const Text('Alphabetical (Descending)'),
-                    //             value: SortType.alphabetical,
-                    //             groupValue: _sortType,
-                    //             onChanged: (SortType? value) {
-                    //               Navigator.pop(context);
-                    //               setState(() {
-                    //                 _sortType = value;
-                    //                 _sortDirection = SortDirection.desc;
-                    //               });
-                    //             },
-                    //           ),
-                    //           RadioListTile<SortType>(
-                    //             title: const Text('Change (Ascending)'),
-                    //             value: SortType.change,
-                    //             groupValue: _sortType,
-                    //             onChanged: (SortType? value) {
-                    //               Navigator.pop(context);
-                    //               setState(() {
-                    //                 _sortType = value;
-                    //                 _sortDirection = SortDirection.asc;
-                    //               });
-                    //             },
-                    //           ),
-                    //           RadioListTile<SortType>(
-                    //             title: const Text('Change (Descending)'),
-                    //             value: SortType.change,
-                    //             groupValue: _sortType,
-                    //             onChanged: (SortType? value) {
-                    //               Navigator.pop(context);
-                    //               setState(() {
-                    //                 _sortType = value;
-                    //                 _sortDirection = SortDirection.desc;
-                    //               });
-                    //             },
-                    //           ),
-                    //         ],
-                    //       )
-                    //       */
-                    //               const SizedBox(
-                    //                 height: 25.0,
-                    //               )
-                    //             ],
-                    //           ));
-                    //         },
-                    //       );
-                    //     })
-                  ],
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(60),
+              ExpandedSliverAppBar(
+                title: const Text(Constants.appTitle), // History
+                auth: auth,
+                firestoreService: _firestoreService,
+                automaticallyImplyLeading: true,
+                onChange: () {
+                  setState(() {});
+                },
+                analytics: widget.analytics,
+                observer: widget.observer,
+                user: widget.brokerageUser,
+                firestoreUser: widget.user,
+                userDocRef: widget.userDoc,
+                service: widget.service,
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: PersistentHeader(
+                  '',
+                  size: 60,
+                  widget: Container(
+                    alignment: Alignment.bottomCenter,
                     child: Container(
                       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       decoration: BoxDecoration(
@@ -757,7 +978,11 @@ class _HistoryPageState extends State<HistoryPage>
                         ],
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              ),
+              if (isAggregateMode)
+                SliverToBoxAdapter(child: _buildAggregateBanner(context)),
             ];
           },
           body: TabBarView(
@@ -986,32 +1211,34 @@ class _HistoryPageState extends State<HistoryPage>
                                               ])
                                             : null,
                                         onTap: () {
-                                          /* For navigation within this tab, uncomment
-                              widget.navigatorKey!.currentState!.push(
-                                  MaterialPageRoute(
-                                      builder: (context) => PositionOrderWidget(
-                                          widget.user,
-                                          filteredPositionOrders![index])));
-                                          */
-                                          Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      PositionOrderWidget(
-                                                        widget.brokerageUser!,
-                                                        widget.service!,
-                                                        filteredPositionOrders![
-                                                            index],
-                                                        analytics:
-                                                            widget.analytics,
-                                                        observer:
-                                                            widget.observer,
-                                                        generativeService: widget
-                                                            .generativeService,
-                                                        user: widget.user,
-                                                        userDocRef:
-                                                            widget.userDoc,
-                                                      )));
+                                          _handleReadOnlyAction(() {
+                                            /* For navigation within this tab, uncomment
+                                widget.navigatorKey!.currentState!.push(
+                                    MaterialPageRoute(
+                                        builder: (context) => PositionOrderWidget(
+                                            widget.user,
+                                            filteredPositionOrders![index])));
+                                            */
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        PositionOrderWidget(
+                                                          widget.brokerageUser!,
+                                                          widget.service!,
+                                                          filteredPositionOrders![
+                                                              index],
+                                                          analytics:
+                                                              widget.analytics,
+                                                          observer:
+                                                              widget.observer,
+                                                          generativeService: widget
+                                                              .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
+                                                        )));
+                                          });
                                         },
                                       ),
                               ],
@@ -1258,31 +1485,33 @@ class _HistoryPageState extends State<HistoryPage>
                                         ]),
                                         isThreeLine: true,
                                         onTap: () {
-                                          /* For navigation within this tab, uncomment
-                              widget.navigatorKey!.currentState!.push(
-                                  MaterialPageRoute(
-                                      builder: (context) => OptionOrderWidget(
-                                          widget.user,
-                                          optionOrder)));
-                                          */
-                                          Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      OptionOrderWidget(
-                                                        widget.brokerageUser!,
-                                                        widget.service!,
-                                                        optionOrder,
-                                                        analytics:
-                                                            widget.analytics,
-                                                        observer:
-                                                            widget.observer,
-                                                        generativeService: widget
-                                                            .generativeService,
-                                                        user: widget.user,
-                                                        userDocRef:
-                                                            widget.userDoc,
-                                                      )));
+                                          _handleReadOnlyAction(() {
+                                            /* For navigation within this tab, uncomment
+                                widget.navigatorKey!.currentState!.push(
+                                    MaterialPageRoute(
+                                        builder: (context) => OptionOrderWidget(
+                                            widget.user,
+                                            optionOrder)));
+                                            */
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        OptionOrderWidget(
+                                                          widget.brokerageUser!,
+                                                          widget.service!,
+                                                          optionOrder,
+                                                          analytics:
+                                                              widget.analytics,
+                                                          observer:
+                                                              widget.observer,
+                                                          generativeService: widget
+                                                              .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
+                                                        )));
+                                          });
                                         },
                                       ),
                               ],

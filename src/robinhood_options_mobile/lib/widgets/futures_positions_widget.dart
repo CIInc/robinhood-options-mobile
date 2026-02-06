@@ -29,10 +29,12 @@ class FuturesPositionsWidget extends StatefulWidget {
     required this.userDocRef,
     this.showList = false,
     this.showGroupHeader = true,
+    this.disableNavigation = false,
   });
 
   final bool showList;
   final bool showGroupHeader;
+  final bool disableNavigation;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
@@ -48,6 +50,26 @@ class FuturesPositionsWidget extends StatefulWidget {
 
 class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
   late FuturesPositionStore store;
+
+  void _showAggregateTradeDisabled(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _handleNavigation(BuildContext context, VoidCallback action) {
+    if (widget.disableNavigation) {
+      _showAggregateTradeDisabled(context);
+      return;
+    }
+    action();
+  }
 
   @override
   void initState() {
@@ -100,22 +122,25 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                             padding: EdgeInsets.zero,
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      FuturesPositionsPageWidget(
-                                    widget.brokerageUser,
-                                    widget.service,
-                                    widget.futuresPositions,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                    generativeService: widget.generativeService,
-                                    user: widget.user,
-                                    userDocRef: widget.userDocRef,
+                              _handleNavigation(context, () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        FuturesPositionsPageWidget(
+                                      widget.brokerageUser,
+                                      widget.service,
+                                      widget.futuresPositions,
+                                      analytics: widget.analytics,
+                                      observer: widget.observer,
+                                      generativeService:
+                                          widget.generativeService,
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              });
                             },
                           ),
                         )
@@ -147,22 +172,25 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                     ),
                     onTap: !widget.showList
                         ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    FuturesPositionsPageWidget(
-                                  widget.brokerageUser,
-                                  widget.service,
-                                  widget.futuresPositions,
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                  generativeService: widget.generativeService,
-                                  user: widget.user,
-                                  userDocRef: widget.userDocRef,
+                            _handleNavigation(context, () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      FuturesPositionsPageWidget(
+                                    widget.brokerageUser,
+                                    widget.service,
+                                    widget.futuresPositions,
+                                    analytics: widget.analytics,
+                                    observer: widget.observer,
+                                    generativeService:
+                                        widget.generativeService,
+                                    user: widget.user,
+                                    userDocRef: widget.userDocRef,
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            });
                           }
                         : null,
                   ),
@@ -299,23 +327,25 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                             ListTile(
                               onTap: () {
                                 if (pos is Map<String, dynamic>) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          FutureInstrumentWidget(
-                                        brokerageUser: widget.brokerageUser,
-                                        service: widget.service,
-                                        position: pos,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        generativeService:
-                                            widget.generativeService,
-                                        user: widget.user,
-                                        userDocRef: widget.userDocRef,
+                                  _handleNavigation(context, () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            FutureInstrumentWidget(
+                                          brokerageUser: widget.brokerageUser,
+                                          service: widget.service,
+                                          position: pos,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  });
                                 }
                               },
                               contentPadding: const EdgeInsets.symmetric(

@@ -45,6 +45,7 @@ class OptionPositionsWidget extends StatefulWidget {
     this.showList = true,
     this.showGroupHeader = true,
     this.showFooter = true,
+    this.disableNavigation = false,
     super.key,
     required this.analytics,
     required this.observer,
@@ -61,6 +62,7 @@ class OptionPositionsWidget extends StatefulWidget {
   final bool showList;
   final bool showGroupHeader;
   final bool showFooter;
+  final bool disableNavigation;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
   final User? user;
@@ -71,6 +73,26 @@ class OptionPositionsWidget extends StatefulWidget {
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
+  void _showAggregateTradeDisabled(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _handleNavigation(BuildContext context, VoidCallback action) {
+    if (widget.disableNavigation) {
+      _showAggregateTradeDisabled(context);
+      return;
+    }
+    action();
+  }
+
   @override
   Widget build(BuildContext context) {
     var groupedOptionAggregatePositions = {};
@@ -344,6 +366,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         behaviors: [
           charts.SeriesLegend(),
         ], onSelected: (dynamic historical) {
+      if (widget.disableNavigation) {
+        _showAggregateTradeDisabled(context);
+        return;
+      }
       debugPrint(historical
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
       // TODO: This setState is not desirable but is needed to reset the selection
@@ -354,37 +380,41 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         var op = widget.filteredOptionPositions.firstWhere((element) =>
             historical['domain'] ==
             "${formatCompactDate.format(element.legs.first.expirationDate!)} \$${formatCompactNumber.format(element.legs.first.strikePrice)} ${element.legs.first.optionType}");
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => OptionInstrumentWidget(
-                      widget.brokerageUser,
-                      widget.service,
-                      op.optionInstrument!,
-                      optionPosition: op,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
-                    )));
-      } else {
-        var op = widget.filteredOptionPositions
-            .firstWhere((element) => element.symbol == historical['domain']);
-        if (op.instrumentObj != null) {
+        _handleNavigation(context, () {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
+                  builder: (context) => OptionInstrumentWidget(
                         widget.brokerageUser,
                         widget.service,
-                        op.instrumentObj!,
+                        op.optionInstrument!,
+                        optionPosition: op,
                         analytics: widget.analytics,
                         observer: widget.observer,
                         generativeService: widget.generativeService,
                         user: widget.user,
                         userDocRef: widget.userDocRef,
                       )));
+        });
+      } else {
+        var op = widget.filteredOptionPositions
+            .firstWhere((element) => element.symbol == historical['domain']);
+        if (op.instrumentObj != null) {
+          _handleNavigation(context, () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => InstrumentWidget(
+                          widget.brokerageUser,
+                          widget.service,
+                          op.instrumentObj!,
+                          analytics: widget.analytics,
+                          observer: widget.observer,
+                          generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        )));
+          });
         } else {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -422,9 +452,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         // iconSize: 16,
                         padding: EdgeInsets.zero,
                         icon: Icon(Icons.chevron_right),
-                        onPressed: () {
-                          navigateToFullPage(context);
-                        },
+                        onPressed: () => navigateToFullPage(context),
                       ),
                     )
                   ]
@@ -589,19 +617,21 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   }
 
   void navigateToFullPage(BuildContext pageContext) {
-    Navigator.push(
-        pageContext,
-        MaterialPageRoute(
-            builder: (context) => OptionPositionsPageWidget(
-                  widget.brokerageUser,
-                  widget.service,
-                  widget.filteredOptionPositions,
-                  analytics: widget.analytics,
-                  observer: widget.observer,
-                  generativeService: widget.generativeService,
-                  user: widget.user,
-                  userDocRef: widget.userDocRef,
-                )));
+    _handleNavigation(pageContext, () {
+      Navigator.push(
+          pageContext,
+          MaterialPageRoute(
+              builder: (context) => OptionPositionsPageWidget(
+                    widget.brokerageUser,
+                    widget.service,
+                    widget.filteredOptionPositions,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: widget.generativeService,
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                  )));
+    });
   }
 
   GreekAggregates _calculateGreekAggregates(
@@ -759,21 +789,23 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     )
                   ]),
               onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => OptionInstrumentWidget(
-                              widget.brokerageUser,
-                              widget.service,
-                              op.optionInstrument!,
-                              optionPosition: op,
-                              heroTag: 'logo_${op.symbol}${op.id}',
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                            )));
+                _handleNavigation(context, () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => OptionInstrumentWidget(
+                                widget.brokerageUser,
+                                widget.service,
+                                op.optionInstrument!,
+                                optionPosition: op,
+                                heroTag: 'logo_${op.symbol}${op.id}',
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
+                              )));
+                });
               },
             ),
             if (widget.brokerageUser.showPositionDetails) ...[
@@ -1058,19 +1090,21 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     builder: (context) =>
                         InstrumentWidget(user, account, instrument!)));
                         */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(
-                          widget.brokerageUser,
-                          widget.service,
-                          ops.first.instrumentObj!,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                          user: widget.user,
-                          userDocRef: widget.userDocRef,
-                        )));
+            _handleNavigation(context, () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => InstrumentWidget(
+                            widget.brokerageUser,
+                            widget.service,
+                            ops.first.instrumentObj!,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                          )));
+            });
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
           },
@@ -1161,20 +1195,22 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     ru, accounts!.first, op.optionInstrument!,
                     optionPosition: op)));
                     */
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => OptionInstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            op.optionInstrument!,
-                            optionPosition: op,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                          )));
+              _handleNavigation(context, () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => OptionInstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              op.optionInstrument!,
+                              optionPosition: op,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              });
             },
           ),
           if (widget.brokerageUser.showPositionDetails &&

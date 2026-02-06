@@ -108,6 +108,7 @@ class _TradeSignalNotificationSettingsWidgetState
                         builder: (context) => TradeSignalNotificationsPage(
                           user: widget.user,
                           userDocRef: widget.userDocRef,
+                          fromSettings: true,
                         ),
                       ),
                     );
@@ -237,7 +238,7 @@ class _TradeSignalNotificationSettingsWidgetState
               value: _settings.minConfidence ?? 0.0,
               min: 0.0,
               max: 1.0,
-              divisions: 10,
+              divisions: 100,
               label: _settings.minConfidence != null
                   ? '${(_settings.minConfidence! * 100).toInt()}%'
                   : 'None',
