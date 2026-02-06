@@ -23,8 +23,8 @@ permissions:
   contents: write
 
 jobs:
-  test_and_analyze:
-    name: Test and Analyze
+  analyze_and_test:
+    name: Analyze and Test 
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -203,10 +203,11 @@ jobs:
           releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: draft
+        continue-on-error: true
 
   build_ios:
     name: Build iOS
-    needs: [test_and_analyze, check_version]
+    needs: [analyze_and_test, check_version]
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: macos-15 # Uses latest available macOS runner (macos-16 does not exist)
     timeout-minutes: 45
