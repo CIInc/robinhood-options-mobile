@@ -131,7 +131,7 @@ jobs:
 
   build_android:
     name: Build Android
-    needs: [test_and_analyze, check_version]
+    needs: [analyze_and_test, check_version]
     if: needs.check_version.outputs.new_version == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
