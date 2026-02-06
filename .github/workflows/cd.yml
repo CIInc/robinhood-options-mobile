@@ -208,7 +208,7 @@ jobs:
     name: Build iOS
     needs: [test_and_analyze, check_version]
     if: needs.check_version.outputs.new_version == 'true'
-    runs-on: macos-16 # Uses Xcode 26+ which includes iOS 26 SDK (required for ITMS-90725 compliance)
+    runs-on: macos-15 # Uses latest available macOS runner (macos-16 does not exist)
     timeout-minutes: 45
     defaults:
       run:

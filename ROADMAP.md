@@ -40,13 +40,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 25+ major categories.
 
 ### Quick Stats
-- **Completed Features**: 14 major categories (83+ items)
+- **Completed Features**: 14 major categories (85+ items)
 - **Planned Enhancements**: 25+ categories (197+ items)
-- **Open GitHub Issues**: 12 tracked features
+- **Open GitHub Issues**: 11 tracked features
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Correlation Matrix**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (18+)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**, **Instrument Notes**, **AI Asset Allocation**, **Strategy Optimization**, **Custom Benchmarks**, **Enhanced Cash Allocation**, **Futures Historical Data**, **Futures Realized P&L**, **Auto-Trade History Persistence**
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization, **Agentic Trading with Advanced Analytics**, **Backtesting Engine**, **Advanced Signal Filtering**, **Advanced Risk Controls**, **RiskGuard Manual Protection**, **Custom Indicators**, **ML Optimization**, **Advanced Exit Strategies**, **Enhanced Strategy Templates**, **Copy Trading Dashboard**, **Approval Workflow**, **Copy Trading Auto-Execute**, **Option Chain Screener**, **Multi-Leg Strategy Builder**, **Inverse Copying**, **Copy Trading Exit Strategies**, **Crypto Trading**, **Schwab Integration**, **Trade Signal Notifications**, **Options Flow Analysis**, **Risk Heatmap**, **Portfolio Analytics**, **Correlation Matrix**, **Portfolio Rebalancing**, **ESG Scoring**, **Backtesting Interface with Interactive Equity Curves**, **Tax Loss Harvesting**, **Loading State Management**, **Performance Overview Card**, **Health Score Improvements**, **Enhanced Portfolio Analytics Tooltips**, **Option Instrument Position UI**, **Income View NAV**, **Income Chart**, **Dividend History**, **Income Interest List**, **Bug Fixes (Auth Form, Cron Job, Toast Styling, Options Flow, Yahoo API, ESG Logic)**, **AI Trading Coach Hidden Risks UI**, **Challenge Adherence Verification**, **Coaching Score History Chart**, **Session Journaling**, **Custom Personas & Focus**, **Streak Tracking**, **Performance Optimization**, **Market Assistant Chat**, **Expanded Technical Indicators (19)**, **Trading Strategies Manager**, **Russell 2000 Support**, **Sentiment Analysis**, **Price Targets**, **Instrument Notes**, **AI Asset Allocation**, **Strategy Optimization**, **Custom Benchmarks**, **Enhanced Cash Allocation**, **Futures Historical Data**, **Futures Realized P&L**, **Auto-Trade History Persistence**, **Fidelity CSV Import**, **Portfolio Analytics CSV Export**, **Multi-Account Aggregation**
 - 🔥 **In Progress**: Futures Margin & Risk Metrics
 - 🎯 **2026 Priorities**: 
   - **Q1**: AI Portfolio Architect, Smart Alerts & Market Intelligence, Smart Order Routing
@@ -123,8 +123,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Charts:** Enhanced layout for portfolio metrics.
 - ✅ **CI/CD:** Infrastructure improvements.
 
-### v0.31.6 ✅ (Released Feb 05, 2026)
-**Fidelity Import & Analytics Export**
+### v0.31.6 ✅ (Released Feb 06, 2026)
+**Multi-Account Aggregation & Fidelity Import**
+- ✅ **Multi-Account Aggregation:** View and manage positions across multiple accounts simultaneously with aggregate trading controls.
 - ✅ **Fidelity Integration:** Import positions and history via CSV.
 - ✅ **Analytics Export:** Export portfolio analytics to CSV.
 - ✅ **Asset Allocation:** Enhanced color mapping and Cash ETF support.

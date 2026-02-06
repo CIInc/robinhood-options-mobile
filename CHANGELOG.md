@@ -4,14 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.31.6] - 2026-02-05
+## [0.31.6] - 2026-02-06
 
 ### Added
+- **Portfolio Management:** Added multi-account aggregation with ability to view aggregate trading positions and history across multiple accounts.
 - **Integrations:** Added Fidelity account CSV import integration to import positions and history.
 - **Analytics:** Added CSV export functionality for portfolio analytics.
 
 ### Changed
 - **UI:** Enhanced asset color mapping and added Cash ETFs to allocation chart.
+- **Navigation:** Added navigation controls for aggregate trading views with informative messaging when trading actions are restricted.
 
 ## [0.31.5] - 2026-02-01
 

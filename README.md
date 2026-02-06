@@ -8,7 +8,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 
 ## Features
 
-*   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data. **New:** Fidelity Account data import via CSV (positions & history) and Schwab integration enhancements.
+*   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data. **New:** Fidelity Account data import via CSV (positions & history) and Schwab integration enhancements. **Multi-Account Aggregation:** View and manage positions across multiple accounts simultaneously with aggregate trading controls.
 *   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.
 *   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments. **New:** Benchmark Chart with Date Range Selection (1W, 1M, 3M, YTD, 1Y, ALL) for performance comparison. Supports major indices including S&P 500, Nasdaq 100, Dow Jones, and Russell 2000 (IWM).*   **(New) Market Intelligence:**
     *   **Insider Activity:** Track officer and director trading with detailed Buy/Sell transaction logs.
