@@ -76,6 +76,7 @@
             android:value="ca-app-pub-9947876916436144~7612501759"/>
     </application>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <!--<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />-->

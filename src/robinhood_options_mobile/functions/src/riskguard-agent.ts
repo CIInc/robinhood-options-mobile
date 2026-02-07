@@ -12,7 +12,7 @@ import { computeATR } from "./technical-indicators";
 async function getSymbolInfo(symbol: string):
   Promise<{ sector?: string, beta?: number, trailingPE?: number } | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
+    const url = `https://query2.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
     const resp = await fetch(url);
     const data: any = await resp.json();
     const result = data?.quoteResponse?.result?.[0];

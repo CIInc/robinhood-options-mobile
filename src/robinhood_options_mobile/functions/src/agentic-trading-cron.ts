@@ -43,16 +43,6 @@ export async function runAgenticTradingCron() {
   let errorCount = 0;
   let skippedCount = 0;
 
-  // Fetch config once
-  let config = {};
-  try {
-    const configDoc = await db.doc("agentic_trading/config").get();
-    if (configDoc.exists) {
-      config = configDoc.data() || {};
-    }
-  } catch (e) {
-    logger.error("Error fetching config", e);
-  }
 
   // Filter docs first
   const docsToProcess = docRefs.filter((doc) => {
@@ -74,10 +64,19 @@ export async function runAgenticTradingCron() {
 
   logger.info(`Processing ${docsToProcess.length} documents after filtering.`);
 
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
   // Process in batches
-  const BATCH_SIZE = 25;
+  const BATCH_SIZE = 5;
   for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
     const batch = docsToProcess.slice(i, i + BATCH_SIZE);
+
+    // Add delay between batches to throttle API requests
+    if (i > 0) {
+      await delay(2000);
+    }
+
     await Promise.all(batch.map(async (doc) => {
       const symbol = doc.id.replace("chart_", "");
       if (!symbol) {
@@ -89,7 +88,6 @@ export async function runAgenticTradingCron() {
         const data = {
           symbol,
           interval: "1d",
-          ...config,
           portfolioState: {},
           skipRiskGuard: true,
         };

@@ -26,7 +26,15 @@ Notifications are sent when:
 - A new trade signal document is created in the `agentic_trading` collection with a BUY or SELL signal
 - An existing trade signal is updated and the signal changes to BUY or SELL
 
-### Notification Content
+### Notification Content (Rich Notifications)
+
+Notifications are delivered as Rich Push Notifications containing:
+- **Title**: Symbol and Signal Type (e.g., "AAPL - BUY Signal")
+- **Body**: Price, Confidence Score, and key indicators
+- **Rich Media**: Embedded chart image showing trend context
+- **Actions**: "View Details", "Trade Now" buttons for immediate action
+
+This actionable format allows users to assess opportunities without opening the app fully.
 
 Each notification includes:
 
@@ -39,7 +47,13 @@ Each notification includes:
 
 ### Rich Notifications
 
-> **New in v0.26.0**
+> **New in v0.26.0, Expanded in v0.31.7**
+
+Rich notifications are now supported for:
+- **Trade Signals**: (Buy/Sell alerts with charts)
+- **Chat**: (Group messages with sender context)
+- **Copy Trading**: (Trade alerts and approval requests with action buttons)
+
 
 Notifications now support rich media content to provide immediate context without opening the app.
 

@@ -913,7 +913,7 @@ class YahooService {
     var uri = Uri.parse(url);
     var headers = {
       'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
       'Accept': '*/*',
     };
     if (_cookie != null) {
@@ -958,7 +958,7 @@ class YahooService {
         Uri.parse('https://fc.yahoo.com'),
         headers: {
           'User-Agent':
-              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
         },
       );
 
@@ -970,7 +970,7 @@ class YahooService {
           Uri.parse('https://finance.yahoo.com'),
           headers: {
             'User-Agent':
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
           },
         );
         _updateCookie(responseHome);
@@ -979,11 +979,11 @@ class YahooService {
       if (_cookie != null) {
         // 2. Get Crumb
         final response2 = await httpClient.get(
-          Uri.parse('https://query1.finance.yahoo.com/v1/test/getcrumb'),
+          Uri.parse('https://query2.finance.yahoo.com/v1/test/getcrumb'),
           headers: {
             'Cookie': _cookie!,
             'User-Agent':
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
           },
         );
 

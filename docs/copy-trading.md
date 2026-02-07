@@ -102,14 +102,19 @@ When auto-execute is enabled:
 - **Note**: Automatic order execution requires client-side implementation for security
 - Users will need to review and execute pending copy trades manually
 
-### 4. Notifications
+### 4. Notifications (Rich Push)
 
-Users receive push notifications when:
+> **Enhanced in v0.31.7**
 
-- A trader they're copying places a trade (if auto-execute is enabled)
-- Notification shows: trader name, symbol, quantity, and buy/sell side
-- Separate notifications for stocks/ETFs and options
-- Notifications only sent if user has valid FCM tokens registered
+Users receive **Rich Push Notifications** containing actionable data when copy trades occur:
+
+- **Rich Content**: Visual charts, trend context, and trade details (Trader Name, Symbol, Quantity, Side, Price).
+- **Action Buttons**: "View Trade", "Execute Now" (for manual), and "Approve" (for requests) directly from the notification.
+- **Deep Linking**: Tapping takes you straight to the relevant trade or request in the app.
+- **Triggers**:
+  - A trader they're copying places a trade.
+  - A new Copy Trade Request requires approval.
+  - An auto-executed trade is filled.
 
 ### 5. Selection-Based UI
 

@@ -450,7 +450,7 @@ class _AgenticTradingSettingsWidgetState
     final strategyConfig = TradeStrategyConfig(
       startDate: DateTime.now().subtract(const Duration(days: 30)),
       endDate: DateTime.now(),
-      initialCapital: 10000,
+      initialCapital: strategySource.initialCapital ?? 10000.0,
       interval: strategySource.interval,
       enabledIndicators:
           Map<String, bool>.from(strategySource.enabledIndicators),
@@ -748,6 +748,7 @@ class _AgenticTradingSettingsWidgetState
         Provider.of<AgenticTradingProvider>(context, listen: false);
 
     final baseStrategy = provider.config.strategyConfig.copyWith(
+      initialCapital: template.config.initialCapital,
       enabledIndicators: template.config.enabledIndicators,
       customIndicators: template.config.customIndicators,
       exitStages: template.config.exitStages,
@@ -961,10 +962,11 @@ class _AgenticTradingSettingsWidgetState
     // We use provider config + controllers
     final strategySource = provider.config.strategyConfig;
     return TradeStrategyConfig(
-      startDate: DateTime.now().subtract(const Duration(days: 30)),
-      endDate: DateTime.now(),
-      initialCapital: 10000,
-      interval: _interval,
+      startDate: strategySource.startDate ??
+          DateTime.now().subtract(const Duration(days: 30)),
+      endDate: strategySource.endDate ?? DateTime.now(),
+      initialCapital: strategySource.initialCapital ?? 10000.0,
+      interval: strategySource.interval, // ??_interval,
       enabledIndicators:
           Map<String, bool>.from(strategySource.enabledIndicators),
       takeProfitPercent:

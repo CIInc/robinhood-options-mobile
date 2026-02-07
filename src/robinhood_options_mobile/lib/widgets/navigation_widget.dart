@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -36,6 +41,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
+import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -112,6 +118,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   // Moved to AgenticTradingProvider: autoTradeTimer
 
   Future<List<dynamic>>? _initFuture;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
   BrokerageUser? _lastUser;
   String? _lastAuthUserUid;
 
@@ -153,6 +161,44 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   Future<void> setupInteractedMessage() async {
+    // Request permission for notifications
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+
+    // Request permissions for local notifications on Android 13+
+    if (Platform.isAndroid) {
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    }
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings();
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsDarwin);
+    await flutterLocalNotificationsPlugin.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse:
+            (NotificationResponse notificationResponse) {
+          if (notificationResponse.payload != null) {
+            try {
+              final data = jsonDecode(notificationResponse.payload!);
+              _handleMessageData(data, actionId: notificationResponse.actionId);
+            } catch (e) {
+              debugPrint('Error handling notification payload: $e');
+            }
+          }
+        });
+
     // Get any messages which caused the application to open from
     // a terminated state.
     RemoteMessage? initialMessage =
@@ -165,18 +211,156 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     // Also handle any interaction when the app is in the background via a
     // Stream listener
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+    // Listen for messages while app is in the foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        if (message.data['imageUrl'] != null ||
+            message.notification?.android?.imageUrl != null) {
+          _showRichNotification(message);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (message.notification!.title != null)
+                      Text(message.notification!.title!,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (message.notification!.body != null)
+                      Text(message.notification!.body!,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'View',
+                  onPressed: () => _handleMessage(message),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _showRichNotification(RemoteMessage message) async {
+    final String? imageUrl =
+        message.data['imageUrl'] ?? message.notification?.android?.imageUrl;
+    BigPictureStyleInformation? bigPictureStyleInformation;
+
+    if (imageUrl != null) {
+      try {
+        final http.Response response = await http.get(Uri.parse(imageUrl));
+        final Directory directory = await getTemporaryDirectory();
+        final String filePath = '${directory.path}/notification_img.jpg';
+        final File file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+
+        bigPictureStyleInformation = BigPictureStyleInformation(
+            FilePathAndroidBitmap(filePath),
+            largeIcon: FilePathAndroidBitmap(filePath),
+            contentTitle: message.notification?.title,
+            summaryText: message.notification?.body,
+            htmlFormatContentTitle: true,
+            htmlFormatSummaryText: true);
+      } catch (e) {
+        debugPrint('Error loading notification image: $e');
+      }
+    }
+
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'trade_signals',
+      'Trade Signals',
+      channelDescription: 'Notifications for trade signals',
+      styleInformation: bigPictureStyleInformation,
+      importance: Importance.max,
+      priority: Priority.high,
+      actions: <AndroidNotificationAction>[
+        if (message.data['type'] == 'trade_signal') ...[
+          const AndroidNotificationAction('TRADE', 'Trade',
+              showsUserInterface: true),
+        ],
+        const AndroidNotificationAction('VIEW', 'View',
+            showsUserInterface: true),
+      ],
+    );
+
+    final NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+        id: 0,
+        title: message.notification?.title,
+        body: message.notification?.body,
+        notificationDetails: platformChannelSpecifics,
+        payload: jsonEncode(message.data));
   }
 
   void _handleMessage(RemoteMessage message) {
-    if (message.data['type'] == 'copy_trade') {
+    _handleMessageData(message.data);
+  }
+
+  void _handleMessageData(Map<String, dynamic> data, {String? actionId}) {
+    if (actionId == 'TRADE') {
+      final symbol = data['symbol'];
+      final signal = data['signal']; // BUY or SELL
+      if (symbol != null) {
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
+        if (userStore.items.isNotEmpty) {
+          var brokerageUser = userStore.currentUser ?? userStore.items.first;
+          service = brokerageUser.source == BrokerageSource.robinhood
+              ? RobinhoodService()
+              : brokerageUser.source == BrokerageSource.schwab
+                  ? SchwabService()
+                  : brokerageUser.source == BrokerageSource.fidelity
+                      ? FidelityService()
+                      : brokerageUser.source == BrokerageSource.plaid
+                          ? PlaidService()
+                          : DemoService();
+
+          service!
+              .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
+              .then((instrument) {
+            if (instrument != null) {
+              final positionType = signal == 'BUY' ? 'Buy' : 'Sell';
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TradeInstrumentWidget(
+                    brokerageUser,
+                    service!,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    instrument: instrument,
+                    positionType: positionType,
+                  ),
+                ),
+              );
+            }
+          });
+        }
+      }
+      return;
+    }
+
+    if (data['type'] == 'copy_trade') {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => const CopyTradeRequestsWidget(),
         ),
       );
-    } else if (message.data['type'] == 'trade_signal') {
-      final symbol = message.data['symbol'];
+    } else if (data['type'] == 'trade_signal') {
+      final symbol = data['symbol'];
       if (symbol != null) {
         final userStore =
             Provider.of<BrokerageUserStore>(context, listen: false);
@@ -215,9 +399,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           });
         }
       }
-    } else if (message.data['type'] == 'agentic_trade') {
-      final eventType = message.data['eventType'];
-      final symbol = message.data['symbol'];
+    } else if (data['type'] == 'agentic_trade') {
+      final eventType = data['eventType'];
+      final symbol = data['symbol'];
 
       if (eventType == 'buy' ||
           eventType == 'take_profit' ||

@@ -98,14 +98,16 @@ async function sendAlertNotification(
     }
 
     // Create notification message
-    const title = `${symbol} Alert Triggered`;
-    const currentPriceStr = currentPrice.toFixed(2);
+    const emoji = alertType === "above" ? "🔺" : "🔻";
+    const title = `${emoji} ${symbol} Alert: $${currentPrice.toFixed(2)}`;
+
     const thresholdStr = threshold.toFixed(2);
     const messageBody = alertType === "above" ?
-      `${symbol} moved above $${thresholdStr} (now $${currentPriceStr})` :
-      `${symbol} moved below $${thresholdStr} (now $${currentPriceStr})`;
+      `📈 Crossed above target $${thresholdStr}` :
+      `📉 Crossed below target $${thresholdStr}`;
 
     const message = {
+      tokens: allTokens,
       notification: {
         title,
         body: messageBody,
@@ -118,6 +120,19 @@ async function sendAlertNotification(
         threshold: threshold.toString(),
         currentPrice: currentPrice.toString(),
       },
+      android: {
+        priority: "high" as const,
+        notification: {
+          tag: symbol, // Group by symbol
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            threadId: symbol, // Group by symbol on iOS
+          },
+        },
+      },
       webpush: {
         fcmOptions: {
           link: `robinhoodoptionsmobile://group/${groupId}/watchlist/${watchlistId}`,
@@ -126,10 +141,7 @@ async function sendAlertNotification(
     };
 
     // Send to all tokens at once
-    const response = await messaging.sendEachForMulticast(
-      allTokens as any,
-      message as any
-    );
+    const response = await messaging.sendEachForMulticast(message);
 
     const successCount = response.successCount;
     logger.info(

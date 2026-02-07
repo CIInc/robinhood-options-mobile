@@ -12,6 +12,9 @@ import {
   computeKeltnerChannelsArray,
 } from "./technical-indicators";
 
+// Helper for rate limiting
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // --- Interfaces ---
 
 interface AlphaFactorConfig {
@@ -612,6 +615,10 @@ export const discoverAlphaFactors = onCall(async (request) => {
   // Rate limiting to 5 concurrent requests to avoid API bans (Yahoo/Plaid etc)
   const CONCURRENT_LIMIT = 5;
   for (let i = 0; i < symbols.length; i += CONCURRENT_LIMIT) {
+    // Add delay between batches to throttle API requests
+    if (i > 0) {
+      await delay(1000);
+    }
     const chunk = symbols.slice(i, i + CONCURRENT_LIMIT);
     await Promise.all(chunk.map(async (symbol) => {
       try {

@@ -93,7 +93,7 @@ export const onGroupMessageCreated = onDocumentCreated(
     const payload: admin.messaging.MulticastMessage = {
       tokens: uniqueTokens,
       notification: {
-        title: groupName,
+        title: `💬 ${groupName}`,
         body: `${senderName}: ${text}`,
       },
       data: {
@@ -104,12 +104,14 @@ export const onGroupMessageCreated = onDocumentCreated(
       android: {
         notification: {
           sound: "default",
+          tag: groupId, // Group by group ID
         },
       },
       apns: {
         payload: {
           aps: {
             sound: "default",
+            threadId: groupId, // Group by group ID on iOS
           },
         },
       },

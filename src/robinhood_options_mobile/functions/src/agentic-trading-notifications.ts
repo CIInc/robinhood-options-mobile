@@ -124,6 +124,7 @@ export const sendAgenticTradeNotification = onCall(async (request) => {
           priority: "high",
           sound: "default",
           color: getNotificationColor(data.type),
+          tag: data.symbol || undefined, // Group by symbol if available
         },
       },
       apns: {
@@ -132,6 +133,7 @@ export const sendAgenticTradeNotification = onCall(async (request) => {
             sound: "default",
             badge: 1,
             category: "AGENTIC_TRADE",
+            threadId: data.symbol || undefined, // Group by symbol on iOS
           },
         },
       },
@@ -230,16 +232,15 @@ function buildNotificationContent(data: NotificationRequest): {
   switch (type) {
   case "buy": {
     const total = (quantity || 0) * (price || 0);
+    const totalStr = total.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
     const body =
-      "Bought " +
-      `${quantity} ` +
-      "shares of " +
-      `${symbol} ` +
-      "at $" +
-      `${price?.toFixed(2)} ` +
-      `($${total.toFixed(2)})`;
+      `Entry: $${price?.toFixed(2)} • Qty: ${quantity}\n` +
+      `Total: $${totalStr}`;
     return {
-      title: `${prefix}🤖 Auto-Trade Executed`,
+      title: `${prefix}🤖 Auto-Buy: ${symbol}`,
       body,
     };
   }
@@ -256,18 +257,10 @@ function buildNotificationContent(data: NotificationRequest): {
       }
     }
     const body =
-      "Sold " +
-      `${quantity} ` +
-      "shares of " +
-      `${symbol} ` +
-      "at $" +
-      `${price?.toFixed(2)} ` +
-      "for " +
-      `${sign}$${profitLoss?.toFixed(2)} ` +
-      "profit" +
-      percentStr;
+      `Exit: $${price?.toFixed(2)} • Qty: ${quantity}\n` +
+      `Result: ${sign}$${Math.abs(profitLoss || 0).toFixed(2)}${percentStr}`;
     return {
-      title: `${prefix}💰 Take Profit Hit!`,
+      title: `${prefix}💰 Take Profit: ${symbol}`,
       body,
     };
   }
@@ -283,17 +276,10 @@ function buildNotificationContent(data: NotificationRequest): {
       }
     }
     const body =
-      "Sold " +
-      `${quantity} ` +
-      "shares of " +
-      `${symbol} ` +
-      "at $" +
-      `${price?.toFixed(2)} ` +
-      "to limit loss: $" +
-      `${Math.abs(profitLoss || 0).toFixed(2)}` +
-      percentStr;
+      `Exit: $${price?.toFixed(2)} • Qty: ${quantity}\n` +
+      `Result: -$${Math.abs(profitLoss || 0).toFixed(2)}${percentStr}`;
     return {
-      title: `${prefix}🛑 Stop Loss Triggered`,
+      title: `${prefix}🛑 Stop Loss: ${symbol}`,
       body,
     };
   }

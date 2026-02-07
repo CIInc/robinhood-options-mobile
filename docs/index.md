@@ -35,7 +35,7 @@
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
-- **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence.
+- **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence. **New:** Rich notifications with charts and actionable data.
 - **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management.
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
@@ -48,6 +48,8 @@
 - **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
 - **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** **[AI Asset Allocation](ai-asset-allocation.md)** providing personalized portfolio weighting recommendations based on user risk profiles. Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
+- **[Group Watchlists](group-watchlists.md):** Collaborative instrument lists for Investor Groups.
+- **[Group Performance Analytics](portfolio-analytics.md):** Leaderboards and aggregated performance metrics for investor groups.
 - **[ESG Scoring](esg-scoring.md):** Comprehensive Environmental, Social, and Governance scoring for individual instruments and portfolio-wide weighted averages to align investments with values.
 - **[AI Trading Coach](ai-trading-coach.md):** Behavioral analysis tool that assigns a **Trader Archetype** and **Discipline Score** based on execution history. Features **Coaching Personas** (Drill Sergeant, Zen Master), **Sub-score breakdowns** (Risk, Consistency), and an **Accountability Loop** with tracked challenges.
 - **[Sentiment Analysis](sentiment-analysis.md):** Visualize market mood (Bullish/Bearish/Neutral) with a dedicated dashboard and card widget.

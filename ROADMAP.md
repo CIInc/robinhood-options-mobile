@@ -130,6 +130,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Analytics Export:** Export portfolio analytics to CSV.
 - ✅ **Asset Allocation:** Enhanced color mapping and Cash ETF support.
 
+### v0.31.7 ✅ (Released Feb 06, 2026)
+**Investor Groups & Rich Notifications**
+- ✅ **Investor Groups:** Group Watchlists for collaborative instrument tracking.
+- ✅ **Group Analytics:** Performance analytics and leaderboards for investor groups.
+- ✅ **Rich Notifications:** Actionable push notifications for Agentic Trading and signals.
+
 ### v0.32.0 (Q1 2026 - Feb)
 **Futures & Backtesting Refinement**
 - Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
@@ -613,9 +619,9 @@ Q3 launches the social/community ecosystem. Investor Groups already exist (✅),
 
 #### Investor Groups ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - [x] **Group Chat**: Real-time messaging within groups ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76)) - **Large** (3-4 weeks)
-- [ ] **Performance Analytics**: Group leaderboards and performance tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77)) - **Medium** (2-3 weeks)
+- [x] **Performance Analytics**: Group leaderboards and performance tracking ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77)) - **Medium** (2-3 weeks)
 - [ ] **Activity Feed**: Real-time feed of member trades ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78)) - **Medium** (2-3 weeks)
-- [ ] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
+- [x] **Shared Watchlists**: Collaborative watchlists for groups ([#79](https://github.com/CIInc/robinhood-options-mobile/issues/79)) - **Small** (1-2 weeks)
 - [ ] **Public Leaderboards**: Ranked lists of top-performing public investor groups and strategies - **Medium** (2-3 weeks)
 - [ ] **Verified Track Records**: Cryptographic proof of historical performance for public profiles - **Medium** (3-4 weeks)
 - [ ] **Video Rooms**: Live video chat for group strategy discussions - **Large** (4-5 weeks)

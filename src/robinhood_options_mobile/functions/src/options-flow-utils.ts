@@ -1,4 +1,5 @@
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { fetchWithRetry } from "./utils";
 // import { logger } from "firebase-functions/logger";
 
 // Constants for thresholds and configuration
@@ -222,7 +223,7 @@ let yahooCookie: string | null = null;
 const YAHOO_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
     "AppleWebKit/537.36 (KHTML, like Gecko) " +
-    "Chrome/120.0.0.0 Safari/537.36",
+    "Chrome/133.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9," +
     "image/avif,image/webp,image/apng,*/*;q=0.8",
   "Accept-Language": "en-US,en;q=0.9",
@@ -231,6 +232,8 @@ const YAHOO_HEADERS = {
   "Sec-Fetch-Mode": "navigate",
   "Sec-Fetch-Site": "none",
   "Sec-Fetch-User": "?1",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
 };
 
 const fetchCrumb = async (): Promise<void> => {
@@ -238,21 +241,31 @@ const fetchCrumb = async (): Promise<void> => {
 
   try {
     // 1. Get cookie
-    const cookieResponse = await fetch("https://fc.yahoo.com", {
+    // Try finance.yahoo.com first as it is more reliable than fc.yahoo.com
+    let cookieResponse = await fetchWithRetry("https://finance.yahoo.com", {
       headers: YAHOO_HEADERS,
     });
 
-    const setCookie = cookieResponse.headers.get("set-cookie");
+    let setCookie = cookieResponse.headers.get("set-cookie");
+    if (!setCookie) {
+      // Fallback to fc.yahoo.com
+      cookieResponse = await fetchWithRetry("https://fc.yahoo.com", {
+        headers: YAHOO_HEADERS,
+      });
+      setCookie = cookieResponse.headers.get("set-cookie");
+    }
+
     if (!setCookie) throw new Error("No set-cookie header");
     yahooCookie = setCookie.split(";")[0];
 
     // 2. Get crumb
-    const crumbResponse = await fetch(
-      "https://query1.finance.yahoo.com/v1/test/getcrumb",
+    const crumbResponse = await fetchWithRetry(
+      "https://query2.finance.yahoo.com/v1/test/getcrumb",
       {
         headers: {
           ...YAHOO_HEADERS,
           "Cookie": yahooCookie,
+          "Referer": "https://finance.yahoo.com/",
         },
       }
     );
@@ -293,7 +306,7 @@ const fetchYahooOptions = async (
     headers["Cookie"] = yahooCookie;
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     headers,
   });
   if (!response.ok) {
@@ -342,7 +355,7 @@ const fetchYahooOptions = async (
 const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
   await fetchCrumb();
 
-  let url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=assetProfile`;
+  let url = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=assetProfile`;
   if (yahooCrumb) {
     url += `&crumb=${yahooCrumb}`;
   }
@@ -355,7 +368,7 @@ const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
     headers["Cookie"] = yahooCookie;
   }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     headers,
   });
   if (!response.ok) {
@@ -407,7 +420,7 @@ export const fetchOptionsFlowForSymbols = async (
 };
 
 const FLOW_CACHE_COLLECTION = "option_flows";
-const FLOW_CACHE_TTL = 60 * 60 * 1000; // 60 minutes
+const FLOW_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 const getCachedOptionFlows = async (
   symbol: string

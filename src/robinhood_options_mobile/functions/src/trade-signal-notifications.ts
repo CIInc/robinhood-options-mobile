@@ -190,12 +190,10 @@ function getIntervalLabel(interval?: string): string {
  * Send notification to a user about a trade signal
  * @param {string} userId The user ID to notify
  * @param {TradeSignal} signal The trade signal data
- * @param {boolean} isNew True if signal is newly created vs updated
  */
 async function sendTradeSignalNotification(
   userId: string,
-  signal: TradeSignal,
-  isNew: boolean
+  signal: TradeSignal
 ): Promise<void> {
   try {
     // Fetch user's FCM tokens
@@ -221,14 +219,19 @@ async function sendTradeSignalNotification(
     const intervalLabel = getIntervalLabel(signal.interval);
     const action = signal.signal;
     const emoji = action === "BUY" ? "🟢" : (action === "SELL" ? "🔴" : "🟡");
-    const title = `${emoji} ${action} Signal: ${signal.symbol}`;
 
+    // Improved Title: "🟢 BUY AAPL: $150.00 (New)"
+    // If updated, show "🟢 BUY AAPL (Updated)"
     const price = signal.price || signal.currentPrice;
     const priceStr = price ? `$${price.toFixed(2)}` : "N/A";
 
+    const title = `${emoji} ${action} ${signal.symbol} @ ${priceStr}`;
+
     const confidence = getSignalConfidence(signal);
+    // Use emoji for high confidence
+    const confEmoji = (confidence && confidence > 0.8) ? "🔥 " : "";
     const confidenceStr = confidence !== undefined ?
-      ` (${(confidence * 100).toFixed(0)}% Conf.)` : "";
+      `${confEmoji}${(confidence * 100).toFixed(0)}% Conf.` : "";
 
     let rsi = signal.rsi;
     let macd = signal.macd;
@@ -259,30 +262,45 @@ async function sendTradeSignalNotification(
 
     let indicatorsText = "";
     if (rsi !== undefined) {
-      indicatorsText += `RSI: ${rsi.toFixed(0)}`;
+      // Add visual indicator for OSI levels
+      const rsiEmo = rsi > 70 ? "🥵" : (rsi < 30 ? "🥶" : "📊");
+      indicatorsText += `${rsiEmo} RSI: ${rsi.toFixed(0)}`;
     }
     if (macd !== undefined) {
-      if (indicatorsText) indicatorsText += " • ";
+      if (indicatorsText) indicatorsText += " • "; // separator
       // Display MACD with 4 decimal precision to show small movements
-      // and add context about what the value represents
       const macdDisplay = Math.abs(macd) < 0.01 ?
         `MACD: ${macd.toFixed(4)}` : `MACD: ${macd.toFixed(2)}`;
-      indicatorsText += macdDisplay;
+      indicatorsText += `📉 ${macdDisplay}`;
     }
     if (smaFast !== undefined && smaSlow !== undefined) {
       if (indicatorsText) indicatorsText += " • ";
+      const trend = smaFast > smaSlow ? "↗️" : "↘️";
       indicatorsText +=
-        `SMA: ${smaFast.toFixed(2)}/${smaSlow.toFixed(2)}`;
+        `${trend} SMA: ${smaFast.toFixed(2)}/${smaSlow.toFixed(2)}`;
     }
 
-    const status = isNew ? "New" : "Updated";
-    let body = `${status} ${intervalLabel} @ ${priceStr}${confidenceStr}`;
+    // Interval label: "Daily", "1h", "15m"
+    // Combine into: "Daily • 85% Conf."
+    const metaLine = `${intervalLabel} • ${confidenceStr}`;
 
+    let body = metaLine;
     if (indicatorsText) {
       body += `\n${indicatorsText}`;
     }
+    if (signal.reason) {
+      // Truncate reason if too long
+      const reasonShort = signal.reason.length > 60 ?
+        signal.reason.substring(0, 57) + "..." : signal.reason;
+      body += `\n💡 ${reasonShort}`;
+    }
 
     const bodyWithConfidence = body;
+
+    // Generate chart URL (using Finviz
+    // as a reliable source for simple static charts)
+    // t=SYMBOL, ty=c (candle), ta=0 (no advanced TA), p=d (daily), s=l (large)
+    const imageUrl = `https://charts2.finviz.com/chart.ashx?t=${signal.symbol}&ty=c&ta=0&p=d&s=l`;
 
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({
@@ -290,6 +308,7 @@ async function sendTradeSignalNotification(
       notification: {
         title: title,
         body: bodyWithConfidence,
+        imageUrl: imageUrl,
       },
       data: {
         type: "trade_signal",
@@ -299,6 +318,8 @@ async function sendTradeSignalNotification(
         price: price?.toString() || "",
         confidence: confidence?.toString() || "",
         timestamp: signal.timestamp.toString(),
+        imageUrl: imageUrl,
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
       },
       android: {
         priority: "high",
@@ -307,15 +328,22 @@ async function sendTradeSignalNotification(
           priority: "high",
           sound: "default",
           clickAction: "FLUTTER_NOTIFICATION_CLICK",
+          tag: signal.symbol, // Group notifications by symbol
+          imageUrl: imageUrl,
         },
       },
       apns: {
         payload: {
           aps: {
-            sound: "default",
-            badge: 1,
-            category: "TRADE_SIGNAL",
+            "sound": "default",
+            "badge": 1,
+            "category": "TRADE_SIGNAL",
+            "threadId": signal.symbol, // Group notifications by symbol on iOS
+            "mutable-content": 1,
           },
+        },
+        fcmOptions: {
+          imageUrl: imageUrl,
         },
       },
     });
@@ -383,11 +411,9 @@ async function sendTradeSignalNotification(
 /**
  * Notify all users who should receive notifications for this signal
  * @param {TradeSignal} signal The trade signal to notify about
- * @param {boolean} isNew True if signal is newly created vs updated
  */
 async function notifyInterestedUsers(
-  signal: TradeSignal,
-  isNew: boolean
+  signal: TradeSignal
 ): Promise<void> {
   try {
     // Only notify for BUY or SELL signals (or HOLD if user enabled it)
@@ -419,7 +445,7 @@ async function notifyInterestedUsers(
       // Check if user should be notified
       if (shouldNotifyUser(signal, settings)) {
         notificationPromises.push(
-          sendTradeSignalNotification(userDoc.id, signal, isNew)
+          sendTradeSignalNotification(userDoc.id, signal)
         );
       }
     });
@@ -462,7 +488,7 @@ export const onTradeSignalCreated = onDocumentCreated(
         interval: signalData.interval,
       });
 
-      await notifyInterestedUsers(signalData, true);
+      await notifyInterestedUsers(signalData);
     } catch (error) {
       logger.error("Error in onTradeSignalCreated", {
         documentId: event.params.documentId,
@@ -512,7 +538,7 @@ export const onTradeSignalUpdated = onDocumentUpdated(
         interval: afterData.interval,
       });
 
-      await notifyInterestedUsers(afterData, false);
+      await notifyInterestedUsers(afterData);
     } catch (error) {
       logger.error("Error in onTradeSignalUpdated", {
         documentId: event.params.documentId,

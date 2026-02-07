@@ -844,14 +844,17 @@ async function sendCopyTradeNotification(
 
     // Prepare notification
     const emoji = side.toLowerCase() === "buy" ? "📥" : "📤";
+    // Title: "📥 Copy Buy Executed: AAPL"
     const title = autoExecute ?
-      `${emoji} Copy Trade Executed` :
-      `${emoji} Copy Trade Request`;
+      `${emoji} Copy ${side} Executed: ${symbol}` :
+      `${emoji} Copy ${side} Request: ${symbol}`;
+
     const priceStr = price ? ` @ $${price.toFixed(2)}` : "";
+
+    // Body: "👤 UserX • bought 10 shares @ $150.00"
     const body =
-      `${sourceUserName} ${side} ${quantity.toFixed(0)} ` +
-      `${orderType === "option" ? "contracts" : "shares"} of ` +
-      `${symbol}${priceStr}`;
+      `👤 ${sourceUserName} • ${side.toLowerCase()} ${quantity.toFixed(0)} ` +
+      `${orderType === "option" ? "contracts" : "shares"}${priceStr}`;
 
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({
@@ -874,6 +877,7 @@ async function sendCopyTradeNotification(
           channelId: "copy_trades",
           priority: "high",
           sound: "default",
+          tag: symbol, // Group notifications by symbol
         },
       },
       apns: {
@@ -881,6 +885,7 @@ async function sendCopyTradeNotification(
           aps: {
             sound: "default",
             badge: 1,
+            threadId: symbol, // Group notifications by symbol on iOS
           },
         },
       },

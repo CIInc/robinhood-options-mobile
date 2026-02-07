@@ -292,6 +292,17 @@ Sophisticated indicators of your strategy's statistical advantage.
 ### Daily Return Stats
 Granular performance metrics based on day-to-day portfolio changes.
 
+## Group Performance Analytics
+
+> **New in v0.31.7**
+
+Investor Groups now feature dedicated performance analytics to foster competition and collaboration:
+
+- **Leaderboards**: Ranked view of group members based on Total Return.
+- **Aggregated Metrics**: View the group's combined performance, total equity, and P&L.
+- **Member Insights**: Drill down into individual member performance within the group context.
+- **Top Performers**: Highlighted cards for the day's best performing members.
+
 ## Definitions Guide
 Access the complete, categorized glossary by tapping the Help icon and selecting "All Definitions". Each definition includes:
 - What the metric measures

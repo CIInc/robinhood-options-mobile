@@ -71,22 +71,65 @@ class TradeSignalNotificationsPage extends StatelessWidget {
         builder: (context, store, child) {
           if (store.notifications.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        size: 48,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No new trade signals',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'You will be notified when new trading opportunities match your criteria.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 32),
+                    if (!fromSettings)
+                      FilledButton.tonalIcon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  TradeSignalNotificationSettingsWidget(
+                                user: user,
+                                userDocRef: userDocRef,
+                                hideNotificationIcon: true,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.tune),
+                        label: const Text('Adjust Alerts'),
+                      ),
+                  ],
+                ),
               ),
             );
           }
@@ -102,13 +145,26 @@ class TradeSignalNotificationsPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      group.title,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          group.title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Divider(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant)),
+                      ],
                     ),
                   ),
                   ...group.notifications
@@ -187,24 +243,51 @@ class _NotificationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final timeFormat = DateFormat.jm();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final date = DateTime(notification.timestamp.year,
+        notification.timestamp.month, notification.timestamp.day);
+
+    final isTodayOrYesterday =
+        date.isAtSameMomentAs(today) || date.isAtSameMomentAs(yesterday);
+    final dateFormat =
+        isTodayOrYesterday ? DateFormat.jm() : DateFormat.MMMd().add_jm();
 
     Color signalColor;
+    IconData signalIcon;
+
     if (notification.signal == 'BUY') {
       signalColor = Colors.green;
+      signalIcon = Icons.arrow_upward;
     } else if (notification.signal == 'SELL') {
       signalColor = Colors.red;
+      signalIcon = Icons.arrow_downward;
+    } else if (notification.signal == 'HOLD') {
+      signalColor = Colors.orange;
+      signalIcon = Icons.pause;
     } else {
       signalColor = Colors.grey;
+      signalIcon = Icons.info_outline;
     }
 
     return Dismissible(
       key: Key(notification.id),
       background: Container(
-        color: Colors.red,
+        color: theme.colorScheme.error,
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text('Delete',
+                style: TextStyle(
+                    color: theme.colorScheme.onError,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: theme.colorScheme.onError),
+          ],
+        ),
       ),
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
@@ -223,8 +306,7 @@ class _NotificationItem extends StatelessWidget {
         child: Container(
           color: notification.read
               ? null
-              : theme.colorScheme.primaryContainer
-                  .withAlpha(50), //.withValues(alpha: 0.1),
+              : theme.colorScheme.primaryContainer.withOpacity(0.1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -232,17 +314,14 @@ class _NotificationItem extends StatelessWidget {
               children: [
                 // Signal Icon
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: signalColor.withValues(alpha: 0.1),
+                    color: signalColor
+                        .withOpacity(0.1), // .withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    notification.signal == 'BUY'
-                        ? Icons.trending_up
-                        : (notification.signal == 'SELL'
-                            ? Icons.trending_down
-                            : Icons.remove),
+                    signalIcon,
                     color: signalColor,
                     size: 24,
                   ),
@@ -263,12 +342,15 @@ class _NotificationItem extends StatelessWidget {
                                 fontWeight: notification.read
                                     ? FontWeight.normal
                                     : FontWeight.bold,
+                                color: notification.read
+                                    ? theme.textTheme.bodyLarge?.color
+                                    : theme.colorScheme.primary,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
-                            timeFormat.format(notification.timestamp),
+                            dateFormat.format(notification.timestamp),
                             style: theme.textTheme.bodySmall,
                           ),
                         ],
@@ -277,23 +359,66 @@ class _NotificationItem extends StatelessWidget {
                       Text(
                         notification.body,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color
-                              ?.withValues(alpha: 0.8),
-                        ),
+                            color: theme.textTheme.bodyMedium?.color
+                                ?.withOpacity(0.8) // .withValues(alpha: 0.8),
+                            ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (notification.price != null ||
-                          notification.confidence != null)
+                          notification.confidence != null ||
+                          notification.interval != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Wrap(
                             spacing: 8,
                             children: [
+                              if (notification.interval != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: theme
+                                        .colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: theme.colorScheme.outline
+                                          .withOpacity(0.2),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        notification.interval == '1d'
+                                            ? Icons.calendar_today
+                                            : Icons.access_time,
+                                        size: 12,
+                                        color: theme.textTheme.bodySmall?.color,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        notification.interval == '1d'
+                                            ? 'Daily'
+                                            : notification.interval == '1h'
+                                                ? 'Hourly'
+                                                : notification.interval == '30m'
+                                                    ? '30m'
+                                                    : notification.interval ==
+                                                            '15m'
+                                                        ? '15m'
+                                                        : notification
+                                                            .interval!,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               if (notification.price != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: theme
                                         .colorScheme.surfaceContainerHighest,
@@ -301,21 +426,38 @@ class _NotificationItem extends StatelessWidget {
                                   ),
                                   child: Text(
                                     '\$${notification.price!.toStringAsFixed(2)}',
-                                    style: theme.textTheme.bodySmall,
+                                    style: theme.textTheme.bodySmall
+                                        ?.copyWith(fontSize: 11),
                                   ),
                                 ),
                               if (notification.confidence != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: theme
-                                        .colorScheme.surfaceContainerHighest,
+                                    color: (notification.confidence! > 0.8)
+                                        ? Colors.green.withOpacity(0.1)
+                                        : theme.colorScheme
+                                            .surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(4),
+                                    border: (notification.confidence! > 0.8)
+                                        ? Border.all(
+                                            color:
+                                                Colors.green.withOpacity(0.3))
+                                        : null,
                                   ),
                                   child: Text(
-                                    'Conf: ${(notification.confidence! * 100).toStringAsFixed(0)}%',
-                                    style: theme.textTheme.bodySmall,
+                                    '${(notification.confidence! * 100).toStringAsFixed(0)}% Conf.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 11,
+                                      color: (notification.confidence! > 0.8)
+                                          ? Colors.green
+                                          : null,
+                                      fontWeight:
+                                          (notification.confidence! > 0.8)
+                                              ? FontWeight.bold
+                                              : null,
+                                    ),
                                   ),
                                 ),
                             ],

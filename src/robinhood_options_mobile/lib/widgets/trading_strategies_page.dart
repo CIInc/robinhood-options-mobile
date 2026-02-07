@@ -63,6 +63,10 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
     'ichimoku': 'Ichimoku',
     'cci': 'CCI',
     'parabolicSar': 'Parabolic SAR',
+    'roc': 'Rate of Change',
+    'chaikinMoneyFlow': 'Chaikin Money Flow',
+    'fibonacciRetracements': 'Fibonacci Retracements',
+    'pivotPoints': 'Pivot Points',
   };
 
   @override

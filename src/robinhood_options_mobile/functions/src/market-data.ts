@@ -1,6 +1,6 @@
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
-import fetch from "node-fetch";
+import { fetchWithRetry } from "./utils";
 
 const db = getFirestore();
 
@@ -167,8 +167,8 @@ export async function getMarketData(symbol: string,
 
       // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
       const querySymbol = symbol.replace(/\./g, "-");
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=${interval}&range=${dataRange}`;
-      const resp = await fetch(url);
+      const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=${interval}&range=${dataRange}`;
+      const resp = await fetchWithRetry(url);
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
       // Fix for Firebase which does not support arrays inside arrays

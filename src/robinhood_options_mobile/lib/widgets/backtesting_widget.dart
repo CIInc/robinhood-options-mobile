@@ -227,6 +227,10 @@ class BacktestRunTabState extends State<BacktestRunTab> {
 
     if (widget.prefilledConfig != null) {
       final config = widget.prefilledConfig!;
+      if (config.strategyConfig.initialCapital != null) {
+        _initialCapitalController.text =
+            config.strategyConfig.initialCapital.toString();
+      }
       _tradeQuantityController.text =
           config.strategyConfig.tradeQuantity.toString();
       _takeProfitController.text =

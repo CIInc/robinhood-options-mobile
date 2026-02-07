@@ -35,26 +35,24 @@ export const agenticTradingIntradayCron = onSchedule(
       let skippedCount = 0;
       let errorCount = 0;
 
-      // Fetch config once
-      let config = {};
-      try {
-        const configDoc = await db.doc("agentic_trading/config").get();
-        if (configDoc.exists) {
-          config = configDoc.data() || {};
-        }
-      } catch (e) {
-        logger.error("Error fetching config", e);
-      }
-
       const docsToProcess = docRefs.filter((doc) =>
         doc.id.startsWith("chart_") &&
         !doc.id.endsWith("_1h") &&
         !doc.id.endsWith("_15m")
       );
 
-      const BATCH_SIZE = 10;
+      const delay = (ms: number) =>
+        new Promise((resolve) => setTimeout(resolve, ms));
+
+      const BATCH_SIZE = 5;
       for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
         const batch = docsToProcess.slice(i, i + BATCH_SIZE);
+
+        // Add delay between batches to throttle API requests
+        if (i > 0) {
+          await delay(2000);
+        }
+
         await Promise.all(batch.map(async (doc) => {
           const symbol = doc.id.replace("chart_", "");
           if (!symbol) {
@@ -70,7 +68,6 @@ export const agenticTradingIntradayCron = onSchedule(
             const data = {
               symbol: symbol,
               interval: "1h",
-              ...config,
               portfolioState: {},
               skipRiskGuard: true,
             };
@@ -130,17 +127,6 @@ export const agenticTrading15mCron = onSchedule(
       let skippedCount = 0;
       let errorCount = 0;
 
-      // Fetch config once
-      let config = {};
-      try {
-        const configDoc = await db.doc("agentic_trading/config").get();
-        if (configDoc.exists) {
-          config = configDoc.data() || {};
-        }
-      } catch (e) {
-        logger.error("Error fetching config", e);
-      }
-
       const docsToProcess = docRefs.filter((doc) =>
         doc.id.startsWith("chart_") &&
         !doc.id.endsWith("_1h") &&
@@ -165,8 +151,8 @@ export const agenticTrading15mCron = onSchedule(
             const data = {
               symbol: symbol,
               interval: "15m",
-              ...config,
               portfolioState: {},
+              skipRiskGuard: true,
             };
             const result = await performTradeProposal({ data } as any);
             if (result && result.status === "no_action") {

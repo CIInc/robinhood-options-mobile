@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.7] - 2026-02-06
+
+### Added
+- **Notifications:** Added Rich Push Notifications for Agentic Trading, Trade Signals, Chat, and Copy Trading with actionable data and deep links.
+- **Investor Groups:** Added Group Watchlists feature allowing groups to curate and share lists of instruments.
+- **Investor Groups:** Added Group Performance Analytics with leaderboards and aggregated group metrics.
+- **Docs:** Added documentation for Group Watchlists.
+
+### Changed
+- **CI/CD:** Updated macOS runner to latest version and optimized workflow dependencies.
+
 ## [0.31.6] - 2026-02-06
 
 ### Added
