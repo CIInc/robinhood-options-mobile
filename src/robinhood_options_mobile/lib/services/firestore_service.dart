@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 // import 'dart:async';
 import 'package:async/async.dart';
@@ -1060,6 +1062,341 @@ class FirestoreService {
       debugPrint("Message deleted from group $groupId");
     } on FirebaseException catch (e) {
       debugPrint('Failed to delete message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Group Performance Analytics Methods
+
+  /// Get aggregate performance metrics for a group
+  Future<GroupPerformanceMetrics> getGroupPerformanceMetrics(
+    String groupId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) async {
+    try {
+      final group = await getInvestorGroup(groupId);
+      if (group == null) {
+        throw Exception('Group not found');
+      }
+
+      // Fetch performance metrics for all members
+      final memberMetrics =
+          await getMembersPerformanceMetrics(groupId, startDate, endDate);
+
+      double groupTotalReturnDollars = 0;
+      double groupAverageReturn = 0;
+      double groupAverageSharpeRatio = 0;
+      int totalTrades = 0;
+      int totalWinningTrades = 0;
+      int membersTraded = 0;
+      int membersPositive = 0;
+      int membersNegative = 0;
+      double topPerformerReturn = 0;
+      String? topPerformerId;
+
+      if (memberMetrics.isNotEmpty) {
+        membersTraded = memberMetrics.where((m) => m.totalTrades > 0).length;
+
+        for (final member in memberMetrics) {
+          if (member.totalTrades > 0) {
+            groupAverageReturn += member.totalReturnPercent;
+            groupTotalReturnDollars += member.totalReturnDollars;
+            groupAverageSharpeRatio += member.sharpeRatio;
+            totalTrades += member.totalTrades;
+            totalWinningTrades += member.winningTrades;
+
+            if (member.totalReturnPercent > 0) {
+              membersPositive++;
+            } else if (member.totalReturnPercent < 0) {
+              membersNegative++;
+            }
+
+            if (member.totalReturnPercent > topPerformerReturn) {
+              topPerformerReturn = member.totalReturnPercent;
+              topPerformerId = member.memberId;
+            }
+          }
+        }
+
+        if (membersTraded > 0) {
+          groupAverageReturn = groupAverageReturn / membersTraded;
+          groupAverageSharpeRatio = groupAverageSharpeRatio / membersTraded;
+        }
+      }
+
+      return GroupPerformanceMetrics(
+        groupId: groupId,
+        groupTotalReturnPercent: groupAverageReturn,
+        groupTotalReturnDollars: groupTotalReturnDollars,
+        groupAverageReturnPercent: groupAverageReturn,
+        groupAverageReturnDollars:
+            membersTraded > 0 ? groupTotalReturnDollars / membersTraded : 0,
+        totalMembersTraded: membersTraded,
+        totalGroupTrades: totalTrades,
+        groupWinRate:
+            totalTrades > 0 ? (totalWinningTrades / totalTrades) * 100 : 0,
+        groupAverageSharpeRatio: groupAverageSharpeRatio,
+        topPerformerReturnPercent: topPerformerReturn,
+        topPerformerId: topPerformerId,
+        membersWithPositiveReturn: membersPositive,
+        membersWithNegativeReturn: membersNegative,
+        timeRangeStart: startDate,
+        timeRangeEnd: endDate,
+      );
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to get group performance metrics: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get performance metrics for all members of a group
+  Future<List<MemberPerformanceMetrics>> getMembersPerformanceMetrics(
+    String groupId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) async {
+    try {
+      final group = await getInvestorGroup(groupId);
+      if (group == null) {
+        throw Exception('Group not found');
+      }
+
+      final List<MemberPerformanceMetrics> memberMetrics = [];
+
+      // Fetch metrics for each member
+      for (final memberId in group.members) {
+        final user = await userCollection.doc(memberId).get();
+        if (!user.exists) continue;
+
+        final userData = user.data();
+        final memberName = userData?.name ?? 'Unknown';
+        final memberPhotoUrl = userData?.photoUrl;
+
+        // Fetch order history for this member - from all instrument orders
+        Query<InstrumentOrder> orderQuery = _db
+            .collection(userCollectionName)
+            .doc(memberId)
+            .collection(instrumentOrderCollectionName)
+            .withConverter(
+              fromFirestore: (snapshot, _) =>
+                  InstrumentOrder.fromJson(snapshot.data()!),
+              toFirestore: (order, _) => order.toJson(),
+            );
+
+        if (startDate != null) {
+          orderQuery =
+              orderQuery.where('created_at', isGreaterThanOrEqualTo: startDate);
+        }
+        if (endDate != null) {
+          orderQuery =
+              orderQuery.where('created_at', isLessThanOrEqualTo: endDate);
+        }
+
+        final orders = await orderQuery.orderBy('created_at').get();
+
+        debugPrint(
+            'Processing member $memberName: found ${orders.docs.length} orders');
+
+        // Calculate metrics from orders
+        double totalReturn = 0;
+        double totalReturnDollars = 0;
+        int totalTrades = 0;
+        int winningTrades = 0;
+        int losingTrades = 0;
+        double totalWinAmount = 0;
+        double totalLossAmount = 0;
+        double sumOfReturns = 0;
+        double sumOfReturnsSquared = 0;
+        int totalHoldTime = 0;
+        DateTime? firstTradeDate;
+        DateTime? lastTradeDate;
+
+        // Group orders by symbol and calculate P&L using FIFO
+        Map<String, List<InstrumentOrder>> ordersBySymbol = {};
+
+        for (var orderDoc in orders.docs) {
+          try {
+            final order = orderDoc.data();
+
+            // Debug: log all fields in the first order
+            if (orders.docs.indexOf(orderDoc) == 0) {
+              debugPrint(
+                  'Sample order - state: ${order.state}, side: ${order.side}, qty: ${order.cumulativeQuantity}');
+            }
+
+            // Check order state - only process filled orders
+            if (order.state != 'filled' && order.state != 'executed') {
+              continue;
+            }
+
+            if (order.instrumentId.isEmpty) continue;
+
+            if (!ordersBySymbol.containsKey(order.instrumentId)) {
+              ordersBySymbol[order.instrumentId] = [];
+            }
+            ordersBySymbol[order.instrumentId]!.add(order);
+          } catch (e) {
+            debugPrint('Error grouping order: $e');
+          }
+        }
+
+        debugPrint('Found ${ordersBySymbol.length} symbols with filled orders');
+
+        // Calculate P&L for each symbol using FIFO
+        for (var symbolOrders in ordersBySymbol.values) {
+          // Sort by created_at
+          symbolOrders.sort((a, b) {
+            final aDate = a.createdAt ?? DateTime.now();
+            final bDate = b.createdAt ?? DateTime.now();
+            return aDate.compareTo(bDate);
+          });
+
+          List<Map<String, dynamic>> buyQueue = [];
+
+          for (var order in symbolOrders) {
+            final avgPrice = order.averagePrice ?? 0;
+            final quantity = order.cumulativeQuantity ?? 0;
+            final fees = order.fees ?? 0;
+
+            if (quantity == 0) continue;
+
+            if (order.side == 'buy') {
+              // Add to buy queue with date for hold time calculation
+              buyQueue.add({
+                'price': avgPrice,
+                'quantity': quantity,
+                'fees': fees,
+                'created_at': order.createdAt,
+              });
+
+              if (firstTradeDate == null && order.createdAt != null) {
+                firstTradeDate = order.createdAt;
+              }
+            } else if (order.side == 'sell') {
+              // Match with buys using FIFO
+              double remainingToSell = quantity;
+
+              while (remainingToSell > 0 && buyQueue.isNotEmpty) {
+                final buy = buyQueue.first;
+                final buyQty = buy['quantity'] as double;
+                final buyPrice = buy['price'] as double;
+                final buyFees = buy['fees'] as double;
+                final buyDate = buy['created_at'] as DateTime?;
+
+                final matchedQty = math.min(remainingToSell, buyQty);
+
+                // Proportionally distribute fees based on matched quantity
+                final sellFeesForMatch = fees * (matchedQty / quantity);
+                final buyFeesForMatch = buyFees * (matchedQty / buyQty);
+
+                final pnl = (avgPrice - buyPrice) * matchedQty -
+                    sellFeesForMatch -
+                    buyFeesForMatch;
+                final costBasis = buyPrice * matchedQty;
+                final pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
+
+                totalTrades++;
+                totalReturnDollars += pnl;
+                sumOfReturns += pnlPercent;
+                sumOfReturnsSquared += pnlPercent * pnlPercent;
+
+                if (pnl > 0) {
+                  winningTrades++;
+                  totalWinAmount += pnl;
+                } else if (pnl < 0) {
+                  losingTrades++;
+                  totalLossAmount += pnl.abs();
+                }
+
+                // Calculate hold time for this matched trade
+                if (buyDate != null && order.createdAt != null) {
+                  final holdTimeHours = order.createdAt!.difference(buyDate).inHours;
+                  totalHoldTime += holdTimeHours;
+                }
+
+                // Update last trade date
+                if (order.createdAt != null) {
+                  lastTradeDate = order.createdAt;
+                }
+
+                remainingToSell -= matchedQty;
+
+                if (matchedQty >= buyQty) {
+                  buyQueue.removeAt(0);
+                } else {
+                  buy['quantity'] = buyQty - matchedQty;
+                }
+              }
+            }
+          }
+        }
+
+        // Calculate derived metrics
+        final winRate =
+            totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0.0;
+        final profitFactor = totalLossAmount > 0
+            ? totalWinAmount / totalLossAmount
+            : (totalWinAmount > 0 ? double.infinity : 0.0);
+
+        // Calculate Sharpe Ratio (simplified)
+        double sharpeRatio = 0;
+        if (totalTrades > 1) {
+          final avgReturn = sumOfReturns / totalTrades;
+          final variance =
+              (sumOfReturnsSquared / totalTrades) - (avgReturn * avgReturn);
+          final stdDev = variance > 0 ? math.sqrt(variance) : 0;
+          sharpeRatio =
+              stdDev > 0 ? (avgReturn / stdDev) * (math.sqrt(252)) : 0;
+        }
+
+        if (totalTrades > 0) {
+          totalReturn = sumOfReturns / totalTrades;
+        }
+
+        // Calculate average hold time from matched trades
+        double? avgHoldTime;
+        if (totalTrades > 0) {
+          avgHoldTime = totalHoldTime / totalTrades.toDouble();
+        }
+
+        // Estimate max drawdown (simplified - just using worst loss as proxy)
+        final maxDrawdown = totalTrades > 0 && totalLossAmount > 0
+            ? (totalLossAmount / (totalWinAmount + totalLossAmount)) * 100
+            : 0.0;
+
+        debugPrint(
+            'Member $memberName metrics: totalTrades=$totalTrades, return=$totalReturn%, returnDollars=\$$totalReturnDollars, winRate=$winRate%');
+
+        memberMetrics.add(
+          MemberPerformanceMetrics(
+            memberId: memberId,
+            memberName: memberName,
+            memberPhotoUrl: memberPhotoUrl,
+            totalReturnPercent: totalReturn,
+            totalReturnDollars: totalReturnDollars,
+            winRate: winRate,
+            totalTrades: totalTrades,
+            winningTrades: winningTrades,
+            losingTrades: losingTrades,
+            averageWin: winningTrades > 0 ? totalWinAmount / winningTrades : 0,
+            averageLoss: losingTrades > 0 ? totalLossAmount / losingTrades : 0,
+            profitFactor: profitFactor,
+            sharpeRatio: sharpeRatio,
+            maxDrawdownPercent: maxDrawdown,
+            avgHoldTimeHours: avgHoldTime,
+            firstTradeDate: firstTradeDate,
+            lastTradeDate: lastTradeDate,
+          ),
+        );
+      }
+
+      debugPrint(
+          'Total members processed: ${memberMetrics.length}, members with trades: ${memberMetrics.where((m) => m.totalTrades > 0).length}');
+
+      return memberMetrics;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to get members performance metrics: ${e.message}');
       rethrow;
     }
   }

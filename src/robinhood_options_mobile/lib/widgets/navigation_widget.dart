@@ -801,6 +801,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         onDestinationSelected: _onPageChanged,
       ),
       floatingActionButton: message == null &&
+              _pageIndex != 4 &&
               !(_pageIndex == 3 &&
                   user != null &&
                   !SubscriptionService().isSubscriptionActive(user!))
