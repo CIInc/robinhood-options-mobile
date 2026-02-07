@@ -30,7 +30,6 @@ class FakeFirebaseFirestore extends Fake implements FirebaseFirestore {}
 
 // Mock Service using Fake
 class MockBrokerageService extends Fake implements IBrokerageService {
-  @override
   Future<dynamic> getOptionChain(
       BrokerageUser user, String symbol, String strategy) async {
     return {
@@ -166,13 +165,10 @@ class MockPaperTradingStore extends PaperTradingStore {
   // Pass fake firestore to super to avoid Firebase.initializeApp check
   MockPaperTradingStore() : super(firestore: FakeFirebaseFirestore());
 
-  @override
   double get portfolioValue => 100000.0;
 
-  @override
   double get buyingPower => 100000.0;
 
-  @override
   Future<void> initialize(User? user) async {
     // No-op for test
   }

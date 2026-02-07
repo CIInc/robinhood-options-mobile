@@ -282,6 +282,26 @@ class _UserWidgetState extends State<UserWidget> {
                                                       '')
                                                   : null,
                                               children: [
+                                                ListTile(
+                                                  leading: const Icon(
+                                                      Icons.badge_outlined),
+                                                  title: const Text(
+                                                      'Display Name'),
+                                                  subtitle: Text(
+                                                      user.name ?? 'Not set'),
+                                                  onTap:
+                                                      isCurrentUserProfileView
+                                                          ? () =>
+                                                              _editDisplayName(
+                                                                  context,
+                                                                  user!)
+                                                          : null,
+                                                  trailing:
+                                                      isCurrentUserProfileView
+                                                          ? const Icon(
+                                                              Icons.edit)
+                                                          : null,
+                                                ),
                                                 if (userRole ==
                                                     UserRole.admin) ...[
                                                   ListTile(
@@ -1390,6 +1410,57 @@ class _UserWidgetState extends State<UserWidget> {
                     ),
                   )));
         });
+      },
+    );
+  }
+
+  Future<void> _editDisplayName(BuildContext context, User user) async {
+    final TextEditingController nameController =
+        TextEditingController(text: user.name);
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Display Name'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Display Name'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Save'),
+              onPressed: () async {
+                final newName = nameController.text;
+                if (newName.isNotEmpty) {
+                  // Update Firestore
+                  user.name = newName;
+                  user.nameLower = newName.toLowerCase();
+                  await _firestoreService.updateUser(
+                      userDocumentReference!, user);
+
+                  // Update Firebase Auth
+                  await widget.auth.currentUser?.updateDisplayName(newName);
+                }
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
       },
     );
   }

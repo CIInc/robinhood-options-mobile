@@ -33,6 +33,8 @@ import * as sentimentAnalysis from "./sentiment-analysis";
 import * as chatNotifications from "./chat-notifications";
 import * as macroAgent from "./macro-agent";
 import * as alphaFactorDiscovery from "./alpha-factor-discovery";
+import * as groupWatchlists from "./group-watchlists";
+import * as watchlistAlerts from "./watchlist-alerts-cron";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -93,3 +95,19 @@ export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
 export const verifySubscription = verifySubscriptionFunc;
 export const getMacroAssessment = macroAgent.getMacroAssessmentCall;
+export const createGroupWatchlist =
+  groupWatchlists.createGroupWatchlist;
+export const deleteGroupWatchlist =
+  groupWatchlists.deleteGroupWatchlist;
+export const addSymbolToWatchlist =
+  groupWatchlists.addSymbolToWatchlist;
+export const removeSymbolFromWatchlist =
+  groupWatchlists.removeSymbolFromWatchlist;
+export const createPriceAlert = groupWatchlists.createPriceAlert;
+export const deletePriceAlert = groupWatchlists.deletePriceAlert;
+export const setWatchlistMemberPermission =
+  groupWatchlists.setWatchlistMemberPermission;
+export const removeWatchlistMemberPermission =
+  groupWatchlists.removeWatchlistMemberPermission;
+export const watchlistAlertsCronJob = watchlistAlerts.watchlistAlertsCron;
+export const checkWatchlistAlerts = watchlistAlerts.checkWatchlistAlerts;

@@ -7,11 +7,14 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics_provider.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
+import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_performance_analytics_widget.dart';
+import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -221,6 +224,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
               _buildOverviewCard(group, isMember),
               const SizedBox(height: 16),
               _buildPerformanceCard(group),
+              const SizedBox(height: 16),
+              _buildWatchlistsCard(group, isMember),
               const SizedBox(height: 16),
               _buildChatCard(group, isMember),
               const SizedBox(height: 24),
@@ -690,6 +695,249 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWatchlistsCard(InvestorGroup group, bool isMember) {
+    if (!isMember) {
+      return Card(
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: _getCardBorderColor(), width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.bookmark_outline,
+                        color: _getTertiaryTextColor(), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Group Watchlists',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Chip(
+                      label: const Text('Members Only',
+                          style: TextStyle(fontSize: 12)),
+                      backgroundColor:
+                          Colors.grey.withOpacity(_isDarkTheme ? 0.2 : 0.1),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Create and manage collaborative watchlists with group members',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _getSecondaryTextColor(),
+                    ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final watchlistService = GroupWatchlistService();
+    return Card(
+      elevation: 0,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: _getCardBorderColor(), width: 1),
+      ),
+      child: InkWell(
+        onTap: widget.brokerageUser != null
+            ? () {
+                HapticFeedback.lightImpact();
+                _trackEvent('watchlists_card_tapped');
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => GroupWatchlistsWidget(
+                      brokerageUser: widget.brokerageUser!,
+                      groupId: widget.groupId,
+                    ),
+                  ),
+                );
+              }
+            : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: StreamBuilder<List<GroupWatchlist>>(
+            stream: watchlistService.getGroupWatchlistsStream(widget.groupId),
+            builder: (context, snapshot) {
+              final watchlists = snapshot.data ?? [];
+              final hasData = watchlists.isNotEmpty;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.bookmark_outline,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                'Group Watchlists',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(_isDarkTheme ? 0.2 : 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${watchlists.length}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (hasData)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Show first watchlist preview with symbols
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _getBackgroundColor(),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                watchlists.first.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (watchlists.first.symbols.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: watchlists.first.symbols
+                                      .take(5)
+                                      .map(
+                                        (symbol) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            symbol.symbol,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                                if (watchlists.first.symbols.length > 5)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      '+${watchlists.first.symbols.length - 5} more',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: _getSecondaryTextColor(),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  Text(
+                    hasData
+                        ? 'Tap to view all watchlists'
+                        : 'Create and manage collaborative watchlists with group members',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: _getSecondaryTextColor(),
+                        ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

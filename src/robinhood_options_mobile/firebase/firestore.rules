@@ -153,11 +153,55 @@ service cloud.firestore {
         allow create: if request.auth.uid != null && 
           request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members &&
           request.resource.data.senderId == request.auth.uid;
-        allow update, delete: if request.auth.uid != null && (
+        allow update: if request.auth.uid != null && (
+          resource.data.senderId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.admins ||
+          // Allow members to update their own read receipts
+          (request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']))
+        );
+        allow delete: if request.auth.uid != null && (
           resource.data.senderId == request.auth.uid ||
           request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
           request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.admins
         );
+      }
+
+      match /watchlists/{watchlistId} {
+        // Members of the group can read watchlists
+        allow read: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+        // Group members can create watchlists
+        allow create: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+        // Only editors and creator can update
+        allow update: if request.auth.uid != null && 
+          (resource.data.get('permissions', {})[request.auth.uid] == 'editor' ||
+           resource.data.createdBy == request.auth.uid);
+        // Only creator can delete
+        allow delete: if request.auth.uid != null && 
+          resource.data.createdBy == request.auth.uid;
+
+        match /symbols/{symbolId} {
+          // Group members can read symbols in accessible watchlists
+          allow read: if request.auth.uid != null && 
+            request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+          // Only editors and creator can write symbols
+          allow create, update, delete: if request.auth.uid != null && 
+            (get(/databases/$(database)/documents/investor_groups/$(groupId)/watchlists/$(watchlistId)).data.get('permissions', {})[request.auth.uid] == 'editor' ||
+             get(/databases/$(database)/documents/investor_groups/$(groupId)/watchlists/$(watchlistId)).data.createdBy == request.auth.uid);
+
+          match /alerts/{alertId} {
+            // Group members can read alerts
+            allow read: if request.auth.uid != null && 
+              request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+            // Only editors and creator can write alerts
+            allow create, update, delete: if request.auth.uid != null && 
+              (get(/databases/$(database)/documents/investor_groups/$(groupId)/watchlists/$(watchlistId)).data.get('permissions', {})[request.auth.uid] == 'editor' ||
+               get(/databases/$(database)/documents/investor_groups/$(groupId)/watchlists/$(watchlistId)).data.createdBy == request.auth.uid);
+          }
+        }
       }
     }
 
