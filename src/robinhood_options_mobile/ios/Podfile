@@ -1,6 +1,6 @@
 # Uncomment this line to define a global platform for your project
 # Updated to iOS 17.0 to support building with iOS 26 SDK (required April 2026)
-platform :ios, '17.0'
+# platform :ios, '17.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -42,20 +42,20 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     # Updated to iOS 17.0 to support building with iOS 26 SDK (required April 2026)
-    target.build_configurations.each do |config|
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
-        # Ensure we use the latest available SDK
-        config.build_settings['SDKROOT'] = 'iphoneos'
-        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-    end
+    # target.build_configurations.each do |config|
+    #     config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+    #     # Ensure we use the latest available SDK
+    #     config.build_settings['SDKROOT'] = 'iphoneos'
+    #     config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+    # end
   end
   
   # Updated to iOS 17.0 to support building with iOS 26 SDK (required April 2026)
   # Ensure Runner target also uses correct SDK settings
-  installer.pods_project.native_targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
-      config.build_settings['SDKROOT'] = 'iphoneos'
-    end
-  end
+  # installer.pods_project.native_targets.each do |target|
+  #   target.build_configurations.each do |config|
+  #     config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+  #     config.build_settings['SDKROOT'] = 'iphoneos'
+  #   end
+  # end
 end

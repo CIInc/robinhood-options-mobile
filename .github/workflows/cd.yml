@@ -218,6 +218,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
