@@ -1009,152 +1009,343 @@
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.priceMovement.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.priceMovement.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.momentum.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.momentum.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.marketDirection.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.marketDirection.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.volume.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.volume.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.macd.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.macd.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.bollingerBands.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.bollingerBands.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.stochastic.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.stochastic.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.atr.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.atr.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.obv.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.obv.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.vwap.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.vwap.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.adx.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.adx.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.williamsR.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.williamsR.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.ichimoku.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.ichimoku.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.cci.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.cci.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "interval", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.indicators.parabolicSar.signal", "order": "ASCENDING" },
-        { "fieldPath": "multiIndicatorResult.signalStrength", "order": "DESCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.indicators.parabolicSar.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "alerts",
+      "fieldPath": "active",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
 }

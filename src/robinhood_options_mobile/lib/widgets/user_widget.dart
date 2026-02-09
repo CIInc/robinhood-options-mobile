@@ -32,6 +32,7 @@ import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -1014,33 +1015,33 @@ class _UserWidgetState extends State<UserWidget> {
                                         );
                                       },
                                     ),
-                                    // Alpha Factor Discovery
-                                    ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        foregroundColor: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                        child:
-                                            const Icon(Icons.science_outlined),
-                                      ),
-                                      title:
-                                          const Text('Alpha Factor Discovery'),
-                                      subtitle: const Text(
-                                          'Analyze predictive power of indicators'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AlphaFactorDiscoveryWidget(),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                    // // Alpha Factor Discovery
+                                    // ListTile(
+                                    //   leading: CircleAvatar(
+                                    //     backgroundColor: Theme.of(context)
+                                    //         .colorScheme
+                                    //         .secondaryContainer,
+                                    //     foregroundColor: Theme.of(context)
+                                    //         .colorScheme
+                                    //         .onSecondaryContainer,
+                                    //     child:
+                                    //         const Icon(Icons.science_outlined),
+                                    //   ),
+                                    //   title:
+                                    //       const Text('Alpha Factor Discovery'),
+                                    //   subtitle: const Text(
+                                    //       'Analyze predictive power of indicators'),
+                                    //   trailing: const Icon(Icons.chevron_right),
+                                    //   onTap: () async {
+                                    //     Navigator.push(
+                                    //       context,
+                                    //       MaterialPageRoute(
+                                    //         builder: (context) =>
+                                    //             const AlphaFactorDiscoveryWidget(),
+                                    //       ),
+                                    //     );
+                                    //   },
+                                    // ),
                                     // Trade Signal Notification Settings
                                     ListTile(
                                       leading: CircleAvatar(
@@ -1072,6 +1073,32 @@ class _UserWidgetState extends State<UserWidget> {
                                             ),
                                           );
                                         }
+                                      },
+                                    ),
+                                    // Custom Alerts
+                                    ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(
+                                            Icons.add_alert_outlined),
+                                      ),
+                                      title: const Text('Custom Alerts'),
+                                      subtitle: const Text(
+                                          'Manage price, volume, and volatility alerts'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CustomAlertsWidget(),
+                                          ),
+                                        );
                                       },
                                     ),
                                     ListTile(

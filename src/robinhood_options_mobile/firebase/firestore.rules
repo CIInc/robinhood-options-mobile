@@ -90,6 +90,9 @@ service cloud.firestore {
       match /paper_account/{id} {
         allow read, write: if request.auth.uid == uid;
       }
+      match /alerts/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
     }
     match /instrument/{instrumentid} {
       allow read: if true;

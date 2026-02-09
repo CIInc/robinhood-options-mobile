@@ -877,7 +877,8 @@ async function sendCopyTradeNotification(
           channelId: "copy_trades",
           priority: "high",
           sound: "default",
-          tag: symbol, // Group notifications by symbol
+          // Group notifications by symbol
+          // tag: symbol,
         },
       },
       apns: {
@@ -885,7 +886,8 @@ async function sendCopyTradeNotification(
           aps: {
             sound: "default",
             badge: 1,
-            threadId: symbol, // Group notifications by symbol on iOS
+            // Group notifications by symbol on iOS
+            // threadId: symbol,
           },
         },
       },

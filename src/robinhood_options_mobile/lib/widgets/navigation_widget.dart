@@ -359,7 +359,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           builder: (context) => const CopyTradeRequestsWidget(),
         ),
       );
-    } else if (data['type'] == 'trade_signal') {
+    } else if (data['type'] == 'trade_signal' ||
+        data['type'] == 'custom_alert') {
       final symbol = data['symbol'];
       if (symbol != null) {
         final userStore =

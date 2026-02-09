@@ -328,7 +328,8 @@ async function sendTradeSignalNotification(
           priority: "high",
           sound: "default",
           clickAction: "FLUTTER_NOTIFICATION_CLICK",
-          tag: signal.symbol, // Group notifications by symbol
+          // Group notifications by symbol
+          // tag: signal.symbol,
           imageUrl: imageUrl,
         },
       },
@@ -338,7 +339,8 @@ async function sendTradeSignalNotification(
             "sound": "default",
             "badge": 1,
             "category": "TRADE_SIGNAL",
-            "threadId": signal.symbol, // Group notifications by symbol on iOS
+            // Group notifications by symbol on iOS
+            // "threadId": signal.symbol,
             "mutable-content": 1,
           },
         },

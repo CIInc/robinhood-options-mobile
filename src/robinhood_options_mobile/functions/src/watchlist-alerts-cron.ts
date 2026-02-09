@@ -37,9 +37,19 @@ interface WatchlistAlert {
  */
 async function getUserFCMTokens(userId: string): Promise<string[]> {
   try {
-    const userDoc = await db.collection("users").doc(userId).get();
+    const userDoc = await db.collection("user").doc(userId).get();
     const userData = userDoc.data() as any;
-    const fcmTokens = userData?.fcmTokens || [];
+    // Devices expected as array of objects with optional fcmToken
+    const devices: Array<{ fcmToken?: string | null }> =
+      userData?.devices || [];
+    const fcmTokens: string[] = devices
+      .map((device) => device.fcmToken)
+      .filter((token): token is string => token != null && token !== "");
+
+    if (fcmTokens.length === 0) {
+      logger.info("No FCM tokens found for user", { userId });
+      return [];
+    }
     return Array.isArray(fcmTokens) ? fcmTokens : [];
   } catch (e) {
     logger.warn(`Failed to fetch FCM tokens for user ${userId}`, e);
