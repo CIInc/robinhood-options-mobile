@@ -266,6 +266,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                               store.filterMoneyness != null ||
                               store.filterExpiration != null ||
                               store.filterMinCap != null ||
+                              store.filterMinPremium != null ||
                               store.filterFlags != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 12),
@@ -711,6 +712,19 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
             size: 16, color: Theme.of(context).colorScheme.primary),
         label: Text('> \$${store.filterMinCap!.toStringAsFixed(0)}B'),
         onDeleted: () => store.setFilterMinCap(null),
+        deleteIcon: const Icon(Icons.close, size: 16),
+        labelStyle: const TextStyle(fontSize: 12),
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+      ));
+    }
+
+    if (store.filterMinPremium != null) {
+      chips.add(InputChip(
+        avatar: Icon(Icons.monetization_on,
+            size: 16, color: Theme.of(context).colorScheme.primary),
+        label: Text('> \$${_compactFormat.format(store.filterMinPremium)}'),
+        onDeleted: () => store.setFilterMinPremium(null),
         deleteIcon: const Icon(Icons.close, size: 16),
         labelStyle: const TextStyle(fontSize: 12),
         padding: EdgeInsets.zero,
@@ -2146,6 +2160,57 @@ class _FilterDialogState extends State<_FilterDialog> {
                           selected: store.filterMinCap == 200.0,
                           onSelected: (bool selected) {
                             store.setFilterMinCap(selected ? 200.0 : null);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Min Premium',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('All'),
+                          selected: store.filterMinPremium == null,
+                          onSelected: (bool selected) {
+                            if (selected) {
+                              store.setFilterMinPremium(null);
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$25k'),
+                          selected: store.filterMinPremium == 25000.0,
+                          onSelected: (bool selected) {
+                            store
+                                .setFilterMinPremium(selected ? 25000.0 : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$100k'),
+                          selected: store.filterMinPremium == 100000.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinPremium(
+                                selected ? 100000.0 : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$500k'),
+                          selected: store.filterMinPremium == 500000.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinPremium(
+                                selected ? 500000.0 : null);
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('> \$1M'),
+                          selected: store.filterMinPremium == 1000000.0,
+                          onSelected: (bool selected) {
+                            store.setFilterMinPremium(
+                                selected ? 1000000.0 : null);
                           },
                         ),
                       ],

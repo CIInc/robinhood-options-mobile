@@ -144,6 +144,7 @@ class OptionsFlowStore extends ChangeNotifier {
   String? _filterExpiration; // '0-7', '8-30', '30+'
   String? _filterSector;
   double? _filterMinCap; // in billions
+  double? _filterMinPremium;
   List<String>? _filterFlags;
   FlowSortOption _sortOption = FlowSortOption.score;
 
@@ -161,6 +162,7 @@ class OptionsFlowStore extends ChangeNotifier {
   String? get filterExpiration => _filterExpiration;
   String? get filterSector => _filterSector;
   double? get filterMinCap => _filterMinCap;
+  double? get filterMinPremium => _filterMinPremium;
   List<String>? get filterFlags => _filterFlags;
   FlowSortOption get sortOption => _sortOption;
 
@@ -199,12 +201,10 @@ class OptionsFlowStore extends ChangeNotifier {
           .httpsCallable('getOptionAlerts')
           .call();
       final data = Map<String, dynamic>.from(result.data);
-      _alerts = (data['alerts'] as List)
-          .map((e) {
-            final map = Map<String, dynamic>.from(e as Map);
-            return OptionFlowAlert.fromMap(map['id'] as String, map);
-          })
-          .toList();
+      _alerts = (data['alerts'] as List).map((e) {
+        final map = Map<String, dynamic>.from(e as Map);
+        return OptionFlowAlert.fromMap(map['id'] as String, map);
+      }).toList();
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading alerts: $e');
@@ -340,6 +340,12 @@ class OptionsFlowStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFilterMinPremium(double? minPremium) {
+    _filterMinPremium = minPremium;
+    _applyFilters();
+    notifyListeners();
+  }
+
   void setFilterFlags(List<String>? flags) {
     _filterFlags = flags;
     _applyFilters();
@@ -408,7 +414,8 @@ class OptionsFlowStore extends ChangeNotifier {
   }
 
   Future<List<OptionFlowItem>> fetchYahooFlowItems(
-      String symbol, String? expiration) async {
+      String symbol, String? expiration,
+      {Function(List<OptionFlowItem>)? onChunkLoaded}) async {
     try {
       final db = FirebaseFirestore.instance;
       final docRef = db.collection('yahoo_options_results').doc(symbol);
@@ -471,21 +478,29 @@ class OptionsFlowStore extends ChangeNotifier {
           }
         }
 
-        // Persist initial cache
-        await _saveYahooOptionsResult(docRef, cachedResult);
+        // Persist initial cache (fire and forget)
+        _saveYahooOptionsResult(docRef, cachedResult).catchError((e) {
+          debugPrint('Error persisting yahoo options result: $e');
+        });
         // await docRef.set(_sanitizeForFirestore(cachedResult));
       }
 
       // Now we have cachedResult (either from DB or fresh fetch)
       final expirationDatesRaw = cachedResult['expirationDates'] as List?;
-      final List<DateTime> expirationDates = expirationDatesRaw?.map((e) {
-            if (e is Timestamp) return e.toDate().toUtc();
-            if (e is int) {
-              return DateTime.fromMillisecondsSinceEpoch(e * 1000, isUtc: true);
-            }
-            if (e is DateTime) return e.isUtc ? e : e.toUtc();
-            return DateTime.now().toUtc(); // Should not happen
-          }).toList() ??
+      final List<DateTime> expirationDates = expirationDatesRaw
+              ?.map((e) {
+                if (e is Timestamp) return e.toDate().toUtc();
+                if (e is int) {
+                  return DateTime.fromMillisecondsSinceEpoch(e * 1000,
+                      isUtc: true);
+                }
+                if (e is DateTime) return e.isUtc ? e : e.toUtc();
+                return DateTime.now().toUtc(); // Should not happen
+              })
+              // Ensure past dates don't attempt to be fetched
+              .where((e) =>
+                  e.isAfter(DateTime.now().subtract(const Duration(days: 1))))
+              .toList() ??
           [];
 
       final targetDates = _filterExpirationDates(expirationDates, expiration);
@@ -511,6 +526,25 @@ class OptionsFlowStore extends ChangeNotifier {
       }).toList();
       cachedResult['options'] = existingOptions;
 
+      final quote = cachedResult['quote'];
+      final double spotPrice = quote != null
+          ? (quote['regularMarketPrice']?.toDouble() ?? 0.0)
+          : 0.0;
+      final double? marketCap =
+          quote != null ? quote['marketCap']?.toDouble() : null;
+      final int? earningsTimestamp =
+          quote != null ? quote['earningsTimestamp'] : null;
+
+      final List<OptionFlowItem> allResultItems = [];
+
+      // Process existing cached options
+      if (existingOptions.isNotEmpty) {
+        final cachedItems = _convertOptionsToItems(existingOptions, symbol,
+            spotPrice, marketCap, earningsTimestamp, expiration);
+        allResultItems.addAll(cachedItems);
+        onChunkLoaded?.call(cachedItems);
+      }
+
       // Find missing dates
       final missingDates = targetDates
           .where((date) => !_isDateInOptions(date, existingOptions))
@@ -521,164 +555,108 @@ class OptionsFlowStore extends ChangeNotifier {
         final datesToFetch = missingDates.take(4).toList();
 
         if (datesToFetch.isNotEmpty) {
-          // final yahooService = YahooService();
-          // final futures = datesToFetch.map((date) =>
-          //     yahooService.getOptionChain(symbol,
-          //         date: date.millisecondsSinceEpoch ~/ 1000));
+          // Process sequentially to stream results
+          for (var i = 0; i < datesToFetch.length; i++) {
+            final date = datesToFetch[i];
 
-          // final results = await Future.wait(futures);
-
-          final results = [];
-          for (var date in datesToFetch) {
-            if (results.isNotEmpty) {
+            // Delay start (staggered)
+            if (i > 0) {
               await Future.delayed(const Duration(milliseconds: 1500));
             }
-            final result = await yahooService.getOptionChain(symbol,
-                date: date.millisecondsSinceEpoch ~/ 1000);
-            results.add(result);
+
+            try {
+              final result = await yahooService.getOptionChain(symbol,
+                  date: date.millisecondsSinceEpoch ~/ 1000);
+
+              final newOptionsRaw = (result['options'] as List? ?? []);
+              if (newOptionsRaw.isNotEmpty) {
+                // Process new chunk
+                final newItems = _convertOptionsToItems(newOptionsRaw, symbol,
+                    spotPrice, marketCap, earningsTimestamp, expiration);
+
+                allResultItems.addAll(newItems);
+                onChunkLoaded?.call(newItems);
+
+                // Add to cache list
+                existingOptions.addAll(newOptionsRaw);
+              }
+            } catch (e) {
+              debugPrint('Error fetching missing date $date: $e');
+            }
           }
 
-          final newOptions = results.expand((data) {
-            if (data.isEmpty) {
-              return [];
-            }
-            return (data['options'] as List? ?? []);
-          }).toList();
-
-          // Merge
-          cachedResult['options'] = [...existingOptions, ...newOptions];
+          // Update cache with all merged options
+          cachedResult['options'] = existingOptions;
           cachedResult['lastUpdated'] = DateTime.now().millisecondsSinceEpoch;
 
-          // Persist updated cache
-          try {
-            await _saveYahooOptionsResult(docRef, cachedResult);
-
-            // // Deep copy to avoid modifying cachedResult in place during sanitization/conversion
-            // final dataToSave = _sanitizeForFirestore(cachedResult);
-
-            // if (dataToSave['expirationDates'] != null) {
-            //   dataToSave['expirationDates'] =
-            //       (dataToSave['expirationDates'] as List).map((e) {
-            //     if (e is int) {
-            //       return Timestamp.fromMillisecondsSinceEpoch(e * 1000);
-            //     }
-            //     if (e is DateTime) return Timestamp.fromDate(e);
-            //     return e;
-            //   }).toList();
-            // }
-
-            // // Options dates conversion
-            // if (dataToSave['options'] != null) {
-            //   dataToSave['options'] =
-            //       (dataToSave['options'] as List).map((opt) {
-            //     final optMap = Map<String, dynamic>.from(opt);
-            //     // Helper to convert dates in calls/puts
-            //     List<Map<String, dynamic>> convertContracts(List? contracts) {
-            //       if (contracts == null) return [];
-            //       return contracts.map((c) {
-            //         final cMap = Map<String, dynamic>.from(c);
-            //         if (cMap['expiration'] != null) {
-            //           final val = cMap['expiration'];
-            //           if (val is int) {
-            //             cMap['expiration'] =
-            //                 Timestamp.fromMillisecondsSinceEpoch(val * 1000);
-            //           } else if (val is Map && val['raw'] is int)
-            //             cMap['expiration'] =
-            //                 Timestamp.fromMillisecondsSinceEpoch(
-            //                     val['raw'] * 1000);
-            //           else if (val is DateTime)
-            //             cMap['expiration'] = Timestamp.fromDate(val);
-            //         }
-            //         if (cMap['lastTradeDate'] != null) {
-            //           final val = cMap['lastTradeDate'];
-            //           if (val is int) {
-            //             cMap['lastTradeDate'] =
-            //                 Timestamp.fromMillisecondsSinceEpoch(val * 1000);
-            //           } else if (val is Map && val['raw'] is int)
-            //             cMap['lastTradeDate'] =
-            //                 Timestamp.fromMillisecondsSinceEpoch(
-            //                     val['raw'] * 1000);
-            //           else if (val is DateTime)
-            //             cMap['lastTradeDate'] = Timestamp.fromDate(val);
-            //         }
-            //         return cMap;
-            //       }).toList();
-            //     }
-
-            //     if (optMap['calls'] != null) {
-            //       optMap['calls'] = convertContracts(optMap['calls']);
-            //     }
-            //     if (optMap['puts'] != null) {
-            //       optMap['puts'] = convertContracts(optMap['puts']);
-            //     }
-            //     return optMap;
-            //   }).toList();
-            // }
-
-            // await docRef.set(dataToSave);
-          } catch (e) {
+          // Persist updated cache (fire and forget)
+          _saveYahooOptionsResult(docRef, cachedResult).catchError((e) {
             debugPrint('Error persisting yahoo options result: $e');
-          }
+          });
         }
       }
 
-      final quote = cachedResult['quote'];
-      final options = cachedResult['options'] as List;
-      final double spotPrice = quote['regularMarketPrice']?.toDouble() ?? 0.0;
-      final double? marketCap = quote['marketCap']?.toDouble();
-      final int? earningsTimestamp = quote['earningsTimestamp'];
-
-      List<OptionFlowItem> newItems = [];
-
-      for (var optionDate in options) {
-        // final expirationDate = DateTime.fromMillisecondsSinceEpoch(
-        //     optionDate['expirationDate'] * 1000);
-        final expirationDate = optionDate['expirationDate'] is DateTime
-            ? (optionDate['expirationDate'] as DateTime).toUtc()
-            : optionDate['expirationDate'] is Timestamp
-                ? (optionDate['expirationDate'] as Timestamp).toDate().toUtc()
-                : DateTime.fromMillisecondsSinceEpoch(
-                    optionDate['expirationDate'] * 1000,
-                    isUtc: true);
-
-        // Process Calls
-        if (optionDate['calls'] != null) {
-          for (var call in optionDate['calls']) {
-            _processOptionContract(
-                call, 'Call', symbol, expirationDate, spotPrice, newItems,
-                marketCap: marketCap, earningsTimestamp: earningsTimestamp);
-          }
-        }
-
-        // Process Puts
-        if (optionDate['puts'] != null) {
-          for (var put in optionDate['puts']) {
-            _processOptionContract(
-                put, 'Put', symbol, expirationDate, spotPrice, newItems,
-                marketCap: marketCap, earningsTimestamp: earningsTimestamp);
-          }
-        }
-      }
-
-      // Apply expiration filter to items
-      if (expiration != null) {
-        final now = DateTime.now();
-        newItems = newItems.where((item) {
-          final days = _getDaysDifference(now, item.expirationDate);
-          if (expiration == '0-7') return days >= -1 && days <= 7;
-          if (expiration == '8-30') return days > 7 && days <= 30;
-          if (expiration == '30+') return days > 30;
-          return true;
-        }).toList();
-      }
-
-      // Sort by premium descending
-      newItems.sort((a, b) => b.premium.compareTo(a.premium));
-      return newItems;
+      // Final sort of all items
+      allResultItems.sort((a, b) => b.premium.compareTo(a.premium));
+      return allResultItems;
     } catch (e) {
       debugPrint('Error fetching client side flow: $e');
       return [];
     }
+  }
+
+  List<OptionFlowItem> _convertOptionsToItems(
+      List<dynamic> options,
+      String symbol,
+      double spotPrice,
+      double? marketCap,
+      int? earningsTimestamp,
+      String? filterExpiration) {
+    List<OptionFlowItem> items = [];
+
+    for (var optionDate in options) {
+      final expirationDate = optionDate['expirationDate'] is DateTime
+          ? (optionDate['expirationDate'] as DateTime).toUtc()
+          : optionDate['expirationDate'] is Timestamp
+              ? (optionDate['expirationDate'] as Timestamp).toDate().toUtc()
+              : DateTime.fromMillisecondsSinceEpoch(
+                  optionDate['expirationDate'] * 1000,
+                  isUtc: true);
+
+      // Process Calls
+      if (optionDate['calls'] != null) {
+        for (var call in optionDate['calls']) {
+          _processOptionContract(
+              call, 'Call', symbol, expirationDate, spotPrice, items,
+              marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+        }
+      }
+
+      // Process Puts
+      if (optionDate['puts'] != null) {
+        for (var put in optionDate['puts']) {
+          _processOptionContract(
+              put, 'Put', symbol, expirationDate, spotPrice, items,
+              marketCap: marketCap, earningsTimestamp: earningsTimestamp);
+        }
+      }
+    }
+
+    // Apply expiration filter to items
+    if (filterExpiration != null) {
+      final now = DateTime.now();
+      items = items.where((item) {
+        final days = _getDaysDifference(now, item.expirationDate);
+        if (filterExpiration == '0-7') return days >= -1 && days <= 7;
+        if (filterExpiration == '8-30') return days > 7 && days <= 30;
+        if (filterExpiration == '30+') return days > 30;
+        return true;
+      }).toList();
+    }
+
+    // Sort by premium descending
+    items.sort((a, b) => b.premium.compareTo(a.premium));
+    return items;
   }
 
   Future<void> _saveYahooOptionsResult(
@@ -1204,89 +1182,95 @@ class OptionsFlowStore extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final Map<String, dynamic> params = {};
-      if (_filterSymbol != null && _filterSymbol!.isNotEmpty) {
-        params['symbol'] = _filterSymbol;
-      } else if (_filterSymbols != null && _filterSymbols!.isNotEmpty) {
-        params['symbols'] = _filterSymbols;
-      } else {
-        _isLoading = false;
-        notifyListeners();
-        return; // No symbol filter, do not fetch
-      }
-      if (_filterExpiration != null) {
-        params['expiration'] = _filterExpiration;
-      }
+      // final Map<String, dynamic> params = {};
+      // if (_filterSymbol != null && _filterSymbol!.isNotEmpty) {
+      //   params['symbol'] = _filterSymbol;
+      // } else if (_filterSymbols != null && _filterSymbols!.isNotEmpty) {
+      //   params['symbols'] = _filterSymbols;
+      // } else {
+      //   _isLoading = false;
+      //   notifyListeners();
+      //   return; // No symbol filter, do not fetch
+      // }
+      // if (_filterExpiration != null) {
+      //   params['expiration'] = _filterExpiration;
+      // }
 
-      try {
-        final result = await FirebaseFunctions.instance
-            .httpsCallable('getOptionsFlow')
-            .call(params);
+      // try {
+      //   final result = await FirebaseFunctions.instance
+      //       .httpsCallable('getOptionsFlow')
+      //       .call(params);
 
-        final data = Map<String, dynamic>.from(result.data);
-        final itemsData = data['items'] as List<dynamic>;
+      //   final data = Map<String, dynamic>.from(result.data);
+      //   final itemsData = data['items'] as List<dynamic>;
 
-        _allItems = itemsData.map((item) {
-          return OptionFlowItem(
-            symbol: item['symbol'],
-            lastTradeDate: DateTime.parse(item['time']),
-            strike: (item['strike'] as num).toDouble(),
-            expirationDate: DateTime.parse(item['expirationDate']),
-            type: item['type'],
-            spotPrice: (item['spotPrice'] as num).toDouble(),
-            premium: (item['premium'] as num).toDouble(),
-            volume: item['volume'] as int,
-            openInterest: item['openInterest'] as int,
-            impliedVolatility: (item['impliedVolatility'] as num).toDouble(),
-            flowType: FlowType.values.firstWhere(
-              (e) => e.name == item['flowType'],
-              orElse: () => FlowType.block,
-            ),
-            sentiment: Sentiment.values.firstWhere(
-              (e) => e.name == item['sentiment'],
-              orElse: () => Sentiment.neutral,
-            ),
-            details: item['details'],
-            flags: (item['flags'] as List<dynamic>?)?.cast<String>() ?? [],
-            reasons: (item['reasons'] as List<dynamic>?)?.cast<String>() ?? [],
-            isUnusual: item['isUnusual'] ?? false,
-            sector: item['sector'],
-            marketCap: item['marketCap'] != null
-                ? (item['marketCap'] as num).toDouble()
-                : null,
-            score: item['score'] as int? ?? 0,
-            bid: item['bid'] != null ? (item['bid'] as num).toDouble() : null,
-            ask: item['ask'] != null ? (item['ask'] as num).toDouble() : null,
-            changePercent: item['changePercent'] != null
-                ? (item['changePercent'] as num).toDouble()
-                : null,
-            lastPrice: item['lastPrice'] != null
-                ? (item['lastPrice'] as num).toDouble()
-                : null,
-          );
-        }).toList();
-      } catch (e) {
-        debugPrint('Error fetching cloud options flow: $e');
-        _allItems = [];
-      }
+      //   _allItems = itemsData.map((item) {
+      //     return OptionFlowItem(
+      //       symbol: item['symbol'],
+      //       lastTradeDate: DateTime.parse(item['time']),
+      //       strike: (item['strike'] as num).toDouble(),
+      //       expirationDate: DateTime.parse(item['expirationDate']),
+      //       type: item['type'],
+      //       spotPrice: (item['spotPrice'] as num).toDouble(),
+      //       premium: (item['premium'] as num).toDouble(),
+      //       volume: item['volume'] as int,
+      //       openInterest: item['openInterest'] as int,
+      //       impliedVolatility: (item['impliedVolatility'] as num).toDouble(),
+      //       flowType: FlowType.values.firstWhere(
+      //         (e) => e.name == item['flowType'],
+      //         orElse: () => FlowType.block,
+      //       ),
+      //       sentiment: Sentiment.values.firstWhere(
+      //         (e) => e.name == item['sentiment'],
+      //         orElse: () => Sentiment.neutral,
+      //       ),
+      //       details: item['details'],
+      //       flags: (item['flags'] as List<dynamic>?)?.cast<String>() ?? [],
+      //       reasons: (item['reasons'] as List<dynamic>?)?.cast<String>() ?? [],
+      //       isUnusual: item['isUnusual'] ?? false,
+      //       sector: item['sector'],
+      //       marketCap: item['marketCap'] != null
+      //           ? (item['marketCap'] as num).toDouble()
+      //           : null,
+      //       score: item['score'] as int? ?? 0,
+      //       bid: item['bid'] != null ? (item['bid'] as num).toDouble() : null,
+      //       ask: item['ask'] != null ? (item['ask'] as num).toDouble() : null,
+      //       changePercent: item['changePercent'] != null
+      //           ? (item['changePercent'] as num).toDouble()
+      //           : null,
+      //       lastPrice: item['lastPrice'] != null
+      //           ? (item['lastPrice'] as num).toDouble()
+      //           : null,
+      //     );
+      //   }).toList();
+      // } catch (e) {
+      //   debugPrint('Error fetching cloud options flow: $e');
+      //   _allItems = [];
+      // }
 
       // Fetch from Yahoo if a single symbol is selected
-      if (_filterSymbol != null &&
-          _filterSymbol!.isNotEmpty &&
-          _allItems.isEmpty) {
-        final yahooItems =
-            await fetchYahooFlowItems(_filterSymbol!, _filterExpiration);
-        _allItems.addAll(yahooItems);
+      if (_filterSymbol != null && _filterSymbol!.isNotEmpty
+          // && _allItems.isEmpty
+          ) {
+        await fetchYahooFlowItems(_filterSymbol!, _filterExpiration,
+            onChunkLoaded: (items) {
+          _allItems.addAll(items);
+          _applyFilters();
+          notifyListeners();
+        });
       }
 
       // Fetch from Yahoo if multiple symbols are selected
-      if (_filterSymbols != null &&
-          _filterSymbols!.isNotEmpty &&
-          _allItems.isEmpty) {
+      if (_filterSymbols != null && _filterSymbols!.isNotEmpty
+          //  && _allItems.isEmpty
+          ) {
         for (var symbol in _filterSymbols!) {
-          final yahooItems =
-              await fetchYahooFlowItems(symbol, _filterExpiration);
-          _allItems.addAll(yahooItems);
+          await fetchYahooFlowItems(symbol, _filterExpiration,
+              onChunkLoaded: (items) {
+            _allItems.addAll(items);
+            _applyFilters();
+            notifyListeners();
+          });
         }
         // final futures = _filterSymbols!
         //     .map((symbol) => fetchYahooFlowItems(symbol, _filterExpiration));
@@ -1383,6 +1367,9 @@ class OptionsFlowStore extends ChangeNotifier {
         // marketCap is in raw value, filter is in billions
         return i.marketCap! >= _filterMinCap! * 1000000000;
       }).toList();
+    }
+    if (_filterMinPremium != null) {
+      _items = _items.where((i) => i.premium >= _filterMinPremium!).toList();
     }
     if (_filterFlags != null && _filterFlags!.isNotEmpty) {
       _items = _items.where((i) {

@@ -8,6 +8,7 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
+// Deprecated: Using client to load options flow data
 export const getOptionsFlow = functions.https.onCall(async (request) => {
   logger.info("getOptionsFlow called via onCall", { data: request.data });
   // Check authentication

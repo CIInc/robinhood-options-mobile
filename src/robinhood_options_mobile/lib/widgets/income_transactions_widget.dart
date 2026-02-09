@@ -262,10 +262,15 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           if (frequency == 'weekly') {
             double periodYield = yield / 52;
             if (lastPaymentDate != null) {
-              for (int i = 1; i <= 52 * projectionYears; i++) {
-                var nextDate = lastPaymentDate.add(Duration(days: 7 * i));
-                var key = DateTime(nextDate.year, nextDate.month, 1);
+              var nextDate = lastPaymentDate.add(const Duration(days: 7));
+              while (nextDate.isBefore(DateTime.now())) {
+                nextDate = nextDate.add(const Duration(days: 7));
+              }
+              var endDate =
+                  DateTime.now().add(Duration(days: 365 * projectionYears));
 
+              while (nextDate.isBefore(endDate)) {
+                var key = DateTime(nextDate.year, nextDate.month, 1);
                 double payment = currentMarketValue * periodYield;
                 if (projectedDividendMap.containsKey(key)) {
                   projectedDividendMap[key] =
@@ -274,6 +279,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 totalPositionIncome += payment;
                 addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
+                nextDate = nextDate.add(const Duration(days: 7));
               }
             } else {
               double periodYield = yield / 12; // Fallback to monthly buckets
@@ -299,11 +305,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           } else if (frequency == 'quarterly') {
             if (lastPaymentDate != null) {
               double periodYield = yield / 4;
-              for (int i = 1; i <= 4 * projectionYears; i++) {
-                var nextDate = DateTime(
-                    lastPaymentDate.year, lastPaymentDate.month + (i * 3), 1);
-                var key = DateTime(nextDate.year, nextDate.month, 1);
+              var nextDate = DateTime(lastPaymentDate.year,
+                  lastPaymentDate.month + 3, lastPaymentDate.day);
+              while (nextDate.isBefore(DateTime.now())) {
+                nextDate =
+                    DateTime(nextDate.year, nextDate.month + 3, nextDate.day);
+              }
+              var endDate =
+                  DateTime.now().add(Duration(days: 365 * projectionYears));
 
+              while (nextDate.isBefore(endDate)) {
+                var key = DateTime(nextDate.year, nextDate.month, 1);
                 double payment = currentMarketValue * periodYield;
                 if (projectedDividendMap.containsKey(key)) {
                   projectedDividendMap[key] =
@@ -312,6 +324,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 totalPositionIncome += payment;
                 addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
+                nextDate =
+                    DateTime(nextDate.year, nextDate.month + 3, nextDate.day);
               }
             } else {
               double periodYield = yield / 12;
@@ -327,11 +341,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           } else if (frequency == 'semi-annually') {
             if (lastPaymentDate != null) {
               double periodYield = yield / 2;
-              for (int i = 1; i <= 2 * projectionYears; i++) {
-                var nextDate = DateTime(
-                    lastPaymentDate.year, lastPaymentDate.month + (i * 6), 1);
-                var key = DateTime(nextDate.year, nextDate.month, 1);
+              var nextDate = DateTime(lastPaymentDate.year,
+                  lastPaymentDate.month + 6, lastPaymentDate.day);
+              while (nextDate.isBefore(DateTime.now())) {
+                nextDate =
+                    DateTime(nextDate.year, nextDate.month + 6, nextDate.day);
+              }
+              var endDate =
+                  DateTime.now().add(Duration(days: 365 * projectionYears));
 
+              while (nextDate.isBefore(endDate)) {
+                var key = DateTime(nextDate.year, nextDate.month, 1);
                 double payment = currentMarketValue * periodYield;
                 if (projectedDividendMap.containsKey(key)) {
                   projectedDividendMap[key] =
@@ -340,6 +360,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 totalPositionIncome += payment;
                 addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
+                nextDate =
+                    DateTime(nextDate.year, nextDate.month + 6, nextDate.day);
               }
             } else {
               double periodYield = yield / 12;
@@ -355,11 +377,16 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           } else if (frequency == 'annually') {
             if (lastPaymentDate != null) {
               double periodYield = yield;
-              for (int i = 1; i <= projectionYears; i++) {
-                var nextDate = DateTime(
-                    lastPaymentDate.year + i, lastPaymentDate.month, 1);
+              var nextDate = DateTime(lastPaymentDate.year + 1,
+                  lastPaymentDate.month, lastPaymentDate.day);
+              while (nextDate.isBefore(DateTime.now())) {
+                nextDate =
+                    DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
+              }
+              var endDate =
+                  DateTime.now().add(Duration(days: 365 * projectionYears));
+              while (nextDate.isBefore(endDate)) {
                 var key = DateTime(nextDate.year, nextDate.month, 1);
-
                 double payment = currentMarketValue * periodYield;
                 if (projectedDividendMap.containsKey(key)) {
                   projectedDividendMap[key] =
@@ -368,6 +395,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 totalPositionIncome += payment;
                 addProjectedTx(nextDate, payment);
                 if (reinvest) currentMarketValue += payment;
+                nextDate =
+                    DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
               }
             } else {
               double periodYield = yield / 12;
