@@ -62,6 +62,20 @@ class TradeSignalNotificationsStore extends ChangeNotifier {
     }
   }
 
+  Future<void> markAsUnread(String notificationId) async {
+    if (_userId == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('user')
+          .doc(_userId)
+          .collection('signal_notifications')
+          .doc(notificationId)
+          .update({'read': false});
+    } catch (e) {
+      debugPrint('Error marking notification as unread: $e');
+    }
+  }
+
   Future<void> markAllAsRead() async {
     if (_userId == null) return;
     try {

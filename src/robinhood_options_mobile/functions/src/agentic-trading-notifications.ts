@@ -11,7 +11,7 @@
 
 import * as logger from "firebase-functions/logger";
 import { onCall } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
 const db = getFirestore();
@@ -145,6 +145,47 @@ export const sendAgenticTradeNotification = onCall(async (request) => {
       successCount: response.successCount,
       failureCount: response.failureCount,
     });
+
+    // Store notification in Firestore history
+    let signalType = "INFO";
+    if (data.type === "buy") signalType = "BUY";
+    else if (
+      data.type === "take_profit" ||
+      data.type === "stop_loss" ||
+      data.type === "emergency_stop"
+    ) {
+      signalType = "SELL";
+    }
+
+    try {
+      await db
+        .collection("user")
+        .doc(userId)
+        .collection("signal_notifications")
+        .add({
+          symbol: data.symbol || "",
+          signal: signalType,
+          interval: "1d", // Default
+          price: data.price || null,
+          confidence: null,
+          timestamp: FieldValue.serverTimestamp(),
+          title: title,
+          body: body,
+          read: false,
+          data: {
+            type: "agentic_trade",
+            eventType: data.type,
+            symbol: data.symbol || "",
+            quantity: data.quantity?.toString() || "",
+            price: data.price?.toString() || "",
+            profitLoss: data.profitLoss?.toString() || "",
+          },
+        });
+      logger.info("Agentic trade notification stored in history", { userId });
+    } catch (dbError) {
+      logger.error("Error storing agentic notification", { error: dbError });
+      // Proceed without failing the function call
+    }
 
     // Log any failures
     if (response.failureCount > 0) {

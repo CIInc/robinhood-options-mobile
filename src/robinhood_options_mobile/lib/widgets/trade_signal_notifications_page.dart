@@ -19,7 +19,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 
-class TradeSignalNotificationsPage extends StatelessWidget {
+class TradeSignalNotificationsPage extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
   final bool fromSettings;
@@ -32,12 +32,29 @@ class TradeSignalNotificationsPage extends StatelessWidget {
   });
 
   @override
+  State<TradeSignalNotificationsPage> createState() =>
+      _TradeSignalNotificationsPageState();
+}
+
+class _TradeSignalNotificationsPageState
+    extends State<TradeSignalNotificationsPage> {
+  String _searchQuery = '';
+  final Set<String> _selectedFilters = {'All'};
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (!fromSettings)
+          if (!widget.fromSettings)
             IconButton(
               icon: const Icon(Icons.settings),
               tooltip: 'Notification Settings',
@@ -45,8 +62,8 @@ class TradeSignalNotificationsPage extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => TradeSignalNotificationSettingsWidget(
-                      user: user,
-                      userDocRef: userDocRef,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
                       hideNotificationIcon: true,
                     ),
                   ),
@@ -82,7 +99,7 @@ class TradeSignalNotificationsPage extends StatelessWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .surfaceContainerHighest
-                            .withOpacity(0.3),
+                            .withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -91,7 +108,7 @@ class TradeSignalNotificationsPage extends StatelessWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .primary
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -111,15 +128,15 @@ class TradeSignalNotificationsPage extends StatelessWidget {
                           ),
                     ),
                     const SizedBox(height: 32),
-                    if (!fromSettings)
+                    if (!widget.fromSettings)
                       FilledButton.tonalIcon(
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) =>
                                   TradeSignalNotificationSettingsWidget(
-                                user: user,
-                                userDocRef: userDocRef,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
                                 hideNotificationIcon: true,
                               ),
                             ),
@@ -134,51 +151,199 @@ class TradeSignalNotificationsPage extends StatelessWidget {
             );
           }
 
-          // Group notifications by date
-          final groupedNotifications = _groupNotifications(store.notifications);
+          // Filter notifications
+          final filteredNotifications = store.notifications.where((n) {
+            // Text search
+            if (_searchQuery.isNotEmpty) {
+              final query = _searchQuery.toLowerCase();
+              final matchesSymbol = n.symbol.toLowerCase().contains(query);
+              final matchesTitle = n.title.toLowerCase().contains(query);
+              final matchesBody = n.body.toLowerCase().contains(query);
+              if (!matchesSymbol && !matchesTitle && !matchesBody) {
+                return false;
+              }
+            }
+            // Filter chips
+            if (!_selectedFilters.contains('All')) {
+              if (_selectedFilters.contains('Buy') && n.signal != 'BUY') {
+                return false;
+              }
+              if (_selectedFilters.contains('Sell') && n.signal != 'SELL') {
+                return false;
+              }
+              if (_selectedFilters.contains('Unread') && n.read) {
+                return false;
+              }
+            }
+            return true;
+          }).toList();
 
-          return ListView.builder(
-            itemCount: groupedNotifications.length,
-            itemBuilder: (context, index) {
-              final group = groupedNotifications[index];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                    child: Row(
-                      children: [
-                        Text(
-                          group.title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
+          // Group notifications by date
+          final groupedNotifications =
+              _groupNotifications(filteredNotifications);
+
+          return Column(
+            children: [
+              // Search and Filter Bar
+              Material(
+                elevation: 1,
+                color: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search signals...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 0),
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                            child: Divider(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outlineVariant)),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            _buildFilterChip('All'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('Buy'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('Sell'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('Unread'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  ...group.notifications
-                      .map((notification) => _NotificationItem(
-                            notification: notification,
-                            store: store,
-                            user: user,
-                            userDocRef: userDocRef,
-                          )),
-                ],
-              );
-            },
+                ),
+              ),
+              Expanded(
+                child: filteredNotifications.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No signals found',
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: groupedNotifications.length,
+                        itemBuilder: (context, index) {
+                          final group = groupedNotifications[index];
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      group.title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                        child: Divider(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant)),
+                                  ],
+                                ),
+                              ),
+                              ...group.notifications
+                                  .map((notification) => _NotificationItem(
+                                        notification: notification,
+                                        store: store,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                      )),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label) {
+    final isSelected = _selectedFilters.contains(label);
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        setState(() {
+          if (label == 'All') {
+            _selectedFilters.clear();
+            _selectedFilters.add('All');
+          } else {
+            _selectedFilters.remove('All');
+            if (selected) {
+              _selectedFilters.add(label);
+            } else {
+              _selectedFilters.remove(label);
+            }
+            if (_selectedFilters.isEmpty) {
+              _selectedFilters.add('All');
+            }
+          }
+        });
+      },
+      showCheckmark: false,
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected
+            ? Theme.of(context).colorScheme.onPrimaryContainer
+            : Theme.of(context).colorScheme.onSurface,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );
   }
@@ -303,10 +468,17 @@ class _NotificationItem extends StatelessWidget {
           }
           _navigateToInstrument(context);
         },
+        onLongPress: () {
+          if (notification.read) {
+            store.markAsUnread(notification.id);
+          } else {
+            store.markAsRead(notification.id);
+          }
+        },
         child: Container(
           color: notification.read
               ? null
-              : theme.colorScheme.primaryContainer.withOpacity(0.1),
+              : theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
@@ -316,8 +488,7 @@ class _NotificationItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: signalColor
-                        .withOpacity(0.1), // .withValues(alpha: 0.1),
+                    color: signalColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -359,9 +530,9 @@ class _NotificationItem extends StatelessWidget {
                       Text(
                         notification.body,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withOpacity(0.8) // .withValues(alpha: 0.8),
-                            ),
+                          color: theme.textTheme.bodyMedium?.color
+                              ?.withValues(alpha: 0.8),
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -383,7 +554,7 @@ class _NotificationItem extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
                                       color: theme.colorScheme.outline
-                                          .withOpacity(0.2),
+                                          .withValues(alpha: 0.2),
                                     ),
                                   ),
                                   child: Row(
@@ -436,14 +607,14 @@ class _NotificationItem extends StatelessWidget {
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: (notification.confidence! > 0.8)
-                                        ? Colors.green.withOpacity(0.1)
+                                        ? Colors.green.withValues(alpha: 0.1)
                                         : theme.colorScheme
                                             .surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(4),
                                     border: (notification.confidence! > 0.8)
                                         ? Border.all(
-                                            color:
-                                                Colors.green.withOpacity(0.3))
+                                            color: Colors.green
+                                                .withValues(alpha: 0.3))
                                         : null,
                                   ),
                                   child: Text(
@@ -522,6 +693,7 @@ class _NotificationItem extends StatelessWidget {
           .getInstrumentBySymbol(
               brokerageUser, instrumentStore, notification.symbol)
           .then((instrument) {
+        if (!context.mounted) return;
         Navigator.pop(context); // Dismiss loading
 
         if (instrument != null) {
@@ -547,6 +719,7 @@ class _NotificationItem extends StatelessWidget {
           );
         }
       }).catchError((e) {
+        if (!context.mounted) return;
         Navigator.pop(context); // Dismiss loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading instrument: $e')),
