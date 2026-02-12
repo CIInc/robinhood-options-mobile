@@ -2096,7 +2096,7 @@ class _AccountSelectionDialog extends StatefulWidget {
   final Map<String, String>? accountLabels;
 
   const _AccountSelectionDialog(
-      {super.key, required this.accounts, this.accountLabels});
+      {required this.accounts, this.accountLabels});
 
   @override
   _AccountSelectionDialogState createState() => _AccountSelectionDialogState();

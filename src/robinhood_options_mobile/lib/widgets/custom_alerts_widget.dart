@@ -431,7 +431,7 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
               ],
               const SizedBox(height: 16),
               DropdownButtonFormField<AlertType>(
-                value: _type,
+                initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Type'),
                 items: AlertType.values
                     .map((t) => DropdownMenuItem(
@@ -454,7 +454,7 @@ class _AlertEditorDialogState extends State<_AlertEditorDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<AlertCondition>(
-                value: _condition,
+                initialValue: _condition,
                 decoration: const InputDecoration(labelText: 'Condition'),
                 items: _getConditionsForType(_type)
                     .map((c) => DropdownMenuItem(

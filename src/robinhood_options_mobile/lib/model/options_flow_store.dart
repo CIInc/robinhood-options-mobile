@@ -130,7 +130,7 @@ class OptionsFlowStore extends ChangeNotifier {
     ],
   };
 
-  List<OptionFlowItem> _allItems = [];
+  final List<OptionFlowItem> _allItems = [];
   List<OptionFlowItem> _items = [];
   List<OptionFlowAlert> _alerts = [];
   bool _isLoading = false;
