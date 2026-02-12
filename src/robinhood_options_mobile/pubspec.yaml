@@ -75,8 +75,7 @@ dependencies:
   # local_auth: ^1.1.4
   share_plus: ^11.0.0
   uuid: ^4.5.1
-# Not used directly but a dependency of dynamic_color, which is used for Material You dynamic theming.
-  material_color_utilities: ^0.11.1
+  # material_color_utilities is managed by the Flutter SDK/dynamic_color.
   dynamic_color: ^1.7.0
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.19.0
