@@ -51,9 +51,11 @@ import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 //import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
+import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
+import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
-//import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
 //const routeLogin = '/login';
@@ -799,11 +801,98 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         return;
       }
 
+      // Handle widget deep links
+      if (link != null && link.scheme == 'realizealpha') {
+        if (link.host == 'watchlist') {
+          // Navigate to regular watchlist
+          await _navigateToWatchlist(context, isGroupWatchlist: false);
+        } else if (link.host == 'group-watchlist' &&
+            link.queryParameters['groupId'] != null &&
+            link.queryParameters['watchlistId'] != null) {
+          // Navigate to group watchlist detail
+          String groupId = link.queryParameters['groupId']!;
+          String watchlistId = link.queryParameters['watchlistId']!;
+          await _navigateToWatchlist(context,
+              isGroupWatchlist: true,
+              groupId: groupId,
+              watchlistId: watchlistId);
+        } else if (link.host == 'signals') {
+          // Navigate to trade signals
+          await _navigateToTradeSignals(context);
+        }
+        return;
+      }
+
       return;
     }, onError: (err) {
       // Handle exception by warning the user their action did not succeed
       debugPrint('linkStreamError:$err');
     });
+  }
+
+  Future<void> _navigateToWatchlist(BuildContext context,
+      {required bool isGroupWatchlist,
+      String? groupId,
+      String? watchlistId}) async {
+    // Switch to the Search tab (index 2) which contains the watchlist functionality
+    _onPageChanged(2);
+
+    // Wait a bit for the tab to switch
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Get the navigator for the Search tab
+    final navigatorState = navigatorKeys[2]?.currentState;
+    if (navigatorState == null) return;
+
+    if (isGroupWatchlist && groupId != null && watchlistId != null) {
+      // Navigate to group watchlist detail
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final currentUser = userStore.currentUser;
+      if (currentUser != null) {
+        navigatorState.push(
+          MaterialPageRoute(
+            builder: (context) => GroupWatchlistDetailWidget(
+              brokerageUser: currentUser,
+              groupId: groupId,
+              watchlistId: watchlistId,
+            ),
+          ),
+        );
+      }
+    } else {
+      // Navigate to regular watchlist
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final currentUser = userStore.currentUser;
+      if (service != null && currentUser != null) {
+        navigatorState.push(
+          MaterialPageRoute(
+            builder: (context) => ListsWidget(
+              currentUser,
+              service!,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: _generativeService,
+              user: user,
+              userDocRef: userDoc,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _navigateToTradeSignals(BuildContext context) async {
+    // Check if we're already on the Signals tab (index 3)
+    if (_pageIndex == 3) {
+      // Already on the Signals tab, no need to navigate
+      // The user is already viewing the trade signals
+      return;
+    }
+
+    // Switch to the Signals tab (index 3) which contains the trade signals functionality
+    _onPageChanged(3);
+
+    // No need to push another TradeSignalsPage since the tab already shows it
   }
 
   /*

@@ -5,6 +5,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 
 class TradeSignalsProvider with ChangeNotifier {
   /// Returns documentation for a given indicator key.
@@ -860,6 +861,11 @@ class TradeSignalsProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+
+    // Update home screen widget with latest trade signals
+    debugPrint(
+        'TradeSignalsProvider: Updating widget with ${_tradeSignals.length} signals');
+    HomeWidgetService.updateTradeSignals(_tradeSignals);
   }
 
   void setSelectedInterval(String interval) {

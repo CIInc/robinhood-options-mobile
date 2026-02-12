@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart'; // Added import
 import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart'; // Added import
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 
 enum SortOption { nameAsc, nameDesc, dateAdded, dateAddedDesc }
 
@@ -1903,6 +1904,56 @@ class _GroupWatchlistDetailWidgetState
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.widgets_outlined,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                ),
+                title: const Text('Set as Widget Watchlist'),
+                subtitle: const Text('Display this watchlist on home screen'),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () => _setAsWidgetWatchlist(context, watchlist),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 1,
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.clear_outlined,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                ),
+                title: const Text('Clear Widget Watchlist'),
+                subtitle: const Text('Remove watchlist from home screen'),
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () => _clearWidgetWatchlist(context),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Divider(
+                  height: 1,
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
                     color:
                         Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -2167,5 +2218,63 @@ class _GroupWatchlistDetailWidgetState
         ),
       ),
     );
+  }
+
+  void _setAsWidgetWatchlist(
+      BuildContext context, GroupWatchlist watchlist) async {
+    try {
+      await HomeWidgetService.setSelectedGroupWatchlist(
+        widget.groupId,
+        watchlist.id,
+      );
+
+      // Update the widget immediately with current data
+      final quoteData = <String, Map<String, dynamic>>{};
+      // Note: In a real implementation, you'd want to get fresh quote data here
+      // For now, we'll update with placeholder data that will be refreshed by the widget's timeline
+      await HomeWidgetService.updateGroupWatchlist(watchlist, quoteData);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Set "${watchlist.name}" as home screen widget'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error setting widget watchlist: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _clearWidgetWatchlist(BuildContext context) async {
+    try {
+      await HomeWidgetService.setSelectedGroupWatchlist(null, null);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cleared home screen widget watchlist'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error clearing widget watchlist: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

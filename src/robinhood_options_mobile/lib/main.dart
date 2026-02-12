@@ -28,6 +28,8 @@ import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
+import 'package:home_widget/home_widget.dart';
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/futures_position_store.dart';
@@ -87,6 +89,7 @@ void main() async {
   // AdMob - web not supported
   if (!kIsWeb) {
     await MobileAds.instance.initialize();
+    await HomeWidget.setAppGroupId(HomeWidgetService.appGroupId);
   }
 
   /*

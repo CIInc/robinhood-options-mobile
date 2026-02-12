@@ -16,7 +16,11 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
+import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -95,6 +99,47 @@ class _ListsWidgetState extends State<ListsWidget>
         builder: (context4, snapshot) {
           if (snapshot.hasData) {
             watchlists = snapshot.data!;
+            if (watchlists!.isNotEmpty) {
+              // Check if a group watchlist is selected for the widget
+              HomeWidgetService.getSelectedGroupWatchlist()
+                  .then((selectedGroupWatchlist) async {
+                if (selectedGroupWatchlist != null) {
+                  // Update widget with selected group watchlist
+                  final groupWatchlistService = GroupWatchlistService();
+                  final groupWatchlists = await groupWatchlistService
+                      .getGroupWatchlistsStream(
+                          selectedGroupWatchlist['groupId']!)
+                      .first;
+                  final selectedWatchlist = groupWatchlists.firstWhere(
+                    (wl) => wl.id == selectedGroupWatchlist['watchlistId'],
+                  );
+
+                  // Get quote data for the symbols
+                  final quoteStore =
+                      Provider.of<QuoteStore>(context, listen: false);
+                  final quoteData = <String, Map<String, dynamic>>{};
+
+                  for (final symbol in selectedWatchlist.symbols) {
+                    final quotes = quoteStore.items
+                        .where((q) => q.symbol == symbol.symbol);
+                    final quote = quotes.isNotEmpty ? quotes.first : null;
+                    quoteData[symbol.symbol] = {
+                      'lastTradePrice': quote?.lastTradePrice ?? 0.0,
+                      'previousClose': quote?.previousClose ?? 0.0,
+                    };
+                  }
+
+                  HomeWidgetService.updateGroupWatchlist(
+                      selectedWatchlist, quoteData);
+                } else {
+                  // Update widget with regular watchlist
+                  HomeWidgetService.updateWatchlist(watchlists!.first.items);
+                }
+              }).catchError((error) {
+                // If there's an error getting the group watchlist, fall back to regular watchlist
+                HomeWidgetService.updateWatchlist(watchlists!.first.items);
+              });
+            }
             for (var watchList in watchlists!) {
               if (_sortType == SortType.alphabetical) {
                 watchList.items.sort((a, b) =>

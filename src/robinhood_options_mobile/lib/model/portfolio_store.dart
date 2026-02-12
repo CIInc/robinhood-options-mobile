@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 
 class PortfolioStore extends ChangeNotifier {
   /// Internal, private state of the store.
@@ -26,6 +27,7 @@ class PortfolioStore extends ChangeNotifier {
 
   void add(Portfolio item) {
     _items.add(item);
+    HomeWidgetService.updatePortfolio(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
   }
@@ -42,6 +44,7 @@ class PortfolioStore extends ChangeNotifier {
       return false;
     }
     _items[index] = item;
+    HomeWidgetService.updatePortfolio(item);
     notifyListeners();
     return true;
   }
