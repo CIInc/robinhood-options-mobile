@@ -529,6 +529,10 @@ flutter test test/user_model_test.dart
   - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
   - `functions/` - Server-side Firebase Functions and helpers
 
+## Infrastructure & CI/CD
+
+- **[Mobile CI/CD Setup](mobile-ci-setup.md):** Guide for configuring GitHub Actions secrets for iOS and Android builds.
+
 ## Future Enhancements
 
 This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see [ROADMAP.md](../ROADMAP.md).
