@@ -12,10 +12,10 @@ class GroupWatchlistsWidget extends StatefulWidget {
   final String groupId;
 
   const GroupWatchlistsWidget({
-    Key? key,
+    super.key,
     required this.brokerageUser,
     required this.groupId,
-  }) : super(key: key);
+  });
 
   @override
   State<GroupWatchlistsWidget> createState() => _GroupWatchlistsWidgetState();
@@ -933,7 +933,7 @@ class GroupWatchlistCard extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const GroupWatchlistCard({
-    Key? key,
+    super.key,
     required this.watchlist,
     required this.brokerageUser,
     required this.groupId,
@@ -942,7 +942,7 @@ class GroupWatchlistCard extends StatelessWidget {
     this.borderColor = Colors.grey,
     this.onEdit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1091,6 +1091,7 @@ class GroupWatchlistCard extends StatelessWidget {
                         ),
                         if (isEditor && onEdit != null)
                           PopupMenuItem(
+                            onTap: onEdit,
                             child: Row(
                               children: [
                                 const Icon(Icons.edit, size: 18),
@@ -1098,10 +1099,10 @@ class GroupWatchlistCard extends StatelessWidget {
                                 const Text('Edit'),
                               ],
                             ),
-                            onTap: onEdit,
                           ),
                         if (isCreator && onDelete != null)
                           PopupMenuItem(
+                            onTap: onDelete,
                             child: Row(
                               children: [
                                 const Icon(Icons.delete, size: 18),
@@ -1109,7 +1110,6 @@ class GroupWatchlistCard extends StatelessWidget {
                                 const Text('Delete'),
                               ],
                             ),
-                            onTap: onDelete,
                           ),
                       ],
                     ),

@@ -42,6 +42,7 @@ class _GroupWatchlistDetailWidgetState
     super.dispose();
   }
 
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
@@ -317,7 +318,7 @@ class _GroupWatchlistDetailWidgetState
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      symbol.symbol.length > 0
+                                      symbol.symbol.isNotEmpty
                                           ? symbol.symbol[0]
                                           : '?',
                                       style: TextStyle(
@@ -790,7 +791,7 @@ class _GroupWatchlistDetailWidgetState
                                                   ],
                                                 ),
                                               ))
-                                          .toList(),
+                                          ,
                                       if (isEditor) ...[
                                         const SizedBox(height: 12),
                                         SizedBox(
