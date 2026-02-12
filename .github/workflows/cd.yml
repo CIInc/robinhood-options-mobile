@@ -250,9 +250,12 @@ jobs:
           # Import Certificate
           echo "${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
           
-          # Import Provisioning Profile
+          # Import Provisioning Profiles
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision
+          if [ -n "${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}" ]; then
+            echo "${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision
+          fi
           
           # Create and configure Keychain
           security create-keychain -p "" build.keychain
@@ -271,18 +274,35 @@ jobs:
       - name: Build iOS IPA
         # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
         run: |
-          # Extract Profile UUID
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision))
-          echo "Using Profile UUID: $PROFILE_UUID"
+          # Extract Profile UUIDs
+          MAIN_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision))
+          echo "Using Main Profile UUID: $MAIN_UUID"
+          
+          WIDGET_UUID=""
+          if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision ]; then
+            WIDGET_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision))
+            echo "Using Widget Profile UUID: $WIDGET_UUID"
+          fi
           
           # Force Manual Signing and set Profile match
           sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $PROFILE_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
           
-          # Update ExportOptions.plist with the profile
+          # Update Main App target(s)
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $MAIN_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
+          
+          # Update Widget target(s) if applicable
+          if [ -n "$WIDGET_UUID" ]; then
+            sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget; PROVISIONING_PROFILE = $WIDGET_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
+          fi
+          
+          # Update ExportOptions.plist with the profile(s)
           /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions.plist || true
           /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions.plist
-          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile string $PROFILE_UUID" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile string $MAIN_UUID" ios/ExportOptions.plist
+          if [ -n "$WIDGET_UUID" ]; then
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile.PortfolioWidget string $WIDGET_UUID" ios/ExportOptions.plist
+          fi
+          
           /usr/libexec/PlistBuddy -c "Delete :signingStyle" ios/ExportOptions.plist || true
           /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions.plist
           
