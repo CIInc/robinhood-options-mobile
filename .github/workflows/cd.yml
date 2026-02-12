@@ -274,13 +274,15 @@ jobs:
       - name: Build iOS IPA
         # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
         run: |
-          # Extract Profile UUIDs
+          # Extract Profile UUIDs and rename to UUIDs in Provisioning Profiles folder
           MAIN_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision))
+          cp ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$MAIN_UUID.mobileprovision
           echo "Using Main Profile UUID: $MAIN_UUID"
           
           WIDGET_UUID=""
           if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision ]; then
             WIDGET_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision))
+            cp ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.mobileprovision
             echo "Using Widget Profile UUID: $WIDGET_UUID"
           fi
           
@@ -288,6 +290,7 @@ jobs:
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = ".*";/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*;/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = .*;//g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
 
           # Update Main App target(s)
