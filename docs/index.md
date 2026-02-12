@@ -486,14 +486,14 @@ For implementation details, see:
   - [ ] Risk exposure and sector allocation heatmaps.
 
 - **Notifications & Alerts**
-  - [ ] Custom price alerts for stocks, options, and crypto.
+  - [x] Custom price alerts for stocks, options, and crypto.
   - [ ] Earnings and dividend notifications.
   - [ ] News alerts for portfolio holdings.
 
 - **Mobile & Usability Enhancements**
   - [ ] Offline mode for portfolio and charts.
-  - [ ] Push notifications for trade execution and alerts.
-  - [ ] Home screen widgets for quick updates.
+  - [x] Push notifications for trade execution and alerts.
+  - [x] Home screen widgets for quick updates.
 
 - **Collaboration & Sharing**
   - [x] Investor Groups with portfolio sharing

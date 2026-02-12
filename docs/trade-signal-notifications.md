@@ -47,12 +47,17 @@ Each notification includes:
 
 ### Rich Notifications
 
-> **New in v0.26.0, Expanded in v0.31.7**
+> **New in v0.26.0, Expanded in v0.32.0**
 
 Rich notifications are now supported for:
 - **Trade Signals**: (Buy/Sell alerts with charts)
 - **Chat**: (Group messages with sender context)
 - **Copy Trading**: (Trade alerts and approval requests with action buttons)
+
+**Enhancements in v0.32.0:**
+- Added Firestore storage for notification history and search capabilities
+- Implemented advanced filtering options for notification management
+- Enhanced search functionality to find specific notifications by symbol, date, or signal type
 
 
 Notifications now support rich media content to provide immediate context without opening the app.

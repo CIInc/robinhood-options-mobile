@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-02-11
+
+### Added
+- **Home Widgets:** Integrated Home Widget functionality for portfolio, watchlist, and trade signals updates with deep link navigation support.
+- **Notifications:** Enhanced trading notifications with Firestore storage and added search/filter functionality.
+- **Alerts:** Implemented custom alerts feature for personalized notifications.
+- **Options Flow:** Added minimum premium filter to options flow store and improved loading mechanism.
+- **CI/CD:** Added Xcode setup step to CI workflows for improved iOS build support.
+
+### Changed
+- **Dependencies:** Updated pubspec.yaml to include home_widget dependency and incremented version to 0.32.0.
+
 ## [0.31.7] - 2026-02-06
 
 ### Added

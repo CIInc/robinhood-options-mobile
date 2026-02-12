@@ -136,11 +136,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Group Analytics:** Performance analytics and leaderboards for investor groups.
 - ✅ **Rich Notifications:** Actionable push notifications for Agentic Trading and signals.
 
-### v0.32.0 (Q1 2026 - Feb)
-**Futures & Backtesting Refinement**
-- Futures Margin & Risk Metrics ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
-- Futures Roll Assistant
-- Smart Order Routing (Intelligent execution across venues)
+### v0.32.0 ✅ (Released Feb 11, 2026)
+**Home Widgets & Custom Alerts**
+- ✅ **Home Screen Widgets:** iOS widgets for portfolio, watchlists, and trade signals with deep linking.
+- ✅ **Custom Alerts:** Configurable price and event-based alerts for instruments and portfolio.
+- ✅ **Trade Notifications:** Enhanced with Firestore storage and search/filter functionality.
+- ✅ **Options Flow:** Improved minimum premium filtering and loading mechanism.
+- ✅ **CI/CD:** Xcode setup enhancements for iOS builds.
 
 ### v0.33.0 (Q1 2026 - Late Feb)
 **AI Portfolio Architect**
@@ -568,7 +570,7 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 
 #### Notifications & Alerts ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
-- [ ] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
+- [x] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
 - [ ] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
 - [ ] **Email/SMS Channels**: Critical signal notifications via multiple channels
 - [ ] **Alert Customization**: Custom sounds and per-signal preferences
@@ -662,7 +664,7 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 
 #### App Experience
 - [x] **Deep Linking**: Handle deep links for navigation and sharing ([#85](https://github.com/CIInc/robinhood-options-mobile/issues/85))
-- [ ] **Home Screen Widgets**: iOS and Android home screen widgets ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86))
+- [x] **Home Screen Widgets**: iOS home screen widgets for portfolio, watchlists, and trade signals ([#86](https://github.com/CIInc/robinhood-options-mobile/issues/86))
 - [ ] **Smart Watch App**: Apple Watch and Wear OS companion apps
 - [ ] **Offline Mode**: View cached data without internet ([#87](https://github.com/CIInc/robinhood-options-mobile/issues/87))
 - [ ] **Accessibility**: Voice/Assistant integrations, dynamic type, haptic feedback
