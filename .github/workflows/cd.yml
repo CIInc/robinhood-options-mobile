@@ -285,14 +285,17 @@ jobs:
           fi
           
           # Force Manual Signing and set Profile match
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = ".*";/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*;/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
           sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
-          
+
           # Update Main App target(s)
-          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $MAIN_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $MAIN_UUID;/g" ios/Runner.xcodeproj/project.pbxproj
           
           # Update Widget target(s) if applicable
           if [ -n "$WIDGET_UUID" ]; then
-            sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget; PROVISIONING_PROFILE = $WIDGET_UUID; CODE_SIGN_STYLE = Manual;/g" ios/Runner.xcodeproj/project.pbxproj
+            sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget; PROVISIONING_PROFILE = $WIDGET_UUID;/g" ios/Runner.xcodeproj/project.pbxproj
           fi
           
           # Update ExportOptions.plist with the profile(s)
