@@ -48,6 +48,7 @@ class User {
   String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
   DateTime? trialStartDate;
   DateTime? subscriptionExpiryDate;
+  String? referralCode;
 
   User(
       {this.name,
@@ -73,7 +74,8 @@ class User {
       this.sectorAllocationTargets,
       this.subscriptionStatus,
       this.trialStartDate,
-      this.subscriptionExpiryDate});
+      this.subscriptionExpiryDate,
+      this.referralCode});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -125,7 +127,8 @@ class User {
             sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
-            subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null);
+            subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,
+            referralCode: json['referralCode'] as String?);
 
   Map<String, Object?> toJson() {
     return {
@@ -147,6 +150,7 @@ class User {
       'subscriptionStatus': subscriptionStatus,
       'trialStartDate': trialStartDate,
       'subscriptionExpiryDate': subscriptionExpiryDate,
+      'referralCode': referralCode,
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson(),

@@ -32,10 +32,11 @@
 				<key>CFBundleTypeRole</key>
 				<string>Editor</string>
 				<key>CFBundleURLName</key>
-				<string>realizealpha.web.app</string>
+				<string>realizealpha</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>https</string>
+					<string>realizealpha</string>
+					<string>investing-mobile</string>
 				</array>
 			</dict>
 			<dict>
@@ -50,7 +51,7 @@
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>FlutterDeepLinkingEnabled</key>
-		<true/>
+		<false/>
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-9947876916436144~9092652693</string>
 		<key>ITSAppUsesNonExemptEncryption</key>

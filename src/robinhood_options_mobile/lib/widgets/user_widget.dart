@@ -27,7 +27,6 @@ import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
@@ -39,6 +38,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -83,6 +83,7 @@ class _UserWidgetState extends State<UserWidget> {
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
   PackageInfo? packageInfo;
+  final GlobalKey _referralShareKey = GlobalKey();
 
   bool get isCurrentUserProfileView =>
       widget.isProfileView &&
@@ -1128,6 +1129,57 @@ class _UserWidgetState extends State<UserWidget> {
                                                     _firestoreService,
                                               ),
                                             ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      key: _referralShareKey,
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                        child: const Icon(Icons.share_outlined),
+                                      ),
+                                      title: const Text('Share & Referrals'),
+                                      subtitle: const Text(
+                                          'Invite friends and track your referral code'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () {
+                                        if (widget.auth.currentUser != null) {
+                                          final refCode =
+                                              widget.auth.currentUser!.uid;
+                                          final url =
+                                              'https://realizealpha.web.app/?ref=$refCode';
+                                          final shareText =
+                                              'Join me on RealizeAlpha for advanced trading insights! Use my link: $url';
+
+                                          final RenderBox? renderBox =
+                                              _referralShareKey.currentContext
+                                                      ?.findRenderObject()
+                                                  as RenderBox?;
+                                          Rect? sharePositionOrigin;
+                                          if (renderBox != null &&
+                                              renderBox.size.width > 0 &&
+                                              renderBox.size.height > 0) {
+                                            final size = renderBox.size;
+                                            final offset = renderBox
+                                                .localToGlobal(Offset.zero);
+                                            sharePositionOrigin = Rect.fromLTWH(
+                                              offset.dx,
+                                              offset.dy,
+                                              size.width,
+                                              size.height,
+                                            );
+                                          }
+
+                                          Share.share(
+                                            shareText,
+                                            sharePositionOrigin:
+                                                sharePositionOrigin,
                                           );
                                         }
                                       },

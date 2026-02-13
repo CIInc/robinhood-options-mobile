@@ -1748,9 +1748,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     _trackEvent('share_group_pressed');
     HapticFeedback.mediumImpact();
 
+    final url = 'https://realizealpha.web.app/investors?groupId=${group.id}';
+
     final shareText = group.isPrivate
-        ? 'Join my private investor group "${group.name}" in RealizeAlpha! Group ID: ${group.id}'
-        : 'Check out the investor group "${group.name}" in RealizeAlpha! Group ID: ${group.id}';
+        ? 'Join my private investor group "${group.name}" in RealizeAlpha! $url'
+        : 'Check out the investor group "${group.name}" in RealizeAlpha! $url';
 
     try {
       // Get the share button position for iOS popover
@@ -1758,7 +1760,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
           _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
 
       Rect? sharePositionOrigin;
-      if (renderBox != null) {
+      if (renderBox != null &&
+          renderBox.size.width > 0 &&
+          renderBox.size.height > 0) {
         final size = renderBox.size;
         final offset = renderBox.localToGlobal(Offset.zero);
         sharePositionOrigin = Rect.fromLTWH(

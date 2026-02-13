@@ -57,7 +57,7 @@
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
 - **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
 - **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend.
-
+- **[Deep Linking & Referrals](deep-linking.md):** Seamless navigation into the app from external links with a built-in referral tracking system for user growth.
 ## Investment Profile Feature
 
 This feature adds investment profile configuration to user settings, allowing users to specify their investment goals, time horizon, risk tolerance, and portfolio value. These preferences are then integrated into AI Portfolio Recommendations to provide personalized financial advice.

@@ -46,6 +46,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **[Portfolio Rebalancing](docs/portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** **[AI Asset Allocation](docs/ai-asset-allocation.md)** providing personalized portfolio weighting recommendations based on user risk profiles. Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
 *   **[Option Instrument Position UI](docs/ui-improvements.md#option-instrument-position-ui):** Redesigned position card in `OptionInstrumentWidget` with clear ITM/OTM badges, large P&L display, and comprehensive statistics grid (IV, Greeks, Break-even, etc.) for better position management.
 *   **[Home Screen Widgets](docs/home-widgets.md):** iOS Home Screen widgets providing quick access to portfolio data, watchlists, and trade signals with deep linking support.
+*   **[Deep Linking & Referrals](docs/deep-linking.md):** Support for `realizealpha://` and `https` universal links for seamless app navigation and a referral tracking system.
 *   **UI Enhancements:** Modernized navigation with Material 3 NavigationBar, integrated ad banners for sustainability, and streamlined order management workflows.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 

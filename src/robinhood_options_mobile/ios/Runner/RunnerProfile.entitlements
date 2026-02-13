@@ -6,7 +6,9 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:realizealpha.com</string>
 		<string>applinks:realizealpha.web.app</string>
+		<string>applinks:realizealpha.firebaseapp.com</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>

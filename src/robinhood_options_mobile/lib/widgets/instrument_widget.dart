@@ -72,6 +72,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -170,6 +171,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Timer? refreshTriggerTime;
   final GlobalKey tradeSignalKey = GlobalKey();
+  final GlobalKey _shareButtonKey = GlobalKey();
 
   _InstrumentWidgetState();
 
@@ -1144,6 +1146,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ));
                 }),
                 actions: [
+                  IconButton(
+                    key: _shareButtonKey,
+                    icon: const Icon(Icons.share),
+                    tooltip: 'Share Instrument',
+                    onPressed: () {
+                      final symbol = widget.instrument.symbol;
+                      final url =
+                          'https://realizealpha.web.app/instrument/$symbol';
+                      final shareText =
+                          'Check out $symbol on RealizeAlpha: $url';
+
+                      final RenderBox? renderBox = _shareButtonKey
+                          .currentContext
+                          ?.findRenderObject() as RenderBox?;
+                      Rect? sharePositionOrigin;
+                      if (renderBox != null &&
+                          renderBox.size.width > 0 &&
+                          renderBox.size.height > 0) {
+                        final size = renderBox.size;
+                        final offset = renderBox.localToGlobal(Offset.zero);
+                        sharePositionOrigin = Rect.fromLTWH(
+                          offset.dx,
+                          offset.dy,
+                          size.width,
+                          size.height,
+                        );
+                      }
+
+                      Share.share(
+                        shareText,
+                        sharePositionOrigin: sharePositionOrigin,
+                      );
+                    },
+                  ),
                   if (auth.currentUser != null)
                     AutoTradeStatusBadgeWidget(
                       user: widget.user,

@@ -43,9 +43,11 @@ import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:app_links/app_links.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -53,7 +55,6 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
-import 'package:robinhood_options_mobile/widgets/group_watchlists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 
@@ -117,7 +118,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   StreamSubscription<Uri>? linkStreamSubscription;
   Timer? refreshCredentialsTimer;
-  // Moved to AgenticTradingProvider: autoTradeTimer
+  // Duplicate link prevention
+  Uri? _lastHandledLink;
+  DateTime? _lastHandledTime;
 
   Future<List<dynamic>>? _initFuture;
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -775,55 +778,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   Future<void> loadDeepLinks(BrokerageUserStore userStore) async {
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    /* Don't expect cold start login callbacks, do nothing for initialLinks for now until the use case arises.
-    String? initialLink;
-    try {
-      initialLink = await getInitialLink();
-      // Parse the link and warn the user, if it is not correct,
-      // but keep in mind it could be `null`.
-    } on PlatformException {
-      // Handle exception by warning the user their action did not succeed
-      // return?
-    }
-    */
-
     final appLinks = AppLinks(); // AppLinks is singleton
+
+    // Check for initial link (cold start)
+    try {
+      final initialLink = await appLinks.getInitialLink();
+      if (initialLink != null) {
+        debugPrint('initialLink: $initialLink');
+        await _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      debugPrint('Error getting initial link: $e');
+    }
 
     // Attach a listener to the stream
     linkStreamSubscription = appLinks.uriLinkStream.listen((Uri? link) async {
-      // Parse the link and warn the user, if it is not correct
-      debugPrint('newLink:$link');
-
-      // Ignore Firebase auth phone number login with SMS code flow that redirects the app to this url:
-      // app-1-409452439863-ios-379ee6f6ee12a33e4152b2://firebaseauth/link?deep_link_id=https%3A%2F%2Frealizealpha.firebaseapp.com%2F__%2Fauth%2Fcallback%3FauthType%3DverifyApp%26recaptchaToken%3D03AFcWeA7YE8lhvy1JVIuA2_sxx9mrdLrChIKtdTKI5xlZScaUKxNV8p9pK08BK5vqkFkzQYVrMLtjfxu0JWN5NxHKImCtO-6cPwzpXCRbRW2-hwQZghBzDxEIyz5XvtGPw6-MivosGq1wH3VTGgmnrzrnLf1Def3MpjY8PGIcqJVFVbwbXkX5JztLMKIHn_-UWwkMR4FYtMS6xi9aYnhHkCLJ9B9SXlRNFI9voyXZtb8_G8sceA5saO9Q5rG1r5071NpLvHl39vwx3cjxa0TbrY0agwkDBlQrtr6TflusoKDgyNq9Gc_a1Xh-ogcLb1V9tHpeKeB-TDHENeH0mXX6I_UFXSF5-8Svx_FB2UjVquvZXzQBbY87jZsbzL2g-ZJ9KF4ychYAQ3iMiG5BYGJyRiT6MDOa4oSRi3UO00fxFYnjKfTzu1fHivZfFsXMtKmtHpgTrf0raFKYu1lIBZPRAXNXhSA0qn1e6s3KoWzeqr9D71ADW_clUt7MgyLdkuQr7bcvHy0HPvno_b1o5xz7MTly-PrIAPYONKM3JsFoG0y4UVSGLPHPDdqgnJfwDpqKkPkWOemB1vst7uHKsN-7SdaJef43O_f2UnP3SbeoFvnhpJEzVaOpDB0WIqU2WdKXoIIhY647rUrbybJvVPrLLe2xjENDFNXDZnSluj3qt59zOPSemwoPup7_8g2APCFX7gqY2IJjIFmAew3pgufhpJy_ZDHPKYI9ksvhIZmvXbwjWZwkxSD2wQ7p-NqL_KaIx3uMyKSowqDB4pxKGSpT13ovBrIMitfY_erF9kF1zyGZl5QDlTBBO6xMd1guoGFG4CieYY2V-uHXWVC1ZnmJkFGkXtK9ikGuQ7TmvnFenRP59Ut-X-FvcEvjdUCEj2ZtTihOomND4HuZJl4bCKVmCYUPZt6WFc8ZSUdwIXwmUcQnmjmDSOVrc_GJCuxiE8ow6TQ3c4-GfgPv%26eventId%3DYREIQYUAKK
-      if (link != null && link.host == 'firebaseauth') {
-        return;
-      }
-
-      // Handle widget deep links
-      if (link != null && link.scheme == 'realizealpha') {
-        if (link.host == 'watchlist') {
-          // Navigate to regular watchlist
-          await _navigateToWatchlist(context, isGroupWatchlist: false);
-        } else if (link.host == 'group-watchlist' &&
-            link.queryParameters['groupId'] != null &&
-            link.queryParameters['watchlistId'] != null) {
-          // Navigate to group watchlist detail
-          String groupId = link.queryParameters['groupId']!;
-          String watchlistId = link.queryParameters['watchlistId']!;
-          await _navigateToWatchlist(context,
-              isGroupWatchlist: true,
-              groupId: groupId,
-              watchlistId: watchlistId);
-        } else if (link.host == 'signals') {
-          // Navigate to trade signals
-          await _navigateToTradeSignals(context);
-        }
-        return;
-      }
-
-      return;
+      await _handleDeepLink(link);
     }, onError: (err) {
       // Handle exception by warning the user their action did not succeed
       debugPrint('linkStreamError:$err');
@@ -893,6 +863,152 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     _onPageChanged(3);
 
     // No need to push another TradeSignalsPage since the tab already shows it
+  }
+
+  Future<void> _navigateToInstrument(
+      BuildContext context, String symbol) async {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
+
+    if (userStore.items.isNotEmpty) {
+      var brokerageUser = userStore.currentUser ?? userStore.items.first;
+
+      // Ensure service is initialized
+      service ??= brokerageUser.source == BrokerageSource.robinhood
+          ? RobinhoodService()
+          : brokerageUser.source == BrokerageSource.schwab
+              ? SchwabService()
+              : brokerageUser.source == BrokerageSource.fidelity
+                  ? FidelityService()
+                  : brokerageUser.source == BrokerageSource.plaid
+                      ? PlaidService()
+                      : DemoService();
+
+      final instrument = await service!
+          .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol);
+
+      if (instrument != null && context.mounted) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                      brokerageUser,
+                      service!,
+                      instrument,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: _generativeService,
+                      user: user,
+                      userDocRef: userDoc,
+                    )));
+      }
+    }
+  }
+
+  Future<void> _handleDeepLink(Uri? link) async {
+    if (link == null) return;
+
+    // Prevent duplicate processing within a short window
+    final now = DateTime.now();
+    if (_lastHandledLink == link &&
+        _lastHandledTime != null &&
+        now.difference(_lastHandledTime!).inMilliseconds < 1000) {
+      debugPrint('Ignoring duplicate deep link: $link');
+      return;
+    }
+    _lastHandledLink = link;
+    _lastHandledTime = now;
+
+    debugPrint('handleDeepLink: $link');
+
+    // Ignore Firebase auth redirects
+    if (link.host == 'firebaseauth' || link.path.contains('__/__auth')) {
+      return;
+    }
+
+    // Handle referral code in query parameters
+    if (link.queryParameters.containsKey('ref')) {
+      final refCode = link.queryParameters['ref'];
+      if (refCode != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('referral_code', refCode);
+        debugPrint('Saved referral code: $refCode');
+
+        // If user is logged in, update their user document
+        if (userDoc != null && user != null && user!.referralCode == null) {
+          user!.referralCode = refCode;
+          await userDoc!.update({'referralCode': refCode});
+        }
+      }
+    }
+
+    // Determine target based on host or path
+    final host = link.host;
+    final pathSegments = link.pathSegments;
+
+    // realizealpha://watchlist OR https://realizealpha.com/watchlist
+    if (host == 'watchlist' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'watchlist')) {
+      await _navigateToWatchlist(context, isGroupWatchlist: false);
+    }
+    // realizealpha://group-watchlist?groupId=...&watchlistId=...
+    // OR https://realizealpha.com/group-watchlist?groupId=...&watchlistId=...
+    else if (host == 'group-watchlist' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'group-watchlist')) {
+      String? groupId = link.queryParameters['groupId'];
+      String? watchlistId = link.queryParameters['watchlistId'];
+      if (groupId != null && watchlistId != null) {
+        await _navigateToWatchlist(context,
+            isGroupWatchlist: true,
+            groupId: groupId,
+            watchlistId: watchlistId);
+      }
+    }
+    // realizealpha://signals OR https://realizealpha.com/signals
+    else if (host == 'signals' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'signals')) {
+      await _navigateToTradeSignals(context);
+    }
+    // realizealpha://instrument/AAPL OR https://realizealpha.com/instrument/AAPL
+    else if (host == 'instrument' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'instrument')) {
+      String? symbol;
+      if (host == 'instrument' && pathSegments.isNotEmpty) {
+        symbol = pathSegments[0];
+      } else if (pathSegments.length > 1) {
+        symbol = pathSegments[1];
+      }
+      if (symbol != null) {
+        await _navigateToInstrument(context, symbol);
+      }
+    }
+    // realizealpha://investors OR https://realizealpha.com/investors
+    else if (host == 'investors' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'investors')) {
+      _onPageChanged(4);
+      String? groupId = link.queryParameters['groupId'];
+      if (groupId != null) {
+        // Wait a bit for the tab to switch
+        await Future.delayed(const Duration(milliseconds: 100));
+        final navigatorState = navigatorKeys[4]?.currentState;
+        if (navigatorState != null) {
+          final userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
+          navigatorState.push(
+            MaterialPageRoute(
+              builder: (context) => InvestorGroupDetailWidget(
+                groupId: groupId,
+                firestoreService: _firestoreService,
+                brokerageUser: userStore.currentUser,
+                analytics: widget.analytics,
+                observer: widget.observer,
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   /*

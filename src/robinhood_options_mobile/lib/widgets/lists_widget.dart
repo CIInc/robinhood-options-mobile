@@ -19,8 +19,6 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
-import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
-import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
