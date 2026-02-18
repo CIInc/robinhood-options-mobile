@@ -520,7 +520,7 @@ class _PieChartItemState extends State<_PieChartItem> {
 
   @override
   Widget build(BuildContext context) {
-    final totalValue = widget.data.fold(0.0, (sum, item) => sum + item.value);
+    final totalValue = widget.data.fold(0.0, (acc, item) => acc + item.value);
 
     var seriesList = [
       charts.Series<PieChartData, String>(

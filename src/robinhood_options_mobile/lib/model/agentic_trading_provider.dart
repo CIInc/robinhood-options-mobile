@@ -100,6 +100,8 @@ class AgenticTradingProvider with ChangeNotifier {
   // Macro Assessment
   MacroAssessment? _macroAssessment;
   MacroAssessment? get macroAssessment => _macroAssessment;
+  MacroAssessment? _previousMacroAssessment;
+  MacroAssessment? get previousMacroAssessment => _previousMacroAssessment;
 
   Future<void> fetchMacroAssessment() async {
     try {
@@ -107,6 +109,9 @@ class AgenticTradingProvider with ChangeNotifier {
       final callable = functions.httpsCallable('getMacroAssessment');
       final result = await callable.call();
       if (result.data != null) {
+        if (_macroAssessment != null) {
+          _previousMacroAssessment = _macroAssessment;
+        }
         _macroAssessment =
             MacroAssessment.fromMap(Map<String, dynamic>.from(result.data));
         notifyListeners();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 
@@ -161,15 +162,27 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '${assessment.score}/100',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                color: statusColor,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        Row(
+                          children: [
+                            Text(
+                              '${assessment.score.toInt()}/100',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            if (provider.previousMacroAssessment != null) ...[
+                              const SizedBox(width: 8),
+                              _buildScoreTrendIcon(
+                                  assessment.score.toDouble(),
+                                  provider.previousMacroAssessment!.score
+                                      .toDouble(),
+                                  context),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Padding(
@@ -295,7 +308,7 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                                           title: const Text(
                                               "About Macro Assessment"),
                                           content: const Text(
-                                              "This analysis evaluates broad market risk using 9 key components:\n\n• 'Fear Index' (VIX) & Market Trend (SPY)\n• 10-Year Yields (TNX) & Yield Curve\n• Commodities (Gold & Oil)\n• Dollar Strength (DXY) & Bitcoin (Risk Appetite)\n• Corp Credit Health (HYG)\n\nA high score (>50) typically signals a 'Risk-On' environment favorable for buying, while a low score suggests 'Risk-Off', warranting caution."),
+                                              "This analysis evaluates broad market risk using 12 key components:\n\n• 'Fear Index' (VIX) & Market Trend (SPY)\n• 10-Year Yields (TNX) & Yield Curve\n• Commodities (Gold & Oil)\n• Dollar Strength (DXY) & Bitcoin (Risk Appetite)\n• Corp Credit Health (HYG)\n• Put/Call Ratio (Sentiment)\n• Broad Breadth (NYA)\n• Risk Appetite (Small Caps IWM)\n\nA high score (>50) typically signals a 'Risk-On' environment favorable for buying, while a low score suggests 'Risk-Off', warranting caution."),
                                           actions: [
                                             TextButton(
                                                 onPressed: () =>
@@ -365,29 +378,89 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium),
-                                      Text(
-                                        '${assessment.score}/100',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .displaySmall
-                                            ?.copyWith(
-                                              color: statusColor,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (Provider.of<AgenticTradingProvider>(
+                                                      context,
+                                                      listen: false)
+                                                  .previousMacroAssessment !=
+                                              null) ...[
+                                            _buildScoreTrendIcon(
+                                                assessment.score.toDouble(),
+                                                Provider.of<AgenticTradingProvider>(
+                                                        context,
+                                                        listen: false)
+                                                    .previousMacroAssessment!
+                                                    .score
+                                                    .toDouble(),
+                                                context),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          Text(
+                                            '${assessment.score}/100',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .displaySmall
+                                                ?.copyWith(
+                                                  color: statusColor,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              LinearProgressIndicator(
-                                value: assessment.score / 100.0,
-                                backgroundColor:
-                                    statusColor.withValues(alpha: 0.2),
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(statusColor),
-                                minHeight: 8,
-                                borderRadius: BorderRadius.circular(4),
+                              SizedBox(
+                                height: 120,
+                                width: 120,
+                                child: Stack(
+                                  children: [
+                                    Center(
+                                      child: CustomPaint(
+                                        size: const Size(120, 120),
+                                        painter: _MacroScoreGaugePainter(
+                                          score: assessment.score.toDouble(),
+                                          color: statusColor,
+                                          backgroundColor: statusColor
+                                              .withValues(alpha: 0.1),
+                                        ),
+                                      ),
+                                    ),
+                                    Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${assessment.score}%',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineMedium
+                                                ?.copyWith(
+                                                  color: statusColor,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                          Text(
+                                            'RISK',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: statusColor.withValues(
+                                                      alpha: 0.7),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 16),
                               Container(
@@ -520,6 +593,36 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                                 "Credit Health",
                                 assessment.indicators.hyg!,
                                 "High Yield Bond ETF. Rising trend indicates healthy credit markets and risk appetite.",
+                              )
+                            ],
+                            if (assessment.indicators.putCallRatio != null) ...[
+                              const SizedBox(height: 12),
+                              _buildDetailedIndicatorCard(
+                                context,
+                                "PCCR",
+                                "Put/Call Ratio",
+                                assessment.indicators.putCallRatio!,
+                                "Equity Put/Call ratio. Extreme high values (>1.0) suggest panic (Bullish), extreme low (<0.7) suggest greed (Bearish).",
+                              )
+                            ],
+                            if (assessment.indicators.advDecline != null) ...[
+                              const SizedBox(height: 12),
+                              _buildDetailedIndicatorCard(
+                                context,
+                                "NYA",
+                                "Broad Market",
+                                assessment.indicators.advDecline!,
+                                "NYSE Composite Index. Monitors broad market participate beyond just the S&P 500.",
+                              )
+                            ],
+                            if (assessment.indicators.riskAppetite != null) ...[
+                              const SizedBox(height: 12),
+                              _buildDetailedIndicatorCard(
+                                context,
+                                "RISK",
+                                "Risk Appetite",
+                                assessment.indicators.riskAppetite!,
+                                "Ratio of Small Caps (IWM) vs S&P 500 (SPY). Rising ratio signals high risk tolerance.",
                               )
                             ],
                           ],
@@ -951,6 +1054,52 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
             ],
           ),
         ],
+        if (assessment.indicators.putCallRatio != null ||
+            assessment.indicators.advDecline != null ||
+            assessment.indicators.riskAppetite != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (assessment.indicators.putCallRatio != null) ...[
+                Expanded(
+                    child: _buildIndicatorItem(
+                        context,
+                        'PCCR',
+                        assessment.indicators.putCallRatio!.value,
+                        assessment.indicators.putCallRatio!.signal,
+                        assessment.indicators.putCallRatio!.trend)),
+                const SizedBox(width: 8),
+              ] else ...[
+                const Spacer(),
+                const SizedBox(width: 8),
+              ],
+              if (assessment.indicators.advDecline != null) ...[
+                Expanded(
+                    child: _buildIndicatorItem(
+                        context,
+                        'NYA',
+                        assessment.indicators.advDecline!.value,
+                        assessment.indicators.advDecline!.signal,
+                        assessment.indicators.advDecline!.trend)),
+                const SizedBox(width: 8),
+              ] else ...[
+                const Spacer(),
+                const SizedBox(width: 8),
+              ],
+              if (assessment.indicators.riskAppetite != null) ...[
+                Expanded(
+                    child: _buildIndicatorItem(
+                        context,
+                        'RISK',
+                        assessment.indicators.riskAppetite!.value,
+                        assessment.indicators.riskAppetite!.signal,
+                        assessment.indicators.riskAppetite!.trend)),
+              ] else ...[
+                const Spacer(),
+              ]
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -1023,5 +1172,88 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
     final timeStr =
         "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
     return isToday ? timeStr : "${date.month}/${date.day} $timeStr";
+  }
+
+  Widget _buildScoreTrendIcon(
+      double current, double previous, BuildContext context) {
+    final diff = current - previous;
+    if (diff == 0) return const SizedBox.shrink();
+
+    final isUp = diff > 0;
+    final color = isUp ? Colors.green : Colors.red;
+    final icon = isUp ? Icons.trending_up : Icons.trending_down;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 4),
+        Text(
+          '${diff > 0 ? '+' : ''}${diff.toInt()}',
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MacroScoreGaugePainter extends CustomPainter {
+  final double score;
+  final Color color;
+  final Color backgroundColor;
+
+  _MacroScoreGaugePainter({
+    required this.score,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+    final strokeWidth = 8.0;
+
+    // Background Arc
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+      0.75 * math.pi, // Start at bottom-left
+      1.5 * math.pi, // 270 degree arc
+      false,
+      bgPaint,
+    );
+
+    // Progress Arc
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth;
+
+    // Normalize score to 0..1 then to radians
+    final sweepAngle = (score / 100) * 1.5 * math.pi;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+      0.75 * math.pi,
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MacroScoreGaugePainter oldDelegate) {
+    return oldDelegate.score != score || oldDelegate.color != color;
   }
 }

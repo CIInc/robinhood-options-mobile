@@ -671,7 +671,7 @@ class YahooService {
       String range = "ytd", // 1y
       String interval = "1d"}) async {
     var url =
-        "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
+        "https://query2.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
     var entryJson = await getCachedJson(url,
         cacheKey: 'marketIndexHistoricals_${symbol}_${range}_$interval',
         ttl: const Duration(hours: 4));
@@ -680,7 +680,7 @@ class YahooService {
 
   Future<dynamic> getESGScores(String symbol) async {
     var url =
-        "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
+        "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
     var responseJson = await getCachedJson(url,
         cacheKey: 'esgScores_$symbol', ttl: const Duration(days: 30));
     return responseJson;
@@ -688,7 +688,7 @@ class YahooService {
 
   Future<dynamic> getAssetProfile(String symbol) async {
     var url =
-        "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
+        "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
     var responseJson = await getCachedJson(url,
         cacheKey: 'assetProfile_$symbol', ttl: const Duration(days: 30));
     return responseJson;
@@ -696,7 +696,7 @@ class YahooService {
 
   Future<dynamic> getOptionChain(String symbol, {int? date}) async {
     var url =
-        "https://query1.finance.yahoo.com/v7/finance/options/${Uri.encodeFull(symbol)}?formatted=true&lang=en-US&region=US&corsDomain=finance.yahoo.com";
+        "https://query2.finance.yahoo.com/v7/finance/options/${Uri.encodeFull(symbol)}?formatted=true&lang=en-US&region=US&corsDomain=finance.yahoo.com";
     if (date != null) {
       url += "&date=$date";
     }
@@ -805,7 +805,7 @@ class YahooService {
     bool betaFeatureFlag = true,
   }) async {
     final url = Uri.parse(
-        'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved'
+        'https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved'
         '?count=$count'
         '&formatted=$formatted'
         '&scrIds=$scrIds'
@@ -894,17 +894,18 @@ class YahooService {
   }
 
   Future<dynamic> getJson(String url) async {
+    String requestUrl = url;
     if (_crumb == null) {
       await _fetchCrumb();
     }
 
     if (_crumb != null) {
-      if (url.contains('?')) {
-        if (!url.contains('crumb=')) {
-          url += '&crumb=$_crumb';
+      if (requestUrl.contains('?')) {
+        if (!requestUrl.contains('crumb=')) {
+          requestUrl += '&crumb=$_crumb';
         }
       } else {
-        url += '?crumb=$_crumb';
+        requestUrl += '?crumb=$_crumb';
       }
     }
 
@@ -912,11 +913,13 @@ class YahooService {
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
     // String responseStr = await httpClient.read(Uri.parse(url));
-    var uri = Uri.parse(url);
+    var uri = Uri.parse(requestUrl);
     var headers = {
       'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
       'Accept': '*/*',
+      'Referer': 'https://finance.yahoo.com/',
+      'Origin': 'https://finance.yahoo.com',
     };
     if (_cookie != null) {
       headers['Cookie'] = _cookie!;
@@ -926,23 +929,40 @@ class YahooService {
 
     // Retry once if unauthorized
     if (response.statusCode == 401) {
-      debugPrint("Yahoo API 401, retrying with new crumb...");
+      debugPrint("Yahoo API 401, clearing session and retrying...");
+      _crumb = null;
+      _cookie = null;
       await _fetchCrumb();
-      if (_crumb != null) {
-        // Rebuild URL with new crumb
-        var uriObj = Uri.parse(url);
-        var queryParams = Map<String, String>.from(uriObj.queryParameters);
-        queryParams['crumb'] = _crumb!;
-        uri = uriObj.replace(queryParameters: queryParams);
-        if (_cookie != null) {
-          headers['Cookie'] = _cookie!;
-        }
-        response = await httpClient.get(uri, headers: headers);
+
+      // Re-prepare request with potential new session
+      var retryHeaders = {
+        'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Referer': 'https://finance.yahoo.com/',
+        'Origin': 'https://finance.yahoo.com',
+      };
+      if (_cookie != null) {
+        retryHeaders['Cookie'] = _cookie!;
       }
+
+      var retryUrl = url; // Use original URL
+      if (_crumb != null) {
+        if (retryUrl.contains('?')) {
+          if (!retryUrl.contains('crumb=')) {
+            retryUrl += '&crumb=$_crumb';
+          }
+        } else {
+          retryUrl += '?crumb=$_crumb';
+        }
+      }
+
+      response =
+          await httpClient.get(Uri.parse(retryUrl), headers: retryHeaders);
     }
 
     debugPrint(
-        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $requestUrl");
 
     if (response.statusCode == 200) {
       dynamic responseJson = jsonDecode(response.body);
@@ -961,6 +981,8 @@ class YahooService {
         headers: {
           'User-Agent':
               'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         },
       );
 
@@ -968,11 +990,14 @@ class YahooService {
 
       // Fallback to finance.yahoo.com if no cookie
       if (_cookie == null) {
+        debugPrint("No cookie from fc.yahoo.com, trying finance.yahoo.com...");
         final responseHome = await httpClient.get(
           Uri.parse('https://finance.yahoo.com'),
           headers: {
             'User-Agent':
                 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+            'Accept':
+                'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           },
         );
         _updateCookie(responseHome);
@@ -992,7 +1017,12 @@ class YahooService {
         if (response2.statusCode == 200) {
           _crumb = response2.body;
           debugPrint('Yahoo Crumb fetched: $_crumb');
+        } else {
+          debugPrint('Failed to fetch Yahoo crumb: ${response2.statusCode}');
+          _crumb = null;
         }
+      } else {
+        debugPrint('Failed to obtain Yahoo cookie');
       }
     } catch (e) {
       debugPrint('Error fetching Yahoo crumb: $e');
@@ -1002,7 +1032,11 @@ class YahooService {
   void _updateCookie(http.Response response) {
     String? rawCookie = response.headers['set-cookie'];
     if (rawCookie != null) {
-      _cookie = rawCookie;
+      // Extract only the key=value pairs, ignoring attributes like Path, Domain, etc.
+      // and join them with semicolons for the Cookie header.
+      _cookie =
+          rawCookie.split(',').map((c) => c.split(';').first.trim()).join('; ');
+      debugPrint('Yahoo Cookie updated');
     }
   }
 
@@ -1011,7 +1045,7 @@ class YahooService {
       String symbol) async {
     try {
       final url =
-          "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
+          "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
       final jsonResponse = await getCachedJson(url,
           cacheKey: 'institutionalOwnership_$symbol',
           ttl: const Duration(days: 7));
@@ -1088,7 +1122,7 @@ class YahooService {
   Future<List<InsiderTransaction>> getInsiderTransactions(String symbol) async {
     try {
       final url =
-          "https://query1.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
+          "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
       final jsonResponse = await getCachedJson(url,
           cacheKey: 'insiderTransactions_$symbol',
           ttl: const Duration(days: 1));
@@ -1114,9 +1148,9 @@ class YahooService {
 
   /// Fetch quote for a given symbol
   Future<Quote> getQuote(String symbol) async {
-    // https://query1.finance.yahoo.com/v7/finance/quote?symbols=AAPL
+    // https://query2.finance.yahoo.com/v7/finance/quote?symbols=AAPL
     var url =
-        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbol';
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbol';
     var json = await getJson(url);
     if (json['quoteResponse'] != null &&
         json['quoteResponse']['result'] != null &&
@@ -1157,7 +1191,7 @@ class YahooService {
     if (symbols.isEmpty) return [];
     final symbolsStr = symbols.join(',');
     final url =
-        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
     final json = await getJson(url);
     if (json['quoteResponse'] != null &&
         json['quoteResponse']['result'] != null) {
@@ -1170,9 +1204,10 @@ class YahooService {
             askSize: (result['askSize'] as num?)?.toInt() ?? 0,
             bidPrice: (result['bid'] as num?)?.toDouble() ?? 0.0,
             bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
-            lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble() ??
+            lastTradePrice:
                 (result['regularMarketPrice'] as num?)?.toDouble() ??
-                0.0,
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
             previousClose:
                 (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
                     (result['regularMarketPrice'] as num?)?.toDouble() ??
@@ -1200,7 +1235,7 @@ class YahooService {
     if (symbols.isEmpty) return [];
     final symbolsStr = symbols.join(',');
     final url =
-        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
     final json = await getJson(url);
     if (json['quoteResponse'] != null &&
         json['quoteResponse']['result'] != null) {
@@ -1258,7 +1293,7 @@ class YahooService {
     if (symbols.isEmpty) return [];
     final symbolsStr = symbols.join(',');
     final url =
-        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
     final json = await getJson(url);
     if (json['quoteResponse'] != null &&
         json['quoteResponse']['result'] != null) {
@@ -1292,9 +1327,9 @@ class YahooService {
   /// Fetch historicals for a given symbol
   Future<List<InstrumentHistorical>> getHistoricals(
       String symbol, String range, String interval) async {
-    // https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
+    // https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
     var url =
-        'https://query1.finance.yahoo.com/v8/finance/chart/$symbol?range=$range&interval=$interval';
+        'https://query2.finance.yahoo.com/v8/finance/chart/$symbol?range=$range&interval=$interval';
     var json = await getJson(url);
     List<InstrumentHistorical> candles = [];
     if (json['chart'] != null &&
@@ -1354,7 +1389,8 @@ class YahooService {
   }
 
   /// Fetch movers (gainers/losers) using Yahoo Finance
-  Future<List<Map<String, dynamic>>> getMovers({String direction = 'up'}) async {
+  Future<List<Map<String, dynamic>>> getMovers(
+      {String direction = 'up'}) async {
     final screenerId = direction == 'up' ? 'day_gainers' : 'day_losers';
     try {
       final response = await getStockScreener(scrIds: screenerId, count: 20);

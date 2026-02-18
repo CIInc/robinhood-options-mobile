@@ -52,6 +52,21 @@ export interface MacroAssessment {
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
     };
+    putCallRatio: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    advDecline: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    riskAppetite: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
   };
   sectorRotation: {
     bullish: string[];
@@ -88,7 +103,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     // We use "1d" interval and "1y" range to calculate SMAs
     const [
       vixData, tnxData, spyData, irxData, gldData, usoData, btcData,
-      dxyData, hygData,
+      dxyData, hygData, pccrData, nyaData, iwmData,
     ] = await Promise.all([
       getMarketData("^VIX", 5, 20, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch VIX data", e);
@@ -132,6 +147,25 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         }),
       getMarketData("HYG", 50, 200, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch HYG data", e);
+        return null;
+      }),
+      // Put/Call Ratio with fallback
+      getMarketData("^PCCR", 1, 1, "1d", "1mo")
+        .then((data) => {
+          if (data && data.closes && data.closes.length > 0) return data;
+          logger.info("^PCCR returned no data, falling back to ^PCC");
+          return getMarketData("^PCC", 1, 1, "1d", "1mo");
+        })
+        .catch((e) => {
+          logger.error("Failed to fetch PCCR data", e);
+          return null;
+        }),
+      getMarketData("^NYA", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch NYA data", e);
+        return null;
+      }),
+      getMarketData("IWM", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch IWM data", e);
         return null;
       }),
     ]);
@@ -412,6 +446,88 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }
     }
 
+    // 10. Evaluate Put/Call Ratio
+    let pccrSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let pccrTrend = "Flat";
+    let pccrValue: number | null = null;
+    if (pccrData && pccrData.closes && pccrData.closes.length > 0) {
+      pccrValue = pccrData.currentPrice ||
+        pccrData.closes[pccrData.closes.length - 1];
+      if (pccrValue !== null) {
+        if (pccrValue > 1.0) {
+          pccrSignal = "BULLISH"; // Excessive fear is bullish
+          pccrTrend = "Extreme Fear";
+          score += 5;
+          explanation.push("Extreme fear in Put/Call ratio " +
+            "(Contrarian Bullish).");
+        } else if (pccrValue < 0.7) {
+          pccrSignal = "BEARISH"; // Excessive greed is bearish
+          pccrTrend = "Extreme Greed";
+          score -= 5;
+          explanation.push("Extreme greed in Put/Call ratio " +
+            "(Contrarian Bearish).");
+        }
+      }
+    }
+
+    // 11. Evaluate Advance/Decline (Broad Market Strength)
+    let nyaSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let nyaTrend = "Flat";
+    let nyaValue: number | null = null;
+    if (nyaData && nyaData.closes && nyaData.closes.length > 0) {
+      nyaValue = nyaData.currentPrice ||
+        nyaData.closes[nyaData.closes.length - 1];
+      const sma200 = computeSMA(nyaData.closes, 200);
+      if (nyaValue !== null && sma200) {
+        if (nyaValue > sma200) {
+          nyaSignal = "BULLISH";
+          nyaTrend = "Broad Strength";
+          score += 5;
+          explanation.push("Broad market (NYSE) is showing strength.");
+        } else {
+          nyaSignal = "BEARISH";
+          nyaTrend = "Broad Weakness";
+          score -= 5;
+        }
+      }
+    }
+
+    // 12. Evaluate Risk Appetite (IWM vs SPY)
+    let riskSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let riskTrend = "Flat";
+    let riskValue: number | null = null;
+    if (iwmData && iwmData.closes && iwmData.closes.length > 0 &&
+      spyData && spyData.closes && spyData.closes.length > 0) {
+      const iwmPrice = iwmData.currentPrice ||
+        iwmData.closes[iwmData.closes.length - 1];
+      const spyPrice = spyData.currentPrice ||
+        spyData.closes[spyData.closes.length - 1];
+
+      if (iwmPrice && spyPrice) {
+        riskValue = iwmPrice / spyPrice;
+        // Check 10-day trend of ratio
+        const iwmCloses = iwmData.closes;
+        const spyCloses = spyData.closes;
+        const ratioCloses = iwmCloses.map((c, i) => c / spyCloses[i]);
+        const sma10 = computeSMA(ratioCloses, 10);
+        const currentRatio = ratioCloses[ratioCloses.length - 1];
+
+        if (sma10) {
+          if (currentRatio > sma10 * 1.01) {
+            riskSignal = "BULLISH";
+            riskTrend = "Improving";
+            score += 5;
+            explanation.push("Small caps outperforming (Risk Appetite Inc).");
+          } else if (currentRatio < sma10 * 0.99) {
+            riskSignal = "BEARISH";
+            riskTrend = "Deteriorating";
+            score -= 5;
+            explanation.push("Small caps underperforming (Risk Aversion).");
+          }
+        }
+      }
+    }
+
     // Determine Status
     let status: "RISK_ON" | "RISK_OFF" | "NEUTRAL" = "NEUTRAL";
     if (score >= 60) status = "RISK_ON";
@@ -513,6 +629,21 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
           signal: hygSignal,
           trend: hygTrend,
         },
+        putCallRatio: {
+          value: pccrValue,
+          signal: pccrSignal,
+          trend: pccrTrend,
+        },
+        advDecline: {
+          value: nyaValue,
+          signal: nyaSignal,
+          trend: nyaTrend,
+        },
+        riskAppetite: {
+          value: riskValue,
+          signal: riskSignal,
+          trend: riskTrend,
+        },
       },
       sectorRotation: {
         bullish: sectorsBullish,
@@ -537,6 +668,9 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         dxy: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         btc: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         hyg: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        putCallRatio: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        advDecline: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        riskAppetite: { value: null, signal: "NEUTRAL", trend: "Unknown" },
       },
       sectorRotation: {
         bullish: [],

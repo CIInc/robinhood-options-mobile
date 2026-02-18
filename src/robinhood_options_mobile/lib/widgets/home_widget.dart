@@ -465,7 +465,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Account _buildAggregatedAccount(List<Account> accounts) {
     double sumOrZero(Iterable<double?> values) =>
-        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
 
     return Account(
       'aggregate',
@@ -534,7 +534,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
 
     double sumField(Iterable<double?> values) =>
-        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
 
     return grouped.entries
         .map((entry) {
@@ -546,14 +546,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           }
           final totalCost = items.fold(
               0.0,
-              (sum, e) =>
-                  sum + ((e.averageBuyPrice ?? 0.0) * (e.quantity ?? 0.0)));
+              (acc, e) =>
+                  acc + ((e.averageBuyPrice ?? 0.0) * (e.quantity ?? 0.0)));
           final intradayQuantity =
               sumField(items.map((e) => e.intradayQuantity));
           final intradayTotalCost = items.fold(
               0.0,
-              (sum, e) =>
-                  sum +
+              (acc, e) =>
+                  acc +
                   ((e.intradayAverageBuyPrice ?? 0.0) *
                       (e.intradayQuantity ?? 0.0)));
 
@@ -633,7 +633,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
 
     double sumField(Iterable<double?> values) =>
-        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
 
     return grouped.entries
         .map((entry) {
@@ -645,8 +645,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           }
           final totalCost = items.fold(
               0.0,
-              (sum, e) =>
-                  sum + ((e.averageOpenPrice ?? 0.0) * (e.quantity ?? 0.0)));
+              (acc, e) =>
+                  acc + ((e.averageOpenPrice ?? 0.0) * (e.quantity ?? 0.0)));
           final avgOpenPrice =
               totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
 
@@ -713,7 +713,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
 
     double sumField(Iterable<double?> values) =>
-        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
 
     return grouped.entries
         .map((entry) {
@@ -1054,6 +1054,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
     final aggregated = _mergePortfolioHistoricals(historials);
     if (aggregated != null) {
+      if (!mounted) return aggregated;
       Provider.of<PortfolioHistoricalsStore>(context, listen: false)
           .set(aggregated);
       return aggregated;

@@ -86,6 +86,9 @@ class MacroIndicators {
   final MacroIndicator? dxy;
   final MacroIndicator? btc;
   final MacroIndicator? hyg;
+  final MacroIndicator? putCallRatio;
+  final MacroIndicator? advDecline;
+  final MacroIndicator? riskAppetite;
 
   MacroIndicators({
     required this.vix,
@@ -97,6 +100,9 @@ class MacroIndicators {
     this.dxy,
     this.btc,
     this.hyg,
+    this.putCallRatio,
+    this.advDecline,
+    this.riskAppetite,
   });
 
   factory MacroIndicators.fromMap(Map<String, dynamic> map) {
@@ -123,6 +129,18 @@ class MacroIndicators {
           : null,
       hyg: map['hyg'] != null
           ? MacroIndicator.fromMap(Map<String, dynamic>.from(map['hyg'] ?? {}))
+          : null,
+      putCallRatio: map['putCallRatio'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['putCallRatio'] ?? {}))
+          : null,
+      advDecline: map['advDecline'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['advDecline'] ?? {}))
+          : null,
+      riskAppetite: map['riskAppetite'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['riskAppetite'] ?? {}))
           : null,
     );
   }

@@ -168,9 +168,23 @@ export async function getMarketData(symbol: string,
       // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
       const querySymbol = symbol.replace(/\./g, "-");
       const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=${interval}&range=${dataRange}`;
-      const resp = await fetchWithRetry(url);
+      const resp = await fetchWithRetry(url, {
+        headers: {
+          "Referer": "https://finance.yahoo.com/",
+          "Origin": "https://finance.yahoo.com",
+        },
+      });
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
+
+      if (!result) {
+        logger.warn(`⚠️ No result from Yahoo Finance for ${symbol}`, {
+          url,
+          status: resp.status,
+          error: data?.chart?.error,
+        });
+      }
+
       // Fix for Firebase which does not support arrays inside arrays
       if (result) {
         delete result.meta?.tradingPeriods;
@@ -198,13 +212,25 @@ export async function getMarketData(symbol: string,
       } else if (Array.isArray(closes) && closes.length > 0) {
         currentPrice = closes[closes.length - 1];
       }
-      // Cache prices and volumes in Firestore
-      try {
-        await db.doc(cacheKey)
-          .set({ chart: result, updated: Date.now() });
-      } catch (err) {
-        logger.warn(`Failed to update cached ${interval} data for ${symbol}`,
-          err);
+      // Cache prices and volumes in Firestore if result is valid
+      if (result) {
+        try {
+          await db.doc(cacheKey)
+            .set({ chart: result, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} data for ${symbol}`,
+            err);
+        }
+      } else {
+        logger.warn(`⚠️ Skipping cache update for ${symbol} (${interval}): ` +
+          "Yahoo Finance result is undefined or invalid", {
+          symbol,
+          interval,
+          url,
+          responseStatus: resp.status,
+          hasData: !!data,
+          error: data?.chart?.error,
+        });
       }
     } catch (err) {
       logger.error(`Failed to fetch ${interval} data from ` +

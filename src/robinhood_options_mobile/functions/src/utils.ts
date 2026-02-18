@@ -12,10 +12,23 @@ import * as logger from "firebase-functions/logger";
  */
 export async function fetchWithRetry(
   url: string,
-  options?: RequestInit,
+  options: RequestInit = {},
   maxRetries = 3,
   baseDelay = 2000
 ): Promise<Response> {
+  // Set default headers if not present
+  if (!options.headers) {
+    options.headers = {};
+  }
+  const headers = options.headers as Record<string, string>;
+  if (!headers["User-Agent"]) {
+    headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+  }
+  if (!headers["Accept"]) {
+    headers["Accept"] = "*/*";
+  }
+
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
