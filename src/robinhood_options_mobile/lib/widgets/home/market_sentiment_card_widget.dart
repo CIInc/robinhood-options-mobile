@@ -1,12 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/model/sentiment_data.dart';
+import 'package:robinhood_options_mobile/model/user.dart' as model_user;
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/sentiment_service.dart';
 import 'package:robinhood_options_mobile/widgets/sentiment_analysis_dashboard_widget.dart';
 import 'dart:math' as math;
 
 class MarketSentimentCardWidget extends StatelessWidget {
-  const MarketSentimentCardWidget({super.key});
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final GenerativeService generativeService;
+  final model_user.User? user;
+  final DocumentReference<model_user.User>? userDocRef;
+
+  const MarketSentimentCardWidget(
+    this.brokerageUser,
+    this.service, {
+    super.key,
+    required this.analytics,
+    required this.observer,
+    required this.generativeService,
+    required this.user,
+    required this.userDocRef,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +68,15 @@ class MarketSentimentCardWidget extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        const SentimentAnalysisDashboardWidget(),
+                    builder: (context) => SentimentAnalysisDashboardWidget(
+                      brokerageUser: brokerageUser,
+                      service: service,
+                      analytics: analytics,
+                      observer: observer,
+                      generativeService: generativeService,
+                      user: user,
+                      userDocRef: userDocRef,
+                    ),
                   ),
                 );
               },

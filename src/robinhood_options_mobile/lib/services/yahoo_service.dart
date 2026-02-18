@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
 import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 
 // Yahoo Finance screener ID with display name
@@ -1127,11 +1129,17 @@ class YahooService {
           askSize: (result['askSize'] as num?)?.toInt() ?? 0,
           bidPrice: (result['bid'] as num?)?.toDouble(),
           bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
-          lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble(),
+          lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble() ??
+              (result['regularMarketPrice'] as num?)?.toDouble() ??
+              0.0,
           previousClose:
-              (result['regularMarketPreviousClose'] as num?)?.toDouble(),
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
           adjustedPreviousClose:
-              (result['regularMarketPreviousClose'] as num?)?.toDouble(),
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
           previousCloseDate: null,
           tradingHalted: false,
           hasTraded: true,
@@ -1142,6 +1150,143 @@ class YahooService {
           );
     }
     throw Exception('Quote not found for $symbol');
+  }
+
+  /// Fetch quotes for multiple symbols using Yahoo Finance
+  Future<List<Quote>> getQuotesByIds(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      return results.map((result) {
+        final symbol = result['symbol'];
+        return Quote(
+            symbol: symbol,
+            askPrice: (result['ask'] as num?)?.toDouble() ?? 0.0,
+            askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+            bidPrice: (result['bid'] as num?)?.toDouble() ?? 0.0,
+            bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+            lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble() ??
+                (result['regularMarketPrice'] as num?)?.toDouble() ??
+                0.0,
+            previousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            adjustedPreviousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            previousCloseDate: null,
+            tradingHalted: false,
+            hasTraded: true,
+            lastTradePriceSource: 'yahoo',
+            updatedAt: DateTime.now(),
+            instrument:
+                'https://api.robinhood.com/instruments/$symbol/', // Dummy
+            instrumentId: symbol // Dummy
+            );
+      }).toList();
+    }
+    return [];
+  }
+
+  /// Convert Yahoo Quote result to Robinhood-style Instrument
+  Future<List<Instrument>> getInstruments(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      return results.map((result) {
+        final symbol = result['symbol'];
+        return Instrument(
+          id: symbol,
+          url: 'https://api.robinhood.com/instruments/$symbol/',
+          quote: 'https://api.robinhood.com/quotes/$symbol/',
+          fundamentals: 'https://api.robinhood.com/fundamentals/$symbol/',
+          splits: 'https://api.robinhood.com/instruments/$symbol/splits/',
+          state: 'active',
+          market: 'https://api.robinhood.com/markets/XNAS/', // dummy
+          simpleName: result['shortName'] ?? result['longName'],
+          name: result['longName'] ?? result['shortName'] ?? symbol,
+          tradeable: true,
+          tradability: 'tradable',
+          symbol: symbol,
+          bloombergUnique: '',
+          marginInitialRatio: 0.5,
+          maintenanceRatio: 0.25,
+          country: result['region'] ?? 'US',
+          dayTradeRatio: 0.25,
+          listDate: null,
+          minTickSize: null,
+          type: (result['quoteType'] == 'ETF' ||
+                  result['quoteType'] == 'MUTUALFUND')
+              ? 'etp'
+              : 'stock',
+          tradeableChainId: null,
+          rhsTradability: 'tradable',
+          fractionalTradability: 'tradable',
+          defaultCollarFraction: 0.05,
+          ipoAccessStatus: null,
+          ipoAccessCobDeadline: null,
+          ipoAllocatedPrice: null,
+          ipoCustomersReceived: null,
+          ipoCustomersRequested: null,
+          ipoDate: null,
+          ipoS1Url: null,
+          ipoRoadshowUrl: null,
+          isSpac: false,
+          isTest: false,
+          ipoAccessSupportsDsp: false,
+          dateCreated: DateTime.now(),
+        );
+      }).toList();
+    }
+    return [];
+  }
+
+  /// Convert Yahoo Quote result to Robinhood-style Fundamentals
+  Future<List<Fundamentals>> getFundamentals(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query1.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      return results.map((result) {
+        final symbol = result['symbol'];
+        return Fundamentals(
+          open: (result['regularMarketOpen'] as num?)?.toDouble(),
+          high: (result['regularMarketDayHigh'] as num?)?.toDouble(),
+          low: (result['regularMarketDayLow'] as num?)?.toDouble(),
+          volume: (result['regularMarketVolume'] as num?)?.toDouble(),
+          averageVolume:
+              (result['averageDailyVolume3Month'] as num?)?.toDouble(),
+          high52Weeks: (result['fiftyTwoWeekHigh'] as num?)?.toDouble(),
+          low52Weeks: (result['fiftyTwoWeekLow'] as num?)?.toDouble(),
+          marketCap: (result['marketCap'] as num?)?.toDouble(),
+          dividendYield:
+              (result['trailingAnnualDividendYield'] as num?)?.toDouble(),
+          peRatio: (result['trailingPE'] as num?)?.toDouble(),
+          sharesOutstanding: (result['sharesOutstanding'] as num?)?.toDouble(),
+          description: result['longName'] ?? '',
+          instrument: 'https://api.robinhood.com/instruments/$symbol/',
+          sector: '', // not in quote
+          industry: '', // not in quote
+        );
+      }).toList();
+    }
+    return [];
   }
 
   /// Fetch historicals for a given symbol
@@ -1176,6 +1321,72 @@ class YahooService {
       }
     }
     return candles;
+  }
+
+  /// Search for symbols using Yahoo Finance Search
+  Future<List<Map<String, dynamic>>> search(String query) async {
+    try {
+      final url =
+          "https://query2.finance.yahoo.com/v1/finance/search?q=${Uri.encodeComponent(query)}";
+      final response = await httpClient.get(Uri.parse(url), headers: {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List quotes = data['quotes'] ?? [];
+        return quotes.map((q) {
+          return {
+            "symbol": q['symbol'],
+            "name": q['longname'] ?? q['shortname'],
+            "simple_name": q['shortname'],
+            "description": q['longname'],
+            "assetType": q['typeDisp'],
+            "exchange": q['exchDisp'],
+            "type": q['quoteType'],
+          };
+        }).toList();
+      }
+    } catch (e) {
+      debugPrint('Error searching Yahoo Finance: $e');
+    }
+    return [];
+  }
+
+  /// Fetch movers (gainers/losers) using Yahoo Finance
+  Future<List<Map<String, dynamic>>> getMovers({String direction = 'up'}) async {
+    final screenerId = direction == 'up' ? 'day_gainers' : 'day_losers';
+    try {
+      final response = await getStockScreener(scrIds: screenerId, count: 20);
+      final results = response['finance']?['result']?[0]?['records'] ?? [];
+      return (results as List).map((q) {
+        double? price;
+        if (q['regularMarketPrice'] is Map) {
+          price = (q['regularMarketPrice']['raw'] as num?)?.toDouble();
+        } else {
+          price = (q['regularMarketPrice'] as num?)?.toDouble();
+        }
+
+        double? changePercent;
+        if (q['regularMarketChangePercent'] is Map) {
+          changePercent =
+              (q['regularMarketChangePercent']['raw'] as num?)?.toDouble();
+        } else {
+          changePercent = (q['regularMarketChangePercent'] as num?)?.toDouble();
+        }
+
+        return {
+          "symbol": q['ticker'],
+          "name": q['companyName'] ?? q['ticker'] ?? 'Unknown',
+          "price": price ?? 0.0,
+          "changePercent": changePercent ?? 0.0,
+          "description": q['companyName'] ?? q['ticker'] ?? '',
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching movers from Yahoo: $e');
+    }
+    return [];
   }
 }
 

@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -64,7 +65,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
-    _isPaperTrade = widget.initialIsPaperTrade;
+    _isPaperTrade = widget.brokerageUser.source == BrokerageSource.paper ||
+        widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Instrument');
 
     double price = widget.instrument?.quoteObj?.lastExtendedHoursTradePrice ??
@@ -202,15 +204,18 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             title: const Text("Paper Trade"),
             subtitle: const Text("Simulate this trade with virtual money"),
             value: _isPaperTrade,
-            onChanged: (val) {
-              setState(() {
-                _isPaperTrade = val;
-              });
-            },
-            secondary: const Icon(Icons.school),
+            onChanged: widget.brokerageUser.source == BrokerageSource.paper
+                ? null
+                : (val) {
+                    setState(() {
+                      _isPaperTrade = val;
+                    });
+                  },
+            secondary:
+                Icon(Icons.school, color: _isPaperTrade ? Colors.amber : null),
           ),
           const SizedBox(height: 16),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
 
           // Order Type
           DropdownButtonFormField<String>(

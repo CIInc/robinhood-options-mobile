@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -80,14 +81,14 @@ class _AgenticTradingPerformanceWidgetState
           ],
         ),
       ),
-      body: Consumer<AgenticTradingProvider>(
-        builder: (context, provider, child) {
+      body: Consumer2<AgenticTradingProvider, PaperTradingStore>(
+        builder: (context, provider, paperStore, child) {
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildStatsTab(context, provider, colorScheme),
-              _buildHistoryTab(context, provider, colorScheme),
-              _buildChartsTab(context, provider, colorScheme),
+              _buildStatsTab(context, provider, paperStore, colorScheme),
+              _buildHistoryTab(context, provider, paperStore, colorScheme),
+              _buildChartsTab(context, provider, paperStore, colorScheme),
             ],
           );
         },
@@ -98,9 +99,32 @@ class _AgenticTradingPerformanceWidgetState
   Widget _buildStatsTab(
     BuildContext context,
     AgenticTradingProvider provider,
+    PaperTradingStore paperStore,
     ColorScheme colorScheme,
   ) {
-    final allHistory = provider.autoTradeHistory;
+    var allHistory = List<Map<String, dynamic>>.from(provider.autoTradeHistory);
+    // Add manual paper trades if in paper or all mode
+    if (_viewMode == PerformanceViewMode.paper ||
+        _viewMode == PerformanceViewMode.all) {
+      final manualPaperHistory = paperStore.history.map((t) {
+        var map = Map<String, dynamic>.from(t);
+        map['paperMode'] = true;
+        map['isManual'] = true;
+        // Normalize for buildTradeCard
+        if (t['type'] != null) {
+          map['action'] = (t['type'] as String).toUpperCase();
+        }
+        return map;
+      }).toList();
+      allHistory.addAll(manualPaperHistory);
+      // Sort by timestamp descending
+      allHistory.sort((a, b) {
+        final timeA = _parseTimestamp(a['timestamp']) ?? 0;
+        final timeB = _parseTimestamp(b['timestamp']) ?? 0;
+        return timeB.compareTo(timeA);
+      });
+    }
+
     final history = _filterHistory(allHistory);
     final stats = allHistory.isNotEmpty ? _calculateStatistics(history) : null;
 
@@ -153,9 +177,31 @@ class _AgenticTradingPerformanceWidgetState
   Widget _buildHistoryTab(
     BuildContext context,
     AgenticTradingProvider provider,
+    PaperTradingStore paperStore,
     ColorScheme colorScheme,
   ) {
-    final allHistory = provider.autoTradeHistory;
+    var allHistory = List<Map<String, dynamic>>.from(provider.autoTradeHistory);
+    // Add manual paper trades if in paper or all mode
+    if (_viewMode == PerformanceViewMode.paper ||
+        _viewMode == PerformanceViewMode.all) {
+      final manualPaperHistory = paperStore.history.map((t) {
+        var map = Map<String, dynamic>.from(t);
+        map['paperMode'] = true;
+        map['isManual'] = true;
+        // Normalize for buildTradeCard
+        if (t['type'] != null) {
+          map['action'] = (t['type'] as String).toUpperCase();
+        }
+        return map;
+      }).toList();
+      allHistory.addAll(manualPaperHistory);
+      // Sort by timestamp descending
+      allHistory.sort((a, b) {
+        final timeA = _parseTimestamp(a['timestamp']) ?? 0;
+        final timeB = _parseTimestamp(b['timestamp']) ?? 0;
+        return timeB.compareTo(timeA);
+      });
+    }
     final history = _filterHistory(allHistory);
 
     if (history.isEmpty) {
@@ -180,9 +226,32 @@ class _AgenticTradingPerformanceWidgetState
   Widget _buildChartsTab(
     BuildContext context,
     AgenticTradingProvider provider,
+    PaperTradingStore paperStore,
     ColorScheme colorScheme,
   ) {
-    final allHistory = provider.autoTradeHistory;
+    var allHistory = List<Map<String, dynamic>>.from(provider.autoTradeHistory);
+    // Add manual paper trades if in paper or all mode
+    if (_viewMode == PerformanceViewMode.paper ||
+        _viewMode == PerformanceViewMode.all) {
+      final manualPaperHistory = paperStore.history.map((t) {
+        var map = Map<String, dynamic>.from(t);
+        map['paperMode'] = true;
+        map['isManual'] = true;
+        // Normalize for buildTradeCard
+        if (t['type'] != null) {
+          map['action'] = (t['type'] as String).toUpperCase();
+        }
+        return map;
+      }).toList();
+      allHistory.addAll(manualPaperHistory);
+      // Sort by timestamp descending
+      allHistory.sort((a, b) {
+        final timeA = _parseTimestamp(a['timestamp']) ?? 0;
+        final timeB = _parseTimestamp(b['timestamp']) ?? 0;
+        return timeB.compareTo(timeA);
+      });
+    }
+
     final history = _filterHistory(allHistory);
 
     if (history.isEmpty) {
@@ -225,70 +294,73 @@ class _AgenticTradingPerformanceWidgetState
     final paperCount = allHistory.where((t) => t['paperMode'] == true).length;
     final realCount = allHistory.where((t) => t['paperMode'] != true).length;
 
-    return Row(
-      children: [
-        FilterChip(
-          label: Text('All Trades (${allHistory.length})'),
-          selected: _viewMode == PerformanceViewMode.all,
-          onSelected: (selected) {
-            if (selected) {
-              setState(() => _viewMode = PerformanceViewMode.all);
-            }
-          },
-        ),
-        const SizedBox(width: 8),
-        FilterChip(
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.description,
-                  size: 16,
-                  color: _viewMode == PerformanceViewMode.paper
-                      ? colorScheme.onPrimary
-                      : Colors.blue),
-              const SizedBox(width: 4),
-              Text('Paper ($paperCount)'),
-            ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          FilterChip(
+            label: Text('All Trades (${allHistory.length})'),
+            selected: _viewMode == PerformanceViewMode.all,
+            onSelected: (selected) {
+              if (selected) {
+                setState(() => _viewMode = PerformanceViewMode.all);
+              }
+            },
           ),
-          selected: _viewMode == PerformanceViewMode.paper,
-          onSelected: (selected) {
-            setState(() => _viewMode = PerformanceViewMode.paper);
-          },
-          checkmarkColor: colorScheme.onPrimary,
-          selectedColor: Colors.blue,
-          labelStyle: TextStyle(
-            color: _viewMode == PerformanceViewMode.paper
-                ? colorScheme.onPrimary
-                : colorScheme.onSurface,
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.description,
+                    size: 16,
+                    color: _viewMode == PerformanceViewMode.paper
+                        ? colorScheme.onPrimary
+                        : Colors.blue),
+                const SizedBox(width: 4),
+                Text('Paper ($paperCount)'),
+              ],
+            ),
+            selected: _viewMode == PerformanceViewMode.paper,
+            onSelected: (selected) {
+              setState(() => _viewMode = PerformanceViewMode.paper);
+            },
+            checkmarkColor: colorScheme.onPrimary,
+            selectedColor: Colors.blue,
+            labelStyle: TextStyle(
+              color: _viewMode == PerformanceViewMode.paper
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        FilterChip(
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.attach_money,
-                  size: 16,
-                  color: _viewMode == PerformanceViewMode.real
-                      ? colorScheme.onPrimary
-                      : Colors.green),
-              const SizedBox(width: 4),
-              Text('Real ($realCount)'),
-            ],
+          const SizedBox(width: 8),
+          FilterChip(
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.attach_money,
+                    size: 16,
+                    color: _viewMode == PerformanceViewMode.real
+                        ? colorScheme.onPrimary
+                        : Colors.green),
+                const SizedBox(width: 4),
+                Text('Real ($realCount)'),
+              ],
+            ),
+            selected: _viewMode == PerformanceViewMode.real,
+            onSelected: (selected) {
+              setState(() => _viewMode = PerformanceViewMode.real);
+            },
+            checkmarkColor: colorScheme.onPrimary,
+            selectedColor: Colors.green,
+            labelStyle: TextStyle(
+              color: _viewMode == PerformanceViewMode.real
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurface,
+            ),
           ),
-          selected: _viewMode == PerformanceViewMode.real,
-          onSelected: (selected) {
-            setState(() => _viewMode = PerformanceViewMode.real);
-          },
-          checkmarkColor: colorScheme.onPrimary,
-          selectedColor: Colors.green,
-          labelStyle: TextStyle(
-            color: _viewMode == PerformanceViewMode.real
-                ? colorScheme.onPrimary
-                : colorScheme.onSurface,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -721,13 +793,14 @@ class _AgenticTradingPerformanceWidgetState
   Widget _buildTradeCard(Map<String, dynamic> trade, ColorScheme colorScheme) {
     final symbol = trade['symbol'] as String? ?? 'N/A';
     final action = trade['action'] as String? ?? 'N/A';
-    final quantity = trade['quantity'] as int? ?? 0;
+    final quantity = trade['quantity'] as num? ?? 0;
     final price = trade['price'] as double? ?? 0.0;
     final timestamp = _parseTimestamp(trade['timestamp']);
     final success = trade['success'] as bool? ?? false;
     final reason = trade['reason'] as String?;
     final profitLoss = trade['profitLoss'] as double?;
     final isPaper = trade['paperMode'] as bool? ?? false;
+    final isManual = trade['isManual'] as bool? ?? false;
 
     final isExit = action == 'SELL' &&
         reason != null &&
@@ -777,6 +850,30 @@ class _AgenticTradingPerformanceWidgetState
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            if (isManual)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                      color:
+                                          Colors.amber.withValues(alpha: 0.5)),
+                                ),
+                                child: const Text(
+                                  'MANUAL',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                              ),
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(

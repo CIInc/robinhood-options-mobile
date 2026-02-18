@@ -1157,9 +1157,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       final shareText =
                           'Check out $symbol on RealizeAlpha: $url';
 
-                      final RenderBox? renderBox = _shareButtonKey
-                          .currentContext
-                          ?.findRenderObject() as RenderBox?;
+                      final RenderBox? renderBox =
+                          _shareButtonKey.currentContext?.findRenderObject()
+                              as RenderBox?;
                       Rect? sharePositionOrigin;
                       if (renderBox != null &&
                           renderBox.size.width > 0 &&
@@ -4155,9 +4155,37 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(instrument.symbol,
-                  style: const TextStyle(
-                      fontSize: 16.0, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(instrument.symbol,
+                        style: const TextStyle(
+                            fontSize: 16.0, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1),
+                  ),
+                  if (widget.brokerageUser.source == BrokerageSource.paper) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.5)),
+                      ),
+                      child: const Text(
+                        'PAPER',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               if (instrument.simpleName != null || instrument.name != "")
                 Text(
                   instrument.simpleName ?? instrument.name,

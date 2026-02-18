@@ -96,6 +96,46 @@ class InstrumentOrder {
                 ? DateTime.tryParse(json['created_at'])
                 : null);
 
+  /// Parses paper trading order format from Firestore.
+  factory InstrumentOrder.fromPaperJson(dynamic json) {
+    final symbol = json['symbol']?.toString() ?? '';
+    final instrumentUrl = json['instrument']?.toString() ?? '';
+    final parts = instrumentUrl.split('/').where((s) => s.isNotEmpty).toList();
+    final instrumentId = parts.isNotEmpty ? parts.last : symbol;
+    final order = InstrumentOrder(
+      json['id']?.toString() ?? '',
+      json['id']?.toString(),
+      instrumentUrl,
+      json['account']?.toString() ?? '',
+      '',
+      null,
+      instrumentUrl,
+      instrumentId,
+      parseDouble(json['quantity']),
+      parseDouble(json['price']),
+      null,
+      json['state']?.toString() ?? 'filled',
+      null,
+      json['type']?.toString() ?? 'limit',
+      json['side']?.toString() ?? '',
+      json['time_in_force']?.toString() ?? 'gtc',
+      json['trigger']?.toString() ?? 'immediate',
+      parseDouble(json['price']),
+      null,
+      parseDouble(json['quantity']),
+      null,
+      json['created_at'] is Timestamp
+          ? (json['created_at'] as Timestamp).toDate()
+          : DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      json['updated_at'] is Timestamp
+          ? (json['updated_at'] as Timestamp).toDate()
+          : DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      null,
+    );
+    order.instrumentObj = Instrument.forSymbol(symbol, instrumentUrl: instrumentUrl);
+    return order;
+  }
+
   InstrumentOrder.fromSchwabJson(dynamic json)
       : id = json['orderId'].toString(),
         refId = json['orderId'].toString(),

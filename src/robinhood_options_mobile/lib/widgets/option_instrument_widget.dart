@@ -1286,11 +1286,29 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 5,
                   children: [
                     Text(optionInstrument.chainSymbol,
                         style: const TextStyle(fontSize: 16.0)),
+                    if (widget.brokerageUser.source == BrokerageSource.paper)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                              color: Colors.amber.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          'PAPER',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber),
+                        ),
+                      ),
                     Text("\$${optionInstrument.strikePrice}",
                         style: const TextStyle(fontSize: 16.0)),
                     Text(optionInstrument.type.toUpperCase(),

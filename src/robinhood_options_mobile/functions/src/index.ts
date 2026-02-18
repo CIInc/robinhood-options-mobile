@@ -36,6 +36,7 @@ import * as alphaFactorDiscovery from "./alpha-factor-discovery";
 import * as groupWatchlists from "./group-watchlists";
 import * as watchlistAlerts from "./watchlist-alerts-cron";
 import * as customAlertsCron from "./custom-alerts-cron";
+import * as paperTradingCron from "./paper-trading-cron";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -113,3 +114,5 @@ export const removeWatchlistMemberPermission =
 export const watchlistAlertsCronJob = watchlistAlerts.watchlistAlertsCron;
 export const checkWatchlistAlerts = watchlistAlerts.checkWatchlistAlerts;
 export const checkCustomAlerts = customAlertsCron.checkCustomAlerts;
+export const updatePaperHistoricalsCronJob =
+  paperTradingCron.updatePaperHistoricalsCron;

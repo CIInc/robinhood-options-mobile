@@ -48,7 +48,6 @@ void main() {
       }
 
       // Navigate to Automated Trading
-      final autoTradeCard = find.text('Automated Trading');
       final configureBtn = find.text('Configure');
 
       final verticalScrollable = find

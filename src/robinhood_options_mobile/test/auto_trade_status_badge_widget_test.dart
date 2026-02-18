@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,22 +55,23 @@ class MockUser implements User {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockDocumentReference<T> implements DocumentReference<T> {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
   late MockAgenticTradingProvider mockProvider;
   late MockIBrokerageService mockService;
   late MockUser mockUser;
-  late MockDocumentReference<User> mockUserDocRef;
+  late DocumentReference<User> mockUserDocRef;
 
   setUp(() {
     mockProvider = MockAgenticTradingProvider();
     mockService = MockIBrokerageService();
     mockUser = MockUser();
-    mockUserDocRef = MockDocumentReference();
+    mockUserDocRef = FakeFirebaseFirestore()
+        .collection('user')
+        .doc('test')
+        .withConverter<User>(
+          fromFirestore: (snapshot, _) => User.fromJson(snapshot.data()!),
+          toFirestore: (user, _) => user.toJson(),
+        );
   });
 
   Widget createWidgetUnderTest() {

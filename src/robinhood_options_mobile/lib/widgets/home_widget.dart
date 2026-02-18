@@ -67,6 +67,7 @@ import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
@@ -256,12 +257,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   bool _supportsRobinhoodFeatures() {
     if (!_isAggregateMode()) {
       return widget.brokerageUser!.source == BrokerageSource.robinhood ||
-          widget.brokerageUser!.source == BrokerageSource.demo;
+          widget.brokerageUser!.source == BrokerageSource.demo ||
+          widget.brokerageUser!.source == BrokerageSource.paper;
     }
     final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
     return userStore.items.any((user) =>
         user.source == BrokerageSource.robinhood ||
-        user.source == BrokerageSource.demo);
+        user.source == BrokerageSource.demo ||
+        user.source == BrokerageSource.paper);
   }
 
   IBrokerageService _serviceForUser(BrokerageUser user) {
@@ -273,7 +276,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ? FidelityService()
                 : user.source == BrokerageSource.plaid
                     ? PlaidService()
-                    : DemoService();
+                    : user.source == BrokerageSource.paper
+                        ? PaperService()
+                        : DemoService();
   }
 
   Quote _buildSyntheticQuote({
@@ -403,7 +408,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         userDoc: userDoc,
       );
     } catch (e) {
-      debugPrint('Aggregate: getNummusHoldings failed for ${user.userName}: $e');
+      debugPrint(
+          'Aggregate: getNummusHoldings failed for ${user.userName}: $e');
     }
 
     try {
@@ -458,8 +464,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Account _buildAggregatedAccount(List<Account> accounts) {
-    double sumOrZero(Iterable<double?> values) => values.fold(
-        0.0, (sum, value) => sum + (value ?? 0.0));
+    double sumOrZero(Iterable<double?> values) =>
+        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
 
     return Account(
       'aggregate',
@@ -479,8 +485,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       return null;
     }
 
-    double sumOrZero(Iterable<double?> values) => values.fold(
-        0.0, (sum, value) => sum + (value ?? 0.0));
+    double sumOrZero(Iterable<double?> values) =>
+        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
 
     return Portfolio(
       'aggregate',
@@ -497,7 +503,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       sumOrZero(portfolios.map((e) => e.excessMargin)),
       sumOrZero(portfolios.map((e) => e.excessMaintenance)),
       sumOrZero(portfolios.map((e) => e.excessMarginWithUnclearedDeposits)),
-      sumOrZero(portfolios.map((e) => e.excessMaintenanceWithUnclearedDeposits)),
+      sumOrZero(
+          portfolios.map((e) => e.excessMaintenanceWithUnclearedDeposits)),
       sumOrZero(portfolios.map((e) => e.equityPreviousClose)),
       sumOrZero(portfolios.map((e) => e.portfolioEquityPreviousClose)),
       sumOrZero(portfolios.map((e) => e.adjustedEquityPreviousClose)),
@@ -529,82 +536,87 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     double sumField(Iterable<double?> values) =>
         values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
 
-    return grouped.entries.map((entry) {
-      final items = entry.value;
-      final template = items.first;
-      final totalQuantity = sumField(items.map((e) => e.quantity));
-      if (totalQuantity == 0) {
-        return null;
-      }
-      final totalCost = items.fold(
-          0.0,
-          (sum, e) =>
-              sum + ((e.averageBuyPrice ?? 0.0) * (e.quantity ?? 0.0)));
-      final intradayQuantity = sumField(items.map((e) => e.intradayQuantity));
-      final intradayTotalCost = items.fold(
-          0.0,
-          (sum, e) =>
-              sum +
-              ((e.intradayAverageBuyPrice ?? 0.0) *
-                  (e.intradayQuantity ?? 0.0)));
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = items.fold(
+              0.0,
+              (sum, e) =>
+                  sum + ((e.averageBuyPrice ?? 0.0) * (e.quantity ?? 0.0)));
+          final intradayQuantity =
+              sumField(items.map((e) => e.intradayQuantity));
+          final intradayTotalCost = items.fold(
+              0.0,
+              (sum, e) =>
+                  sum +
+                  ((e.intradayAverageBuyPrice ?? 0.0) *
+                      (e.intradayQuantity ?? 0.0)));
 
-      final avgBuyPrice =
-          totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
-      final avgIntradayPrice = intradayQuantity != 0
-          ? intradayTotalCost / intradayQuantity
-          : avgBuyPrice;
+          final avgBuyPrice =
+              totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
+          final avgIntradayPrice = intradayQuantity != 0
+              ? intradayTotalCost / intradayQuantity
+              : avgBuyPrice;
 
-      final aggregated = InstrumentPosition(
-        'aggregate/${template.instrumentId}',
-        template.instrument,
-        'ALL',
-        'ALL',
-        avgBuyPrice,
-        avgBuyPrice,
-        totalQuantity,
-        avgIntradayPrice,
-        intradayQuantity,
-        sumField(items.map((e) => e.sharesAvailableForExercise)),
-        sumField(items.map((e) => e.sharesHeldForBuys)),
-        sumField(items.map((e) => e.sharesHeldForSells)),
-        sumField(items.map((e) => e.sharesHeldForStockGrants)),
-        sumField(items.map((e) => e.sharesHeldForOptionsCollateral)),
-        sumField(items.map((e) => e.sharesHeldForOptionsEvents)),
-        sumField(items.map((e) => e.sharesPendingFromOptionsEvents)),
-        sumField(items.map((e) => e.sharesAvailableForClosingShortPosition)),
-        items.any((e) => e.averageCostAffected),
-        DateTime.now(),
-        template.createdAt,
-      );
-      aggregated.instrumentObj = template.instrumentObj;
-      Quote? latestQuote;
-      for (final item in items) {
-        final quote = item.instrumentObj?.quoteObj;
-        if (quote == null) continue;
-        if (latestQuote == null) {
-          latestQuote = quote;
-          continue;
-        }
-        final quoteUpdated = quote.updatedAt ?? DateTime(1970);
-        final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
-        if (quoteUpdated.isAfter(latestUpdated)) {
-          latestQuote = quote;
-        }
-      }
-      if (latestQuote == null &&
-          aggregated.instrumentObj != null &&
-          avgBuyPrice > 0) {
-        latestQuote = _buildSyntheticQuote(
-          symbol: aggregated.instrumentObj!.symbol,
-          price: avgBuyPrice,
-          instrumentId: template.instrumentId,
-        );
-      }
-      if (latestQuote != null && aggregated.instrumentObj != null) {
-        aggregated.instrumentObj!.quoteObj = latestQuote;
-      }
-      return aggregated;
-    }).whereType<InstrumentPosition>().toList();
+          final aggregated = InstrumentPosition(
+            'aggregate/${template.instrumentId}',
+            template.instrument,
+            'ALL',
+            'ALL',
+            avgBuyPrice,
+            avgBuyPrice,
+            totalQuantity,
+            avgIntradayPrice,
+            intradayQuantity,
+            sumField(items.map((e) => e.sharesAvailableForExercise)),
+            sumField(items.map((e) => e.sharesHeldForBuys)),
+            sumField(items.map((e) => e.sharesHeldForSells)),
+            sumField(items.map((e) => e.sharesHeldForStockGrants)),
+            sumField(items.map((e) => e.sharesHeldForOptionsCollateral)),
+            sumField(items.map((e) => e.sharesHeldForOptionsEvents)),
+            sumField(items.map((e) => e.sharesPendingFromOptionsEvents)),
+            sumField(
+                items.map((e) => e.sharesAvailableForClosingShortPosition)),
+            items.any((e) => e.averageCostAffected),
+            DateTime.now(),
+            template.createdAt,
+          );
+          aggregated.instrumentObj = template.instrumentObj;
+          Quote? latestQuote;
+          for (final item in items) {
+            final quote = item.instrumentObj?.quoteObj;
+            if (quote == null) continue;
+            if (latestQuote == null) {
+              latestQuote = quote;
+              continue;
+            }
+            final quoteUpdated = quote.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
+            if (quoteUpdated.isAfter(latestUpdated)) {
+              latestQuote = quote;
+            }
+          }
+          if (latestQuote == null &&
+              aggregated.instrumentObj != null &&
+              avgBuyPrice > 0) {
+            latestQuote = _buildSyntheticQuote(
+              symbol: aggregated.instrumentObj!.symbol,
+              price: avgBuyPrice,
+              instrumentId: template.instrumentId,
+            );
+          }
+          if (latestQuote != null && aggregated.instrumentObj != null) {
+            aggregated.instrumentObj!.quoteObj = latestQuote;
+          }
+          return aggregated;
+        })
+        .whereType<InstrumentPosition>()
+        .toList();
   }
 
   List<OptionAggregatePosition> _aggregateOptionPositions(
@@ -623,72 +635,75 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     double sumField(Iterable<double?> values) =>
         values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
 
-    return grouped.entries.map((entry) {
-      final items = entry.value;
-      final template = items.first;
-      final totalQuantity = sumField(items.map((e) => e.quantity));
-      if (totalQuantity == 0) {
-        return null;
-      }
-      final totalCost = items.fold(
-          0.0,
-          (sum, e) =>
-              sum + ((e.averageOpenPrice ?? 0.0) * (e.quantity ?? 0.0)));
-      final avgOpenPrice =
-          totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = items.fold(
+              0.0,
+              (sum, e) =>
+                  sum + ((e.averageOpenPrice ?? 0.0) * (e.quantity ?? 0.0)));
+          final avgOpenPrice =
+              totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
 
-      final aggregated = OptionAggregatePosition(
-        template.id,
-        template.chain,
-        'ALL',
-        template.symbol,
-        template.strategy,
-        avgOpenPrice,
-        template.legs,
-        totalQuantity,
-        template.intradayAverageOpenPrice,
-        template.intradayQuantity,
-        template.direction,
-        template.intradayDirection,
-        template.tradeValueMultiplier,
-        template.createdAt,
-        template.updatedAt,
-        template.strategyCode,
-      );
-      OptionMarketData? latestMarketData;
-      for (final item in items) {
-        final md = item.optionInstrument?.optionMarketData;
-        if (md == null) continue;
-        if (latestMarketData == null) {
-          latestMarketData = md;
-          continue;
-        }
-        final mdUpdated = md.updatedAt ?? DateTime(1970);
-        final latestUpdated = latestMarketData.updatedAt ?? DateTime(1970);
-        if (mdUpdated.isAfter(latestUpdated)) {
-          latestMarketData = md;
-        }
-      }
-      if (latestMarketData == null &&
-          template.optionInstrument != null &&
-          avgOpenPrice > 0) {
-        final markPrice = avgOpenPrice / 100;
-        if (markPrice > 0) {
-          latestMarketData = _buildSyntheticOptionMarketData(
-            symbol: template.symbol,
-            instrumentId: template.optionInstrument!.id,
-            markPrice: markPrice,
+          final aggregated = OptionAggregatePosition(
+            template.id,
+            template.chain,
+            'ALL',
+            template.symbol,
+            template.strategy,
+            avgOpenPrice,
+            template.legs,
+            totalQuantity,
+            template.intradayAverageOpenPrice,
+            template.intradayQuantity,
+            template.direction,
+            template.intradayDirection,
+            template.tradeValueMultiplier,
+            template.createdAt,
+            template.updatedAt,
+            template.strategyCode,
           );
-        }
-      }
-      if (latestMarketData != null && template.optionInstrument != null) {
-        template.optionInstrument!.optionMarketData = latestMarketData;
-      }
-      aggregated.optionInstrument = template.optionInstrument;
-      aggregated.instrumentObj = template.instrumentObj;
-      aggregated.logoUrl = template.logoUrl;
-      return aggregated;
-    }).whereType<OptionAggregatePosition>().toList();
+          OptionMarketData? latestMarketData;
+          for (final item in items) {
+            final md = item.optionInstrument?.optionMarketData;
+            if (md == null) continue;
+            if (latestMarketData == null) {
+              latestMarketData = md;
+              continue;
+            }
+            final mdUpdated = md.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestMarketData.updatedAt ?? DateTime(1970);
+            if (mdUpdated.isAfter(latestUpdated)) {
+              latestMarketData = md;
+            }
+          }
+          if (latestMarketData == null &&
+              template.optionInstrument != null &&
+              avgOpenPrice > 0) {
+            final markPrice = avgOpenPrice / 100;
+            if (markPrice > 0) {
+              latestMarketData = _buildSyntheticOptionMarketData(
+                symbol: template.symbol,
+                instrumentId: template.optionInstrument!.id,
+                markPrice: markPrice,
+              );
+            }
+          }
+          if (latestMarketData != null && template.optionInstrument != null) {
+            template.optionInstrument!.optionMarketData = latestMarketData;
+          }
+          aggregated.optionInstrument = template.optionInstrument;
+          aggregated.instrumentObj = template.instrumentObj;
+          aggregated.logoUrl = template.logoUrl;
+          return aggregated;
+        })
+        .whereType<OptionAggregatePosition>()
+        .toList();
   }
 
   List<ForexHolding> _aggregateForexHoldings(List<ForexHolding> holdings) {
@@ -700,50 +715,53 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     double sumField(Iterable<double?> values) =>
         values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
 
-    return grouped.entries.map((entry) {
-      final items = entry.value;
-      final template = items.first;
-      final totalQuantity = sumField(items.map((e) => e.quantity));
-      if (totalQuantity == 0) {
-        return null;
-      }
-      final totalCost = sumField(items.map((e) => e.directCostBasis));
-      final aggregated = ForexHolding(
-        'aggregate-${template.currencyCode}',
-        template.currencyId,
-        template.currencyCode,
-        template.currencyName,
-        totalQuantity,
-        totalCost,
-        template.createdAt,
-        template.updatedAt,
-      );
-      ForexQuote? latestQuote;
-      for (final item in items) {
-        final quote = item.quoteObj;
-        if (quote == null) continue;
-        if (latestQuote == null) {
-          latestQuote = quote;
-          continue;
-        }
-        final quoteUpdated = quote.updatedAt ?? DateTime(1970);
-        final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
-        if (quoteUpdated.isAfter(latestUpdated)) {
-          latestQuote = quote;
-        }
-      }
-      if (latestQuote == null && totalQuantity > 0 && totalCost > 0) {
-        final avgPrice = totalCost / totalQuantity;
-        latestQuote = _buildSyntheticForexQuote(
-          symbol: template.currencyCode,
-          id: template.id,
-          markPrice: avgPrice,
-        );
-      }
-      aggregated.quoteObj = latestQuote;
-      aggregated.historicalsObj = template.historicalsObj;
-      return aggregated;
-    }).whereType<ForexHolding>().toList();
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = sumField(items.map((e) => e.directCostBasis));
+          final aggregated = ForexHolding(
+            'aggregate-${template.currencyCode}',
+            template.currencyId,
+            template.currencyCode,
+            template.currencyName,
+            totalQuantity,
+            totalCost,
+            template.createdAt,
+            template.updatedAt,
+          );
+          ForexQuote? latestQuote;
+          for (final item in items) {
+            final quote = item.quoteObj;
+            if (quote == null) continue;
+            if (latestQuote == null) {
+              latestQuote = quote;
+              continue;
+            }
+            final quoteUpdated = quote.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
+            if (quoteUpdated.isAfter(latestUpdated)) {
+              latestQuote = quote;
+            }
+          }
+          if (latestQuote == null && totalQuantity > 0 && totalCost > 0) {
+            final avgPrice = totalCost / totalQuantity;
+            latestQuote = _buildSyntheticForexQuote(
+              symbol: template.currencyCode,
+              id: template.id,
+              markPrice: avgPrice,
+            );
+          }
+          aggregated.quoteObj = latestQuote;
+          aggregated.historicalsObj = template.historicalsObj;
+          return aggregated;
+        })
+        .whereType<ForexHolding>()
+        .toList();
   }
 
   PortfolioHistoricals? _mergePortfolioHistoricals(
@@ -819,9 +837,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     if (first.adjustedOpenEquity != null &&
         first.adjustedOpenEquity != 0 &&
         last.adjustedCloseEquity != null) {
-      totalReturn =
-          (last.adjustedCloseEquity! - first.adjustedOpenEquity!) /
-              first.adjustedOpenEquity!;
+      totalReturn = (last.adjustedCloseEquity! - first.adjustedOpenEquity!) /
+          first.adjustedOpenEquity!;
     }
 
     return PortfolioHistoricals(
@@ -846,7 +863,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
     final accountStore = Provider.of<AccountStore>(context, listen: false);
     final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
-    final optionStore = Provider.of<OptionPositionStore>(context, listen: false);
+    final optionStore =
+        Provider.of<OptionPositionStore>(context, listen: false);
     final instrumentStore =
         Provider.of<InstrumentPositionStore>(context, listen: false);
     final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
@@ -966,10 +984,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           .fold<double>(0.0, (sum, value) => sum + value);
     }
 
-    final stockValue = data.stockPositions.fold<double>(
-        0.0, (sum, position) => sum + position.marketValue);
-    final optionValue = data.optionPositions.fold<double>(
-        0.0, (sum, position) => sum + position.marketValue);
+    final stockValue = data.stockPositions
+        .fold<double>(0.0, (sum, position) => sum + position.marketValue);
+    final optionValue = data.optionPositions
+        .fold<double>(0.0, (sum, position) => sum + position.marketValue);
     final forexValue = data.forexHoldings.fold<double>(
         0.0,
         (sum, holding) =>
@@ -994,6 +1012,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         return 'Plaid';
       case BrokerageSource.demo:
         return 'Demo';
+      case BrokerageSource.paper:
+        return 'Paper';
     }
   }
 
@@ -1092,7 +1112,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
 
     if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-        widget.brokerageUser!.source == BrokerageSource.demo) {
+        widget.brokerageUser!.source == BrokerageSource.demo ||
+        widget.brokerageUser!.source == BrokerageSource.paper) {
       futurePortfolios = widget.service!.getPortfolios(widget.brokerageUser!,
           Provider.of<PortfolioStore>(context, listen: false));
       futureNummusHoldings = widget.service!.getNummusHoldings(
@@ -1144,12 +1165,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void _loadPortfolioHistoricals() {
     if (account == null) return;
     if (_isAggregateMode()) {
-      futurePortfolioHistoricals =
-          _loadAggregatedPortfolioHistoricals(chartDateSpanFilter,
-              chartBoundsFilter);
-      futurePortfolioHistoricalsYear =
-          _loadAggregatedPortfolioHistoricals(benchmarkChartDateSpanFilter,
-              chartBoundsFilter);
+      futurePortfolioHistoricals = _loadAggregatedPortfolioHistoricals(
+          chartDateSpanFilter, chartBoundsFilter);
+      futurePortfolioHistoricalsYear = _loadAggregatedPortfolioHistoricals(
+          benchmarkChartDateSpanFilter, chartBoundsFilter);
       futureDividends = Future.value(
           Provider.of<DividendStore>(context, listen: false).items.toList());
       futureInterests = Future.value(
@@ -1157,7 +1176,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       return;
     }
     if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
-        widget.brokerageUser!.source == BrokerageSource.demo) {
+        widget.brokerageUser!.source == BrokerageSource.demo ||
+        widget.brokerageUser!.source == BrokerageSource.paper) {
       futurePortfolioHistoricals = widget.service!.getPortfolioPerformance(
           widget.brokerageUser!,
           Provider.of<PortfolioHistoricalsStore>(context, listen: false),
@@ -1502,8 +1522,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     user: widget.user,
                     userDocRef: widget.userDoc)),
             if (isAggregateMode)
-              SliverToBoxAdapter(
-                  child: _buildBrokerBreakdownCard(context)),
+              SliverToBoxAdapter(child: _buildBrokerBreakdownCard(context)),
 
             SliverToBoxAdapter(
               child: Padding(
@@ -1786,6 +1805,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               //if (positions != null) {
               var filteredPositions = stockPositionStore.items
                   .where((element) =>
+                      element.instrumentObj != null &&
                       ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
                           //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
                           (!hasQuantityFilters[0] || element.quantity! > 0) &&
@@ -2024,7 +2044,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     side: BorderSide(
                         color: Theme.of(context).colorScheme.outlineVariant),
                   ),
-                    child: InkWell(
+                  child: InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
@@ -2232,9 +2252,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     child: Icon(
                       Icons.account_balance_outlined,
                       size: 20,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSecondaryContainer,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -2453,10 +2471,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       await _loadAggregatedPortfolioHistoricals(
           chartDateSpanFilter, chartBoundsFilter);
     } else {
-      await widget.service!.getPortfolioPerformance(
-          widget.brokerageUser!,
-          portfolioHistoricalStore,
-          account!.accountNumber,
+      await widget.service!.getPortfolioPerformance(widget.brokerageUser!,
+          portfolioHistoricalStore, account!.accountNumber,
           chartBoundsFilter: chartBoundsFilter,
           chartDateSpanFilter: chartDateSpanFilter);
     }

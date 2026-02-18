@@ -163,7 +163,4 @@ class MockBrokerageService extends Fake implements IBrokerageService {
       Map<String, dynamic>? trailingPeg}) async {
     return {'id': 'mock_order_id', 'state': 'filled'};
   }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

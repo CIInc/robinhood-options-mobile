@@ -90,6 +90,10 @@ service cloud.firestore {
       match /paper_account/{id} {
         allow read, write: if request.auth.uid == uid;
       }
+      match /paper_equity_history/{id} {
+        allow read: if request.auth.uid == uid;
+        allow write: if false; // server-side only
+      }
       match /alerts/{id} {
         allow read, write: if request.auth.uid == uid;
       }
@@ -228,6 +232,18 @@ service cloud.firestore {
       allow read: if request.auth.uid != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /option_instruments/{doc} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
+    match /option_market_data/{doc} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+      allow delete: if request.auth.token.role == 'admin';
     }
 
     //match /{document=**} {

@@ -31,6 +31,7 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -148,7 +149,8 @@ class _HistoryPageState extends State<HistoryPage>
 
   bool _isUserValidForHistory(BrokerageUser user) {
     if (user.source == BrokerageSource.fidelity ||
-        user.source == BrokerageSource.demo) {
+        user.source == BrokerageSource.demo ||
+        user.source == BrokerageSource.paper) {
       return true;
     }
     return !(user.oauth2Client?.credentials.isExpired ?? true);
@@ -174,7 +176,9 @@ class _HistoryPageState extends State<HistoryPage>
                 ? FidelityService()
                 : user.source == BrokerageSource.plaid
                     ? PlaidService()
-                    : DemoService();
+                    : user.source == BrokerageSource.paper
+                        ? PaperService()
+                        : DemoService();
   }
 
   void _showReadOnlySnack() {
@@ -289,8 +293,7 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   void _ensureAggregateStreams(List<BrokerageUser> users) {
-    if (optionOrderStream == null) {
-      optionOrderStream = _initAggregateStream<OptionOrder>(
+    optionOrderStream ??= _initAggregateStream<OptionOrder>(
         users: users,
         state: _aggregateOptionOrders,
         streamBuilder: (user, service) =>
@@ -299,7 +302,6 @@ class _HistoryPageState extends State<HistoryPage>
         keyOf: (order) => order.id,
         sort: (a, b) => b.createdAt!.compareTo(a.createdAt!),
       );
-    }
 
     if (positionOrderStream == null) {
       final instrumentStore =
@@ -315,8 +317,7 @@ class _HistoryPageState extends State<HistoryPage>
       );
     }
 
-    if (optionEventStream == null) {
-      optionEventStream = _initAggregateStream<OptionEvent>(
+    optionEventStream ??= _initAggregateStream<OptionEvent>(
         users: users,
         state: _aggregateOptionEvents,
         streamBuilder: (user, service) =>
@@ -325,7 +326,6 @@ class _HistoryPageState extends State<HistoryPage>
         keyOf: (event) => event.id,
         sort: (a, b) => b.updatedAt!.compareTo(a.updatedAt!),
       );
-    }
 
     if (dividendStream == null) {
       final instrumentStore =
@@ -523,8 +523,11 @@ class _HistoryPageState extends State<HistoryPage>
     } else if (widget.brokerageUser == null ||
         widget.service == null ||
         (widget.brokerageUser!.source != BrokerageSource.fidelity &&
-            (widget.brokerageUser?.oauth2Client?.credentials.isExpired ??
-                true))) {
+            (widget.brokerageUser!.source == BrokerageSource.paper ||
+                    widget.brokerageUser!.source == BrokerageSource.demo
+                ? false
+                : (widget.brokerageUser?.oauth2Client?.credentials.isExpired ??
+                    true)))) {
       return Scaffold(
           body: RefreshIndicator(
         onRefresh: () async {

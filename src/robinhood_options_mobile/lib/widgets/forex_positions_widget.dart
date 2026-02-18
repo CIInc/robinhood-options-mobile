@@ -113,8 +113,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
         data: data,
-        colorFn: (_, __) => shades[
-            0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+        // colorFn: (_, __) => shades[
+        //     0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+        seriesColor: shades[0],
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['measure'],
         labelAccessorFn: (d, _) => d['label'],
@@ -195,6 +196,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     }
     var positionChart = BarChart(barChartSeriesList,
         renderer: charts.BarRendererConfig(
+            groupingType: charts.BarGroupingType.stacked,
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
@@ -305,69 +307,245 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           barChartSeriesList.isNotEmpty &&
               barChartSeriesList.first.data.isNotEmpty) ...[
         SliverToBoxAdapter(
-            child: SizedBox(
-                height: barChartSeriesList.first.data.length == 1
-                    ? 75
-                    : barChartSeriesList.first.data.length * 26 + 80,
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            SizedBox(
+                height: barChartSeriesList.first.data.length * 26 + 80,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                      10.0, 0, 10, 10), //EdgeInsets.zero
+                      10.0, 0, 10, 0), //EdgeInsets.zero
                   child: positionChart,
-                )))
+                )),
+            _buildChartControls(context),
+          ],
+        ))
       ],
+      /*
       SliverToBoxAdapter(
           child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0), //.all(8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          spacing: 8.0,
           children: [
-            ActionChip(
-                visualDensity: VisualDensity.compact,
-                avatar: const Icon(Icons.line_axis, size: 16),
-                label: Text(BrokerageUser.displayValueText(
-                    widget.brokerageUser.displayValue!)),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                      context: context,
-                      showDragHandle: true,
-                      // isScrollControlled: true,
-                      //useRootNavigator: true,
-                      //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              showOnlyPrimaryMeasure: true,
-                              onSettingsChanged: (value) {
-                            setState(() {});
-                          }));
-                }),
-            ActionChip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(
-                    widget.brokerageUser.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north,
-                    size: 16),
-                label: Text(BrokerageUser.displayValueText(
-                    widget.brokerageUser.sortOptions!)),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                      context: context,
-                      showDragHandle: true,
-                      // isScrollControlled: true,
-                      //useRootNavigator: true,
-                      //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              showOnlySort: true, onSettingsChanged: (value) {
-                            setState(() {});
-                          }));
-                }),
+            // Primary Measure Chip
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlyPrimaryMeasure: true,
+                                onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 10.0),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.bar_chart_rounded,
+                          size: 18,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Measure',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer
+                                          .withOpacity(0.7),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.2,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                BrokerageUser.displayValueText(
+                                    widget.brokerageUser.displayValue!),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.2,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          size: 20,
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Sort Chip
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlySort: true, onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 10.0),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondaryContainer
+                          .withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondary
+                                .withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.desc
+                                ? Icons.arrow_downward
+                                : Icons.arrow_upward,
+                            size: 14,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Sort by',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer
+                                          .withOpacity(0.7),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.2,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                BrokerageUser.displayValueText(
+                                    widget.brokerageUser.sortOptions!),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.2,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          size: 20,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       )),
+      */
+
       if (widget.showList) ...[
         SliverList(
           // delegate: SliverChildListDelegate(widgets),
@@ -643,5 +821,121 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: tiles)));
+  }
+
+  Widget _buildChartControls(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color:
+                Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color:
+                  Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+            ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToolbarButton(
+                  context,
+                  label: BrokerageUser.displayValueText(
+                      widget.brokerageUser.displayValue!),
+                  icon: Icons.bar_chart_rounded,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlyPrimaryMeasure: true,
+                                onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 8,
+                  endIndent: 8,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withOpacity(0.5),
+                ),
+                _buildToolbarButton(
+                  context,
+                  label: BrokerageUser.displayValueText(
+                      widget.brokerageUser.sortOptions!),
+                  icon: widget.brokerageUser.sortDirection == SortDirection.desc
+                      ? Icons.arrow_downward
+                      : Icons.arrow_upward,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlySort: true, onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  iconColor: Theme.of(context).colorScheme.secondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton(BuildContext context,
+      {required String label,
+      required IconData icon,
+      required VoidCallback onTap,
+      Color? iconColor}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: iconColor ?? Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down,
+                size: 16,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withOpacity(0.7)),
+          ],
+        ),
+      ),
+    );
   }
 }

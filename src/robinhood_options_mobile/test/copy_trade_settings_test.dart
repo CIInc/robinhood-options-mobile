@@ -7,42 +7,18 @@ import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
 // Fakes
 class FakeFirestoreService extends Fake implements FirestoreService {
+  final FirebaseFirestore _firestore = FakeFirebaseFirestore();
   @override
   CollectionReference<app_user.User> get userCollection =>
-      FakeCollectionReference();
-}
-
-class FakeCollectionReference extends Fake
-    implements CollectionReference<app_user.User> {
-  @override
-  DocumentReference<app_user.User> doc([String? path]) {
-    return FakeDocumentReference();
-  }
-}
-
-class FakeDocumentReference extends Fake
-    implements DocumentReference<app_user.User> {
-  @override
-  Future<DocumentSnapshot<app_user.User>> get([GetOptions? options]) {
-    return Future.value(FakeDocumentSnapshot());
-  }
-}
-
-class FakeDocumentSnapshot extends Fake
-    implements DocumentSnapshot<app_user.User> {
-  @override
-  bool get exists => true;
-  @override
-  app_user.User? data() => app_user.User(
-        name: 'Test User',
-        devices: [],
-        dateCreated: DateTime.now(),
-        refreshQuotes: false,
-        brokerageUsers: [],
-      );
+      _firestore.collection('user').withConverter<app_user.User>(
+            fromFirestore: (snapshot, _) =>
+                app_user.User.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          );
 }
 
 class FakeFirebaseAuth extends Fake implements FirebaseAuth {

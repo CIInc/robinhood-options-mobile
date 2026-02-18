@@ -161,31 +161,54 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           });
         }
       }
+      var shades = PieChart.makeShades(
+          charts.ColorUtil.fromDartColor(
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context)
+                      .colorScheme
+                      .primaryContainer), // .withValues(alpha: 0.75)
+          2);
       barChartSeriesList.add(charts.Series<dynamic, String>(
           id: BrokerageUser.displayValueText(
               widget.brokerageUser.displayValue!),
-          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-              Theme.of(context).brightness == Brightness.light
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.primaryContainer),
           data: data,
+          // colorFn: (_, __) => shades[
+          //     0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+          seriesColor:
+              shades[0], // charts.ColorUtil.fromDartColor(Colors.black),
           domainFn: (var d, _) => d['domain'],
           measureFn: (var d, _) => d['measure'],
           labelAccessorFn: (d, _) => d['label'],
           insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
               color: charts.ColorUtil.fromDartColor(
-                  brightness == Brightness.light
-                      ? Theme.of(context).colorScheme.surface
-                      : Theme.of(context)
-                          .textTheme
-                          .labelSmall!
-                          .color! // inverseSurface,
-                  )),
+                brightness == Brightness.light
+                    ? Theme.of(context).colorScheme.surface
+                    : Theme.of(context)
+                        .textTheme
+                        .labelSmall!
+                        .color!, // inverseSurface,
+              )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
               fontSize: 14,
               color: charts.ColorUtil.fromDartColor(
                   Theme.of(context).textTheme.labelSmall!.color!))));
+      var seriesData = charts.Series<dynamic, String>(
+        id: (widget.brokerageUser.displayValue == DisplayValue.marketValue)
+            ? BrokerageUser.displayValueText(DisplayValue.totalCost)
+            : '',
+        //charts.MaterialPalette.blue.shadeDefault,
+        colorFn: (_, __) => shades[1],
+        domainFn: (var d, _) => d['domain'],
+        measureFn: (var d, _) => d['secondaryMeasure'],
+        labelAccessorFn: (d, _) => d['secondaryLabel'],
+        data: data,
+      )..setAttribute(charts.rendererIdKey, 'customLine');
+      if (seriesData.data.isNotEmpty &&
+          seriesData.data[0]['secondaryMeasure'] != null) {
+        barChartSeriesList.add(seriesData);
+      }
       List<OptionAggregatePosition> oaps =
           groupedOptionAggregatePositions.values.first;
       Iterable<double> positionDisplayValues =
@@ -345,6 +368,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     //debugPrint('rendering optionChart');
     var optionChart = BarChart(barChartSeriesList,
         renderer: charts.BarRendererConfig(
+            groupingType: charts.BarGroupingType.stacked,
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
@@ -501,65 +525,22 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             barChartSeriesList.isNotEmpty &&
                 barChartSeriesList.first.data.isNotEmpty) ...[
           SliverToBoxAdapter(
-            child: SizedBox(
-                height: barChartSeriesList.first.data.length * 26 +
-                    80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      10.0, 0, 10, 10), //EdgeInsets.zero
-                  child: optionChart,
-                )),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SizedBox(
+                    height: barChartSeriesList.first.data.length * 26 +
+                        80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          10.0, 0, 10, 0), //EdgeInsets.zero
+                      child: optionChart,
+                    )),
+                _buildChartControls(context),
+              ],
+            ),
           ),
         ],
-        SliverToBoxAdapter(
-            child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 8.0,
-            children: [
-              ActionChip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: const Icon(Icons.line_axis, size: 16),
-                  label: Text(BrokerageUser.displayValueText(
-                      widget.brokerageUser.displayValue!)),
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (_) => MoreMenuBottomSheet(
-                                widget.brokerageUser,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlyPrimaryMeasure: true,
-                                onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  }),
-              ActionChip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: Icon(
-                      widget.brokerageUser.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north,
-                      size: 16),
-                  label: Text(BrokerageUser.displayValueText(
-                      widget.brokerageUser.sortOptions!)),
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (_) => MoreMenuBottomSheet(
-                                widget.brokerageUser,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlySort: true, onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  }),
-            ],
-          ),
-        )),
         if (widget.showList) ...[
           widget.brokerageUser.optionsView == OptionsView.list
               ? SliverList(
@@ -1259,6 +1240,122 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         child: Column(
           children: cards,
         ));
+  }
+
+  Widget _buildChartControls(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color:
+                Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color:
+                  Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+            ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToolbarButton(
+                  context,
+                  label: BrokerageUser.displayValueText(
+                      widget.brokerageUser.displayValue!),
+                  icon: Icons.bar_chart_rounded,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlyPrimaryMeasure: true,
+                                onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 8,
+                  endIndent: 8,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withOpacity(0.5),
+                ),
+                _buildToolbarButton(
+                  context,
+                  label: BrokerageUser.displayValueText(
+                      widget.brokerageUser.sortOptions!),
+                  icon: widget.brokerageUser.sortDirection == SortDirection.desc
+                      ? Icons.arrow_downward
+                      : Icons.arrow_upward,
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => MoreMenuBottomSheet(
+                                widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlySort: true, onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  iconColor: Theme.of(context).colorScheme.secondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton(BuildContext context,
+      {required String label,
+      required IconData icon,
+      required VoidCallback onTap,
+      Color? iconColor}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: iconColor ?? Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down,
+                size: 16,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withOpacity(0.7)),
+          ],
+        ),
+      ),
+    );
   }
 }
 

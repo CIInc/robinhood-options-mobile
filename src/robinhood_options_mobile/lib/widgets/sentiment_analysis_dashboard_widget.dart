@@ -1,11 +1,37 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
+import '../model/brokerage_user.dart';
+import '../services/generative_service.dart';
+import '../model/instrument_store.dart';
 import '../model/sentiment_data.dart';
+import '../model/user.dart' as model_user;
+import '../services/ibrokerage_service.dart';
 import '../services/sentiment_service.dart';
+import '../widgets/instrument_widget.dart';
 
 class SentimentAnalysisDashboardWidget extends StatefulWidget {
-  const SentimentAnalysisDashboardWidget({super.key});
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
+  final FirebaseAnalytics? analytics;
+  final FirebaseAnalyticsObserver? observer;
+  final GenerativeService? generativeService;
+  final model_user.User? user;
+  final dynamic userDocRef; // DocumentReference<model_user.User>?
+
+  const SentimentAnalysisDashboardWidget({
+    super.key,
+    this.brokerageUser,
+    this.service,
+    this.analytics,
+    this.observer,
+    this.generativeService,
+    this.user,
+    this.userDocRef,
+  });
 
   @override
   State<SentimentAnalysisDashboardWidget> createState() =>
@@ -300,7 +326,7 @@ class _SentimentAnalysisDashboardWidgetState
         } else if (snapshot.hasData) {
           final items = snapshot.data!;
           return SizedBox(
-            height: 160,
+            height: 165,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: items.length,
@@ -309,7 +335,7 @@ class _SentimentAnalysisDashboardWidgetState
                 final item = items[index];
                 final color = _getColorForScore(item.score);
                 return Container(
-                  width: 170,
+                  width: 175,
                   margin: const EdgeInsets.only(right: 12.0),
                   child: Card(
                     elevation: 2,
@@ -321,67 +347,78 @@ class _SentimentAnalysisDashboardWidgetState
                         width: 1,
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                item.symbol ?? "",
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              if (item.source == SentimentSource.alphaAgent)
-                                const Icon(Icons.psychology,
-                                    size: 16, color: Colors.purple),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        if (item.symbol != null &&
+                            widget.service != null &&
+                            widget.brokerageUser != null) {
+                          _navigateToInstrument(item.symbol!);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  item.score.toStringAsFixed(0),
-                                  style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12),
+                                  item.symbol ?? "",
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  item.sentimentLabel,
-                                  style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 11),
-                                ),
+                                if (item.source == SentimentSource.alphaAgent)
+                                  const Icon(Icons.psychology,
+                                      size: 16, color: Colors.purple),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: Text(
-                              item.summary,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    item.score.toStringAsFixed(0),
+                                    style: TextStyle(
+                                        color: color,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.sentimentLabel,
+                                    style: TextStyle(
+                                        color: color,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: Text(
+                                item.summary,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -393,6 +430,35 @@ class _SentimentAnalysisDashboardWidgetState
         return const SizedBox.shrink();
       },
     );
+  }
+
+  void _navigateToInstrument(String symbol) async {
+    if (widget.service == null || widget.brokerageUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Please link a brokerage account to view details.")));
+      return;
+    }
+
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
+    final instrument = await widget.service!.getInstrumentBySymbol(
+        widget.brokerageUser!, instrumentStore, symbol);
+
+    if (instrument != null && mounted) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                    widget.brokerageUser!,
+                    widget.service!,
+                    instrument,
+                    analytics: widget.analytics!,
+                    observer: widget.observer!,
+                    generativeService: widget.generativeService!,
+                    user: widget.user!,
+                    userDocRef: widget.userDocRef!,
+                  )));
+    }
   }
 
   Widget _buildFeedSection() {
@@ -422,146 +488,168 @@ class _SentimentAnalysisDashboardWidgetState
                     width: 1,
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 48,
-                            width: 48,
-                            decoration: BoxDecoration(
-                              color: scoreColor.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () async {
+                    if (item.url.isNotEmpty) {
+                      final uri = Uri.parse(item.url);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      }
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 48,
+                              width: 48,
+                              decoration: BoxDecoration(
+                                color: scoreColor.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                item.sourceName == 'Alpha Agent'
+                                    ? Icons.psychology
+                                    : Icons.article,
+                                color: item.sourceName == 'Alpha Agent'
+                                    ? Colors.purple
+                                    : scoreColor,
+                                size: 24,
+                              ),
                             ),
-                            child: Icon(
-                              item.sourceName == 'Alpha Agent'
-                                  ? Icons.psychology
-                                  : Icons.article,
-                              color: item.sourceName == 'Alpha Agent'
-                                  ? Colors.purple
-                                  : scoreColor,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item.title,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16),
-                                      ),
-                                    ),
-                                    if (item.sentimentScore != 0)
-                                      Container(
-                                        margin: const EdgeInsets.only(left: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              scoreColor.withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
                                         child: Text(
-                                          item.sentimentScore
-                                              .toStringAsFixed(0),
-                                          style: TextStyle(
-                                            color: scoreColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                          item.title,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                        ),
+                                      ),
+                                      if (item.sentimentScore != 0)
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(left: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: scoreColor
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            item.sentimentScore
+                                                .toStringAsFixed(0),
+                                            style: TextStyle(
+                                              color: scoreColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        item.sourceName,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
                                       ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Text(
-                                      item.sourceName,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6.0),
+                                        child: Icon(Icons.circle,
+                                            size: 4,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outline),
+                                      ),
+                                      Text(
+                                        DateFormat.yMMMd()
+                                            .add_Hm()
+                                            .format(item.publishedAt),
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                        if (item.relatedSymbols.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 64),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: item.relatedSymbols.map((s) {
+                                return InkWell(
+                                  onTap: () {
+                                    if (widget.service != null &&
+                                        widget.brokerageUser != null) {
+                                      _navigateToInstrument(s);
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .dividerColor
+                                            .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      s,
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurface,
                                       ),
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6.0),
-                                      child: Icon(Icons.circle,
-                                          size: 4,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline),
-                                    ),
-                                    Text(
-                                      DateFormat.yMMMd()
-                                          .add_Hm()
-                                          .format(item.publishedAt),
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                          )
-                        ],
-                      ),
-                      if (item.relatedSymbols.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 64),
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: item.relatedSymbols.map((s) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Theme.of(context)
-                                        .dividerColor
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                child: Text(
-                                  s,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               );
@@ -577,24 +665,6 @@ class _SentimentAnalysisDashboardWidgetState
     if (score >= 60) return Colors.green;
     if (score <= 40) return Colors.red;
     return Colors.amber;
-  }
-
-  IconData _getSourceIcon(SentimentSource source) {
-    switch (source) {
-      case SentimentSource.twitter:
-        return Icons
-            .chat_bubble_outline; // Replace with Twitter icon if available
-      case SentimentSource.reddit:
-        return Icons.forum_outlined;
-      case SentimentSource.news:
-        return Icons.newspaper;
-      case SentimentSource.stocktwits:
-        return Icons.trending_up;
-      case SentimentSource.alphaAgent:
-        return Icons.psychology; // Brain icon for AI agent
-      default:
-        return Icons.article;
-    }
   }
 }
 

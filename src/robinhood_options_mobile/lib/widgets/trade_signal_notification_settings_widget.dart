@@ -411,9 +411,9 @@ class _TradeSignalNotificationSettingsWidgetState
               }
 
               String labelText = option;
-              if (option == '1d')
+              if (option == '1d') {
                 labelText = 'Daily';
-              else if (option == '1h')
+              } else if (option == '1h')
                 labelText = 'Hourly';
               else if (option == '30m')
                 labelText = '30 Min';

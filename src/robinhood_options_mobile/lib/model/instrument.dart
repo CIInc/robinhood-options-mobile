@@ -218,6 +218,35 @@ class Instrument {
         dateCreated = DateTime.now(),
         dateUpdated = null;
 
+  /// Creates a minimal Instrument for display when full instrument data is not available (e.g. paper orders).
+  factory Instrument.forSymbol(String symbol, {String? instrumentUrl}) {
+    final url = instrumentUrl ?? '';
+    final parts = url.split('/').where((s) => s.isNotEmpty).toList();
+    final id = parts.isNotEmpty ? parts.last : symbol;
+    return Instrument(
+        id: id,
+        url: url,
+        quote: '',
+        fundamentals: '',
+        splits: '',
+        state: 'active',
+        market: '',
+        simpleName: symbol,
+        name: symbol,
+        tradeable: true,
+        tradability: 'tradable',
+        symbol: symbol,
+        bloombergUnique: '',
+        country: 'US',
+        type: 'stock',
+        rhsTradability: 'tradable',
+        fractionalTradability: 'tradable',
+        isSpac: false,
+        isTest: false,
+        ipoAccessSupportsDsp: false,
+        dateCreated: DateTime.now());
+  }
+
   factory Instrument.fromJson(dynamic json) {
     if (json['cusip'] != null ||
         (json['assetType'] != null && json['id'] == null)) {

@@ -59,6 +59,13 @@ class InstrumentPosition {
   Instrument? instrumentObj;
   // DocumentReference<Instrument>? instrumentDocRef;
 
+  /// Parses instrument_obj (snake_case) or instrumentObj (camelCase) from JSON.
+  /// Firestore/PaperTradingStore saves camelCase; PaperService creates snake_case.
+  static Instrument? _parseInstrumentObj(dynamic json) {
+    final obj = json['instrument_obj'] ?? json['instrumentObj'];
+    return obj != null ? Instrument.fromJson(obj) : null;
+  }
+
   InstrumentPosition(
       this.url,
       this.instrument,
@@ -118,9 +125,7 @@ class InstrumentPosition {
             json['created_at'] is Timestamp
                 ? (json['created_at'] as Timestamp).toDate()
                 : DateTime.tryParse(json['created_at']),
-        instrumentObj = json['instrument_obj'] != null
-            ? Instrument.fromJson(json['instrument_obj'])
-            : null;
+        instrumentObj = _parseInstrumentObj(json);
   // instrumentDocRef = json['instrumentDocRef'] != null
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
   //     : null;
@@ -238,8 +243,8 @@ class InstrumentPosition {
       };
 
   String get instrumentId {
-    var splits = instrument.split("/");
-    return splits[splits.length - 2];
+    var splits = instrument.split("/").where((s) => s.isNotEmpty).toList();
+    return splits.isNotEmpty ? splits.last : '';
   }
 
   double get marketValue {

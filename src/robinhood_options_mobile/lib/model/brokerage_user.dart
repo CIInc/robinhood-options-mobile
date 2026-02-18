@@ -78,6 +78,8 @@ class BrokerageUser {
           return BrokerageSource.plaid;
         case 'demo':
           return BrokerageSource.demo;
+        case 'paper':
+          return BrokerageSource.paper;
       }
     }
     if (raw is int) {

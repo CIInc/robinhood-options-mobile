@@ -141,6 +141,11 @@ class _PaperTradingDashboardWidgetState
             onPressed: () => _analyzePortfolio(store),
           ),
           IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Paper Trading Settings',
+            onPressed: () => _showSettings(context, store),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Reset Account',
             onPressed: () => _confirmReset(context, store),
@@ -766,13 +771,40 @@ class _PaperTradingDashboardWidgetState
     );
   }
 
-  void _confirmReset(BuildContext context, PaperTradingStore store) {
+  void _showSettings(BuildContext context, PaperTradingStore store) {
+    final slippageController =
+        TextEditingController(text: store.slippage.toString());
+    final commissionController =
+        TextEditingController(text: store.commission.toString());
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset Paper Account'),
-        content: const Text(
-            'Are you sure you want to reset your balance to \$100,000 and clear all positions?'),
+        title: const Text('Paper Trading Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: slippageController,
+              decoration: const InputDecoration(
+                labelText: 'Slippage (per share/contract)',
+                prefixText: '\$ ',
+                helperText: 'Simulated execution price offset',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commissionController,
+              decoration: const InputDecoration(
+                labelText: 'Commission (per trade)',
+                prefixText: '\$ ',
+                helperText: 'Fixed fee added to each trade',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -780,12 +812,59 @@ class _PaperTradingDashboardWidgetState
           ),
           TextButton(
             onPressed: () {
-              store.resetAccount();
+              final s = double.tryParse(slippageController.text) ?? 0.0;
+              final c = double.tryParse(commissionController.text) ?? 0.0;
+              store.updateSettings(slippage: s, commission: c);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Settings updated.')));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmReset(BuildContext context, PaperTradingStore store) {
+    final capitalController = TextEditingController(text: '100000.00');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Paper Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Resetting will CLEAR ALL POSITIONS and history. You can customize the starting capital below:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: capitalController,
+              decoration: const InputDecoration(
+                labelText: 'Starting Capital',
+                prefixText: '\$ ',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final capital =
+                  double.tryParse(capitalController.text) ?? 100000.0;
+              store.resetAccount(initialCapital: capital);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Paper account reset.')));
             },
-            child: const Text('Reset', style: TextStyle(color: Colors.red)),
+            child: const Text('Reset Now', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

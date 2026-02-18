@@ -21,6 +21,9 @@ class PaperTradingStore extends ChangeNotifier {
 
   // State
   double _cashBalance = 100000.0;
+  double _initialCapital = 100000.0;
+  double _slippage = 0.0;
+  double _commission = 0.0;
   List<InstrumentPosition> _positions = [];
   List<OptionAggregatePosition> _optionPositions = [];
   List<Map<String, dynamic>> _history = [];
@@ -28,6 +31,9 @@ class PaperTradingStore extends ChangeNotifier {
 
   // Getters
   double get cashBalance => _cashBalance;
+  double get initialCapital => _initialCapital;
+  double get slippage => _slippage;
+  double get commission => _commission;
   List<InstrumentPosition> get positions => List.unmodifiable(_positions);
   List<OptionAggregatePosition> get optionPositions =>
       List.unmodifiable(_optionPositions);
@@ -50,9 +56,10 @@ class PaperTradingStore extends ChangeNotifier {
     }
     for (var pos in _optionPositions) {
       // Use current market price if available, otherwise fallback to averageOpenPrice
-      double price = (pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
-          pos.averageOpenPrice ??
-          0);
+      double price =
+          (pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
+              pos.averageOpenPrice ??
+              0);
       total += (pos.quantity ?? 0) * price * 100;
     }
     return total;
@@ -69,6 +76,7 @@ class PaperTradingStore extends ChangeNotifier {
 
   void _resetState() {
     _cashBalance = 100000.0;
+    _initialCapital = 100000.0;
     _positions = [];
     _optionPositions = [];
     _history = [];
@@ -91,6 +99,10 @@ class PaperTradingStore extends ChangeNotifier {
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
         _cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
+        _initialCapital =
+            (data['initialCapital'] as num?)?.toDouble() ?? _cashBalance;
+        _slippage = (data['slippage'] as num?)?.toDouble() ?? 0.0;
+        _commission = (data['commission'] as num?)?.toDouble() ?? 0.0;
 
         if (data['positions'] != null) {
           _positions = (data['positions'] as List).map((e) {
@@ -137,6 +149,9 @@ class PaperTradingStore extends ChangeNotifier {
           .doc('main')
           .set({
         'cashBalance': _cashBalance,
+        'initialCapital': _initialCapital,
+        'slippage': _slippage,
+        'commission': _commission,
         'positions':
             _positions.map((p) => _instrumentPositionToJson(p)).toList(),
         'optionPositions':
@@ -225,11 +240,8 @@ class PaperTradingStore extends ChangeNotifier {
     };
   }
 
-  Future<void> refreshQuotes(
-      IBrokerageService service,
-      QuoteStore quoteStore,
-      OptionInstrumentStore optionInstrumentStore,
-      BrokerageUser user) async {
+  Future<void> refreshQuotes(IBrokerageService service, QuoteStore quoteStore,
+      OptionInstrumentStore optionInstrumentStore, BrokerageUser user) async {
     bool changed = false;
 
     // 1. Stocks & Underlying for Options
@@ -237,21 +249,20 @@ class PaperTradingStore extends ChangeNotifier {
         .map((p) => p.instrumentObj?.symbol)
         .whereType<String>()
         .toList();
-    
+
     // Add underlying symbols from options to fetch quotes for expiration checks
     var optionUnderlyingSymbols = _optionPositions
         .map((p) => p.optionInstrument?.chainSymbol)
         .whereType<String>()
         .toList();
-    
+
     var allSymbols = {...stockSymbols, ...optionUnderlyingSymbols}.toList();
 
     Map<String, double> underlyingPrices = {};
 
     if (allSymbols.isNotEmpty) {
       try {
-        var quotes =
-            await service.getQuoteByIds(user, quoteStore, allSymbols);
+        var quotes = await service.getQuoteByIds(user, quoteStore, allSymbols);
         for (var quote in quotes) {
           underlyingPrices[quote.symbol] = quote.lastTradePrice ?? 0.0;
 
@@ -288,7 +299,7 @@ class PaperTradingStore extends ChangeNotifier {
     for (var pos in expiredPositions) {
       double underlyingPrice =
           underlyingPrices[pos.optionInstrument?.chainSymbol] ?? 0.0;
-      // If underlying price is 0 (fetch failed), we might want to skip expiration processing 
+      // If underlying price is 0 (fetch failed), we might want to skip expiration processing
       // or assume 0?. For now, if we have a price, we handle it.
       if (underlyingPrice > 0) {
         _processExpiration(pos, underlyingPrice);
@@ -297,7 +308,8 @@ class PaperTradingStore extends ChangeNotifier {
     }
 
     var optionIds = _optionPositions
-        .where((p) => !expiredPositions.contains(p) && p.optionInstrument?.id != null)
+        .where((p) =>
+            !expiredPositions.contains(p) && p.optionInstrument?.id != null)
         .map((p) => p.optionInstrument!.id)
         .toList();
 
@@ -341,8 +353,15 @@ class PaperTradingStore extends ChangeNotifier {
     };
   }
 
-  Future<void> resetAccount() async {
-    _cashBalance = 100000.0;
+  Future<void> updateSettings({double? slippage, double? commission}) async {
+    if (slippage != null) _slippage = slippage;
+    if (commission != null) _commission = commission;
+    await _save();
+    notifyListeners();
+  }
+
+  Future<void> resetAccount({double initialCapital = 100000.0}) async {
+    _cashBalance = initialCapital;
     _positions = [];
     _optionPositions = [];
     _history = [];
@@ -357,27 +376,37 @@ class PaperTradingStore extends ChangeNotifier {
     required String side,
     String? orderType,
   }) async {
-    double amount = quantity * price;
-
+    double executionPrice = price;
+    double amount = 0;
     if (side.toLowerCase() == 'buy') {
+      executionPrice += _slippage;
+      amount = (quantity * executionPrice) + _commission;
       if (_cashBalance < amount) {
         throw Exception("Insufficient buying power.");
       }
       _cashBalance -= amount;
-      _updateStockPosition(instrument, quantity, price, 1);
+      _updateStockPosition(instrument, quantity, executionPrice, 1);
     } else {
+      executionPrice -= _slippage;
+      amount = (quantity * executionPrice) - _commission;
       var existing = _positions.firstWhere(
           (p) => p.instrument == instrument.url,
           orElse: () => throw Exception("Position not found."));
       if ((existing.quantity ?? 0) < quantity) {
         throw Exception("Insufficient quantity to sell.");
       }
-      _cashBalance += amount;
-      _updateStockPosition(instrument, quantity, price, -1);
-    }
 
-    _addToHistory("stock", side, instrument.symbol, quantity, price,
-        detail: orderType != null ? "Type: $orderType" : null);
+      // Calculate P&L for history
+      double costBasis = (existing.averageBuyPrice ?? 0) * quantity;
+      double profitLoss = amount - costBasis;
+
+      _cashBalance += amount;
+      _updateStockPosition(instrument, quantity, executionPrice, -1);
+
+      _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
+          detail: orderType != null ? "Type: $orderType" : null,
+          profitLoss: profitLoss);
+    }
     await _save();
     notifyListeners();
   }
@@ -460,15 +489,20 @@ class PaperTradingStore extends ChangeNotifier {
     String? orderType,
   }) async {
     double multiplier = 100.0;
-    double amount = quantity * price * multiplier;
+    double executionPrice = price;
+    double amount = 0;
 
     if (side.toLowerCase() == 'buy') {
+      executionPrice += _slippage;
+      amount = (quantity * executionPrice * multiplier) + _commission;
       if (_cashBalance < amount) {
         throw Exception("Insufficient buying power.");
       }
       _cashBalance -= amount;
-      _updateOptionPosition(optionInstrument, quantity, price, 1);
+      _updateOptionPosition(optionInstrument, quantity, executionPrice, 1);
     } else {
+      executionPrice -= _slippage;
+      amount = (quantity * executionPrice * multiplier) - _commission;
       var existingList = _optionPositions.where((p) =>
           p.legs.isNotEmpty && p.legs.first.option == optionInstrument.url);
 
@@ -480,18 +514,25 @@ class PaperTradingStore extends ChangeNotifier {
       if ((existing.quantity ?? 0) < quantity) {
         throw Exception("Insufficient quantity to sell.");
       }
+
+      // Calculate P&L for history
+      double costBasis =
+          (existing.averageOpenPrice ?? 0) * quantity * multiplier;
+      double profitLoss = amount - costBasis;
+
       _cashBalance += amount;
-      _updateOptionPosition(optionInstrument, quantity, price, -1);
-    }
+      _updateOptionPosition(optionInstrument, quantity, executionPrice, -1);
 
-    String detail =
-        "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
-    if (orderType != null) {
-      detail += " | $orderType";
-    }
+      String detail =
+          "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
+      if (orderType != null) {
+        detail += " | $orderType";
+      }
 
-    _addToHistory("option", side, optionInstrument.chainSymbol, quantity, price,
-        detail: detail);
+      _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+          executionPrice,
+          detail: detail, profitLoss: profitLoss);
+    }
     await _save();
     notifyListeners();
   }
@@ -505,15 +546,20 @@ class PaperTradingStore extends ChangeNotifier {
         legsData, // Contains 'instrument' (OptionInstrument), 'side' (String), 'ratio' (int)
   }) async {
     double multiplier = 100.0;
-    double amount = quantity * price * multiplier;
+    double executionPrice = price;
+    double amount = 0;
 
     if (direction == 'debit') {
+      executionPrice += _slippage;
+      amount = (quantity * executionPrice * multiplier) + _commission;
       if (_cashBalance < amount) {
         throw Exception("Insufficient buying power.");
       }
       _cashBalance -= amount;
     } else {
       // Credit
+      executionPrice -= _slippage;
+      amount = (quantity * executionPrice * multiplier) - _commission;
       _cashBalance += amount;
     }
 
@@ -545,10 +591,10 @@ class PaperTradingStore extends ChangeNotifier {
           ? legsData.first['instrument'].chainSymbol
           : strategyName,
       strategyName,
-      price,
+      executionPrice,
       newLegs,
       quantity,
-      price,
+      executionPrice,
       quantity,
       direction,
       direction,
@@ -561,7 +607,7 @@ class PaperTradingStore extends ChangeNotifier {
     _optionPositions.add(newPos);
 
     _addToHistory("strategy", direction == 'debit' ? 'buy' : 'sell',
-        strategyName, quantity, price,
+        strategyName, quantity, executionPrice,
         detail: "$strategyName (${legsData.length} legs)");
     await _save();
     notifyListeners();
@@ -649,16 +695,18 @@ class PaperTradingStore extends ChangeNotifier {
   }
 
   void _addToHistory(
-      String type, String side, String symbol, double quantity, double price,
-      {String? detail}) {
+      String type, String action, String symbol, double quantity, double price,
+      {String? detail, double? profitLoss}) {
     _history.insert(0, {
       'timestamp': DateTime.now().toIso8601String(),
-      'type': type,
-      'side': side,
+      'type': type.toUpperCase(),
+      'action': action.toUpperCase(),
       'symbol': symbol,
       'quantity': quantity,
       'price': price,
       'detail': detail,
+      'paperMode': true,
+      if (profitLoss != null) 'profitLoss': profitLoss,
     });
     if (_history.length > 100) {
       _history = _history.sublist(0, 100);
@@ -695,11 +743,7 @@ class PaperTradingStore extends ChangeNotifier {
     _optionPositions.remove(pos);
 
     if (totalPayout > 0) {
-      _addToHistory(
-          "expiration",
-          "exercise",
-          pos.symbol,
-          quantity,
+      _addToHistory("expiration", "exercise", pos.symbol, quantity,
           intrinsicValue, // usage of price field for intrinsic val
           detail: "Expired ITM at $underlyingPrice. ${details.join(', ')}");
     } else {

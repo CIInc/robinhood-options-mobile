@@ -91,7 +91,6 @@ class AgenticTradingProvider with ChangeNotifier {
   List<Map<String, dynamic>> _signalProcessingHistory = [];
 
   // Signal processing tracking
-  DateTime? _lastSignalCheckTime;
   final Map<String, int> _processedSignalTimestamps = {};
 
   // Activity Log
@@ -370,9 +369,6 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      // Capture start time for next cycle's reference
-      final cycleStartTime = DateTime.now();
-
       // Fetch recent signals based on strategy
       final enabledIndicators = _config.strategyConfig.enabledIndicators;
       final activeIndicators = enabledIndicators.entries
@@ -481,9 +477,6 @@ class AgenticTradingProvider with ChangeNotifier {
       );
 
       updateLastAutoTradeResult(result);
-
-      // Update last check time and prune processed history
-      _lastSignalCheckTime = cycleStartTime;
 
       // Prune processed signals older than 24 hours
       final cutoff = DateTime.now()
@@ -642,7 +635,7 @@ class AgenticTradingProvider with ChangeNotifier {
         final symbols = _automatedBuyTrades
             .map((t) => '${t['symbol']} x${t['quantity']}')
             .join(', ');
-        // _log('📝 Automated buy trades: $symbols');
+        _log('📝 Automated buy trades: $symbols');
       }
 
       _analytics.logEvent(

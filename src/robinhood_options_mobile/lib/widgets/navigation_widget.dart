@@ -56,6 +56,7 @@ import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_wid
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 
 //const routeHome = '/';
@@ -128,20 +129,26 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   BrokerageUser? _lastUser;
   String? _lastAuthUserUid;
 
+  IBrokerageService _getService(BrokerageUser user) {
+    return user.source == BrokerageSource.robinhood
+        ? RobinhoodService()
+        : user.source == BrokerageSource.schwab
+            ? SchwabService()
+            : user.source == BrokerageSource.fidelity
+                ? FidelityService()
+                : user.source == BrokerageSource.plaid
+                    ? PlaidService()
+                    : user.source == BrokerageSource.paper
+                        ? PaperService()
+                        : DemoService();
+  }
+
   Future<List<dynamic>> _loadData(BrokerageUserStore userStore) {
     final packageInfoFuture = PackageInfo.fromPlatform();
     List<Future> futureArr = [packageInfoFuture];
 
     if (userStore.items.isNotEmpty) {
-      service = userStore.currentUser!.source == BrokerageSource.robinhood
-          ? RobinhoodService()
-          : userStore.currentUser!.source == BrokerageSource.schwab
-              ? SchwabService()
-              : userStore.currentUser!.source == BrokerageSource.fidelity
-                  ? FidelityService()
-                  : userStore.currentUser!.source == BrokerageSource.plaid
-                      ? PlaidService()
-                      : DemoService();
+      service = _getService(userStore.currentUser!);
 
       var futureUserInfo = service!.getUser(userStore.currentUser!);
       futureArr.add(futureUserInfo.catchError((e) => null));
@@ -322,15 +329,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             Provider.of<InstrumentStore>(context, listen: false);
         if (userStore.items.isNotEmpty) {
           var brokerageUser = userStore.currentUser ?? userStore.items.first;
-          service = brokerageUser.source == BrokerageSource.robinhood
-              ? RobinhoodService()
-              : brokerageUser.source == BrokerageSource.schwab
-                  ? SchwabService()
-                  : brokerageUser.source == BrokerageSource.fidelity
-                      ? FidelityService()
-                      : brokerageUser.source == BrokerageSource.plaid
-                          ? PlaidService()
-                          : DemoService();
+          service = _getService(brokerageUser);
 
           service!
               .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
@@ -374,15 +373,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             Provider.of<InstrumentStore>(context, listen: false);
         if (userStore.items.isNotEmpty) {
           var brokerageUser = userStore.currentUser ?? userStore.items.first;
-          service = brokerageUser.source == BrokerageSource.robinhood
-              ? RobinhoodService()
-              : brokerageUser.source == BrokerageSource.schwab
-                  ? SchwabService()
-                  : brokerageUser.source == BrokerageSource.fidelity
-                      ? FidelityService()
-                      : brokerageUser.source == BrokerageSource.plaid
-                          ? PlaidService()
-                          : DemoService();
+          service = _getService(brokerageUser);
 
           service!
               .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
@@ -419,15 +410,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               Provider.of<InstrumentStore>(context, listen: false);
           if (userStore.items.isNotEmpty) {
             var brokerageUser = userStore.currentUser ?? userStore.items.first;
-            service = brokerageUser.source == BrokerageSource.robinhood
-                ? RobinhoodService()
-                : brokerageUser.source == BrokerageSource.schwab
-                    ? SchwabService()
-                    : brokerageUser.source == BrokerageSource.fidelity
-                        ? FidelityService()
-                        : brokerageUser.source == BrokerageSource.plaid
-                            ? PlaidService()
-                            : DemoService();
+            service = _getService(brokerageUser);
 
             service!
                 .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)

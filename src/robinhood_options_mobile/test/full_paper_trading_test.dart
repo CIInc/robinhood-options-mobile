@@ -157,7 +157,19 @@ class FakePaperTradingStore extends ChangeNotifier
   void setUser(auth.User? user) {}
 
   @override
-  Future<void> resetAccount() async {}
+  double get initialCapital => 100000.0;
+
+  @override
+  double get slippage => 0.0;
+
+  @override
+  double get commission => 0.0;
+
+  @override
+  Future<void> updateSettings({double? slippage, double? commission}) async {}
+
+  @override
+  Future<void> resetAccount({double initialCapital = 100000.0}) async {}
 
   @override
   Future<void> executeComplexOptionStrategy({

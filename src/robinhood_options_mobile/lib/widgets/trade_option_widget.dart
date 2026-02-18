@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
@@ -67,7 +68,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
-    _isPaperTrade = widget.initialIsPaperTrade;
+    _isPaperTrade = widget.user.source == BrokerageSource.paper ||
+        widget.initialIsPaperTrade;
     widget.analytics.logScreenView(screenName: 'Trade Option');
 
     double price = widget.optionInstrument?.optionMarketData?.markPrice ?? 0.0;
@@ -130,8 +132,32 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${option.chainSymbol} \$${option.strikePrice} ${option.type}',
+            Row(
+              children: [
+                Text(
+                  '${option.chainSymbol} \$${option.strikePrice} ${option.type}',
+                ),
+                if (_isPaperTrade) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.5)),
+                    ),
+                    child: const Text(
+                      'PAPER',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber),
+                    ),
+                  ),
+                ],
+              ],
             ),
             Text(
               '${formatDate.format(option.expirationDate!)} • ${formatCurrency.format(currentPrice)}',
@@ -208,12 +234,16 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             title: const Text("Paper Trade"),
             subtitle: const Text("Simulate this trade with virtual money"),
             value: _isPaperTrade,
-            onChanged: (val) {
-              setState(() {
-                _isPaperTrade = val;
-              });
-            },
-            secondary: const Icon(Icons.school),
+            onChanged: widget.user.source == BrokerageSource.paper
+                ? null
+                : (val) {
+                    setState(() {
+                      _isPaperTrade = val;
+                      _updateEstimates();
+                    });
+                  },
+            secondary:
+                Icon(Icons.school, color: _isPaperTrade ? Colors.amber : null),
           ),
           const SizedBox(height: 16),
 

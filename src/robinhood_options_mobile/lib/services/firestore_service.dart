@@ -12,6 +12,8 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
@@ -32,6 +34,8 @@ class FirestoreService {
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
   final String investorGroupCollectionName = 'investor_groups';
+  final String optionInstrumentCollectionName = 'option_instruments';
+  final String optionMarketDataCollectionName = 'option_market_data';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -55,6 +59,22 @@ class FirestoreService {
                 InvestorGroup.fromJson(snapshots.data()!),
             toFirestore: (obj, _) => obj.toJson(),
           );
+
+  late final CollectionReference<OptionInstrument> optionInstrumentCollection =
+      _db
+          .collection(optionInstrumentCollectionName)
+          .withConverter<OptionInstrument>(
+              fromFirestore: (snapshots, _) =>
+                  OptionInstrument.fromJson(snapshots.data()!),
+              toFirestore: (obj, _) => obj.toJson());
+
+  late final CollectionReference<OptionMarketData> optionMarketDataCollection =
+      _db
+          .collection(optionMarketDataCollectionName)
+          .withConverter<OptionMarketData>(
+              fromFirestore: (snapshots, _) =>
+                  OptionMarketData.fromJson(snapshots.data()!),
+              toFirestore: (obj, _) => obj.toJson());
 
   /// User Methods
 
@@ -96,6 +116,41 @@ class FirestoreService {
       fields['lastVisited'] = lastVisited;
     }
     await userDocumentReference.update(fields);
+  }
+
+  /// OptionInstrument Methods
+
+  Future<OptionInstrument?> getOptionInstrument(String id) async {
+    var snapshot = await optionInstrumentCollection.doc(id).get();
+    return snapshot.data();
+  }
+
+  Future<List<OptionInstrument>> getOptionInstruments(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    List<OptionInstrument> results = [];
+    for (var id in ids) {
+      var item = await getOptionInstrument(id);
+      if (item != null) results.add(item);
+    }
+    return results;
+  }
+
+  /// OptionMarketData Methods
+
+  Future<OptionMarketData?> getOptionMarketData(String id) async {
+    var snapshot = await optionMarketDataCollection.doc(id).get();
+    return snapshot.data();
+  }
+
+  Future<List<OptionMarketData>> getOptionMarketDataList(
+      List<String> ids) async {
+    if (ids.isEmpty) return [];
+    List<OptionMarketData> results = [];
+    for (var id in ids) {
+      var item = await getOptionMarketData(id);
+      if (item != null) results.add(item);
+    }
+    return results;
   }
 
   Stream<DocumentSnapshot<User>> getUser(String uid) {
@@ -1311,7 +1366,8 @@ class FirestoreService {
 
                 // Calculate hold time for this matched trade
                 if (buyDate != null && order.createdAt != null) {
-                  final holdTimeHours = order.createdAt!.difference(buyDate).inHours;
+                  final holdTimeHours =
+                      order.createdAt!.difference(buyDate).inHours;
                   totalHoldTime += holdTimeHours;
                 }
 
@@ -1437,6 +1493,153 @@ class FirestoreService {
       debugPrint('Failed to delete note: ${e.message}');
       rethrow;
     }
+  }
+
+  /// Paper Trading Methods
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getPaperAccountDoc(
+      String userId) async {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_account')
+        .doc('main')
+        .get();
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getPaperAccountStream(
+      String userId) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_account')
+        .doc('main')
+        .snapshots();
+  }
+
+  Future<void> updatePaperAccount(String userId, Map<String, dynamic> data) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_account')
+        .doc('main')
+        .set(data, SetOptions(merge: true));
+  }
+
+  Future<void> createPaperOrder(String userId, Map<String, dynamic> order) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_account')
+        .doc('main')
+        .set({
+      'history': FieldValue.arrayUnion([order])
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> createPaperPosition(
+      String userId, Map<String, dynamic> position) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_account')
+        .doc('main')
+        .set({
+      'positions': FieldValue.arrayUnion([position])
+    }, SetOptions(merge: true));
+  }
+
+  Future<List<InstrumentPosition>> listPaperPositions(String userId) async {
+    final snapshot = await getPaperAccountDoc(userId);
+    if (snapshot.exists && snapshot.data()?['positions'] != null) {
+      return (snapshot.data()?['positions'] as List)
+          .map((e) => InstrumentPosition.fromJson(e))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<List<OptionAggregatePosition>> listPaperOptionPositions(
+      String userId) async {
+    final snapshot = await getPaperAccountDoc(userId);
+    if (snapshot.exists && snapshot.data()?['optionPositions'] != null) {
+      return (snapshot.data()?['optionPositions'] as List)
+          .map((e) => OptionAggregatePosition.fromJson(e))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> listPaperOrders(String userId,
+      {int limit = 50}) async {
+    final snapshot = await getPaperAccountDoc(userId);
+    if (snapshot.exists && snapshot.data()?['history'] != null) {
+      return List<Map<String, dynamic>>.from(snapshot.data()?['history'])
+          .reversed
+          .take(limit)
+          .toList();
+    }
+    return [];
+  }
+
+  Stream<List<InstrumentPosition>> streamPaperPositions(String userId) {
+    return getPaperAccountStream(userId).map((snapshot) {
+      if (snapshot.exists && snapshot.data()?['positions'] != null) {
+        return (snapshot.data()?['positions'] as List)
+            .map((e) => InstrumentPosition.fromJson(e))
+            .toList();
+      }
+      return [];
+    });
+  }
+
+  Stream<List<OptionAggregatePosition>> streamPaperOptionPositions(
+      String userId) {
+    return getPaperAccountStream(userId).map((snapshot) {
+      if (snapshot.exists && snapshot.data()?['optionPositions'] != null) {
+        return (snapshot.data()?['optionPositions'] as List)
+            .map((e) => OptionAggregatePosition.fromJson(e))
+            .toList();
+      }
+      return [];
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getPaperHistory(String userId,
+      {int limit = 250}) async {
+    final querySnapshot = await _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_equity_history')
+        .orderBy('begins_at', descending: false)
+        .limit(limit)
+        .get();
+
+    return querySnapshot.docs.map((doc) => doc.data()).toList();
+  }
+
+  Stream<List<Map<String, dynamic>>> streamPaperOrders(String userId,
+      {int limit = 50}) {
+    return getPaperAccountStream(userId).map((snapshot) {
+      if (snapshot.exists && snapshot.data()?['history'] != null) {
+        return List<Map<String, dynamic>>.from(snapshot.data()?['history'])
+            .reversed // Most recent first
+            .take(limit)
+            .toList();
+      }
+      return [];
+    });
+  }
+
+  Stream<List<ForexHolding>> streamPaperForexHoldings(String userId) {
+    return getPaperAccountStream(userId).map((snapshot) {
+      if (snapshot.exists && snapshot.data()?['forexHoldings'] != null) {
+        return (snapshot.data()?['forexHoldings'] as List)
+            .map((e) => ForexHolding.fromJson(e))
+            .toList();
+      }
+      return [];
+    });
   }
 }
 

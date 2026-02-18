@@ -653,6 +653,7 @@ class FidelityService implements IBrokerageService {
     }
 
     try {
+      // TODO: Use the open Fidelity API instead, see https://github.com/njfdev/fidelity-api/blob/main/docs/historical-data.md
       // getHistoricals returns List<InstrumentHistorical>
       var candles = await yahooService.getHistoricals(
           symbolOrInstrumentId, range, interval);
@@ -2095,8 +2096,7 @@ class _AccountSelectionDialog extends StatefulWidget {
   final List<String> accounts;
   final Map<String, String>? accountLabels;
 
-  const _AccountSelectionDialog(
-      {required this.accounts, this.accountLabels});
+  const _AccountSelectionDialog({required this.accounts, this.accountLabels});
 
   @override
   _AccountSelectionDialogState createState() => _AccountSelectionDialogState();

@@ -421,8 +421,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 150.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
                                 childAspectRatio: 0.925,
                               ),
                               delegate: SliverChildBuilderDelegate(
@@ -432,9 +432,18 @@ class _SearchWidgetState extends State<SearchWidget>
                                 childCount: search != null
                                     ? (search is List
                                         ? search.length
-                                        : search["results"][0]["content"]
-                                                ["data"]
-                                            .length)
+                                        : (search["results"] != null &&
+                                                search["results"].isNotEmpty &&
+                                                search["results"][0]
+                                                        ["content"] !=
+                                                    null &&
+                                                search["results"][0]["content"]
+                                                        ["data"] !=
+                                                    null
+                                            ? search["results"][0]["content"]
+                                                    ["data"]
+                                                .length
+                                            : 0))
                                     : 0,
                               ),
                             )),
@@ -549,8 +558,8 @@ class _SearchWidgetState extends State<SearchWidget>
                   //             gridDelegate:
                   //                 const SliverGridDelegateWithMaxCrossAxisExtent(
                   //               maxCrossAxisExtent: 125.0,
-                  //               mainAxisSpacing: 10.0,
-                  //               crossAxisSpacing: 10.0,
+                  //               mainAxisSpacing: 8.0,
+                  //               crossAxisSpacing: 8.0,
                   //               childAspectRatio: 1.25,
                   //             ),
                   //             delegate: SliverChildBuilderDelegate(
@@ -574,8 +583,16 @@ class _SearchWidgetState extends State<SearchWidget>
                       child: MacroAssessmentWidget(),
                     ),
                   ),
-                  const SliverToBoxAdapter(
-                    child: MarketSentimentCardWidget(),
+                  SliverToBoxAdapter(
+                    child: MarketSentimentCardWidget(
+                      widget.brokerageUser,
+                      widget.service,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    ),
                   ),
                   SliverToBoxAdapter(
                     child: Padding(
@@ -718,8 +735,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
                                 childAspectRatio: 1.25,
                               ),
                               delegate: SliverChildBuilderDelegate(
@@ -768,8 +785,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
                                 childAspectRatio: 1.25,
                               ),
                               delegate: SliverChildBuilderDelegate(
@@ -824,8 +841,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
                                 childAspectRatio: 1.37,
                               ),
                               delegate: SliverChildBuilderDelegate(
@@ -1091,22 +1108,23 @@ class _SearchWidgetState extends State<SearchWidget>
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        data["simple_name"] ??
-                            data["name"] ??
-                            data[
-                                "description"], // Schwab API returns this field
-                        style: TextStyle(
-                          fontSize: 13.0,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.7),
+                      Expanded(
+                        child: Text(
+                          data["simple_name"] ??
+                              data["name"] ??
+                              data[
+                                  "description"], // Schwab API returns this field
+                          style: TextStyle(
+                            fontSize: 13.0,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.7),
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const Spacer(),
                       if (data["exchange"] != null ||
                           data["assetType"] != null) ...[
                         const SizedBox(height: 8),

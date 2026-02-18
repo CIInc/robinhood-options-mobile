@@ -5,6 +5,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -68,6 +69,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
   @override
   void initState() {
     super.initState();
+    _isPaperTrade = widget.user.source == BrokerageSource.paper;
     _sortedTags = OptionStrategy.strategies
         .expand((s) => s.tags)
         .toSet()
@@ -1442,6 +1444,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  /*
                   SwitchListTile(
                     title: const Text("Paper Trade"),
                     subtitle:
@@ -1454,6 +1457,7 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     },
                     secondary: const Icon(Icons.school),
                   ),
+                  */
                   const SizedBox(height: 8),
                   Consumer<AccountStore>(
                     builder: (context, accountStore, child) {

@@ -8,6 +8,8 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -536,104 +538,97 @@ class _NotificationItem extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (notification.price != null ||
-                          notification.confidence != null ||
-                          notification.interval != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Wrap(
-                            spacing: 8,
-                            children: [
-                              if (notification.interval != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: theme
-                                        .colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: theme.colorScheme.outline
-                                          .withValues(alpha: 0.2),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        notification.interval == '1d'
-                                            ? Icons.calendar_today
-                                            : Icons.access_time,
-                                        size: 12,
-                                        color: theme.textTheme.bodySmall?.color,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        notification.interval == '1d'
-                                            ? 'Daily'
-                                            : notification.interval == '1h'
-                                                ? 'Hourly'
-                                                : notification.interval == '30m'
-                                                    ? '30m'
-                                                    : notification.interval ==
-                                                            '15m'
-                                                        ? '15m'
-                                                        : notification
-                                                            .interval!,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(fontSize: 11),
-                                      ),
-                                    ],
-                                  ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Wrap(
+                          spacing: 8,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: theme.colorScheme.outline
+                                      .withValues(alpha: 0.2),
                                 ),
-                              if (notification.price != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: theme
-                                        .colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    notification.interval == '1d'
+                                        ? Icons.calendar_today
+                                        : Icons.access_time,
+                                    size: 12,
+                                    color: theme.textTheme.bodySmall?.color,
                                   ),
-                                  child: Text(
-                                    '\$${notification.price!.toStringAsFixed(2)}',
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    notification.interval == '1d'
+                                        ? 'Daily'
+                                        : notification.interval == '1h'
+                                            ? 'Hourly'
+                                            : notification.interval == '30m'
+                                                ? '30m'
+                                                : notification.interval == '15m'
+                                                    ? '15m'
+                                                    : notification.interval,
                                     style: theme.textTheme.bodySmall
                                         ?.copyWith(fontSize: 11),
                                   ),
+                                ],
+                              ),
+                            ),
+                            if (notification.price != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
                                 ),
-                              if (notification.confidence != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
+                                child: Text(
+                                  '\$${notification.price!.toStringAsFixed(2)}',
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(fontSize: 11),
+                                ),
+                              ),
+                            if (notification.confidence != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (notification.confidence! > 0.8)
+                                      ? Colors.green.withValues(alpha: 0.1)
+                                      : theme
+                                          .colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: (notification.confidence! > 0.8)
+                                      ? Border.all(
+                                          color: Colors.green
+                                              .withValues(alpha: 0.3))
+                                      : null,
+                                ),
+                                child: Text(
+                                  '${(notification.confidence! * 100).toStringAsFixed(0)}% Conf.',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
                                     color: (notification.confidence! > 0.8)
-                                        ? Colors.green.withValues(alpha: 0.1)
-                                        : theme.colorScheme
-                                            .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: (notification.confidence! > 0.8)
-                                        ? Border.all(
-                                            color: Colors.green
-                                                .withValues(alpha: 0.3))
+                                        ? Colors.green
+                                        : null,
+                                    fontWeight: (notification.confidence! > 0.8)
+                                        ? FontWeight.bold
                                         : null,
                                   ),
-                                  child: Text(
-                                    '${(notification.confidence! * 100).toStringAsFixed(0)}% Conf.',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 11,
-                                      color: (notification.confidence! > 0.8)
-                                          ? Colors.green
-                                          : null,
-                                      fontWeight:
-                                          (notification.confidence! > 0.8)
-                                              ? FontWeight.bold
-                                              : null,
-                                    ),
-                                  ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -675,8 +670,14 @@ class _NotificationItem extends StatelessWidget {
         case BrokerageSource.schwab:
           service = SchwabService();
           break;
+        case BrokerageSource.fidelity:
+          service = FidelityService();
+          break;
         case BrokerageSource.plaid:
           service = PlaidService();
+          break;
+        case BrokerageSource.paper:
+          service = PaperService();
           break;
         default:
           service = DemoService();

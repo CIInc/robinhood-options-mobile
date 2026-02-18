@@ -296,7 +296,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
             icon: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.sort, size: 20),

@@ -3754,7 +3754,6 @@ GET https://api.robinhood.com/marketdata/futures/historicals/contracts/v1/?ids=b
       BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
-    String bounds = convertChartBoundsFilter(chartBoundsFilter);
     // var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     // String span = rtn[0];
     // String interval = rtn[1];

@@ -358,10 +358,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                       source = value == 0
                           ? BrokerageSource.demo
                           : value == 1
-                              ? BrokerageSource.robinhood
+                              ? BrokerageSource.paper
                               : value == 2
-                                  ? BrokerageSource.schwab
-                                  : BrokerageSource.plaid;
+                                  ? BrokerageSource.robinhood
+                                  : value == 3
+                                      ? BrokerageSource.schwab
+                                      : value == 4
+                                          ? BrokerageSource.plaid
+                                          : BrokerageSource.fidelity;
                     });
                   },
                   children: [
@@ -384,6 +388,29 @@ class _LoginWidgetState extends State<LoginWidget> {
                         onSelected: (bool selected) {
                           setState(() {
                             source = BrokerageSource.demo;
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar: const Icon(Icons.science, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                            width: 110,
+                            child: Text(
+                              'Paper Trading',
+                              textAlign: TextAlign.center,
+                            )),
+                        selected: source == BrokerageSource.paper,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.paper;
                           });
                         },
                       ),
@@ -729,6 +756,57 @@ class _LoginWidgetState extends State<LoginWidget> {
                               : _handleChallenge,
                         ),
                       ),
+                    ] else if (source == BrokerageSource.paper) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.science,
+                                color: Colors.blue, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Paper Trading',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Practice trading with simulated positions and cash using real-time market data.',
+                        style: TextStyle(
+                            fontSize: 15,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 340.0,
+                        height: 58,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            shadowColor: Colors.blue.withValues(alpha: 0.3),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                          ),
+                          label: const Text(
+                            "Open Paper Account",
+                            style: TextStyle(
+                                fontSize: 18.0, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.science, size: 24),
+                          onPressed: _login,
+                        ),
+                      ),
                     ] else if (source == BrokerageSource.fidelity) ...[
                       Row(
                         children: [
@@ -846,6 +924,15 @@ class _LoginWidgetState extends State<LoginWidget> {
         (userCtl.text == 'demo' && passCtl.text == 'demo')) {
       DemoService().login();
       var user = BrokerageUser(source, "Demo Account", null, null);
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+      if (mounted) {
+        Navigator.pop(context, user);
+      }
+    } else if (source == BrokerageSource.paper) {
+      var user = BrokerageUser(source, "Paper Trading", null, null);
       var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
       userStore.addOrUpdate(user);
       userStore.setCurrentUserIndex(userStore.items.indexOf(user));
