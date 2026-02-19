@@ -2,9 +2,15 @@
 
 ## Overview
 
-The Alpha Factor Discovery engine is a research tool designed to identify and validate predictive trading signals (alpha factors). It allows quantitative traders to systematically test hypotheses about what drives market movements by analyzing the correlation between technical indicators and future price returns.
+The Alpha Factor Discovery engine is a research tool designed to identify and validate predictive trading signals (alpha factors). It allows quantitative traders to systematically test hypotheses about what drives market movements by analyzing the correlation between technical indicators and future price returns. Access the engine via the **Alpha Factor Discovery** option in the user profile menu.
 
 ## Core Concepts
+...
+## Architecture
+
+- **Firebase Functions:** The research engine is powered by a dedicated Firebase function (`discoverAlphaFactors`) to handle intensive computations off-device.
+- **Real-time Discovery:** Results are generated on-demand based on the user-selected universe and parameters.
+- **Data Integration:** Leverages Yahoo Finance and AlphaVantage APIs for high-fidelity historical data.
 
 ### Information Coefficient (IC)
 The primary metric used to evaluate an alpha factor. It represents the correlation (Pearson) between the factor's value today and the asset's return in the future.

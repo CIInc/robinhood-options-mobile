@@ -21,7 +21,19 @@ RealizeAlpha supports importing data from Fidelity accounts via CSV files. This 
     *   Select **Fidelity** as the brokerage source.
     *   Tap "Enter" to enter the Fidelity manual mode.
     *   Use the file picker to select your downloaded CSV files.
-    *   The app will parse the files and populate your portfolio and history.
+    *   The app will parse the files using **FidelityService**, reconcile the data with existing instruments, and populate your portfolio and history.
+
+## Portfolio Analytics Export
+
+You can export your consolidated portfolio analytics to CSV for external review. This includes:
+- Aggregated P&L metrics
+- Reconciled position data from both manual imports and live brokerage links.
+- Performance history headers.
+
+## Technical Details
+
+- **FidelityService:** Handles localized parsing and validation of Fidelity's unique CSV formatting.
+- **CsvImportService:** Generic utility for handling cross-platform file selection and stream parsing.
 
 ## Limitations
 

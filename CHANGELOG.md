@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-02-18
+
+### Added
+- **Macro Assessment:** Enhanced with tracking for previous assessments and new indicators including Put/Call Ratio, Advance/Decline, and Risk Appetite.
+- **Paper Trading:** Complete implementation of `PaperService` for offline portfolio management, risk-free order execution, and integrated AI portfolio analysis.
+- **Deep Linking:** Added support for sharing instruments and referral codes with deep link handling.
+- **Home Widgets:** Added iOS widgets for quick access to portfolio, watchlists, and trade signals (v0.32.0 parity).
+- **Custom Alerts:** New feature for user-defined price and event-based alerts (v0.32.0 parity).
+- **Multi-Account Aggregation:** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
+- **Fidelity Integration:** Added support for importing Fidelity account data via CSV.
+- **Alpha Factor Discovery:** New research feature for identifying predictive market indicators using Firebase Functions.
+- **Backtesting:** Added advanced filtering options for historical simulation results.
+- **CI/CD:** Detailed documentation and workflow enhancements for Mobile CI/CD (iOS/Android) and automated release note extraction.
+
+### Changed
+- **UI/UX:** Refactored widget constructors to use `super.key`, improved layout for portfolio metrics, and enhanced macro assessment visualizations.
+- **Architecture:** Introduced `PaperService` and refactored mocks to use `fake_cloud_firestore` for improved testing reliability.
+- **Refactoring:** Simplified code structure for better readability and maintainability.
+
+### Fixed
+- **iOS Build:** Resolved issues with provisioning profiles and manual code signing in CI/CD workflows.
+- **Notifications:** Enhanced reliability of rich push notifications with Firestore storage.
+
 ## [0.32.0] - 2026-02-11
 
 ### Added

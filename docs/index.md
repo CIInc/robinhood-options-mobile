@@ -37,7 +37,11 @@
 - **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
 - **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence. **New:** Rich notifications with charts and actionable data.
 - **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management.
+- **[Home Widgets](home-widgets.md):** iOS Home Screen widgets for portfolio, watchlists, and trade signals.
+- **[Custom Alerts](custom-alerts.md):** Configurable price and event-based alerts for instruments and portfolio events.
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
+- **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
+- **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.

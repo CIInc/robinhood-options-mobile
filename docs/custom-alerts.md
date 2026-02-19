@@ -36,6 +36,7 @@ Users can configure alerts with:
 
 - **Active/Inactive Toggle**: Enable or disable alerts without deleting
 - **Alert History**: View past triggered alerts with timestamps
+- **Search & Filter**: Find triggered notifications with built-in search functionality.
 - **Bulk Operations**: Enable/disable multiple alerts at once
 
 ## Implementation Details
@@ -45,10 +46,11 @@ Alerts are stored in Firestore under the user's document with the following stru
 ```
 users/{userId}/alerts/{alertId}
 ```
+**Triggered History:** All notification events are archived in a persistent Firestore history for audit and search.
 
 ### Notification Delivery
 - Integrates with Firebase Cloud Messaging for push notifications
-- Supports rich notifications with actionable buttons
+- Supports **Rich Push Notifications** via `flutter_local_notifications` with actionable data.
 - Includes deep links to relevant app sections
 
 ### Backend Processing

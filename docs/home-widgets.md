@@ -36,26 +36,21 @@ Displays recent trade signals from the agentic trading system.
 - Symbol and current price
 - Tap to view signal details
 
-## Configuration
+## Data Synchronization
 
-### Setting Up Widgets
-1. Long-press on Home Screen to enter jiggle mode
-2. Tap the "+" button in the top-left corner
-3. Search for "RealizeAlpha" in the widget gallery
-4. Choose widget size and type
-5. Place on Home Screen
+Data synchronization between the main application and iOS widget extension is managed by the **HomeWidgetService**.
 
-### Customizing Widgets
-- **Portfolio Widget**: Automatically displays user's portfolio data
-- **Watchlist Widget**: Select from available group watchlists in the app
-- **Trade Signals Widget**: Shows global signals (no customization needed)
+### Update Triggers
+- **Manual Refreshes:** Tapping the refresh icon in the app.
+- **Provider Updates:** Automatic triggers from `PortfolioStore` and `TradeSignalsProvider` on data changes.
+- **Group Watchlists:** `ListsWidget` and `GroupWatchlistDetailWidget` manage selective data passing for curated lists.
 
 ## Technical Implementation
 
 ### iOS Integration
 - Uses iOS 14+ WidgetKit framework
-- App Groups for data sharing between app and widget extensions
-- Background app refresh for data updates
+- **App Groups:** Shared container (entitlements) enables low-latency data exchange.
+- **Deep Link Navigation:** `NavigationStatefulWidget` handles incoming deep links from widget taps.
 
 ### Data Synchronization
 - Widgets update when app is opened or data changes

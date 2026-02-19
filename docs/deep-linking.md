@@ -20,10 +20,17 @@ The following paths are supported across both custom schemes and universal links
 | Target | Path / Format | Example |
 |---|---|---|
 | **Instrument Ticker** | `/instrument/{symbol}` | `realizealpha://instrument/AAPL` |
+| **Referral Code** | `/?ref={id}` | `https://realizealpha.com/?ref=USER123` |
 | **Investor Group** | `/investors?groupId={id}` | `https://realizealpha.com/investors?groupId=...` |
 | **Watchlists** | `/watchlist` | `realizealpha://watchlist` |
 | **Group Watchlist**| `/group-watchlist?groupId={id}&watchlistId={id}` | `realizealpha://group-watchlist?groupId=...` |
 | **Trade Signals** | `/signals` | `realizealpha://signals` |
+
+## Sharing Functionality
+
+The app now supports easy sharing of key elements with deep link integration:
+- **Instrument Sharing:** Tap the share icon on any instrument page to generate a deep link (e.g., `realizealpha://instrument/AAPL`) that others can use to view the asset.
+- **Referral Sharing:** Generate personalized referral codes and share them via system dialogs. These links automatically capture and persist referral attribution on the new user's device.
 
 ## Referral System
 
