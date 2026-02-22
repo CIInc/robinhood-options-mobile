@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/device.dart';
 import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 
 class User {
   String? name;
@@ -35,6 +36,9 @@ class User {
 
   // Agentic Trading Configuration
   AgenticTradingConfig? agenticTradingConfig;
+
+  // Rebalancing Configuration
+  RebalancingConfig? rebalancingConfig;
 
   // Option Filter Presets
   Map<String, Map<String, dynamic>>? optionFilterPresets;
@@ -68,6 +72,7 @@ class User {
       this.investmentProfile,
       this.tradeSignalNotificationSettings,
       this.agenticTradingConfig,
+      this.rebalancingConfig,
       this.optionFilterPresets,
       this.defaultOptionFilterPreset,
       this.assetAllocationTargets,
@@ -108,19 +113,20 @@ class User {
                 ? InvestmentProfile.fromJson(
                     json['investmentProfile'] as Map<String, Object?>)
                 : null,
-            tradeSignalNotificationSettings:
-                json['tradeSignalNotificationSettings'] != null
-                    ? TradeSignalNotificationSettings.fromJson(
-                        json['tradeSignalNotificationSettings']
-                            as Map<String, dynamic>)
-                    : null,
+            tradeSignalNotificationSettings: json['tradeSignalNotificationSettings'] != null
+                ? TradeSignalNotificationSettings.fromJson(json['tradeSignalNotificationSettings']
+                    as Map<String, dynamic>)
+                : null,
             agenticTradingConfig: json['agenticTradingConfig'] != null
                 ? AgenticTradingConfig.fromJson(
                     json['agenticTradingConfig'] as Map<String, dynamic>)
                 : null,
+            rebalancingConfig: json['rebalancingConfig'] != null
+                ? RebalancingConfig.fromJson(
+                    json['rebalancingConfig'] as Map<String, dynamic>)
+                : null,
             optionFilterPresets: json['optionFilterPresets'] != null
-                ? (json['optionFilterPresets'] as Map<String, dynamic>).map(
-                    (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
+                ? (json['optionFilterPresets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
                 : null,
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
             assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
@@ -154,6 +160,7 @@ class User {
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson(),
+      'rebalancingConfig': rebalancingConfig?.toJson(),
       'optionFilterPresets': optionFilterPresets,
       'defaultOptionFilterPreset': defaultOptionFilterPreset,
       'assetAllocationTargets': assetAllocationTargets,

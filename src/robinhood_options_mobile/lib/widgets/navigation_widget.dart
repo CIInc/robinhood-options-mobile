@@ -49,6 +49,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
+import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 //import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
@@ -454,6 +455,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           ),
         );
       }
+    } else if (data['route'] == '/rebalancing') {
+      _navigateToRebalancing(context);
     }
   }
 
@@ -943,15 +946,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       String? watchlistId = link.queryParameters['watchlistId'];
       if (groupId != null && watchlistId != null) {
         await _navigateToWatchlist(context,
-            isGroupWatchlist: true,
-            groupId: groupId,
-            watchlistId: watchlistId);
+            isGroupWatchlist: true, groupId: groupId, watchlistId: watchlistId);
       }
     }
     // realizealpha://signals OR https://realizealpha.com/signals
     else if (host == 'signals' ||
         (pathSegments.isNotEmpty && pathSegments[0] == 'signals')) {
       await _navigateToTradeSignals(context);
+    }
+    // realizealpha://rebalancing OR https://realizealpha.com/rebalancing
+    else if (host == 'rebalancing' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'rebalancing')) {
+      await _navigateToRebalancing(context);
     }
     // realizealpha://instrument/AAPL OR https://realizealpha.com/instrument/AAPL
     else if (host == 'instrument' ||
@@ -986,6 +992,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 brokerageUser: userStore.currentUser,
                 analytics: widget.analytics,
                 observer: widget.observer,
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _navigateToRebalancing(BuildContext context) async {
+    if (user != null && userDoc != null) {
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final account = userStore.currentUser?.accounts.firstOrNull;
+      if (account != null) {
+        _onPageChanged(0);
+        await Future.delayed(const Duration(milliseconds: 100));
+        final navigatorState = navigatorKeys[0]?.currentState;
+        if (navigatorState != null) {
+          navigatorState.push(
+            MaterialPageRoute(
+              builder: (context) => RebalancingWidget(
+                user: user!,
+                userDocRef: userDoc!,
+                account: account,
               ),
             ),
           );

@@ -13,7 +13,7 @@ import * as logger from "firebase-functions/logger";
 export async function fetchWithRetry(
   url: string,
   options: RequestInit = {},
-  maxRetries = 3,
+  maxRetries = 2,
   baseDelay = 2000
 ): Promise<Response> {
   // Set default headers if not present
@@ -30,7 +30,7 @@ export async function fetchWithRetry(
   }
 
   let attempt = 0;
-  while (attempt <= maxRetries) {
+  while (attempt < maxRetries) {
     try {
       const response = await fetch(url, options);
       if (response.status === 429) {

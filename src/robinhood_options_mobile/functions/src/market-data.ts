@@ -238,6 +238,62 @@ export async function getMarketData(symbol: string,
     }
   }
 
+  // Fallback to Fidelity Open API if Yahoo is rate limited or no results
+  if (!closes.length) {
+    logger.info(`🌐 FALLBACK: Attempting Fidelity Open API for ${symbol}`);
+    try {
+      // Ensure we have enough data for MACD (35) and RSI (15)
+      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 35);
+      let dataRange = range || "1y";
+      if (!range) {
+        if (interval === "1d") {
+          dataRange = maxPeriod > 250 ? "2y" : "1y";
+        } else if (interval === "1h") {
+          dataRange = maxPeriod > 30 ? "1mo" : "5d";
+        } else {
+          dataRange = "5d";
+        }
+      }
+
+      const result = await fetchFromFidelity(symbol, interval, dataRange);
+
+      if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
+        Array.isArray(result?.timestamp)) {
+        const opes = result.indicators.quote[0].open;
+        const higs = result.indicators.quote[0].high;
+        const los = result.indicators.quote[0].low;
+        const clos = result.indicators.quote[0].close;
+        const vols = result.indicators.quote[0].volume || [];
+        const tss = result.timestamp || [];
+        opens = opes.filter((p: any) => p !== null);
+        highs = higs.filter((p: any) => p !== null);
+        lows = los.filter((p: any) => p !== null);
+        closes = clos.filter((p: any) => p !== null);
+        volumes = vols.filter((v: any) => v !== null);
+        timestamps = tss.filter((t: any) => t !== null);
+        logger.info(`🌐 FIDELITY FETCH: Retrieved ${closes.length} ` +
+          `${interval} prices for ${symbol} from Fidelity`);
+      }
+      if (result && typeof result?.meta?.regularMarketPrice === "number") {
+        currentPrice = result.meta.regularMarketPrice;
+      } else if (Array.isArray(closes) && closes.length > 0) {
+        currentPrice = closes[closes.length - 1];
+      }
+      // Cache Fidelity data too for resilience
+      if (result) {
+        try {
+          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} ` +
+            `from Fidelity for ${symbol}`, err);
+        }
+      }
+    } catch (fidErr) {
+      logger.error(`Failed to fetch ${interval} data from ` +
+        `Fidelity for ${symbol}`, fidErr);
+    }
+  }
+
   return {
     symbol,
     opens,
@@ -248,4 +304,157 @@ export async function getMarketData(symbol: string,
     timestamps,
     currentPrice,
   };
+}
+
+/**
+ * Fetches market data for a given symbol from Fidelity Open API.
+ * @param {string} symbol The stock symbol to fetch data for.
+ * @param {string} interval The chart interval (1d, 1h, 30m, 15m, etc.)
+ * @param {string} dataRange The time range (1y, 5d, 1mo, etc.)
+ * @return {Promise<any>} A Yahoo-compatible chart result object,
+ * or null if no data found.
+ */
+async function fetchFromFidelity(
+  symbol: string, interval: string, dataRange: string
+): Promise<any> {
+  // Map interval to barWidth
+  let barWidth = "DAILY";
+  if (interval === "1h") barWidth = "60";
+  else if (interval === "30m") barWidth = "30";
+  else if (interval === "15m") barWidth = "15";
+  else if (interval === "5m") barWidth = "5";
+  else if (interval === "1m") barWidth = "1";
+
+  // Using the documented endpoint:
+  // https://github.com/njfdev/fidelity-api/blob/main/docs/historical-data.md
+  const baseFidStr = "https://fastquote.fidelity.com/service/marketdata/" +
+    "historical/chart/json?productid=researchexperience&callback=data";
+  let url = `${baseFidStr}&symbols=${encodeURIComponent(symbol)}` +
+    `&barWidth=${barWidth}`;
+
+  if (barWidth !== "DAILY") {
+    // Intraday: map dataRange to numDays (only works for intraday)
+    let numDays = 1;
+    if (dataRange === "5y" || dataRange === "2y" ||
+      dataRange === "1y") numDays = 120; // Max allowed often
+    else if (dataRange === "1mo") numDays = 30;
+    else if (dataRange.includes("d")) numDays = parseInt(dataRange) || 1;
+    url += `&numDays=${numDays}`;
+  } else {
+    // Daily: map dataRange to startDate/endDate
+    const now = new Date();
+    const endDateStr = formatDateForFidelity(now);
+    const startDate = new Date();
+    if (dataRange === "5y") startDate.setFullYear(now.getFullYear() - 5);
+    else if (dataRange === "2y") startDate.setFullYear(now.getFullYear() - 2);
+    else if (dataRange === "1y") startDate.setFullYear(now.getFullYear() - 1);
+    else if (dataRange === "1mo") startDate.setMonth(now.getMonth() - 1);
+    else if (dataRange === "5d") startDate.setDate(now.getDate() - 7);
+    else startDate.setFullYear(now.getFullYear() - 1); // Default 1y
+    url += `&startDate=${formatDateForFidelity(startDate)}` +
+      `&endDate=${endDateStr}`;
+  }
+
+  try {
+    const resp = await fetchWithRetry(url);
+    if (!resp.ok) {
+      throw new Error(`Fidelity API returned status ${resp.status}`);
+    }
+    const text = await resp.text();
+    // Fidelity returns JSONP wrapped in function call, e.g. data({...})
+    // Strip leading "data(" and trailing ")", trim whitespace
+    const startIndex = text.indexOf("(");
+    const endIndex = text.lastIndexOf(")");
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error("Invalid Fidelity JSONP response format");
+    }
+    const jsonText = text.substring(startIndex + 1, endIndex).trim();
+    const data = JSON.parse(jsonText);
+
+    // From community code, bars are in SYMBOL[0].BARS.CB or SYMBOL[0].BARS.I
+    // Also handle Symbol[0].BarList.BarRecord from research API
+    const symbolData = data.Symbol && data.Symbol[0];
+    const bars = symbolData?.BarList?.BarRecord;
+
+    if (!bars || !Array.isArray(bars) || !bars.length) {
+      logger.warn(`No bars found in Fidelity for ${symbol}`, {
+        url,
+        responseKeys: Object.keys(data),
+        symbolDataKeys: symbolData ? Object.keys(symbolData) : "no-symbolData",
+      });
+      return null;
+    }
+
+    // Map Fidelity "BarRecord" to Yahoo indicator format
+    // op (open), hi (high), lo (low), cl (close),vo/v (volume),
+    // ts/lt (timestamp)
+    const opes = bars.map((b: any) => parseFloat(b.op));
+    const higs = bars.map((b: any) => parseFloat(b.hi));
+    const los = bars.map((b: any) => parseFloat(b.lo));
+    const clos = bars.map((b: any) => parseFloat(b.cl));
+    const vols = bars.map((b: any) => parseInt(b.vo || b.v));
+    const tss = bars.map((b: any) => parseFidelityTimestamp(b.ts || b.lt));
+
+    return {
+      meta: {
+        symbol: symbol,
+        regularMarketPrice: clos[clos.length - 1],
+        currentTradingPeriod: {
+          regular: {
+            end: Math.floor(Date.now() / 1000), // Stubs end today
+          },
+        },
+      },
+      indicators: {
+        quote: [{
+          open: opes,
+          high: higs,
+          low: los,
+          close: clos,
+          volume: vols,
+        }],
+      },
+      timestamp: tss,
+    };
+  } catch (err) {
+    logger.error(`Failed to fetch from Fidelity for ${symbol}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Formats a Date object to Fidelity's string format:
+ * yyyy/MM/dd-HH:mm:ss
+ * @param {Date} date The date to format.
+ * @return {string} Fidelity formatted date.
+ */
+function formatDateForFidelity(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${y}/${m}/${d}-${hh}:${mm}:${ss}`;
+}
+
+/**
+ * Parses Fidelity timestamp (yyyy/MM/dd-HH:mm:ss) into seconds since epoch.
+ * @param {string} ts Fidelity timestamp string.
+ * @return {number} Seconds since epoch.
+ */
+function parseFidelityTimestamp(ts: string): number {
+  if (!ts) return 0;
+  try {
+    // Fidelity formats like "2023/03/02-09:30:00" or "2023/03/02"
+    // Convert to ISO-ish: "2023-03-02T09:30:00"
+    let normalized = ts.replace(/\//g, "-").replace("-", "T");
+    if (normalized.length === 10) { // Date only
+      normalized += "T00:00:00";
+    }
+    const d = new Date(normalized);
+    return Math.floor(d.getTime() / 1000);
+  } catch (err) {
+    return 0;
+  }
 }

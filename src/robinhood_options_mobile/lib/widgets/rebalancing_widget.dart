@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 
@@ -47,6 +48,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
   final NumberFormat formatPercentage =
       NumberFormat.decimalPercentPattern(decimalDigits: 1);
   double _driftThreshold = 100.0;
+  late RebalancingConfig _rebalancingConfig;
 
   static const List<String> _standardSectors = [
     'Technology',
@@ -71,6 +73,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     if (widget.user.sectorAllocationTargets != null) {
       _sectorTargets.addAll(widget.user.sectorAllocationTargets!);
     }
+    _rebalancingConfig = widget.user.rebalancingConfig ?? RebalancingConfig();
+    _driftThreshold = _rebalancingConfig.driftThreshold;
   }
 
   void _startEditing() {
@@ -204,61 +208,164 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
   void _showSettings() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Rebalancing Settings',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Drift Threshold for Recommendations',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Row(
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Slider(
-                          value: _driftThreshold,
-                          min: 0,
-                          max: 1000,
-                          divisions: 20,
-                          label: formatCurrency.format(_driftThreshold),
+                      Text(
+                        'Rebalancing Settings',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Drift Threshold for Recommendations',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Slider(
+                              value: _driftThreshold,
+                              min: 0,
+                              max: 1000,
+                              divisions: 20,
+                              label: formatCurrency.format(_driftThreshold),
+                              onChanged: (value) {
+                                setModalState(() {
+                                  _driftThreshold = value;
+                                });
+                                setState(() {
+                                  _driftThreshold = value;
+                                  _rebalancingConfig = _rebalancingConfig
+                                      .copyWith(driftThreshold: value);
+                                });
+                              },
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(formatCurrency.format(_driftThreshold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      Text(
+                          'Recommendations will be triggered if the drift exceeds this amount.',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Automated Rebalancing Scheduler',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        title: const Text('Enable Scheduler'),
+                        subtitle: const Text(
+                            'Periodically check for portfolio drift and get notified.'),
+                        value: _rebalancingConfig.isEnabled,
+                        onChanged: (value) {
+                          setModalState(() {
+                            _rebalancingConfig =
+                                _rebalancingConfig.copyWith(isEnabled: value);
+                          });
+                          setState(() {
+                            _rebalancingConfig =
+                                _rebalancingConfig.copyWith(isEnabled: value);
+                          });
+                        },
+                      ),
+                      if (_rebalancingConfig.isEnabled) ...[
+                        ListTile(
+                          title: const Text('Frequency'),
+                          trailing: DropdownButton<RebalancingFrequency>(
+                            value: _rebalancingConfig.frequency,
+                            onChanged: (value) {
+                              if (value != null) {
+                                setModalState(() {
+                                  _rebalancingConfig = _rebalancingConfig
+                                      .copyWith(frequency: value);
+                                });
+                                setState(() {
+                                  _rebalancingConfig = _rebalancingConfig
+                                      .copyWith(frequency: value);
+                                });
+                              }
+                            },
+                            items: RebalancingFrequency.values
+                                .map((f) => DropdownMenuItem(
+                                      value: f,
+                                      child: Text(f.name[0].toUpperCase() +
+                                          f.name.substring(1)),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                        SwitchListTile(
+                          title:
+                              const Text('Auto-Execute (Paper/Experimental)'),
+                          subtitle: const Text(
+                              'Automatically place orders to rebalance (use with caution).'),
+                          value: _rebalancingConfig.autoExecute,
                           onChanged: (value) {
                             setModalState(() {
-                              _driftThreshold = value;
+                              _rebalancingConfig = _rebalancingConfig.copyWith(
+                                  autoExecute: value);
                             });
                             setState(() {
-                              _driftThreshold = value;
+                              _rebalancingConfig = _rebalancingConfig.copyWith(
+                                  autoExecute: value);
                             });
                           },
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            await widget.userDocRef.update({
+                              'rebalancingConfig': _rebalancingConfig.toJson(),
+                            });
+                            widget.user.rebalancingConfig = _rebalancingConfig;
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Rebalancing settings saved')),
+                              );
+                            }
+                          },
+                          child: const Text('Save Settings'),
                         ),
-                        child: Text(formatCurrency.format(_driftThreshold),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
                       ),
+                      const SizedBox(height: 24),
                     ],
                   ),
-                  Text(
-                      'Recommendations will be triggered if the drift exceeds this amount.',
-                      style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 24),
-                ],
+                ),
               ),
             );
           },
