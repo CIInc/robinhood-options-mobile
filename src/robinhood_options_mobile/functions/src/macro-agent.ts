@@ -148,29 +148,38 @@ function calculateConfidence(
   bearishCount: number,
   totalIndicators: number
 ): number {
-  // Perfect agreement (all one direction) = 95-100
-  // Strong agreement (75%+ in one direction) = 80-94
-  // Moderate agreement (60-75%) = 60-79
+  // Perfect agreement (all one direction) = 90-100
+  // Strong agreement (75%+ in one direction) = 75-89
+  // Moderate agreement (60-75%) = 60-74
   // Mixed signals (40-60%) = 40-59
-  // Conflicted/reversed = 20-39
+  // Conflicted = 20-39
 
   const max = Math.max(bullishCount, bearishCount);
+  const min = Math.min(bullishCount, bearishCount);
+  const neutralCount = totalIndicators - bullishCount - bearishCount;
   const percentage = (max / totalIndicators) * 100;
 
-  if (percentage >= 95) {
-    return 95 + Math.random() * 5;
-  }
-  if (percentage >= 85) {
-    return 80 + (percentage - 85) * 0.3;
-  }
-  if (percentage >= 75) {
-    return 60 + (percentage - 75) * 0.4;
-  }
-  if (percentage >= 65) {
-    return 50 + (percentage - 65) * 0.2;
+  // Penalize high neutral count (lack of conviction)
+  const neutralPenalty = (neutralCount / totalIndicators) * 15;
+
+  // Penalize conflicting signals (both bull and bear strong)
+  const conflictPenalty = min > totalIndicators * 0.25 ? 10 : 0;
+
+  let baseConfidence: number;
+  if (percentage >= 90) {
+    baseConfidence = 90 + (percentage - 90);
+  } else if (percentage >= 75) {
+    baseConfidence = 75 + (percentage - 75);
+  } else if (percentage >= 60) {
+    baseConfidence = 60 + (percentage - 60);
+  } else if (percentage >= 50) {
+    baseConfidence = 45 + (percentage - 50) * 0.5;
+  } else {
+    baseConfidence = 30 + (percentage - 40) * 0.3;
   }
 
-  return 30 + (percentage - 40) * 0.2;
+  return Math.max(20, Math.min(100,
+    baseConfidence - neutralPenalty - conflictPenalty));
 }
 
 /**
@@ -288,28 +297,54 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       vixValue = vixData.currentPrice ||
         vixData.closes[vixData.closes.length - 1];
       if (vixValue !== null) {
-        if (vixValue < 15) {
+        // More nuanced VIX evaluation with weighted scoring
+        if (vixValue < 12) {
           vixSignal = "BULLISH";
-          score += 15;
+          score += 18; // Very low vol = strong complacency
+          explanation.push(`VIX is very low (${vixValue.toFixed(2)}), ` +
+            "extreme complacency - watch for reversal.");
+        } else if (vixValue < 15) {
+          vixSignal = "BULLISH";
+          score += 12;
           explanation.push(`VIX is low (${vixValue.toFixed(2)}), ` +
-            "suggesting complacency.");
-        } else if (vixValue > 25) {
+            "suggesting low market stress.");
+        } else if (vixValue < 20) {
+          vixSignal = "NEUTRAL";
+          score += 5; // Slightly positive in normal range
+          explanation.push(`VIX is in normal range (${vixValue.toFixed(2)}).`);
+        } else if (vixValue < 25) {
+          vixSignal = "NEUTRAL";
+          score -= 5; // Elevated but not panic
+          explanation.push(`VIX is elevated (${vixValue.toFixed(2)}), ` +
+            "moderate caution warranted.");
+        } else if (vixValue < 35) {
           vixSignal = "BEARISH";
-          score -= 20;
+          score -= 18;
           explanation.push(`VIX is high (${vixValue.toFixed(2)}), ` +
-            "suggesting fear.");
+            "significant market fear.");
         } else {
-          explanation.push(`VIX is moderate (${vixValue.toFixed(2)}).`);
+          vixSignal = "BEARISH";
+          score -= 25; // Extreme fear = major risk-off
+          explanation.push(`VIX is extreme (${vixValue.toFixed(2)}), ` +
+            "panic conditions - potential reversal zone.");
         }
 
         // Check trend (SMA 5 vs SMA 20)
         const sma5 = computeSMA(vixData.closes, 5);
         const sma20 = computeSMA(vixData.closes, 20);
         if (sma5 && sma20) {
-          if (sma5 > sma20 * 1.05) {
+          if (sma5 > sma20 * 1.10) {
+            vixTrend = "Sharply Rising";
+            score -= 8; // Accelerating fear
+            explanation.push("Volatility is spiking rapidly.");
+          } else if (sma5 > sma20 * 1.05) {
             vixTrend = "Rising";
             score -= 5;
             explanation.push("Volatility is trending up.");
+          } else if (sma5 < sma20 * 0.90) {
+            vixTrend = "Sharply Falling";
+            score += 8; // Fear subsiding
+            explanation.push("Volatility is collapsing.");
           } else if (sma5 < sma20 * 0.95) {
             vixTrend = "Falling";
             score += 5;
@@ -341,23 +376,55 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         const normSma10 = sma10 > 20 ? sma10 / 10 : sma10;
         const normSma50 = sma50 > 20 ? sma50 / 10 : sma50;
 
-        if (normSma10 > normSma50 * 1.02) {
-          tnxSignal = "BEARISH"; // Rising yields are generally bad for equities
+        // Consider both absolute level and trend
+        // Very high yields (>5%) are restrictive,
+        // very low (<2%) are stimulative
+        let yieldLevelAdjustment = 0;
+        if (tnxValue > 5.5) {
+          yieldLevelAdjustment = -8; // Very restrictive
+          explanation.push(`Yields are very high (${tnxValue.toFixed(2)}%), ` +
+            "restrictive for growth.");
+        } else if (tnxValue > 4.5) {
+          yieldLevelAdjustment = -4; // Elevated
+        } else if (tnxValue < 2.5) {
+          yieldLevelAdjustment = 5; // Very accommodative
+          explanation.push(`Yields are low (${tnxValue.toFixed(2)}%), ` +
+            "supportive environment.");
+        } else if (tnxValue < 3.5) {
+          yieldLevelAdjustment = 2; // Moderately supportive
+        }
+
+        if (normSma10 > normSma50 * 1.05) {
+          tnxSignal = "BEARISH"; // Rapidly rising yields
+          tnxTrend = "Sharply Rising";
+          score -= 15;
+          explanation
+            .push("Yields (TNX) are rising rapidly - tightening conditions.");
+        } else if (normSma10 > normSma50 * 1.02) {
+          tnxSignal = "BEARISH"; // Rising yields
           tnxTrend = "Rising";
           score -= 10;
           explanation.push("Yields (TNX) are rising.");
-        } else if (normSma10 < normSma50 * 0.98) {
+        } else if (normSma10 < normSma50 * 0.95) {
           tnxSignal = "BULLISH"; // Falling yields can support equities
+          tnxTrend = "Sharply Falling";
+          score += 10;
+          explanation
+            .push("Yields (TNX) are falling rapidly - easing conditions.");
+        } else if (normSma10 < normSma50 * 0.98) {
+          tnxSignal = "BULLISH";
           tnxTrend = "Falling";
           score += 5;
           explanation.push("Yields (TNX) are falling/stable.");
         } else {
           tnxTrend = "Stable";
         }
+
+        score += yieldLevelAdjustment;
       }
     }
 
-    // 3. Evaluate SPY (Market Trend)
+    // 3. Evaluate SPY (Market Trend) - WEIGHTED as primary indicator
     let spySignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
     let spyTrend = "Flat";
     let spyValue: number | null = null;
@@ -368,30 +435,61 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       const sma50 = computeSMA(spyData.closes, 50);
       const sma200 = computeSMA(spyData.closes, 200);
 
-      if (spyValue !== null && sma200) {
+      if (spyValue !== null && sma200 && sma50) {
+        const above200Pct = ((spyValue - sma200) / sma200) * 100;
+
         if (spyValue > sma200) {
           spySignal = "BULLISH";
-          spyTrend = "Above 200 SMA";
-          score += 10;
-          explanation.push("Market (SPY) is in a long-term uptrend.");
+          if (above200Pct > 10) {
+            spyTrend = "Strong Uptrend";
+            score += 15; // Well above 200 SMA = strong trend
+            explanation.push("Market (SPY) is " +
+              `${above200Pct.toFixed(1)}% above 200 SMA - ` +
+              "strong uptrend.");
+          } else if (above200Pct > 5) {
+            spyTrend = "Uptrend";
+            score += 12;
+            explanation.push("Market (SPY) is in a solid uptrend.");
+          } else {
+            spyTrend = "Above 200 SMA";
+            score += 8;
+            explanation.push("Market (SPY) is above 200 SMA.");
+          }
         } else {
           spySignal = "BEARISH";
-          spyTrend = "Below 200 SMA";
-          score -= 15;
-          explanation.push("Market (SPY) is in a long-term downtrend.");
+          if (above200Pct < -10) {
+            spyTrend = "Strong Downtrend";
+            score -= 20; // Deep below 200 SMA = bear market
+            explanation.push("Market (SPY) is " +
+              `${Math.abs(above200Pct).toFixed(1)}% below 200 SMA - ` +
+              "bear market.");
+          } else if (above200Pct < -5) {
+            spyTrend = "Downtrend";
+            score -= 15;
+            explanation.push("Market (SPY) is in a downtrend.");
+          } else {
+            spyTrend = "Below 200 SMA";
+            score -= 10;
+            explanation.push("Market (SPY) is below 200 SMA.");
+          }
         }
-      }
 
-      if (sma50 && sma200) {
-        if (sma50 > sma200) {
+        // Golden/Death Cross - important confirmations
+        if (sma50 > sma200 * 1.02) {
+          score += 8; // Strong Golden Cross
+          explanation.push("Golden Cross confirmed - bullish momentum.");
+        } else if (sma50 > sma200) {
           score += 5; // Golden Cross area
-        } else {
+        } else if (sma50 < sma200 * 0.98) {
+          score -= 8; // Strong Death Cross
+          explanation.push("Death Cross confirmed - bearish momentum.");
+        } else if (sma50 < sma200) {
           score -= 5; // Death Cross area
         }
       }
     }
 
-    // 4. Evaluate Yield Curve (10Y - 13W)
+    // 4. Evaluate Yield Curve (10Y - 13W) - IMPORTANT recession indicator
     let yieldCurveSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
     let yieldCurveTrend = "Flat";
     let yieldSpread: number | null = null;
@@ -402,36 +500,56 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         irxData.closes[irxData.closes.length - 1];
       if (irxValue !== null) {
         // Calculate spread. Both ^TNX and ^IRX are typically index points
-        // (rate * 10 or just rate)
-        // Usually on Yahoo Finance: ^TNX 41.50 (4.15%), ^IRX 52.5 (5.25%).
-        // But historically ^TNX was *10. Recent check suggests unified.
-        // If TNX > 20, it's likely *10. If IRX < 10, it's likely *1.
         // Normalize to %.
         const normTnx = tnxValue > 20 ? tnxValue / 10 : tnxValue;
         const normIrx = irxValue > 20 ? irxValue / 10 : irxValue;
 
         yieldSpread = normTnx - normIrx;
 
-        if (yieldSpread < -0.5) {
+        if (yieldSpread < -1.0) {
+          yieldCurveSignal = "BEARISH";
+          yieldCurveTrend = "Severely Inverted";
+          score -= 25; // Extreme inversion = very high recession risk
+          explanation.push("Yield Curve severely inverted " +
+            `(${yieldSpread.toFixed(2)}%), high recession probability.`);
+        } else if (yieldSpread < -0.5) {
           yieldCurveSignal = "BEARISH";
           yieldCurveTrend = "Deeply Inverted";
-          score -= 15;
-          explanation.push("Yield Curve is inverted " +
+          score -= 18;
+          explanation.push("Yield Curve deeply inverted " +
             `(${yieldSpread.toFixed(2)}%), recession warning.`);
+        } else if (yieldSpread < -0.2) {
+          yieldCurveSignal = "BEARISH";
+          yieldCurveTrend = "Moderately Inverted";
+          score -= 10;
+          explanation.push("Yield Curve moderately inverted - caution.");
         } else if (yieldSpread < 0) {
-          yieldCurveSignal = "BEARISH"; // Mildly inverted
-          yieldCurveTrend = "Inverted";
+          yieldCurveSignal = "BEARISH";
+          yieldCurveTrend = "Slightly Inverted";
           score -= 5;
-          explanation.push("Yield Curve is slightly inverted.");
+          explanation.push("Yield Curve slightly inverted.");
         } else if (yieldSpread < 0.5) {
           yieldCurveSignal = "NEUTRAL";
           yieldCurveTrend = "Flat";
-          // No score change, watch out
-        } else {
-          yieldCurveSignal = "BULLISH";
+          score -= 2; // Flat curve not ideal
+          explanation.push("Yield Curve is flat - watch for inversion.");
+        } else if (yieldSpread < 1.5) {
+          yieldCurveSignal = "NEUTRAL";
           yieldCurveTrend = "Normal";
           score += 5;
-          // Normal curve
+          explanation.push("Yield Curve is normal.");
+        } else if (yieldSpread < 2.5) {
+          yieldCurveSignal = "BULLISH";
+          yieldCurveTrend = "Steep";
+          score += 8;
+          explanation.push(
+            "Yield Curve is steep - healthy growth expectations.");
+        } else {
+          yieldCurveSignal = "BULLISH";
+          yieldCurveTrend = "Very Steep";
+          score += 10;
+          explanation.push(
+            "Yield Curve very steep - strong growth environment.");
         }
       }
     }
@@ -444,19 +562,40 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       goldValue = gldData.currentPrice ||
         gldData.closes[gldData.closes.length - 1];
       const sma50 = computeSMA(gldData.closes, 50);
+      const sma200 = computeSMA(gldData.closes, 200);
 
-      if (goldValue !== null && sma50) {
-        if (goldValue > sma50) {
+      if (goldValue !== null && sma50 && sma200) {
+        const aboveSma50 = goldValue > sma50;
+        const aboveSma200 = goldValue > sma200;
+
+        if (aboveSma50 && aboveSma200) {
           goldSignal = "BULLISH";
+          goldTrend = "Strong Uptrend";
+          // Strong gold rally = potential risk-off sentiment
+          if (spySignal === "BEARISH" || vixSignal === "BEARISH") {
+            score -= 8; // Flight to safety scenario
+            explanation.push(
+              "Gold in strong uptrend amid equity weakness (Risk-Off).");
+          } else {
+            score -= 3; // Inflation concerns but equities holding
+            explanation.push(
+              "Gold rallying - watch for inflation/uncertainty.");
+          }
+        } else if (aboveSma50) {
+          goldSignal = "NEUTRAL";
           goldTrend = "Uptrend";
-          // Gold rising can be risk-off esp if SPY is dropping
           if (spySignal === "BEARISH") {
             score -= 5;
-            explanation.push("Gold is rising while Equities fall (Risk-Off).");
+            explanation.push("Gold rising while Equities fall (Risk-Off).");
           }
-        } else {
+        } else if (!aboveSma50 && !aboveSma200) {
           goldSignal = "BEARISH";
           goldTrend = "Downtrend";
+          score += 3; // Risk-on environment
+          explanation.push("Gold weakness suggests risk-on sentiment.");
+        } else {
+          goldSignal = "NEUTRAL";
+          goldTrend = "Consolidating";
         }
       }
     }
@@ -487,19 +626,38 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     if (dxyData && dxyData.closes && dxyData.closes.length > 0) {
       dxyValue = dxyData.currentPrice ||
         dxyData.closes[dxyData.closes.length - 1];
+      const sma50 = computeSMA(dxyData.closes, 50);
       const sma200 = computeSMA(dxyData.closes, 200);
 
-      if (dxyValue !== null && sma200) {
-        if (dxyValue > sma200) {
-          dxySignal = "BEARISH"; // Strong dollar often hurts US multinationals
-          dxyTrend = "Strong";
-          score -= 5;
-          explanation.push("USD is strong (Headwind for equities).");
-        } else {
+      if (dxyValue !== null && sma50 && sma200) {
+        const pctAbove200 = ((dxyValue - sma200) / sma200) * 100;
+
+        if (dxyValue > sma50 && dxyValue > sma200) {
+          dxySignal = "BEARISH"; // Strong dollar hurts multinationals
+          if (pctAbove200 > 3) {
+            dxyTrend = "Very Strong";
+            score -= 8;
+            explanation.push(
+              "USD very strong - significant headwind for equities.");
+          } else {
+            dxyTrend = "Strong";
+            score -= 5;
+            explanation.push("USD is strong (Headwind for equities).");
+          }
+        } else if (dxyValue < sma50 && dxyValue < sma200) {
           dxySignal = "BULLISH";
-          dxyTrend = "Weak";
-          score += 5;
-          explanation.push("USD is weak (Tailwind for equities).");
+          if (pctAbove200 < -3) {
+            dxyTrend = "Very Weak";
+            score += 8;
+            explanation.push("USD very weak - strong tailwind for equities.");
+          } else {
+            dxyTrend = "Weak";
+            score += 5;
+            explanation.push("USD is weak (Tailwind for equities).");
+          }
+        } else {
+          dxySignal = "NEUTRAL";
+          dxyTrend = "Mixed";
         }
       }
     }
@@ -529,25 +687,54 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
 
 
     // 9. Evaluate HYG (High Yield Bonds / Credit Health)
+    // CRITICAL risk indicator
     let hygSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
     let hygTrend = "Flat";
     let hygValue: number | null = null;
     if (hygData && hygData.closes && hygData.closes.length > 0) {
       hygValue = hygData.currentPrice ||
         hygData.closes[hygData.closes.length - 1];
+      const sma20 = computeSMA(hygData.closes, 20);
       const sma50 = computeSMA(hygData.closes, 50);
+      const sma200 = computeSMA(hygData.closes, 200);
 
-      if (hygValue !== null && sma50) {
-        if (hygValue > sma50) {
+      if (hygValue !== null && sma20 && sma50 && sma200) {
+        const above20 = hygValue > sma20;
+        const above50 = hygValue > sma50;
+        const above200 = hygValue > sma200;
+        const pctFrom50 = ((hygValue - sma50) / sma50) * 100;
+
+        if (above20 && above50 && above200) {
+          hygSignal = "BULLISH";
+          hygTrend = "Strong Uptrend";
+          score += 8; // Credit health is critical for risk-on
+          explanation.push(
+            "Credit markets (HYG) very healthy - strong risk appetite.");
+        } else if (above50) {
           hygSignal = "BULLISH";
           hygTrend = "Uptrend";
           score += 5;
           explanation.push("Credit markets (HYG) are healthy.");
-        } else {
+        } else if (!above20 && !above50 && !above200) {
+          hygSignal = "BEARISH";
+          hygTrend = "Strong Downtrend";
+          score -= 12; // Severe credit stress = major warning
+          explanation.push(
+            "Credit markets (HYG) under severe stress - " +
+            "major risk-off signal.");
+        } else if (pctFrom50 < -2) {
+          hygSignal = "BEARISH";
+          hygTrend = "Downtrend";
+          score -= 8;
+          explanation.push("Credit markets (HYG) showing significant stress.");
+        } else if (!above50) {
           hygSignal = "BEARISH";
           hygTrend = "Downtrend";
           score -= 5;
           explanation.push("Credit markets (HYG) showing stress.");
+        } else {
+          hygSignal = "NEUTRAL";
+          hygTrend = "Mixed";
         }
       }
     }
@@ -654,10 +841,22 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }
     }
 
-    // Determine Status
+    // Determine Status with more nuanced thresholds
     let status: "RISK_ON" | "RISK_OFF" | "NEUTRAL" = "NEUTRAL";
-    if (score >= 60) status = "RISK_ON";
-    else if (score <= 40) status = "RISK_OFF";
+    if (score >= 65) {
+      status = "RISK_ON";
+    } else if (score <= 35) {
+      status = "RISK_OFF";
+    } else {
+      // In neutral zone (35-65), check if we're leaning one way
+      if (score >= 55) {
+        // Mildly bullish but not quite risk-on
+        status = "NEUTRAL";
+      } else if (score <= 45) {
+        // Mildly bearish but not quite risk-off
+        status = "NEUTRAL";
+      }
+    }
 
     // Calculate Signal Divergence and Confidence
     const signals = [

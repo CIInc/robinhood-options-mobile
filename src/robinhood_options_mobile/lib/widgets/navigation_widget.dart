@@ -470,7 +470,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     setupInteractedMessage();
 
     // Listen for FCM token refresh to retry subscriptions if APNS was slow
-    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen((_) {
+    _fcmTokenSubscription =
+        FirebaseMessaging.instance.onTokenRefresh.listen((_) {
       _syncMacroSubscription();
     });
 
@@ -1020,16 +1021,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         // Ensure APNS token is available on iOS before subscribing to topics
         final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
         if (apnsToken == null) {
-          debugPrint('APNS token not ready, will retry macro subscription sync later');
+          debugPrint(
+              'APNS token not ready, will retry macro subscription sync later');
           return;
         }
       }
 
       try {
         if (user?.tradeSignalNotificationSettings?.macroAlerts ?? true) {
-          await FirebaseMessaging.instance.subscribeToTopic('macro-assessment-shift');
+          await FirebaseMessaging.instance
+              .subscribeToTopic('macro-assessment-shift');
         } else {
-          await FirebaseMessaging.instance.unsubscribeFromTopic('macro-assessment-shift');
+          await FirebaseMessaging.instance
+              .unsubscribeFromTopic('macro-assessment-shift');
         }
       } catch (e) {
         debugPrint('Error syncing macro subscription: $e');

@@ -5,8 +5,8 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 ## Key Features
 
 ### 1. Dual View Modes
-- **Asset Class Allocation**: View and manage your portfolio split between **Stocks**, **Options**, **Crypto**, and **Cash**.
-  - *Note:* Short-term Treasury ETFs (e.g., SGOV, BIL, SHV) are automatically classified as **Cash Equivalents** to provide a more accurate view of your liquidity.
+- **Asset Class Allocation**: View and manage your portfolio split between **Stocks**, **Options**, **Crypto**, **Fixed Income**, and **Cash**.
+  - *Note:* Treasury ETFs, bond funds, and fixed income instruments (e.g., SGOV, BIL, AGG, BND, TLT) are automatically classified as **Fixed Income** to provide accurate allocation tracking of your bond and treasury holdings.
 - **Sector Allocation**: Analyze your exposure across 11 standard market sectors (Technology, Healthcare, Financial Services, etc.).
 
 ### 2. Visual Analysis

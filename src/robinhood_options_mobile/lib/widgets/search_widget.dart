@@ -576,11 +576,15 @@ class _SearchWidgetState extends State<SearchWidget>
                   //     height: 25.0,
                   //   )),
                   // ],
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: MacroAssessmentWidget(),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      child: MacroAssessmentWidget(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        brokerageUser: widget.brokerageUser,
+                      ),
                     ),
                   ),
                   SliverToBoxAdapter(

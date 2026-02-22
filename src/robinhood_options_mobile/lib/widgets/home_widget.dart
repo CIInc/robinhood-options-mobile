@@ -884,6 +884,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       result.user.accounts = result.accounts;
     }
 
+    // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+    // Save accounts to SharedPreferences
+    await userStore.save();
+
     final breakdownRows = _buildBrokerBreakdown(results);
     if (mounted) {
       setState(() {
@@ -1103,8 +1107,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             Provider.of<InstrumentPositionStore>(context, listen: false),
         userDoc: widget.userDoc);
 
-    futureAccounts!.then((accounts) {
+    futureAccounts!.then((accounts) async {
       if (mounted && accounts.isNotEmpty) {
+        // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+        widget.brokerageUser!.accounts = accounts;
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        await userStore.save();
+
         setState(() {
           account = accounts[0];
           _loadPortfolioHistoricals();
@@ -2446,6 +2456,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             instrumentPositionStore:
                 Provider.of<InstrumentPositionStore>(context, listen: false),
             userDoc: widget.userDoc);
+        // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+        futureAccounts!.then((accounts) async {
+          if (mounted && accounts.isNotEmpty) {
+            widget.brokerageUser!.accounts = accounts;
+            final userStore =
+                Provider.of<BrokerageUserStore>(context, listen: false);
+            await userStore.save();
+          }
+        });
       }
     }
   }

@@ -165,8 +165,8 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         'Stocks': assetPalette[0],
         'Options': assetPalette[3],
         'Crypto': assetPalette[2],
+        'Fixed Income': assetPalette[4],
         'Cash': assetPalette[1],
-        'Cash Equivalents': assetPalette[4],
       };
 
       var positionPalette = PieChart.makeShades(
@@ -366,40 +366,35 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     List<PieChartData> data = [];
     if (totalAssets <= 0) return data;
 
-    // Identify cash-equivalent ETFs (e.g. SGOV, BIL, SHV) and count them as Cash
-    double cashEtfsValue = 0.0;
-    // Common short-term treasury ETFs that are often treated as cash
-    // SGOV: iShares 0-3 Month Treasury Bond ETF
-    // BIL: SPDR Bloomberg 1-3 Month T-Bill ETF
-    // SHV: iShares Short Treasury Bond ETF (<=1yr)
-    // USFR: WisdomTree Floating Rate Treasury Fund
-    // TFLO: iShares Treasury Floating Rate Bond ETF
-    // TBIL: US Treasury 3 Month Bill ETF
-    // BILS: SPDR Bloomberg 3-12 Month T-Bill ETF
-    // SHT: SPDR Portfolio Short Term Treasury ETF
-    // GBIL: Goldman Sachs Access Treasury 0-1 Year ETF
-    // CLTL: Invesco Treasury Collateral ETF
-    // VGSH: Vanguard Short-Term Treasury ETF
-    // SCHO: Schwab Short-Term U.S. Treasury ETF
-    final cashEtfSymbols = [
-      'SGOV',
-      'BIL',
-      'SHV',
-      'USFR',
-      'TFLO',
-      'TBIL',
-      'BILS',
-      'SHT',
-      'GBIL',
-      'CLTL',
-      'VGSH',
-      'SCHO'
+    // Fixed income ETFs (treasury, money market, bonds)
+    double fixedIncomeValue = 0.0;
+    final fixedIncomeSymbols = [
+      'SGOV',  // iShares 0-3 Month Treasury
+      'BIL',   // SPDR 1-3 Month T-Bill
+      'SHV',   // iShares Short Treasury
+      'USFR',  // WisdomTree Floating Rate Treasury
+      'TFLO',  // iShares Treasury Floating Rate
+      'TBIL',  // US Treasury 3 Month Bill
+      'BILS',  // SPDR 1-12 Month T-Bill
+      'SHT',   // iShares 1-3 Year Treasury
+      'GBIL',  // Goldman Sachs 3 Month Treasury
+      'CLTL',  // Invesco Treasury Collateral
+      'VGSH',  // Vanguard Short-Term Treasury
+      'SCHO',  // Schwab Short-Term Treasury
+      'AGG',   // iShares Core U.S. Aggregate Bond
+      'BND',   // Vanguard Total Bond Market
+      'TLT',   // iShares 20+ Year Treasury
+      'IEF',   // iShares 7-10 Year Treasury
+      'SHY',   // iShares 1-3 Year Treasury
+      'LQD',   // iShares Investment Grade Corporate
+      'TIP',   // iShares TIPS Bond
+      'MUB',   // iShares National Muni Bond
     ];
     double cashPositionsValue = 0.0;
     for (var position in stockPositionStore.items) {
       if (position.instrumentObj?.symbol != null) {
-        if (cashEtfSymbols.contains(position.instrumentObj!.symbol)) {
-          cashEtfsValue += position.marketValue;
+        if (fixedIncomeSymbols.contains(position.instrumentObj!.symbol)) {
+          fixedIncomeValue += position.marketValue;
         } else if (position.instrumentObj!.symbol.endsWith('**')) {
           cashPositionsValue += position.marketValue;
         }
@@ -416,7 +411,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     if (stockPositionStore.equity > 0) {
       // final percent = stockPositionStore.equity / totalAssets;
       double adjustedStockEquity =
-          stockPositionStore.equity - cashEtfsValue - cashPositionsValue;
+          stockPositionStore.equity - fixedIncomeValue - cashPositionsValue;
       if (adjustedStockEquity > 0) {
         data.add(PieChartData('Stocks',
             adjustedStockEquity)); //  ${formatPercentageInteger.format(percent)}
@@ -429,13 +424,13 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           forexHoldingStore
               .equity)); //  ${formatPercentageInteger.format(percent)}
     }
+    if (fixedIncomeValue > 0) {
+      data.add(PieChartData('Fixed Income', fixedIncomeValue));
+    }
     if (portfolioCash > 0) {
       // final percent = portfolioCash / totalAssets;
       data.add(PieChartData('Cash',
           portfolioCash)); //  ${formatPercentageInteger.format(percent)}
-    }
-    if (cashEtfsValue > 0) {
-      data.add(PieChartData('Cash Equivalents', cashEtfsValue));
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     return data;

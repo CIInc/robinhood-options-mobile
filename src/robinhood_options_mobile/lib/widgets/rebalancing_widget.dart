@@ -20,12 +20,16 @@ class RebalancingWidget extends StatefulWidget {
   final User user;
   final DocumentReference<User> userDocRef;
   final Account account;
+  final Map<String, double>? initialAssetAllocation;
+  final bool applyMacroGuidance;
 
   const RebalancingWidget(
       {super.key,
       required this.user,
       required this.userDocRef,
-      required this.account});
+      required this.account,
+      this.initialAssetAllocation,
+      this.applyMacroGuidance = false});
 
   @override
   State<RebalancingWidget> createState() => _RebalancingWidgetState();
@@ -36,6 +40,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     'Stocks': 0,
     'Options': 0,
     'Crypto': 0,
+    'Fixed Income': 0,
     'Cash': 0,
   };
   final Map<String, double> _sectorTargets = {};
@@ -67,7 +72,11 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.user.assetAllocationTargets != null) {
+    // If macro guidance is being applied, use the initial allocation
+    if (widget.applyMacroGuidance && widget.initialAssetAllocation != null) {
+      _assetTargets.addAll(widget.initialAssetAllocation!);
+      _isEditing = true; // Start in edit mode to show the macro guidance
+    } else if (widget.user.assetAllocationTargets != null) {
       _assetTargets.addAll(widget.user.assetAllocationTargets!);
     }
     if (widget.user.sectorAllocationTargets != null) {
@@ -147,27 +156,31 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
         // Asset Class Presets
         switch (name) {
           case 'Aggressive':
-            _assetTargets['Stocks'] = 0.8;
+            _assetTargets['Stocks'] = 0.7;
             _assetTargets['Options'] = 0.1;
             _assetTargets['Crypto'] = 0.1;
+            _assetTargets['Fixed Income'] = 0.1;
             _assetTargets['Cash'] = 0.0;
             break;
           case 'Moderate':
-            _assetTargets['Stocks'] = 0.6;
+            _assetTargets['Stocks'] = 0.5;
             _assetTargets['Options'] = 0.05;
             _assetTargets['Crypto'] = 0.05;
-            _assetTargets['Cash'] = 0.3;
+            _assetTargets['Fixed Income'] = 0.2;
+            _assetTargets['Cash'] = 0.2;
             break;
           case 'Conservative':
-            _assetTargets['Stocks'] = 0.4;
+            _assetTargets['Stocks'] = 0.3;
             _assetTargets['Options'] = 0.0;
             _assetTargets['Crypto'] = 0.0;
-            _assetTargets['Cash'] = 0.6;
+            _assetTargets['Fixed Income'] = 0.4;
+            _assetTargets['Cash'] = 0.3;
             break;
           case 'All Equity':
             _assetTargets['Stocks'] = 1.0;
             _assetTargets['Options'] = 0.0;
             _assetTargets['Crypto'] = 0.0;
+            _assetTargets['Fixed Income'] = 0.0;
             _assetTargets['Cash'] = 0.0;
             break;
         }
@@ -529,7 +542,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
       }
 
       final prompt =
-          "Acting as a senior portfolio manager, suggest a specific portfolio allocation (Stocks, Options, Crypto, Cash) and Sector allocation for an investor with the following profile:\n"
+          "Acting as a senior portfolio manager, suggest a specific portfolio allocation (Stocks, Options, Crypto, Fixed Income, Cash) and Sector allocation for an investor with the following profile:\n"
           "- Risk Tolerance: $selectedRisk\n"
           "- Time Horizon: $selectedHorizon\n"
           "- Primary Goal: $selectedGoal\n"
@@ -537,7 +550,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
           "Return ONLY a clean JSON object (no markdown formatting) with this structure:\n"
           "{\n"
           "  \"explanation\": \"A concise 2-3 sentence explanation of why this allocation fits the profile.\",\n"
-          "  \"assets\": {\"Stocks\": 0.60, \"Options\": 0.10, \"Crypto\": 0.05, \"Cash\": 0.25},\n"
+          "  \"assets\": {\"Stocks\": 0.50, \"Options\": 0.10, \"Crypto\": 0.05, \"Fixed Income\": 0.20, \"Cash\": 0.15},\n"
           "  \"sectors\": {\"Technology\": 0.30, \"Financial Services\": 0.20, ... (ensure covering major sectors, sum to 1.0)}\n"
           "}\n"
           "Ensure all percentages in 'assets' sum exactly to 1.0, and 'sectors' sum exactly to 1.0.";
@@ -788,23 +801,31 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               optionPositionStore, forexHoldingStore, child) {
             // Calculate current allocation
             double stockEquity = 0;
+            double fixedIncomeEquity = 0;
             final Map<String, double> sectorEquity = {};
 
-            // Treat SGOV and other short-term treasury ETFs as Cash
-            double cashEtfsValue = 0.0;
-            final cashEtfSymbols = [
-              'SGOV',
-              'BIL',
-              'SHV',
-              'USFR',
-              'TFLO',
-              'TBIL',
-              'BILS',
-              'SHT',
-              'GBIL',
-              'CLTL',
-              'VGSH',
-              'SCHO'
+            // Fixed income ETFs (treasury, money market, bonds)
+            final fixedIncomeSymbols = [
+              'SGOV', // iShares 0-3 Month Treasury
+              'BIL', // SPDR 1-3 Month T-Bill
+              'SHV', // iShares Short Treasury
+              'USFR', // WisdomTree Floating Rate Treasury
+              'TFLO', // iShares Treasury Floating Rate
+              'TBIL', // US Treasury 3 Month Bill
+              'BILS', // SPDR 1-12 Month T-Bill
+              'SHT', // iShares 1-3 Year Treasury
+              'GBIL', // Goldman Sachs 3 Month Treasury
+              'CLTL', // Invesco Treasury Collateral
+              'VGSH', // Vanguard Short-Term Treasury
+              'SCHO', // Schwab Short-Term Treasury
+              'AGG', // iShares Core U.S. Aggregate Bond
+              'BND', // Vanguard Total Bond Market
+              'TLT', // iShares 20+ Year Treasury
+              'IEF', // iShares 7-10 Year Treasury
+              'SHY', // iShares 1-3 Year Treasury
+              'LQD', // iShares Investment Grade Corporate
+              'TIP', // iShares TIPS Bond
+              'MUB', // iShares National Muni Bond
             ];
 
             for (var item in stockPositionStore.items) {
@@ -812,8 +833,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               final equity = item.marketValue;
 
               if (item.instrumentObj?.symbol != null &&
-                  cashEtfSymbols.contains(item.instrumentObj!.symbol)) {
-                cashEtfsValue += equity;
+                  fixedIncomeSymbols.contains(item.instrumentObj!.symbol)) {
+                fixedIncomeEquity += equity;
               } else {
                 stockEquity += equity;
 
@@ -838,11 +859,13 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               }
             }
 
-            double cashEquity =
-                (widget.account.portfolioCash ?? 0) + cashEtfsValue;
+            double cashEquity = widget.account.portfolioCash ?? 0;
 
-            final totalEquity =
-                stockEquity + optionEquity + cryptoEquity + cashEquity;
+            final totalEquity = stockEquity +
+                optionEquity +
+                cryptoEquity +
+                fixedIncomeEquity +
+                cashEquity;
 
             if (totalEquity == 0) {
               return Center(
@@ -866,6 +889,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               'Stocks': stockEquity / totalEquity,
               'Options': optionEquity / totalEquity,
               'Crypto': cryptoEquity / totalEquity,
+              'Fixed Income': fixedIncomeEquity / totalEquity,
               'Cash': cashEquity / totalEquity,
             };
 
@@ -889,7 +913,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             final targets = _viewMode == 0 ? _assetTargets : _sectorTargets;
 
             final allKeys = _viewMode == 0
-                ? ['Stocks', 'Options', 'Crypto', 'Cash']
+                ? ['Stocks', 'Options', 'Crypto', 'Fixed Income', 'Cash']
                 : {
                     ...currentSectorAllocation.keys,
                     ..._sectorTargets.keys,
@@ -925,12 +949,14 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               getDarkerColorForTheme(colorScheme.secondary),
               getDarkerColorForTheme(colorScheme.tertiary),
               getDarkerColorForTheme(colorScheme.inversePrimary),
+              getDarkerColorForTheme(colorScheme.primaryContainer),
             ];
 
             final assetColors = {
               'Stocks': assetPalette[0],
               'Options': assetPalette[3],
               'Crypto': assetPalette[2],
+              'Fixed Income': assetPalette[4],
               'Cash': assetPalette[1],
             };
 
