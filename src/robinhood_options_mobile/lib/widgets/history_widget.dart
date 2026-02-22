@@ -294,14 +294,14 @@ class _HistoryPageState extends State<HistoryPage>
 
   void _ensureAggregateStreams(List<BrokerageUser> users) {
     optionOrderStream ??= _initAggregateStream<OptionOrder>(
-        users: users,
-        state: _aggregateOptionOrders,
-        streamBuilder: (user, service) =>
-            service.streamOptionOrders(user, OptionOrderStore(),
-                userDoc: widget.userDoc),
-        keyOf: (order) => order.id,
-        sort: (a, b) => b.createdAt!.compareTo(a.createdAt!),
-      );
+      users: users,
+      state: _aggregateOptionOrders,
+      streamBuilder: (user, service) => service.streamOptionOrders(
+          user, OptionOrderStore(),
+          userDoc: widget.userDoc),
+      keyOf: (order) => order.id,
+      sort: (a, b) => b.createdAt!.compareTo(a.createdAt!),
+    );
 
     if (positionOrderStream == null) {
       final instrumentStore =
@@ -318,14 +318,14 @@ class _HistoryPageState extends State<HistoryPage>
     }
 
     optionEventStream ??= _initAggregateStream<OptionEvent>(
-        users: users,
-        state: _aggregateOptionEvents,
-        streamBuilder: (user, service) =>
-            service.streamOptionEvents(user, OptionEventStore(),
-                userDoc: widget.userDoc),
-        keyOf: (event) => event.id,
-        sort: (a, b) => b.updatedAt!.compareTo(a.updatedAt!),
-      );
+      users: users,
+      state: _aggregateOptionEvents,
+      streamBuilder: (user, service) => service.streamOptionEvents(
+          user, OptionEventStore(),
+          userDoc: widget.userDoc),
+      keyOf: (event) => event.id,
+      sort: (a, b) => b.updatedAt!.compareTo(a.updatedAt!),
+    );
 
     if (dividendStream == null) {
       final instrumentStore =
@@ -333,9 +333,8 @@ class _HistoryPageState extends State<HistoryPage>
       dividendStream = _initAggregateStream<dynamic>(
         users: users,
         state: _aggregateDividends,
-        streamBuilder: (user, service) =>
-            service.streamDividends(user, instrumentStore,
-                userDoc: widget.userDoc),
+        streamBuilder: (user, service) => service
+            .streamDividends(user, instrumentStore, userDoc: widget.userDoc),
         keyOf: _dynamicKey,
       );
     }
@@ -346,9 +345,8 @@ class _HistoryPageState extends State<HistoryPage>
       interestStream = _initAggregateStream<dynamic>(
         users: users,
         state: _aggregateInterests,
-        streamBuilder: (user, service) =>
-            service.streamInterests(user, instrumentStore,
-                userDoc: widget.userDoc),
+        streamBuilder: (user, service) => service
+            .streamInterests(user, instrumentStore, userDoc: widget.userDoc),
         keyOf: _dynamicKey,
       );
     }
@@ -632,8 +630,8 @@ class _HistoryPageState extends State<HistoryPage>
                             if (isAggregateMode) {
                               _ensureAggregateStreams(aggregateUsers);
                             } else {
-                              dividendStream ??=
-                                  widget.service!.streamDividends(
+                              dividendStream ??= widget.service!
+                                  .streamDividends(
                                       widget.brokerageUser!,
                                       Provider.of<InstrumentStore>(context,
                                           listen: false),
@@ -993,7 +991,9 @@ class _HistoryPageState extends State<HistoryPage>
             children: <Widget>[
               CustomScrollView(
                 slivers: [
-                  if (positionOrders != null) ...[
+                  if (positionOrders == null)
+                    _buildLoadingSkeleton()
+                  else ...[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -1277,7 +1277,9 @@ class _HistoryPageState extends State<HistoryPage>
               ),
               CustomScrollView(
                 slivers: [
-                  if (optionOrders != null) ...[
+                  if (optionOrders == null)
+                    _buildLoadingSkeleton()
+                  else ...[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -1705,7 +1707,9 @@ class _HistoryPageState extends State<HistoryPage>
               ),
               CustomScrollView(
                 slivers: [
-                  if (dividends != null) ...[
+                  if (dividends == null)
+                    _buildLoadingSkeleton()
+                  else ...[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -2026,7 +2030,9 @@ class _HistoryPageState extends State<HistoryPage>
               ),
               CustomScrollView(
                 slivers: [
-                  if (interests != null) ...[
+                  if (interests == null)
+                    _buildLoadingSkeleton()
+                  else ...[
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -3165,4 +3171,117 @@ class _HistoryPageState extends State<HistoryPage>
           )));
   }
   */
+
+  Widget _buildLoadingSkeleton() {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          return _buildSkeletonItem();
+        },
+        childCount: 10,
+      ),
+    );
+  }
+
+  Widget _buildSkeletonItem() {
+    return _buildCard(
+      child: _ShimmerLoading(
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+          title: Container(
+            width: 100,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          subtitle: Container(
+            width: 150,
+            height: 12,
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          trailing: Container(
+            width: 80,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShimmerLoading extends StatefulWidget {
+  final Widget child;
+
+  const _ShimmerLoading({required this.child});
+
+  @override
+  State<_ShimmerLoading> createState() => _ShimmerLoadingState();
+}
+
+class _ShimmerLoadingState extends State<_ShimmerLoading>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.grey.withValues(alpha: 0.1),
+                Colors.grey.withValues(alpha: 0.3),
+                Colors.grey.withValues(alpha: 0.1),
+              ],
+              stops: [
+                0.0,
+                _controller.value,
+                1.0,
+              ],
+            ).createShader(bounds);
+          },
+          child: child,
+        );
+      },
+    );
+  }
 }
