@@ -1,19 +1,50 @@
+class SignalDivergence {
+  final int bullishCount;
+  final int bearishCount;
+  final int neutralCount;
+  final bool isConflicted;
+
+  SignalDivergence({
+    required this.bullishCount,
+    required this.bearishCount,
+    required this.neutralCount,
+    required this.isConflicted,
+  });
+
+  factory SignalDivergence.fromMap(Map<String, dynamic> map) {
+    return SignalDivergence(
+      bullishCount: map['bullishCount']?.toInt() ?? 0,
+      bearishCount: map['bearishCount']?.toInt() ?? 0,
+      neutralCount: map['neutralCount']?.toInt() ?? 0,
+      isConflicted: map['isConflicted'] ?? false,
+    );
+  }
+}
+
 class MacroAssessment {
   final String status;
   final int score;
+  final int confidence; // 0-100, how confident in this assessment
+  final SignalDivergence signalDivergence;
   final MacroIndicators indicators;
   final SectorRotation? sectorRotation;
   final AssetAllocation? assetAllocation;
+  final List<MacroStrategy>? strategies;
   final String reason;
+  final String? aiAnalysis;
   final DateTime timestamp;
 
   MacroAssessment({
     required this.status,
     required this.score,
+    required this.confidence,
+    required this.signalDivergence,
     required this.indicators,
     this.sectorRotation,
     this.assetAllocation,
+    this.strategies,
     required this.reason,
+    this.aiAnalysis,
     required this.timestamp,
   });
 
@@ -21,6 +52,16 @@ class MacroAssessment {
     return MacroAssessment(
       status: map['status'] ?? 'NEUTRAL',
       score: map['score']?.toInt() ?? 50,
+      confidence: map['confidence']?.toInt() ?? 50,
+      signalDivergence: map['signalDivergence'] != null
+          ? SignalDivergence.fromMap(
+              Map<String, dynamic>.from(map['signalDivergence']))
+          : SignalDivergence(
+              bullishCount: 0,
+              bearishCount: 0,
+              neutralCount: 12,
+              isConflicted: true,
+            ),
       indicators: MacroIndicators.fromMap(
           Map<String, dynamic>.from(map['indicators'] ?? {})),
       sectorRotation: map['sectorRotation'] != null
@@ -31,10 +72,38 @@ class MacroAssessment {
           ? AssetAllocation.fromMap(
               Map<String, dynamic>.from(map['assetAllocation']))
           : null,
+      strategies: map['strategies'] != null
+          ? List<MacroStrategy>.from(map['strategies']
+              .map((x) => MacroStrategy.fromMap(Map<String, dynamic>.from(x))))
+          : null,
       reason: map['reason'] ?? '',
+      aiAnalysis: map['aiAnalysis'],
       timestamp: map['timestamp'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
           : DateTime.now(),
+    );
+  }
+}
+
+class MacroStrategy {
+  final String name;
+  final String icon;
+  final String risk;
+  final String description;
+
+  MacroStrategy({
+    required this.name,
+    required this.icon,
+    required this.risk,
+    required this.description,
+  });
+
+  factory MacroStrategy.fromMap(Map<String, dynamic> map) {
+    return MacroStrategy(
+      name: map['name'] ?? '',
+      icon: map['icon'] ?? '',
+      risk: map['risk'] ?? '',
+      description: map['description'] ?? '',
     );
   }
 }
@@ -150,11 +219,13 @@ class MacroIndicator {
   final double? value;
   final String signal;
   final String trend;
+  final String? momentum; // Rising/Falling velocity
 
   MacroIndicator({
     this.value,
     required this.signal,
     required this.trend,
+    this.momentum,
   });
 
   factory MacroIndicator.fromMap(Map<String, dynamic> map) {
@@ -162,6 +233,7 @@ class MacroIndicator {
       value: map['value']?.toDouble(),
       signal: map['signal'] ?? 'NEUTRAL',
       trend: map['trend'] ?? 'Unknown',
+      momentum: map['momentum'],
     );
   }
 }

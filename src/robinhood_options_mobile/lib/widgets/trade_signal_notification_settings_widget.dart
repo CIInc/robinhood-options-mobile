@@ -157,6 +157,19 @@ class _TradeSignalNotificationSettingsWidgetState
               });
             },
           ),
+          SwitchListTile(
+            title: const Text('Macro Assessment Alerts'),
+            subtitle:
+                const Text('Notify on Market Regime shifts & Macro changes'),
+            value: _settings.macroAlerts,
+            onChanged: _settings.enabled
+                ? (value) {
+                    setState(() {
+                      _settings = _settings.copyWith(macroAlerts: value);
+                    });
+                  }
+                : null,
+          ),
           const Divider(),
 
           // Signal types

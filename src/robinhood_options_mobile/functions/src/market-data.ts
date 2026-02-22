@@ -1,3 +1,4 @@
+import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import { fetchWithRetry } from "./utils";
@@ -17,6 +18,15 @@ const db = getFirestore();
 export async function getMarketData(symbol: string,
   smaPeriodFast: number, smaPeriodSlow: number,
   interval = "1d", range?: string) {
+  // Decode symbols if encoded (e.g. ^VIX -> %5EVIX)
+  const decodedSymbol = decodeURIComponent(symbol);
+
+  // PCC/CPC symbols from CBOE (CSV) handled specifically for caching
+  const pccSymbols = [
+    "^PCC", "^CPC", "^CPCE", ".PCC", ".PCCE", ".PCCT", "PCCR",
+  ];
+  const isPccSymbol = pccSymbols.includes(decodedSymbol);
+
   let opens: any[] = [];
   let highs: any[] = [];
   let lows: any[] = [];
@@ -24,6 +34,7 @@ export async function getMarketData(symbol: string,
   let volumes: any[] = [];
   let timestamps: any[] = [];
   let currentPrice: number | null = null;
+  let staleFallback: any = null;
 
   /**
    * Checks if the cached chart data is stale based on the end of the current
@@ -78,6 +89,14 @@ export async function getMarketData(symbol: string,
       return false;
     }
 
+    // Special handling for PCC symbols from CBOE: They update once daily.
+    // If we checked recently (last 4 hours), don't treat as stale even if
+    // the data is from a previous day.
+    if (isPccSymbol && updated &&
+      (now.getTime() - updated < 4 * 60 * 60 * 1000)) {
+      return false;
+    }
+
     const isStale = endMs < todayStartEST;
     if (isStale) {
       logger.info(`🔍 Cache Stale Detail for ${symbol}:`, {
@@ -96,8 +115,8 @@ export async function getMarketData(symbol: string,
 
   // Try to load cached prices from Firestore
   const cacheKey = interval === "1d" ?
-    `agentic_trading/chart_${symbol}` :
-    `agentic_trading/chart_${symbol}_${interval}`;
+    `agentic_trading/chart_${decodedSymbol}` :
+    `agentic_trading/chart_${decodedSymbol}_${interval}`;
   try {
     const doc = await db.doc(cacheKey).get();
     if (doc.exists) {
@@ -105,7 +124,7 @@ export async function getMarketData(symbol: string,
       const chart = cacheData?.chart;
       const isCached = chart && !isCacheStale(cacheData, interval);
 
-      if (isCached && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
+      if (chart && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
         const opes = chart.indicators.quote[0].open;
         const higs = chart.indicators.quote[0].high;
         const los = chart.indicators.quote[0].low;
@@ -123,22 +142,36 @@ export async function getMarketData(symbol: string,
         } else if (Array.isArray(closes) && closes.length > 0) {
           currentPrice = closes[closes.length - 1];
         }
-        const lastFew = closes.slice(-5);
-        logger.info(`✅ CACHE HIT: Loaded cached ${interval} data ` +
-          `for ${symbol}`, {
-          count: closes.length,
-          lastFivePrices: lastFew,
-          currentPrice,
-          cacheAge: Date.now() - (cacheData?.updated || 0),
-        });
-      } else {
-        logger.info(`❌ CACHE MISS: Cached ${interval} data for ${symbol} ` +
-          "is stale, will fetch new data");
-        opens = [];
-        highs = [];
-        lows = [];
-        closes = [];
-        volumes = [];
+
+        if (isCached) {
+          const lastFew = closes.slice(-5);
+          logger.info(`✅ CACHE HIT: Loaded cached ${interval} data ` +
+            `for ${symbol}`, {
+            count: closes.length,
+            lastFivePrices: lastFew,
+            currentPrice,
+            cacheAge: Date.now() - (cacheData?.updated || 0),
+          });
+        } else {
+          logger.info(`❌ CACHE MISS: Cached ${interval} data for ${symbol} ` +
+            "is stale, will fetch new data and keep stale as fallback");
+          staleFallback = {
+            opens: [...opens],
+            highs: [...highs],
+            lows: [...lows],
+            closes: [...closes],
+            volumes: [...volumes],
+            timestamps: [...timestamps],
+            currentPrice,
+          };
+          opens = [];
+          highs = [];
+          lows = [];
+          closes = [];
+          volumes = [];
+          timestamps = [];
+          currentPrice = null;
+        }
       }
     }
   } catch (err) {
@@ -166,7 +199,7 @@ export async function getMarketData(symbol: string,
       }
 
       // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
-      const querySymbol = symbol.replace(/\./g, "-");
+      const querySymbol = decodedSymbol.replace(/\./g, "-");
       const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(querySymbol)}?interval=${interval}&range=${dataRange}`;
       const resp = await fetchWithRetry(url, {
         headers: {
@@ -255,7 +288,8 @@ export async function getMarketData(symbol: string,
         }
       }
 
-      const result = await fetchFromFidelity(symbol, interval, dataRange);
+      const result =
+        await fetchFromFidelity(decodedSymbol, interval, dataRange);
 
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
@@ -294,6 +328,48 @@ export async function getMarketData(symbol: string,
     }
   }
 
+  // Final fallback specifically for Put/Call Ratios from CBOE (CSV)
+  if (!closes.length && isPccSymbol) {
+    try {
+      const cboeRes = await fetchFromCBOE(decodedSymbol);
+      if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
+        const resQuote = cboeRes.indicators.quote[0];
+        opens = resQuote.open;
+        highs = resQuote.high;
+        lows = resQuote.low;
+        closes = resQuote.close;
+        volumes = resQuote.volume;
+        timestamps = cboeRes.timestamp;
+        currentPrice = cboeRes.meta.regularMarketPrice;
+        logger.info(`🌐 CBOE FETCH: Retrieved Put/Call data for ${symbol} ` +
+          "from CBOE");
+        // Cache CBOE result to prevent frequent refetches
+        try {
+          await db.doc(cacheKey).set({ chart: cboeRes, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} ` +
+            `from CBOE for ${symbol}`, err);
+        }
+      }
+    } catch (cboeErr) {
+      logger.warn(`Failed to fetch Put/Call data from CBOE for ${symbol}`,
+        cboeErr);
+    }
+  }
+
+  // Last-ditch recovery: Use stale cache if all fresh fetches failed
+  if (!closes.length && staleFallback) {
+    logger.info(`🌐 RECOVERY: Using stale cache for ${symbol} ` +
+      "as total fallback");
+    opens = staleFallback.opens;
+    highs = staleFallback.highs;
+    lows = staleFallback.lows;
+    closes = staleFallback.closes;
+    volumes = staleFallback.volumes;
+    timestamps = staleFallback.timestamps;
+    currentPrice = staleFallback.currentPrice;
+  }
+
   return {
     symbol,
     opens,
@@ -305,6 +381,78 @@ export async function getMarketData(symbol: string,
     currentPrice,
   };
 }
+
+/**
+ * Fetches real-time quotes for a list of symbols from Fidelity.
+ * @param {string[]} symbols List of stock symbols.
+ * @return {Promise<any>} An object mapping symbols to their quote data.
+ */
+export async function getQuotes(symbols: string[]): Promise<any> {
+  if (!symbols || symbols.length === 0) {
+    return {};
+  }
+
+  // Map symbols to Fidelity format
+  const fidSymbols = symbols.map((s) => {
+    let fidS = s;
+    if (s.startsWith("^")) {
+      fidS = "." + s.substring(1);
+    }
+    // Fidelity specific mappings
+    const sUpper = fidS.toUpperCase();
+    if (sUpper === ".GSPC") fidS = ".SPX";
+    if (sUpper === "^PCC" || sUpper === "^CPCE") fidS = ".PCCE";
+    if (sUpper === "^CPC") fidS = ".PCC";
+    if (sUpper === "DX-Y.NYB" || sUpper === "DX=F" || sUpper === "DXY" ||
+      sUpper === "DX") fidS = ".DXY";
+    if (sUpper === "BTC-USD" || sUpper === "BTCUSD") fidS = "BTC/USD";
+    if (sUpper === "ETH-USD" || sUpper === "ETHUSD") fidS = "ETH/USD";
+    return fidS;
+  }).join(",");
+
+  const url = "https://fastquote.fidelity.com/service/quote/json?" +
+    `productid=embeddedquotes&symbols=${encodeURIComponent(fidSymbols)}`;
+
+  try {
+    const resp = await fetchWithRetry(url);
+    if (!resp.ok) {
+      throw new Error(`Fidelity Quotes API returned status ${resp.status}`);
+    }
+
+    const text = await resp.text();
+    // Fidelity returns JSONP-ish wrapped in parentheses: ( { ... } )
+    const startIndex = text.indexOf("(");
+    const endIndex = text.lastIndexOf(")");
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error("Invalid Fidelity Quotes response format");
+    }
+    const jsonText = text.substring(startIndex + 1, endIndex).trim();
+    const data = JSON.parse(jsonText);
+
+    if (data.STATUS?.ERROR_CODE !== "0") {
+      logger.warn("Fidelity Quotes API reported an error", {
+        status: data.STATUS,
+        symbols,
+      });
+    }
+
+    return data.QUOTES || {};
+  } catch (err) {
+    logger.error("Failed to fetch quotes from Fidelity", { err, symbols });
+    throw err;
+  }
+}
+
+/**
+ * Callable function to fetch quotes.
+ */
+export const getQuotesCall = onCall(async (request) => {
+  const symbols = request.data?.symbols;
+  if (!symbols || !Array.isArray(symbols)) {
+    return { error: "Expected 'symbols' as an array of strings." };
+  }
+  return await getQuotes(symbols);
+});
 
 /**
  * Fetches market data for a given symbol from Fidelity Open API.
@@ -325,23 +473,61 @@ async function fetchFromFidelity(
   else if (interval === "5m") barWidth = "5";
   else if (interval === "1m") barWidth = "1";
 
+  // Fidelity uses . or $ prefix for indices instead of Yahoo's ^
+  const symUpper = symbol.toUpperCase();
+  let fidSymbol = symbol;
+  const isIndex = symUpper.startsWith("^") ||
+    symUpper.startsWith(".") ||
+    symUpper.startsWith("$") ||
+    symUpper === "DX-Y.NYB" ||
+    symUpper === "DX=F" ||
+    symUpper === "BTC-USD" ||
+    symUpper === "ETH-USD";
+
+  if (symbol.startsWith("^")) {
+    fidSymbol = "." + symbol.substring(1);
+  }
+  // Fidelity specific mappings
+  const fidUpper = fidSymbol.toUpperCase();
+  const symUpper2 = symbol.toUpperCase();
+  if (fidUpper === ".GSPC") fidSymbol = ".SPX";
+  if (symUpper2 === "^PCC" || symUpper2 === "^CPCE" ||
+    fidUpper === ".PCC" || fidUpper === ".CPCE") {
+    fidSymbol = ".PCCE";
+  } else if (symUpper2 === "^CPC" || fidUpper === ".CPC") {
+    fidSymbol = ".PCC";
+  }
+  if (fidUpper === "DX-Y.NYB" || fidUpper === "DX=F" || fidUpper === "DXY" ||
+    fidUpper === "DX") fidSymbol = ".DXY";
+  if (fidUpper === "BTC-USD" || fidUpper === "BTCUSD") fidSymbol = "BTC/USD";
+  if (fidUpper === "ETH-USD" || fidUpper === "ETHUSD") fidSymbol = "ETH/USD";
+
   // Using the documented endpoint:
   // https://github.com/njfdev/fidelity-api/blob/main/docs/historical-data.md
   const baseFidStr = "https://fastquote.fidelity.com/service/marketdata/" +
     "historical/chart/json?productid=researchexperience&callback=data";
-  let url = `${baseFidStr}&symbols=${encodeURIComponent(symbol)}` +
-    `&barWidth=${barWidth}`;
 
-  if (barWidth !== "DAILY") {
-    // Intraday: map dataRange to numDays (only works for intraday)
-    let numDays = 1;
-    if (dataRange === "5y" || dataRange === "2y" ||
-      dataRange === "1y") numDays = 120; // Max allowed often
-    else if (dataRange === "1mo") numDays = 30;
-    else if (dataRange.includes("d")) numDays = parseInt(dataRange) || 1;
-    url += `&numDays=${numDays}`;
-  } else {
-    // Daily: map dataRange to startDate/endDate
+  // For indices that might fail with ".", also consider "$" prefix
+  const symbolsToTry = [fidSymbol];
+  const fidUpperForTry = fidSymbol.toUpperCase();
+  if (isIndex && fidSymbol.startsWith(".")) {
+    symbolsToTry.push("$" + fidSymbol.substring(1));
+  }
+  // Put/Call Ratio specific fallback symbols for Fidelity
+  if (fidUpperForTry === ".PCCE" || fidUpperForTry === "$PCCE" ||
+    fidUpperForTry === ".PCC" || fidUpperForTry === "$PCC") {
+    const list = [
+      ".PCC", "$PCC", ".PCCE", "$PCCE", ".PCCT", "$PCCT", ".CPC", "$CPC",
+    ];
+    list.forEach((s) => {
+      if (!symbolsToTry.includes(s)) symbolsToTry.push(s);
+    });
+  }
+
+  for (const currentFidSymbol of symbolsToTry) {
+    let url = `${baseFidStr}&symbols=${encodeURIComponent(currentFidSymbol)}` +
+      `&barWidth=${barWidth}`;
+
     const now = new Date();
     const endDateStr = formatDateForFidelity(now);
     const startDate = new Date();
@@ -351,75 +537,122 @@ async function fetchFromFidelity(
     else if (dataRange === "1mo") startDate.setMonth(now.getMonth() - 1);
     else if (dataRange === "5d") startDate.setDate(now.getDate() - 7);
     else startDate.setFullYear(now.getFullYear() - 1); // Default 1y
-    url += `&startDate=${formatDateForFidelity(startDate)}` +
-      `&endDate=${endDateStr}`;
-  }
 
-  try {
-    const resp = await fetchWithRetry(url);
-    if (!resp.ok) {
-      throw new Error(`Fidelity API returned status ${resp.status}`);
+    if (barWidth !== "DAILY") {
+      // Intraday: map dataRange to numDays (only works for intraday)
+      let numDays = 1;
+      if (dataRange === "5y" || dataRange === "2y" ||
+        dataRange === "1y") numDays = isIndex ? 30 : 120; // Max allowed often
+      else if (dataRange === "1mo") numDays = 30;
+      else if (dataRange.includes("d")) numDays = parseInt(dataRange) || 1;
+      url += `&numDays=${numDays}`;
+    } else {
+      // Daily: map dataRange to startDate/endDate
+      // Use only date for DAILY to avoid API rejection
+      const startD = formatDateForFidelity(startDate).split("-")[0];
+      const endD = endDateStr.split("-")[0];
+      url += `&startDate=${startD}&endDate=${endD}&numDays=1000`;
     }
-    const text = await resp.text();
-    // Fidelity returns JSONP wrapped in function call, e.g. data({...})
-    // Strip leading "data(" and trailing ")", trim whitespace
-    const startIndex = text.indexOf("(");
-    const endIndex = text.lastIndexOf(")");
-    if (startIndex === -1 || endIndex === -1) {
-      throw new Error("Invalid Fidelity JSONP response format");
-    }
-    const jsonText = text.substring(startIndex + 1, endIndex).trim();
-    const data = JSON.parse(jsonText);
 
-    // From community code, bars are in SYMBOL[0].BARS.CB or SYMBOL[0].BARS.I
-    // Also handle Symbol[0].BarList.BarRecord from research API
-    const symbolData = data.Symbol && data.Symbol[0];
-    const bars = symbolData?.BarList?.BarRecord;
-
-    if (!bars || !Array.isArray(bars) || !bars.length) {
-      logger.warn(`No bars found in Fidelity for ${symbol}`, {
-        url,
-        responseKeys: Object.keys(data),
-        symbolDataKeys: symbolData ? Object.keys(symbolData) : "no-symbolData",
+    try {
+      const resp = await fetchWithRetry(url, {
+        headers: {
+          "Referer": "https://www.fidelity.com/",
+          "Origin": "https://www.fidelity.com",
+        },
       });
-      return null;
-    }
+      if (!resp.ok) {
+        continue;
+      }
+      const text = await resp.text();
+      // Fidelity returns JSONP wrapped in function call, e.g. data({...})
+      const startIndex = text.indexOf("(");
+      const endIndex = text.lastIndexOf(")");
+      if (startIndex === -1 || endIndex === -1) {
+        continue;
+      }
+      const jsonText = text.substring(startIndex + 1, endIndex).trim();
+      const data = JSON.parse(jsonText);
 
-    // Map Fidelity "BarRecord" to Yahoo indicator format
-    // op (open), hi (high), lo (low), cl (close),vo/v (volume),
-    // ts/lt (timestamp)
-    const opes = bars.map((b: any) => parseFloat(b.op));
-    const higs = bars.map((b: any) => parseFloat(b.hi));
-    const los = bars.map((b: any) => parseFloat(b.lo));
-    const clos = bars.map((b: any) => parseFloat(b.cl));
-    const vols = bars.map((b: any) => parseInt(b.vo || b.v));
-    const tss = bars.map((b: any) => parseFidelityTimestamp(b.ts || b.lt));
+      // Search all possible locations for bars in the response
+      const findBars = (obj: any): any[] | null => {
+        if (!obj || typeof obj !== "object") return null;
 
-    return {
-      meta: {
-        symbol: symbol,
-        regularMarketPrice: clos[clos.length - 1],
-        currentTradingPeriod: {
-          regular: {
-            end: Math.floor(Date.now() / 1000), // Stubs end today
+        // Try common array locations
+        const possibleArrays = [
+          obj.Symbol?.[0]?.BarList?.BarRecord,
+          obj.Symbol?.[0]?.Bars?.CB,
+          obj.Symbol?.[0]?.Bars?.I,
+          obj[currentFidSymbol]?.[0]?.BarList?.BarRecord,
+          obj[currentFidSymbol]?.[0]?.Bars?.CB,
+          obj[currentFidSymbol]?.[0]?.Bars?.I,
+          obj[currentFidSymbol.toUpperCase()]?.[0]?.Bars?.CB,
+          obj[currentFidSymbol.toUpperCase()]?.[0]?.Bars?.I,
+        ];
+
+        for (const arr of possibleArrays) {
+          if (Array.isArray(arr) && arr.length > 0) return arr;
+        }
+
+        // Recursive search for any key named BARS or BarRecord
+        for (const key of Object.keys(obj)) {
+          if (key === "BarRecord" && Array.isArray(obj[key])) return obj[key];
+          if (typeof obj[key] === "object") {
+            const result = findBars(obj[key]);
+            if (result) return result;
+          }
+        }
+        return null;
+      };
+
+      const bars = findBars(data);
+
+      if (!bars || !Array.isArray(bars) || !bars.length) {
+        continue;
+      }
+
+      // Map Fidelity "BarRecord" to Yahoo indicator format
+      // op (open), hi (high), lo (low), cl (close),vo/v (volume),
+      // ts/lt (timestamp)
+      const opes = bars.map((b: any) => parseFloat(b.op));
+      const higs = bars.map((b: any) => parseFloat(b.hi));
+      const los = bars.map((b: any) => parseFloat(b.lo));
+      const clos = bars.map((b: any) => parseFloat(b.cl));
+      const vols = bars.map((b: any) => parseInt(b.vo || b.v || 0));
+      const tss = bars.map((b: any) => parseFidelityTimestamp(b.ts || b.lt));
+
+      logger.info(`🌐 FIDELITY SUCCESS: Retrieved ${clos.length} bars ` +
+        `for ${symbol} using ${currentFidSymbol}`);
+
+      return {
+        meta: {
+          symbol: symbol,
+          regularMarketPrice: clos[clos.length - 1],
+          currentTradingPeriod: {
+            regular: {
+              end: Math.floor(Date.now() / 1000), // Stubs end today
+            },
           },
         },
-      },
-      indicators: {
-        quote: [{
-          open: opes,
-          high: higs,
-          low: los,
-          close: clos,
-          volume: vols,
-        }],
-      },
-      timestamp: tss,
-    };
-  } catch (err) {
-    logger.error(`Failed to fetch from Fidelity for ${symbol}:`, err);
-    return null;
+        indicators: {
+          quote: [{
+            open: opes,
+            high: higs,
+            low: los,
+            close: clos,
+            volume: vols,
+          }],
+        },
+        timestamp: tss,
+      };
+    } catch (err) {
+      logger.warn(`Failed attempt for ${currentFidSymbol}`, err);
+    }
   }
+
+  logger.error(`Failed to fetch any Fidelity data for ${symbol} ` +
+    `after trying ${symbolsToTry.join(", ")}`);
+  return null;
 }
 
 /**
@@ -439,6 +672,84 @@ function formatDateForFidelity(date: Date): string {
 }
 
 /**
+ * Fetches Put/Call Ratio symbols from CBOE's public JSON daily statistics.
+ * Useful as a final fallback for macro indicators when Yahoo/Fidelity fail.
+ * @param {string} symbol The stock symbol (Yahoo style ^PCC, ^CPC, ^CPCE).
+ * @return {Promise<any>} A Yahoo-compatible chart result object or null.
+ */
+async function fetchFromCBOE(symbol: string): Promise<any> {
+  const symUpper = (symbol || "").toUpperCase();
+  // Mapping symbols to CBOE JSON ratio names
+  let ratioName = "EQUITY PUT/CALL RATIO";
+  if (symUpper === "^CPC" || symUpper === ".PCC" || symUpper === "PCCR" ||
+    symUpper.includes("PCCT")) {
+    ratioName = "TOTAL PUT/CALL RATIO";
+  } else if (symUpper === "^PCCI" || symUpper === ".PCCI") {
+    ratioName = "INDEX PUT/CALL RATIO";
+  } else if (symUpper === "^VIX" || symUpper === ".VIX") {
+    ratioName = "CBOE VOLATILITY INDEX (VIX) PUT/CALL RATIO";
+  }
+
+  // Iterate backwards to find the most recent daily options file (up to 7 days)
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    // CBOE Daily Statistics JSON endpoint (no extension)
+    const url = "https://cdn.cboe.com/data/us/options/market_statistics/" +
+      `daily/${dateStr}_daily_options`;
+
+    try {
+      const resp = await fetchWithRetry(url, {
+        headers: {
+          "Referer": "https://www.cboe.com/",
+        },
+      });
+      if (!resp.ok) continue;
+
+      const data: any = await resp.json();
+      const ratioObj = data.ratios?.find((r: any) =>
+        r.name.toUpperCase() === ratioName.toUpperCase());
+      if (ratioObj && ratioObj.value) {
+        const val = parseFloat(ratioObj.value);
+        if (!isNaN(val)) {
+          const ts = Math.floor(d.getTime() / 1000);
+          logger.info(`🌐 CBOE SUCCESS: Found ${ratioName} ` +
+            `for ${dateStr}: ${val}`);
+          // Set end of trading day to 16:00 EST for cache verification
+          const endOfDay = new Date(d);
+          endOfDay.setHours(16, 0, 0, 0);
+          return {
+            meta: {
+              symbol,
+              regularMarketPrice: val,
+              currentTradingPeriod: {
+                regular: {
+                  end: Math.floor(endOfDay.getTime() / 1000),
+                },
+              },
+            },
+            indicators: {
+              quote: [{
+                close: [val], open: [val], high: [val], low: [val],
+                volume: [0],
+              }],
+            },
+            timestamp: [ts],
+          };
+        }
+      }
+    } catch (err) {
+      // Continue to try previous day
+    }
+  }
+  return null;
+}
+
+/**
  * Parses Fidelity timestamp (yyyy/MM/dd-HH:mm:ss) into seconds since epoch.
  * @param {string} ts Fidelity timestamp string.
  * @return {number} Seconds since epoch.
@@ -448,7 +759,9 @@ function parseFidelityTimestamp(ts: string): number {
   try {
     // Fidelity formats like "2023/03/02-09:30:00" or "2023/03/02"
     // Convert to ISO-ish: "2023-03-02T09:30:00"
-    let normalized = ts.replace(/\//g, "-").replace("-", "T");
+    // Robust replacement: swap the date-time separator hyphen for T,
+    // then swap slashes for hyphens
+    let normalized = ts.split("-").join("T").replace(/\//g, "-");
     if (normalized.length === 10) { // Date only
       normalized += "T00:00:00";
     }

@@ -455,15 +455,25 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           ),
         );
       }
+    } else if (data['type'] == 'macro_shift') {
+      _onPageChanged(0);
     } else if (data['route'] == '/rebalancing') {
       _navigateToRebalancing(context);
     }
   }
 
+  StreamSubscription<String>? _fcmTokenSubscription;
+
   @override
   void initState() {
     super.initState();
     setupInteractedMessage();
+
+    // Listen for FCM token refresh to retry subscriptions if APNS was slow
+    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen((_) {
+      _syncMacroSubscription();
+    });
+
     // Used to detect app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
     _removeBadge();
@@ -506,6 +516,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
     if (linkStreamSubscription != null) {
       linkStreamSubscription!.cancel();
+    }
+    if (_fcmTokenSubscription != null) {
+      _fcmTokenSubscription!.cancel();
     }
     if (refreshCredentialsTimer != null) {
       refreshCredentialsTimer!.cancel();
@@ -679,6 +692,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             }
             if (userSnapshot != null) {
               user = userSnapshot.data();
+              _syncMacroSubscription();
               if (user != null &&
                   userStore.items.length != user!.brokerageUsers.length) {
                 user!.brokerageUsers = userStore.items.toList();
@@ -996,6 +1010,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _syncMacroSubscription() async {
+    if (!kIsWeb) {
+      if (Platform.isIOS) {
+        // Ensure APNS token is available on iOS before subscribing to topics
+        final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint('APNS token not ready, will retry macro subscription sync later');
+          return;
+        }
+      }
+
+      try {
+        if (user?.tradeSignalNotificationSettings?.macroAlerts ?? true) {
+          await FirebaseMessaging.instance.subscribeToTopic('macro-assessment-shift');
+        } else {
+          await FirebaseMessaging.instance.unsubscribeFromTopic('macro-assessment-shift');
+        }
+      } catch (e) {
+        debugPrint('Error syncing macro subscription: $e');
       }
     }
   }

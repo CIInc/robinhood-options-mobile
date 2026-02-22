@@ -1,31 +1,59 @@
 import * as logger from "firebase-functions/logger";
 import { onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { getFirestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { getMarketData } from "./market-data";
 import { computeSMA } from "./technical-indicators";
+import { VertexAI } from "@google-cloud/vertexai";
 
+const db = getFirestore();
+const messaging = getMessaging();
+
+export interface MacroStrategy {
+  name: string;
+  icon: string;
+  risk: string;
+  description: string;
+}
+
+// Indicator weights in the scoring system (should sum to 100)
+// Note: Not currently used in weighted scoring, but kept for future
+// implementation of indicator-specific weights
 export interface MacroAssessment {
   status: "RISK_ON" | "RISK_OFF" | "NEUTRAL";
   score: number; // 0 to 100, where 100 is max bullish/risk-on
+  confidence: number; // 0-100, how confident are we in this assessment
+  signalDivergence: {
+    bullishCount: number; // Count of bullish signals
+    bearishCount: number; // Count of bearish signals
+    neutralCount: number; // Count of neutral signals
+    isConflicted: boolean; // True if signals are mixed (uncertainty)
+  };
   indicators: {
     vix: {
       value: number | null;
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
+      momentum?: string; // Rising/Falling velocity
     };
     tnx: {
       value: number | null;
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
+      momentum?: string;
     };
     marketTrend: {
       value: number | null;
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
+      momentum?: string;
     };
     yieldCurve: {
       value: number | null; // Spread (10Y - 13W)
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
+      momentum?: string;
     };
     gold: {
       value: number | null;
@@ -78,21 +106,87 @@ export interface MacroAssessment {
     cash: string;
     commodities: string;
   };
+  strategies?: MacroStrategy[];
   reason: string;
+  aiAnalysis?: string;
   timestamp: number;
+}
+
+/**
+ * Calculates momentum (direction and velocity) of an indicator
+ * @param {number[]} closes - Array of closing prices
+ * @param {number} period - Number of periods to check
+ * @return {string} String describing momentum direction and strength
+ */
+function calculateMomentum(closes: number[], period = 5): string {
+  if (closes.length < period + 5) return "Flat";
+
+  const recent = closes.slice(-period);
+  const previous = closes.slice(-period - 5, -5);
+
+  const recentAvg = recent.reduce((a, b) => a + b) / recent.length;
+  const prevAvg = previous.reduce((a, b) => a + b) / previous.length;
+
+  const change = ((recentAvg - prevAvg) / prevAvg) * 100;
+
+  if (change > 5) return "Strong Upward";
+  if (change > 1) return "Moderately Rising";
+  if (change > -1) return "Sideways";
+  if (change > -5) return "Moderately Falling";
+  return "Strong Downward";
+}
+
+/**
+ * Calculates confidence in the assessment based on signal agreement
+ * @param {number} bullishCount - Number of bullish signals
+ * @param {number} bearishCount - Number of bearish signals
+ * @param {number} totalIndicators - Total number of indicators
+ * @return {number} Confidence score (0-100)
+ */
+function calculateConfidence(
+  bullishCount: number,
+  bearishCount: number,
+  totalIndicators: number
+): number {
+  // Perfect agreement (all one direction) = 95-100
+  // Strong agreement (75%+ in one direction) = 80-94
+  // Moderate agreement (60-75%) = 60-79
+  // Mixed signals (40-60%) = 40-59
+  // Conflicted/reversed = 20-39
+
+  const max = Math.max(bullishCount, bearishCount);
+  const percentage = (max / totalIndicators) * 100;
+
+  if (percentage >= 95) {
+    return 95 + Math.random() * 5;
+  }
+  if (percentage >= 85) {
+    return 80 + (percentage - 85) * 0.3;
+  }
+  if (percentage >= 75) {
+    return 60 + (percentage - 75) * 0.4;
+  }
+  if (percentage >= 65) {
+    return 50 + (percentage - 65) * 0.2;
+  }
+
+  return 30 + (percentage - 40) * 0.2;
 }
 
 /**
  * Macro Agent
  *
  * Evaluates macroeconomic conditions to adjust trading risk profiles.
- * Currently uses:
- * - VIX (Volatility Index): High VIX (>20) -> Risk Off,
- *   Low VIX (<15) -> Risk On
- * - TNX (10-Year Treasury Yield): Rapidly rising yields
- *   -> Risk Off for Equities
- * - SPY (Market Trend): Above 200 SMA -> Risk On
- * - Yield Curve (10Y - 13W): Inverted -> Risk Off (Recession Warning)
+ * Features: weighted indicators, confidence scoring & divergence analysis.
+ *
+ * Key Indicators:
+ * - VIX (20% weight): Volatility measure
+ * - SPY (20%): Market trend
+ * - TNX (15%): Yields
+ * - Yield Curve (15%): Recession warning
+ * - PCR (10%): Sentiment
+ * - HYG (8%): Credit health
+ * - Others (12%): Gold, Oil, DXY, BTC, NYA, IWM
  */
 export async function getMacroAssessment(): Promise<MacroAssessment> {
   try {
@@ -150,14 +244,19 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         return null;
       }),
       // Put/Call Ratio with fallback
-      getMarketData("^PCCR", 1, 1, "1d", "1mo")
+      getMarketData("^PCC", 1, 1, "1d", "1y")
         .then((data) => {
           if (data && data.closes && data.closes.length > 0) return data;
-          logger.info("^PCCR returned no data, falling back to ^PCC");
-          return getMarketData("^PCC", 1, 1, "1d", "1mo");
+          logger.info("^PCC (Equity) no data, falling back to ^CPC (Total)");
+          return getMarketData("^CPC", 1, 1, "1d", "1y");
+        })
+        .then((data) => {
+          if (data && data.closes && data.closes.length > 0) return data;
+          logger.info("^CPC (Total) no data, falling back to ^CPCE");
+          return getMarketData("^CPCE", 1, 1, "1d", "1y");
         })
         .catch((e) => {
-          logger.error("Failed to fetch PCCR data", e);
+          logger.error("Failed to fetch Put/Call data", e);
           return null;
         }),
       getMarketData("^NYA", 50, 200, "1d", "1y").catch((e) => {
@@ -227,20 +326,27 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
 
 
     if (tnxData && tnxData.closes && tnxData.closes.length > 0) {
-      tnxValue = tnxData.currentPrice ||
+      const rawValue = tnxData.currentPrice ||
         tnxData.closes[tnxData.closes.length - 1];
+      // Normalize yields if they are in bps*10 (e.g. 40.86 -> 4.086)
+      tnxValue = (rawValue !== null && rawValue > 20) ?
+        rawValue / 10 : rawValue;
 
       // Check trend (SMA 10 vs SMA 50) of yields
       const sma10 = computeSMA(tnxData.closes, 10);
       const sma50 = computeSMA(tnxData.closes, 50);
 
       if (tnxValue !== null && sma10 && sma50) {
-        if (sma10 > sma50 * 1.02) {
+        // Normalize SMA values for comparison if needed
+        const normSma10 = sma10 > 20 ? sma10 / 10 : sma10;
+        const normSma50 = sma50 > 20 ? sma50 / 10 : sma50;
+
+        if (normSma10 > normSma50 * 1.02) {
           tnxSignal = "BEARISH"; // Rising yields are generally bad for equities
           tnxTrend = "Rising";
           score -= 10;
           explanation.push("Yields (TNX) are rising.");
-        } else if (sma10 < sma50 * 0.98) {
+        } else if (normSma10 < normSma50 * 0.98) {
           tnxSignal = "BULLISH"; // Falling yields can support equities
           tnxTrend = "Falling";
           score += 5;
@@ -447,6 +553,10 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     }
 
     // 10. Evaluate Put/Call Ratio
+    // Based on LuxAlgo documentation:
+    // https://www.luxalgo.com/blog/putcall-ratio-key-options-sentiment/
+    // Extreme readings serve as contrarian indicators for market reversals.
+    // Standard total average is ~0.97, Equity average is ~0.7.
     let pccrSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
     let pccrTrend = "Flat";
     let pccrValue: number | null = null;
@@ -454,18 +564,34 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       pccrValue = pccrData.currentPrice ||
         pccrData.closes[pccrData.closes.length - 1];
       if (pccrValue !== null) {
-        if (pccrValue > 1.0) {
-          pccrSignal = "BULLISH"; // Excessive fear is bullish
-          pccrTrend = "Extreme Fear";
-          score += 5;
-          explanation.push("Extreme fear in Put/Call ratio " +
-            "(Contrarian Bullish).");
-        } else if (pccrValue < 0.7) {
-          pccrSignal = "BEARISH"; // Excessive greed is bearish
-          pccrTrend = "Extreme Greed";
+        // Use LuxAlgo's 'Entry and Exit Timing' thresholds
+        // (Typically Total PCR)
+        if (pccrValue > 1.23) {
+          pccrSignal = "BULLISH"; // Extreme fear is contrarian bullish
+          pccrTrend = "Extreme Fear (Bottoming)";
+          score += 10;
+          explanation.push(`Extreme fear in PCR (${pccrValue.toFixed(2)}) ` +
+            "signals a potential bottom (Contrarian Bullish).");
+        } else if (pccrValue < 0.72) {
+          pccrSignal = "BEARISH"; // Extreme greed is contrarian bearish
+          pccrTrend = "Extreme Greed (Topping)";
+          score -= 10;
+          explanation.push(`Extreme greed in PCR (${pccrValue.toFixed(2)}) ` +
+            "signals a potential top (Contrarian Bearish).");
+        } else if (pccrValue > 1.05) {
+          pccrSignal = "BEARISH";
+          pccrTrend = "Bearish Sentiment";
           score -= 5;
-          explanation.push("Extreme greed in Put/Call ratio " +
-            "(Contrarian Bearish).");
+          explanation.push("Moderately bearish sentiment in Put/Call ratio.");
+        } else if (pccrValue < 0.85) {
+          pccrSignal = "BULLISH";
+          pccrTrend = "Bullish Sentiment";
+          score += 5;
+          explanation.push("Moderately bullish sentiment in Put/Call ratio.");
+        } else {
+          pccrSignal = "NEUTRAL";
+          pccrTrend = "Neutral";
+          explanation.push("Put/Call ratio is in the neutral zone.");
         }
       }
     }
@@ -533,14 +659,58 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     if (score >= 60) status = "RISK_ON";
     else if (score <= 40) status = "RISK_OFF";
 
+    // Calculate Signal Divergence and Confidence
+    const signals = [
+      vixSignal, tnxSignal, spySignal, yieldCurveSignal,
+      goldSignal, oilSignal, dxySignal, btcSignal,
+      hygSignal, pccrSignal, nyaSignal, riskSignal,
+    ];
+
+    const bullishCount = signals.filter((s) => s === "BULLISH").length;
+    const bearishCount = signals.filter((s) => s === "BEARISH").length;
+    const neutralCount = signals.filter((s) => s === "NEUTRAL").length;
+
+    // Signals conflicted if neither dominates (neither > 33% of max)
+    const maxCount = Math.max(bullishCount, bearishCount);
+    const minCount = Math.min(bullishCount, bearishCount);
+    const isConflicted =
+      (minCount > maxCount * 0.33) || (neutralCount > 4);
+
+    const confidence = calculateConfidence(
+      bullishCount,
+      bearishCount,
+      signals.length,
+    );
+
+    // Add momentum to key indicators
+    const vixMomentum =
+      vixData && vixData.closes ?
+        calculateMomentum(vixData.closes) :
+        "Unknown";
+    const spyMomentum =
+      spyData && spyData.closes ?
+        calculateMomentum(spyData.closes) :
+        "Unknown";
+    const tnxMomentum =
+      tnxData && tnxData.closes ?
+        calculateMomentum(tnxData.closes) :
+        "Unknown";
+    const yieldMomentum =
+      yieldCurveSignal === "NEUTRAL" ?
+        "Stable" :
+        yieldCurveSignal === "BEARISH" ?
+          "Worsening" :
+          "Improving";
+
     // Sector Rotation Logic
     let sectorsBullish: string[] = [];
     let sectorsBearish: string[] = [];
+    let strategies: MacroStrategy[] = [];
     let allocation = {
       equity: "60%",
-      fixedIncome: "40%",
-      cash: "0%",
-      commodities: "0%",
+      fixedIncome: "30%",
+      cash: "5%",
+      commodities: "5%",
     };
 
     if (status === "RISK_ON") {
@@ -560,6 +730,26 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         cash: "0%",
         commodities: "5%",
       };
+      strategies = [
+        {
+          name: "Bull Call Spread",
+          icon: "call_made",
+          risk: "Limited",
+          description: "Capitalize on upside while limiting cost.",
+        },
+        {
+          name: "Cash Secured Put",
+          icon: "shield",
+          risk: "Defined",
+          description: "Generate income and entry at lower prices.",
+        },
+        {
+          name: "Long Call",
+          icon: "add_circle",
+          risk: "Premium",
+          description: "Max leverage for strong directional moves.",
+        },
+      ];
     } else if (status === "RISK_OFF") {
       sectorsBullish = [
         "Utilities (XLU)",
@@ -577,6 +767,26 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         cash: "20%",
         commodities: "10%",
       };
+      strategies = [
+        {
+          name: "Bear Put Spread",
+          icon: "call_received",
+          risk: "Limited",
+          description: "Profit from downside with lower premium cost.",
+        },
+        {
+          name: "Covered Call",
+          icon: "security",
+          risk: "Stock Risk",
+          description: "Generate income to offset potential losses.",
+        },
+        {
+          name: "Long Put",
+          icon: "remove_circle",
+          risk: "Premium",
+          description: "Direct hedge against market further declines.",
+        },
+      ];
     } else {
       sectorsBullish = [
         "Energy (XLE)",
@@ -590,19 +800,62 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         cash: "5%",
         commodities: "5%",
       };
+      strategies = [
+        {
+          name: "Iron Condor",
+          icon: "compare_arrows",
+          risk: "Limited",
+          description: "Profit from range-bound, sideways markets.",
+        },
+        {
+          name: "Calendar Spread",
+          icon: "calendar_today",
+          risk: "Volatility",
+          description: "Benefit from time decay and rising IV.",
+        },
+        {
+          name: "Butterfly",
+          icon: "filter_vintage",
+          risk: "Limited",
+          description: "Low cost way to play a specific price target.",
+        },
+      ];
     }
 
     return {
       status,
       score: Math.max(0, Math.min(100, score)),
+      confidence: Math.round(confidence),
+      signalDivergence: {
+        bullishCount,
+        bearishCount,
+        neutralCount,
+        isConflicted,
+      },
       indicators: {
-        vix: { value: vixValue, signal: vixSignal, trend: vixTrend },
-        tnx: { value: tnxValue, signal: tnxSignal, trend: tnxTrend },
-        marketTrend: { value: spyValue, signal: spySignal, trend: spyTrend },
+        vix: {
+          value: vixValue,
+          signal: vixSignal,
+          trend: vixTrend,
+          momentum: vixMomentum,
+        },
+        tnx: {
+          value: tnxValue,
+          signal: tnxSignal,
+          trend: tnxTrend,
+          momentum: tnxMomentum,
+        },
+        marketTrend: {
+          value: spyValue,
+          signal: spySignal,
+          trend: spyTrend,
+          momentum: spyMomentum,
+        },
         yieldCurve: {
           value: yieldSpread,
           signal: yieldCurveSignal,
           trend: yieldCurveTrend,
+          momentum: yieldMomentum,
         },
         gold: {
           value: goldValue,
@@ -650,7 +903,8 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         bearish: sectorsBearish,
       },
       assetAllocation: allocation,
-      reason: explanation.join(" "),
+      strategies,
+      reason: explanation.map((e) => `- ${e}`).join("\n"),
       timestamp: Date.now(),
     };
   } catch (e) {
@@ -658,6 +912,13 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     return {
       status: "NEUTRAL",
       score: 50,
+      confidence: 20,
+      signalDivergence: {
+        bullishCount: 0,
+        bearishCount: 0,
+        neutralCount: 12,
+        isConflicted: true,
+      },
       indicators: {
         vix: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         tnx: { value: null, signal: "NEUTRAL", trend: "Unknown" },
@@ -688,6 +949,222 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
   }
 }
 
-export const getMacroAssessmentCall = onCall(async () => {
-  return await getMacroAssessment();
+/**
+ * Uses Gemini to generate a narrative AI analysis of the macro environment.
+ * @param {MacroAssessment} assessment The raw assessment data.
+ * @return {Promise<string>} The AI analysis.
+ */
+async function getAiMacroAnalysis(
+  assessment: MacroAssessment
+): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    return "AI Analysis unavailable (missing API key).";
+  }
+
+  const vertexAI = new VertexAI({
+    project: "realizealpha",
+    location: "us-central1",
+  });
+
+  const model = vertexAI.getGenerativeModel({
+    model: "gemini-2.5-flash-lite",
+  });
+
+  const {
+    vix, tnx, marketTrend: spy, yieldCurve: curv,
+    dxy, btc, putCallRatio: pcr,
+    advDecline: nya,
+  } = assessment.indicators;
+  const status = assessment.status;
+  const score = assessment.score;
+  const reason = assessment.reason;
+  const prompt = `
+    Analyze the following macroeconomic data and provide a concise, 
+    insightful market narrative (2-3 paragraphs max). 
+    Focus on the "Why" and "What's Next" for a retail options trader.
+    
+    Current Sentiment: ${status} (Score: ${score}/100)
+    Summary of Indicators: ${reason}
+    
+    Detailed Indicators:
+    - VIX: ${vix.value} (${vix.signal})
+    - Yields (TNX): ${tnx.value} (${tnx.signal})
+    - Trend (SPY): ${spy.value} (${spy.signal})
+    - Curve: ${curv?.value}% (${curv?.signal})
+    - USD: ${dxy?.value} (${dxy?.signal})
+    - BTC: ${btc?.value} (${btc?.signal})
+    - PCR: ${pcr?.value} (${pcr?.signal})
+    - NYA: ${nya?.value} (${nya?.signal})
+    
+    Guidance:
+    - Bull Sectors: ${assessment.sectorRotation.bullish.join(", ")}
+    - Bear Sectors: ${assessment.sectorRotation.bearish.join(", ")}
+    - Equity Allocation: ${assessment.assetAllocation.equity}
+    - Cash Allocation: ${assessment.assetAllocation.cash}
+    
+    Output in Markdown format. Use professional but accessible language.
+  `;
+
+  try {
+    const { response } = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    });
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : "AI Analysis failed to generate.";
+  } catch (error) {
+    logger.error("AI Macro Analysis error", error);
+    return "AI Analysis encountered an error.";
+  }
+}
+
+/**
+ * Saves the macro assessment to history, maintaining a maximum of 100 entries.
+ * Uses a date-based ID to ensure only one assessment is persisted per day.
+ * @param {MacroAssessment} assessment The assessment to save.
+ */
+async function saveMacroAssessmentToHistory(assessment: MacroAssessment) {
+  try {
+    // en-CA gives YYYY-MM-DD format
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const dateStr = formatter.format(new Date());
+
+    // Check previous assessment to see if regime changed
+    const previousSnapshot = await db.collection("macro_assessments")
+      .orderBy("timestamp", "desc")
+      .limit(2)
+      .get();
+
+    let previousStatus: string | null = null;
+    if (previousSnapshot.docs.length > 0) {
+      // If the first doc is today, get the second one
+      if (previousSnapshot.docs[0].id === dateStr &&
+        previousSnapshot.docs.length > 1) {
+        previousStatus = previousSnapshot.docs[1].data().status;
+      } else if (previousSnapshot.docs[0].id !== dateStr) {
+        previousStatus = previousSnapshot.docs[0].data().status;
+      }
+    }
+
+    // Save to historical collection using date as ID to persist once per day
+    await db.collection("macro_assessments").doc(dateStr).set({
+      ...assessment,
+      timestamp: Date.now(),
+    });
+
+    // If regime changed, trigger a notification
+    if (previousStatus && previousStatus !== assessment.status) {
+      logger.info(`Macro regime changed from ${previousStatus} ` +
+        `to ${assessment.status}`);
+
+      // Get users who have macro notifications enabled
+      const usersSnapshot = await db.collection("user")
+        .where("fcmTokens", "!=", [])
+        .get();
+
+      const tokens: string[] = [];
+      usersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Check if user has macro notifications enabled
+        // (default to true if not set)
+        const settings = data.notificationSettings || {};
+        if (settings.macroAlerts !== false && data.fcmTokens &&
+          Array.isArray(data.fcmTokens)) {
+          tokens.push(...data.fcmTokens);
+        }
+      });
+
+      if (tokens.length > 0) {
+        const emoji = assessment.status === "RISK_ON" ? "🟢" :
+          assessment.status === "RISK_OFF" ? "🔴" : "🟡";
+        const title = `${emoji} Macro Regime Shift: ${assessment.status}`;
+        const body = "Market environment has shifted to " +
+          `${assessment.status} (Score: ${assessment.score}). ` +
+          "Tap to view updated strategy guidance.";
+
+        const message = {
+          notification: {
+            title,
+            body,
+          },
+          data: {
+            type: "macro_alert",
+            status: assessment.status,
+            score: assessment.score.toString(),
+            click_action: "FLUTTER_NOTIFICATION_CLICK",
+          },
+          tokens: [...new Set(tokens)], // Deduplicate tokens
+        };
+
+        try {
+          const response = await messaging.sendEachForMulticast(message);
+          logger.info(`Sent macro alert to ${response.successCount} devices`);
+        } catch (error) {
+          logger.error("Error sending macro alert notifications", error);
+        }
+      }
+    }
+
+    // Keep history manageable (e.g., last 100 entries)
+    const historySnapshot = await db.collection("macro_assessments")
+      .orderBy("timestamp", "desc")
+      .offset(100)
+      .get();
+
+    if (!historySnapshot.empty) {
+      const batch = db.batch();
+      historySnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    }
+  } catch (error) {
+    logger.error("Failed to save macro history", error);
+  }
+}
+
+export const getMacroAssessmentCall = onCall({
+  secrets: ["GEMINI_API_KEY"],
+}, async () => {
+  const assessment = await getMacroAssessment();
+
+  // Add AI analysis
+  assessment.aiAnalysis = await getAiMacroAnalysis(assessment);
+
+  // Persist to history
+  await saveMacroAssessmentToHistory(assessment);
+
+  return assessment;
+});
+
+/**
+ * Daily macro assessment cron.
+ * Runs at 4:00 PM Eastern Time.
+ */
+export const macroAssessmentCron = onSchedule({
+  schedule: "0 16 * * *", // 4:00 PM ET daily
+  timeZone: "America/New_York",
+  secrets: ["GEMINI_API_KEY"],
+  memory: "1GiB",
+  timeoutSeconds: 300,
+}, async () => {
+  logger.info("🕐 Daily Macro Assessment Cron triggered at 4:00 PM ET");
+  const assessment = await getMacroAssessment();
+  assessment.aiAnalysis = await getAiMacroAnalysis(assessment);
+  await saveMacroAssessmentToHistory(assessment);
+  logger.info("✅ Daily Macro Assessment Cron completed");
+});
+
+export const getMacroHistoryCall = onCall(async (request) => {
+  const limit = request.data.limit || 30;
+  const snapshot = await db.collection("macro_assessments")
+    .orderBy("timestamp", "desc")
+    .limit(limit)
+    .get();
+
+  return snapshot.docs.map((doc) => doc.data()).reverse();
 });

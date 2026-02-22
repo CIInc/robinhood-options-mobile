@@ -102,6 +102,8 @@ class AgenticTradingProvider with ChangeNotifier {
   MacroAssessment? get macroAssessment => _macroAssessment;
   MacroAssessment? _previousMacroAssessment;
   MacroAssessment? get previousMacroAssessment => _previousMacroAssessment;
+  List<MacroAssessment> _macroHistory = [];
+  List<MacroAssessment> get macroHistory => _macroHistory;
 
   Future<void> fetchMacroAssessment() async {
     try {
@@ -116,9 +118,35 @@ class AgenticTradingProvider with ChangeNotifier {
             MacroAssessment.fromMap(Map<String, dynamic>.from(result.data));
         notifyListeners();
         _log("Macro assessment updated: ${_macroAssessment?.status}");
+
+        // Also fetch history
+        await fetchMacroHistory();
       }
     } catch (e) {
       _log("Error fetching macro assessment: $e");
+    }
+  }
+
+  Future<void> fetchMacroHistory({int limit = 30}) async {
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('getMacroHistory');
+      final result = await callable.call({'limit': limit});
+      if (result.data != null && result.data is List) {
+        _macroHistory = (result.data as List)
+            .map((item) =>
+                MacroAssessment.fromMap(Map<String, dynamic>.from(item)))
+            .toList();
+
+        // Set previous assessment from history if not already set by session
+        if (_previousMacroAssessment == null && _macroHistory.length > 1) {
+          _previousMacroAssessment = _macroHistory[1];
+        }
+
+        notifyListeners();
+      }
+    } catch (e) {
+      _log("Error fetching macro history: $e");
     }
   }
 

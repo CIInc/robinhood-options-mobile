@@ -272,7 +272,8 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
-                                      color: status.color.withValues(alpha: 0.9),
+                                      color:
+                                          status.color.withValues(alpha: 0.9),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -353,7 +354,7 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
       return _StatusAttributes(
         title: 'Auto On',
         subtitle: timeStr,
-        color: isLight ? Colors.amber.shade800 : Colors.amber,
+        color: isLight ? Colors.orange.shade800 : Colors.amber,
         icon: Icons.schedule,
         tooltip:
             'Auto-Trade Enabled\nNext Check: $timeStr\nTrades Today: $dailyCount/$dailyLimit',

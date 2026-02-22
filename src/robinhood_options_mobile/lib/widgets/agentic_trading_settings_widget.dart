@@ -3148,7 +3148,7 @@ class _AgenticTradingSettingsWidgetState
         _buildSwitchListTile(
           'reduceSizeOnRiskOff',
           'Reduce Size on RISK_OFF',
-          'Cut position size by 50% when market is bearish',
+          'Scale down position size during bearish market regimes',
           agenticTradingProvider,
           defaultValue: false,
           value:

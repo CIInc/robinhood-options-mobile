@@ -33,6 +33,7 @@ import * as sentimentAnalysis from "./sentiment-analysis";
 import * as chatNotifications from "./chat-notifications";
 import * as macroAgent from "./macro-agent";
 import * as alphaFactorDiscovery from "./alpha-factor-discovery";
+import * as marketData from "./market-data";
 import * as groupWatchlists from "./group-watchlists";
 import * as watchlistAlerts from "./watchlist-alerts-cron";
 import * as customAlertsCron from "./custom-alerts-cron";
@@ -98,6 +99,9 @@ export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
 export const verifySubscription = verifySubscriptionFunc;
 export const getMacroAssessment = macroAgent.getMacroAssessmentCall;
+export const getMacroHistory = macroAgent.getMacroHistoryCall;
+export const macroAssessmentCronJob = macroAgent.macroAssessmentCron;
+export const getQuotes = marketData.getQuotesCall;
 export const createGroupWatchlist =
   groupWatchlists.createGroupWatchlist;
 export const deleteGroupWatchlist =
