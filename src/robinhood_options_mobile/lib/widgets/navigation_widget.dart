@@ -18,6 +18,7 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
+import 'package:robinhood_options_mobile/model/option_flow_notifications_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
@@ -51,6 +52,7 @@ import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.da
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
+import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 //import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
@@ -397,6 +399,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           });
         }
       }
+    } else if (data['type'] == 'options_flow_alert') {
+      final symbol = data['symbol'] as String?;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OptionsFlowWidget(
+            initialSymbol: symbol,
+            brokerageUser:
+                Provider.of<BrokerageUserStore>(context, listen: false)
+                    .currentUser,
+            service: service,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            user: user,
+            userDocRef: userDoc,
+          ),
+        ),
+      );
     } else if (data['type'] == 'agentic_trade') {
       final eventType = data['eventType'];
       final symbol = data['symbol'];
@@ -730,6 +750,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           WidgetsBinding.instance.addPostFrameCallback((_) {
             // Set User ID for TradeSignalNotificationsStore
             Provider.of<TradeSignalNotificationsStore>(context, listen: false)
+                .setUserId(auth.currentUser?.uid);
+            Provider.of<OptionFlowNotificationsStore>(context, listen: false)
                 .setUserId(auth.currentUser?.uid);
 
             final agenticProvider =

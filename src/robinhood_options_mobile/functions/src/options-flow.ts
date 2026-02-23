@@ -58,7 +58,16 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
     );
   }
 
-  const { symbol, targetPremium, sentiment, condition } = request.data;
+  const {
+    symbol,
+    targetPremium,
+    minPremium,
+    minVolume,
+    sentiment,
+    condition,
+    expirationRange,
+    flags,
+  } = request.data;
 
   if (!symbol || typeof symbol !== "string") {
     throw new functions.https.HttpsError(
@@ -74,6 +83,37 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
     );
   }
 
+  if (minPremium && typeof minPremium !== "number") {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Min premium must be a number"
+    );
+  }
+
+  if (minVolume && typeof minVolume !== "number") {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Min volume must be a number"
+    );
+  }
+
+  if (flags && !Array.isArray(flags)) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Flags must be an array"
+    );
+  }
+
+  if (
+    expirationRange &&
+    !["any", "0-7", "8-30", "30+"].includes(expirationRange)
+  ) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "Invalid expiration range"
+    );
+  }
+
   const uid = request.auth.uid;
 
   try {
@@ -81,9 +121,13 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
     await alertRef.set({
       uid,
       symbol: symbol.toUpperCase(),
-      targetPremium: targetPremium || 50000,
+      minPremium: minPremium || targetPremium || 50000,
+      targetPremium: minPremium || targetPremium || 50000,
+      minVolume: minVolume || null,
       sentiment: sentiment || "any",
       condition: condition || "above",
+      expirationRange: expirationRange || "any",
+      flags: Array.isArray(flags) ? flags : [],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       isActive: true,
     });

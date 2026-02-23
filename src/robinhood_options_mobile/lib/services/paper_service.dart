@@ -47,12 +47,14 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
 class PaperService implements IBrokerageService {
   final YahooService yahooService = YahooService();
+  final FidelityService fidelityService = FidelityService();
   final FirestoreService _firestoreService = FirestoreService();
 
   PaperService();
@@ -445,8 +447,8 @@ class PaperService implements IBrokerageService {
   @override
   Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
     // Return empty mock for paper options
-    return OptionChain(
-        id, 'paper_symbol', true, 0.0, [], 100.0, const MinTicks(0.05, 0.01, 3.0));
+    return OptionChain(id, 'paper_symbol', true, 0.0, [], 100.0,
+        const MinTicks(0.05, 0.01, 3.0));
   }
 
   @override
@@ -491,13 +493,25 @@ class PaperService implements IBrokerageService {
       {bool fromCache = true}) async {
     if (symbols.isEmpty) return [];
     try {
-      final quotes = await yahooService.getQuotesByIds(symbols);
-      for (var q in quotes) {
-        store.add(q);
+      // Try Fidelity API first for better real-time quotes
+      try {
+        final quotes = await fidelityService.getQuotesFromFidelity(symbols);
+        for (var q in quotes) {
+          store.add(q);
+        }
+        return quotes;
+      } catch (e) {
+        debugPrint(
+            'Error fetching quotes from Fidelity, falling back to Yahoo: $e');
+        // Fallback to Yahoo Finance
+        final quotes = await yahooService.getQuotesByIds(symbols);
+        for (var q in quotes) {
+          store.add(q);
+        }
+        return quotes;
       }
-      return quotes;
     } catch (e) {
-      debugPrint('Error fetching quotes from Yahoo: $e');
+      debugPrint('Error fetching quotes: $e');
       return [];
     }
   }
@@ -506,11 +520,25 @@ class PaperService implements IBrokerageService {
   Future<Quote> getQuote(
       BrokerageUser user, QuoteStore store, String symbol) async {
     try {
+      // Try Fidelity API first for better real-time quotes
+      try {
+        final quotes = await fidelityService.getQuotesFromFidelity([symbol]);
+        if (quotes.isNotEmpty) {
+          final quote = quotes.first;
+          store.add(quote);
+          return quote;
+        }
+      } catch (e) {
+        debugPrint(
+            'Error fetching quote from Fidelity, falling back to Yahoo: $e');
+      }
+
+      // Fallback to Yahoo Finance
       final quote = await yahooService.getQuote(symbol);
       store.add(quote);
       return quote;
     } catch (e) {
-      debugPrint('Error fetching quote from Yahoo: $e');
+      debugPrint('Error fetching quote: $e');
       rethrow;
     }
   }

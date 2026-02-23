@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide UserInfo;
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -469,30 +471,192 @@ class FidelityService implements IBrokerageService {
   Future<List<Quote>> getQuoteByIds(
       BrokerageUser user, QuoteStore store, List<String> symbols,
       {bool fromCache = true}) async {
-    // Basic fallback using Yahoo
-    List<Quote> quotes = [];
-    final yahooService = YahooService();
-    // YahooService usually fetches single quote, maybe loop or check if it supports list
-    // getQuote in YahooService takes single symbol.
-    for (var sym in symbols) {
-      try {
-        var q = await yahooService.getQuote(sym);
-        quotes.add(q);
-      } catch (e) {
-        // ignore
+    if (symbols.isEmpty) return [];
+    
+    try {
+      // Try to fetch quotes from Fidelity API via Firebase Cloud Function
+      final quotes = await getQuotesFromFidelity(symbols);
+      return quotes;
+    } catch (e) {
+      debugPrint('Error fetching quotes from Fidelity: $e');
+      // Fallback to Yahoo Finance
+      List<Quote> quotes = [];
+      final yahooService = YahooService();
+      for (var sym in symbols) {
+        try {
+          var q = await yahooService.getQuote(sym);
+          quotes.add(q);
+        } catch (e) {
+          debugPrint('Error fetching quote for $sym from Yahoo: $e');
+        }
       }
+      return quotes;
     }
-    return quotes;
+  }
+
+  /// Fetches real-time quotes from Fidelity API via HTTP.
+  /// Calls https://fastquote.fidelity.com/service/quote/json
+  /// Converts Fidelity quote format to Robinhood Quote format.
+  Future<List<Quote>> getQuotesFromFidelity(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+
+    try {
+      // Map symbols to Fidelity format
+      final fidSymbols = symbols.map((s) {
+        var fidS = s;
+        if (s.startsWith("^")) {
+          fidS = "." + s.substring(1);
+        }
+        // Fidelity specific mappings
+        final sUpper = fidS.toUpperCase();
+        if (sUpper == ".GSPC") fidS = ".SPX";
+        if (sUpper == "^PCC" || sUpper == "^CPCE") fidS = ".PCCE";
+        if (sUpper == "^CPC") fidS = ".PCC";
+        if (sUpper == "DX-Y.NYB" || sUpper == "DX=F" || sUpper == "DXY" ||
+            sUpper == "DX") fidS = ".DXY";
+        if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
+        if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
+        return fidS;
+      }).join(",");
+
+      final url = "https://fastquote.fidelity.com/service/quote/json?" +
+          "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
+
+      final resp = await http.get(Uri.parse(url),
+          headers: {
+            "Referer": "https://www.fidelity.com/",
+            "Origin": "https://www.fidelity.com",
+          }
+      ).timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode != 200) {
+        throw Exception('Fidelity API returned status ${resp.statusCode}');
+      }
+
+      final text = resp.body;
+      // Fidelity returns JSONP-ish wrapped in parentheses: ( { ... } )
+      final startIndex = text.indexOf("(");
+      final endIndex = text.lastIndexOf(")");
+      if (startIndex == -1 || endIndex == -1) {
+        throw Exception("Invalid Fidelity Quotes response format");
+      }
+      final jsonText = text.substring(startIndex + 1, endIndex).trim();
+      
+      // Parse the JSON
+      final dynamic jsonData = jsonDecode(jsonText);
+      
+      if (jsonData is! Map<String, dynamic>) {
+        throw Exception('Expected Map response from Fidelity');
+      }
+
+      final data = jsonData;
+      
+      if (data['STATUS'] != null && data['STATUS'] is Map) {
+        final status = data['STATUS'] as Map<String, dynamic>;
+        if (status['ERROR_CODE'] != "0") {
+          debugPrint('Fidelity API reported an error: $status');
+        }
+      }
+
+      final quotesData = data['QUOTES'] as List<dynamic>?;
+      if (quotesData == null || quotesData.isEmpty) {
+        return [];
+      }
+
+      final quotes = <Quote>[];
+      for (final quoteData in quotesData) {
+        try {
+          if (quoteData is Map<String, dynamic>) {
+            final symbol = quoteData['symbol'] as String?;
+            if (symbol != null && symbol.isNotEmpty) {
+              final quote = _parseFidelityQuote(symbol, quoteData);
+              quotes.add(quote);
+            }
+          }
+        } catch (e) {
+          debugPrint('Error parsing quote data: $e');
+        }
+      }
+
+      return quotes;
+    } catch (e) {
+      debugPrint('Error calling Fidelity API: $e');
+      rethrow;
+    }
+  }
+
+  /// Parses Fidelity quote data into a Robinhood Quote object.
+  Quote _parseFidelityQuote(String symbol, dynamic quoteData) {
+    // Fidelity quote response has QUOTE array with bid/ask/last data
+    final quote = quoteData is Map<String, dynamic> ? quoteData : {};
+    
+    final bidPrice = _parseDouble(quote['bidPrice']);
+    final bidSize = _parseInt(quote['bidSize']);
+    final askPrice = _parseDouble(quote['askPrice']);
+    final askSize = _parseInt(quote['askSize']);
+    final lastPrice = _parseDouble(quote['lastPrice']) ?? 
+                      _parseDouble(quote['bidPrice']) ??
+                      _parseDouble(quote['askPrice']) ?? 0.0;
+    final previousClose = _parseDouble(quote['openPrice']) ?? 
+                         _parseDouble(quote['lastPrice']) ?? 0.0;
+
+    return Quote(
+      symbol: symbol,
+      askPrice: askPrice,
+      askSize: askSize,
+      bidPrice: bidPrice,
+      bidSize: bidSize,
+      lastTradePrice: lastPrice,
+      lastExtendedHoursTradePrice: null,
+      previousClose: previousClose,
+      adjustedPreviousClose: previousClose,
+      previousCloseDate: null,
+      tradingHalted: false,
+      hasTraded: true,
+      lastTradePriceSource: 'fidelity',
+      updatedAt: DateTime.now(),
+      instrument: 'https://api.robinhood.com/instruments/$symbol/',
+      instrumentId: symbol,
+    );
+  }
+
+  /// Helper to safely parse double from dynamic value
+  double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  /// Helper to safely parse int from dynamic value
+  int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   @override
   Future<Quote> getQuote(
       BrokerageUser user, QuoteStore store, String symbol) async {
+    try {
+      final quotes = await getQuotesFromFidelity([symbol]);
+      if (quotes.isNotEmpty) {
+        return quotes.first;
+      }
+    } catch (e) {
+      debugPrint('Error fetching quote from Fidelity: $e');
+    }
+    
+    // Fallback to Yahoo Finance
     final yahooService = YahooService();
     return await yahooService.getQuote(symbol);
   }
 
   @override
+
   Future<Quote> refreshQuote(
       BrokerageUser user, QuoteStore store, String symbol) async {
     return await getQuote(user, store, symbol);

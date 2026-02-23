@@ -1171,7 +1171,7 @@ Based on this specific trade data and the flags, provide a professional trading 
                                     listen: false)
                                 .createAlert(
                               symbol: symbolController.text.toUpperCase(),
-                              targetPremium:
+                              minPremium:
                                   double.tryParse(premiumController.text),
                               sentiment: sentiment,
                             );

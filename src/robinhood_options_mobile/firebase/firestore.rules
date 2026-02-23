@@ -87,6 +87,12 @@ service cloud.firestore {
         allow create: if false; // server-side only
         allow delete: if request.auth.uid == uid;
       }
+      match /flow_notifications/{id} {
+        allow read: if request.auth.uid == uid;
+        allow update: if request.auth.uid == uid; // for marking as read
+        allow create: if false; // server-side only
+        allow delete: if request.auth.uid == uid;
+      }
       match /paper_account/{id} {
         allow read, write: if request.auth.uid == uid;
       }

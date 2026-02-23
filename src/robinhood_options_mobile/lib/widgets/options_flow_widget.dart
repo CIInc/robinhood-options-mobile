@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
+import 'package:robinhood_options_mobile/widgets/options_flow_notifications_page.dart';
 
 class OptionsFlowWidget extends StatefulWidget {
   final String? initialSymbol;
@@ -1280,6 +1281,19 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                   // ),
                   actions: [
                     IconButton(
+                      icon: const Icon(Icons.history),
+                      tooltip: 'Alert History',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const OptionsFlowNotificationsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.add),
                       onPressed: _showAddAlertDialog,
                     ),
@@ -1355,38 +1369,70 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Row(
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    if (alert.sentiment != 'any') ...[
-                                      Icon(
-                                        alert.sentiment == 'bullish'
-                                            ? Icons.trending_up
-                                            : Icons.trending_down,
-                                        size: 14,
-                                        color: alert.sentiment == 'bullish'
-                                            ? Colors.green
-                                            : Colors.red,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        alert.sentiment
-                                            .toString()
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: alert.sentiment == 'bullish'
-                                              ? Colors.green
-                                              : Colors.red,
-                                          fontWeight: FontWeight.bold,
+                                    Row(
+                                      children: [
+                                        if (alert.sentiment != 'any') ...[
+                                          Icon(
+                                            alert.sentiment == 'bullish'
+                                                ? Icons.trending_up
+                                                : Icons.trending_down,
+                                            size: 14,
+                                            color: alert.sentiment == 'bullish'
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            alert.sentiment
+                                                .toString()
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color:
+                                                  alert.sentiment == 'bullish'
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                        ],
+                                        Text(
+                                          '>= \$${_compactFormat.format(alert.minPremium)}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                        if (alert.minVolume != null) ...[
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Vol >= ${_compactFormat.format(alert.minVolume)}',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (alert.expirationRange != 'any' ||
+                                        alert.flags.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          [
+                                            if (alert.expirationRange != 'any')
+                                              'Exp ${alert.expirationRange}d',
+                                            if (alert.flags.isNotEmpty)
+                                              'Flags: ${alert.flags.join(', ')}',
+                                          ].join(' | '),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    Text(
-                                      '> \$${_compactFormat.format(alert.targetPremium)}',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
                                   ],
                                 ),
                                 trailing: Row(
@@ -1422,7 +1468,10 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
   void _showAddAlertDialog({String? initialSymbol}) {
     final symbolController = TextEditingController(text: initialSymbol);
     final premiumController = TextEditingController(text: '50000');
+    final volumeController = TextEditingController();
     String sentiment = 'bullish';
+    String expirationRange = 'any';
+    final Set<String> selectedFlags = {};
 
     showModalBottomSheet(
       context: context,
@@ -1484,6 +1533,18 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
+                      TextField(
+                        controller: volumeController,
+                        decoration: InputDecoration(
+                          labelText: 'Min Volume (Contracts)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.bar_chart),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         'Sentiment',
                         style: Theme.of(context).textTheme.titleSmall,
@@ -1520,6 +1581,68 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: expirationRange,
+                        decoration: InputDecoration(
+                          labelText: 'Expiration Range',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.event),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'any', child: Text('Any')),
+                          DropdownMenuItem(
+                              value: '0-7', child: Text('0-7 days')),
+                          DropdownMenuItem(
+                              value: '8-30', child: Text('8-30 days')),
+                          DropdownMenuItem(
+                              value: '30+', child: Text('30+ days')),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() {
+                            expirationRange = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Flags (Optional)',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      ...OptionsFlowStore.flagCategories.entries.map((entry) {
+                        return ExpansionTile(
+                          title: Text(entry.key),
+                          childrenPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: entry.value.map((flag) {
+                                final isSelected = selectedFlags.contains(flag);
+                                return FilterChip(
+                                  label: Text(flag),
+                                  selected: isSelected,
+                                  onSelected: (val) {
+                                    setState(() {
+                                      if (val) {
+                                        selectedFlags.add(flag);
+                                      } else {
+                                        selectedFlags.remove(flag);
+                                      }
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
@@ -1531,9 +1654,12 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                     listen: false)
                                 .createAlert(
                               symbol: symbolController.text.toUpperCase(),
-                              targetPremium:
+                              minPremium:
                                   double.tryParse(premiumController.text),
+                              minVolume: int.tryParse(volumeController.text),
                               sentiment: sentiment,
+                              expirationRange: expirationRange,
+                              flags: selectedFlags.toList(),
                             );
                             Navigator.pop(context);
                           },

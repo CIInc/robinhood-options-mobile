@@ -28,6 +28,10 @@ class OptionsFlowStore extends ChangeNotifier {
         'Out The Money. Strike price is not yet favorable. Lower probability, cheaper, higher leverage. Pure directional speculation.',
     'WHALE':
         'Massive institutional order >\$1M premium. Represents highest conviction from major players.',
+    'Super Whale':
+        'Ultra-large institutional order >\$5M premium. Extremely rare, highest conviction.',
+    'Institutional':
+        'Large block trade (>\$2M) suggesting institutional accumulation or hedging.',
     'Golden Sweep':
         'Large sweep order >\$1M premium executed at/above ask. Strong directional betting.',
     'Steamroller':
@@ -57,6 +61,10 @@ class OptionsFlowStore extends ChangeNotifier {
         'Trade direction opposes current stock trend (>2% move). Betting on reversal.',
     'Earnings Play':
         'Options expiring shortly after earnings (2-14 days). Betting on volatility event.',
+    'IV Crush Risk':
+        'High IV ahead of earnings (0-2 days). Elevated risk of volatility crush.',
+    'Floor Protection':
+        'Deep OTM put volume indicating institutional downside protection.',
     'Extreme IV':
         'Implied Volatility > 250%. Extreme fear/greed or binary event.',
     'High IV': 'Implied Volatility > 100%. Market pricing in a massive move.',
@@ -93,7 +101,9 @@ class OptionsFlowStore extends ChangeNotifier {
 
   static const Map<String, List<String>> flagCategories = {
     'Volume & Institutional': [
+      'Super Whale',
       'WHALE',
+      'Institutional',
       'Golden Sweep',
       'Steamroller',
       'Mega Vol',
@@ -110,6 +120,7 @@ class OptionsFlowStore extends ChangeNotifier {
       'Bearish Divergence',
       'Panic Hedge',
       'Gamma Squeeze',
+      'Floor Protection',
       'Contrarian',
       'Earnings Play',
     ],
@@ -117,6 +128,7 @@ class OptionsFlowStore extends ChangeNotifier {
       'Extreme IV',
       'High IV',
       'Low IV',
+      'IV Crush Risk',
       'Cheap Vol',
     ],
     'Moneyness & Time': [
@@ -213,16 +225,22 @@ class OptionsFlowStore extends ChangeNotifier {
 
   Future<void> createAlert({
     required String symbol,
-    double? targetPremium,
+    double? minPremium,
+    int? minVolume,
     String? sentiment,
     String? condition,
+    String? expirationRange,
+    List<String>? flags,
   }) async {
     try {
       await FirebaseFunctions.instance.httpsCallable('createOptionAlert').call({
         'symbol': symbol,
-        'targetPremium': targetPremium,
+        'minPremium': minPremium,
+        'minVolume': minVolume,
         'sentiment': sentiment,
         'condition': condition,
+        'expirationRange': expirationRange,
+        'flags': flags,
       });
       await loadAlerts();
     } catch (e) {

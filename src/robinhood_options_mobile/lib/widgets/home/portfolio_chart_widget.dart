@@ -232,8 +232,9 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                       history.openEquity,
                   data: allHistoricals),
             ],
-            if (allHistoricals
-                .any((element) => element.openMarketValue! > 0)) ...[
+            if (allHistoricals.any((element) =>
+                element.openMarketValue != null &&
+                element.openMarketValue! > 0)) ...[
               charts.Series<EquityHistorical, DateTime>(
                   id: 'Market Value',
                   colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
