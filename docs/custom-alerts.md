@@ -24,6 +24,11 @@ The Custom Alerts feature allows users to set up personalized notifications for 
 - **Position Size Changes**: Alert on significant changes in position values
 - **P&L Thresholds**: Notify when unrealized P&L reaches specified levels
 
+#### Options Flow Alerts
+- **Flow Criteria**: Trigger on sweeps, blocks, or smart flags (Whale, Golden Sweep, Steamroller).
+- **Premium & Expiration Filters**: Set minimum premium thresholds and target short-dated contracts (0DTE, 1DTE).
+- **Notification Center**: Triggered flow alerts are stored in the option flow notifications feed for quick review.
+
 ### Alert Configuration
 
 Users can configure alerts with:

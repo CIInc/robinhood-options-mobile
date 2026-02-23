@@ -77,6 +77,7 @@ A proprietary 0-100 score that rates the significance of each trade based on:
 ### Filtering & Alerts
 *   **Smart Filters:** Filter flow by sector, market cap, expiration, moneyness (ITM/OTM), and **specific flags** (e.g., "Show me only Golden Sweeps").
 *   **Custom Alerts:** Set up push notifications for specific flow criteria (e.g., "TSLA Call Sweeps > $1M").
+*   **Option Flow Notifications:** A dedicated notifications page collects triggered flow alerts with search and filter tools for rapid review.
 
 ## How to Use
 
@@ -86,6 +87,7 @@ A proprietary 0-100 score that rates the significance of each trade based on:
 4.  **Analyze:** Tap on a flow item to open the **Detail View**. This shows all active flags, moneyness, and detailed contract stats.
 5.  **Learn:** Tap on any flag, score, or multiplier badge to see a **Tooltip** with its definition.
 6.  **Sort:** Use the sort button to rank trades by Premium, Time, or Volume/OI ratio.
+7.  **Review Alerts:** Open the Option Flow Notifications page to search, filter, and review triggered alerts.
 
 ## Methodology
 

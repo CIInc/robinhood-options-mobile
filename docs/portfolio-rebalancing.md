@@ -20,6 +20,7 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 - **Smart Presets**: Quickly apply standard strategies using the preset chips:
   - *Asset Class*: Aggressive, Moderate, Conservative, All Equity.
   - *Sector*: Tech Heavy, Balanced, Defensive.
+  - *Fixed Income*: Presets now include bond and treasury allocations for balanced portfolios.
 - **AI Optimization**: Tap the sparkles icon ✨ to open the [AI Asset Allocation](ai-asset-allocation.md) tool. Get personalized target recommendations based on your risk profile, time horizon, and investment goals.
 - **Normalization**: One-tap "Normalize" button ensures your targets always add up to exactly 100%.
 
@@ -29,9 +30,16 @@ The Portfolio Rebalancing tool helps you maintain your desired asset allocation 
 - **Prioritized List**: Recommendations are sorted by dollar amount, so you can focus on the most impactful trades first.
 - **Clear Actions**: Each recommendation shows the exact amount to buy or sell to reach your target.
 
+### 5. Automated Rebalancing Scheduler
+- **Scheduled Checks**: Enable periodic drift checks (daily, weekly, or monthly) from the settings sheet.
+- **Notifications**: Receive alerts when your portfolio drifts beyond the configured threshold.
+- **Auto-Execute (Optional)**: Allow experimental auto-rebalance placement for paper or guided workflows.
+- **Macro Guidance**: Built-in macro context provides suggestions on whether to rebalance aggressively or defensively.
+
 ## How to Use
 
 1. **Access**: Navigate to the "Allocation" section on the Home screen and tap "Rebalance".
-2. **Set Targets**: Tap the "Edit" icon (pencil) to enter edit mode. Adjust sliders or apply a preset to define your ideal portfolio. Save your changes.
+2. **Set Targets**: Tap the "Edit" icon (pencil) to enter edit mode. Targets default to your current allocation on first open. Adjust sliders or apply a preset to define your ideal portfolio. Save your changes.
 3. **Review Drift**: Check the "Drift" indicators on each card to see which assets are off-target.
 4. **Execute Trades**: Scroll down to the "Rebalancing Recommendations" card to see a prioritized list of trades to execute.
+5. **Enable Scheduler**: Open settings (gear icon) to turn on scheduled checks and configure notifications.

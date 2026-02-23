@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-02-22
+
+### Added
+- **Option Flow Alerts & Notifications:** New option flow notification models, store, and UI with alert integration for real-time flow criteria.
+- **Rebalancing Scheduler:** Scheduled drift checks with configurable frequency, notifications, and optional auto-execute controls.
+- **Macro Assessment Dashboard:** Expanded macro assessment experience with a dedicated dashboard view and navigation support.
+- **History Widget:** Loading skeleton and shimmer effect for smoother history loading states.
+
+### Changed
+- **Rebalancing UX:** Added macro guidance and initial allocation defaults; presets now include fixed income categories.
+- **Navigation:** Improved deep link routing for rebalancing and safer push notification token handling.
+
+### Fixed
+- **Fidelity Quotes:** Improved quote fetching resilience and error handling for Fidelity imports.
+
 ## [0.33.0] - 2026-02-18
 
 ### Added

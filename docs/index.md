@@ -45,13 +45,13 @@
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
-- **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators.
+- **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators. **New:** Option Flow alerts and a dedicated notifications feed.
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
 - **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals.
 - **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
-- **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** **[AI Asset Allocation](ai-asset-allocation.md)** providing personalized portfolio weighting recommendations based on user risk profiles. Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts.
+- **[Portfolio Rebalancing](portfolio-rebalancing.md):** Interactive tool to manage asset and sector allocation with visual drift analysis, precision target editing, and actionable buy/sell recommendations. **New:** **[AI Asset Allocation](ai-asset-allocation.md)** providing personalized portfolio weighting recommendations based on user risk profiles. Enhanced UI with dual views (Asset/Sector), smart presets, drift indicators, and theme-aware charts, plus scheduled rebalancing with macro guidance.
 - **[Group Watchlists](group-watchlists.md):** Collaborative instrument lists for Investor Groups.
 - **[Group Performance Analytics](portfolio-analytics.md):** Leaderboards and aggregated performance metrics for investor groups.
 - **[ESG Scoring](esg-scoring.md):** Comprehensive Environmental, Social, and Governance scoring for individual instruments and portfolio-wide weighted averages to align investments with values.
@@ -60,7 +60,7 @@
 - **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
 - **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
-- **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend.
+- **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend with a dedicated dashboard for deeper analysis.
 - **[Deep Linking & Referrals](deep-linking.md):** Seamless navigation into the app from external links with a built-in referral tracking system for user growth.
 ## Investment Profile Feature
 
