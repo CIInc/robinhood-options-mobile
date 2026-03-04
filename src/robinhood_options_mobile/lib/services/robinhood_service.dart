@@ -410,8 +410,7 @@ Response: {
           bu.source == brokerageUser.source);
 
       // Only update if accounts have changed
-      final accountsChanged = bu.accounts == null ||
-          bu.accounts.length != accounts.length ||
+      final accountsChanged = bu.accounts.length != accounts.length ||
           bu.accounts.asMap().entries.any((entry) =>
               entry.value.accountNumber != accounts[entry.key].accountNumber);
 
@@ -837,6 +836,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return null;
   }
 
+  @override
   Future<List<dynamic>> getFuturesContractsByIds(
       BrokerageUser user, List<String> contractIds) async {
     if (contractIds.isEmpty) {
@@ -848,6 +848,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return resultJson['results'] ?? [];
   }
 
+  @override
   Future<dynamic> getFuturesContractBySymbol(
       BrokerageUser user, String symbol) async {
     var url = "$endpoint/arsenal/v1/futures/contracts/symbol/$symbol";
@@ -855,6 +856,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return resultJson['result'];
   }
 
+  @override
   Future<List<dynamic>> getFuturesContractsBySymbols(
       BrokerageUser user, List<String> symbols) async {
     if (symbols.isEmpty) {
@@ -874,6 +876,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return contracts;
   }
 
+  @override
   Future<List<dynamic>> getFuturesClosesByIds(
       BrokerageUser user, List<String> contractIds) async {
     if (contractIds.isEmpty) {

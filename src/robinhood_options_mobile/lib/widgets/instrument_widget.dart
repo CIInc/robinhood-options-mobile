@@ -4304,11 +4304,36 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         // Extract signal strength
         final overallSignalStrength = multiIndicator['signalStrength'] as int?;
 
-        // Calculate enabled signal strength
+        // Calculate enabled signal strength using weighted indicators like backend does
         int? enabledSignalStrength;
         int buyCount = 0;
         int sellCount = 0;
         int holdCount = 0;
+        double weightedScore = 0;
+        double totalWeight = 0;
+
+        // Use same weights as backend
+        const weights = {
+          'priceMovement': 2.0,
+          'momentum': 1.5,
+          'macd': 1.5,
+          'ichimoku': 1.5,
+          'bollingerBands': 1.2,
+          'adx': 1.2,
+          'vwap': 1.2,
+          'marketDirection': 1.2,
+          'stochastic': 1.0,
+          'atr': 1.0,
+          'obv': 1.0,
+          'cci': 1.0,
+          'parabolicSar': 1.0,
+          'williamsR': 1.0,
+          'volume': 1.0,
+          'roc': 1.0,
+          'chaikinMoneyFlow': 1.0,
+          'fibonacciRetracements': 1.2,
+          'pivotPoints': 1.2,
+        };
 
         if (enabledCount > 0) {
           for (final entry in {
@@ -4339,17 +4364,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final indicator =
                   indicators[indicatorKey] as Map<String, dynamic>?;
               final signal = indicator?['signal'];
+              final weight = weights[configKey] ?? 1.0;
+
+              totalWeight += weight;
               if (signal == 'BUY') {
                 buyCount++;
+                weightedScore += weight;
               } else if (signal == 'SELL') {
                 sellCount++;
+                weightedScore -= weight;
               } else {
                 holdCount++;
               }
             }
           }
-          final maxAgreement = math.max(buyCount, sellCount);
-          enabledSignalStrength = ((maxAgreement / enabledCount) * 100).round();
+          // Use same normalization formula as backend
+          if (totalWeight > 0) {
+            final normalizedScore =
+                (weightedScore + totalWeight) / (2 * totalWeight);
+            enabledSignalStrength = (normalizedScore * 100).round();
+          }
         }
 
         final Color borderColor = displayAllGreen
@@ -4508,6 +4542,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          _buildSignalStrengthDocumentation(),
+                                          const SizedBox(height: 16),
+                                          const Divider(),
+                                          const SizedBox(height: 16),
                                           _buildDocSection('priceMovement'),
                                           _buildDocSection('momentum'),
                                           _buildDocSection('marketDirection'),
@@ -5095,10 +5133,273 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  Widget _buildSignalStrengthDocumentation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Signal Strength',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'A weighted consensus score (0-100) measuring how strongly enabled indicators align in their trading signals.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Formula:',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Text(
+            'signalStrength = (weightedScore + totalWeight) / (2 × totalWeight) × 100',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  color: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.color
+                      ?.withValues(alpha: 0.7),
+                ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Indicator Weights:',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 8),
+        _buildWeightCategory(
+            'Critical (2.0)', ['Price Movement'], Colors.green),
+        const SizedBox(height: 8),
+        _buildWeightCategory(
+            'High (1.5)', ['Momentum', 'MACD', 'Ichimoku'], Colors.blue),
+        const SizedBox(height: 8),
+        _buildWeightCategory(
+          'Standard (1.2)',
+          [
+            'Bollinger Bands',
+            'ADX',
+            'VWAP',
+            'Market Direction',
+            'Fibonacci',
+            'Pivot Points'
+          ],
+          Colors.orange,
+        ),
+        const SizedBox(height: 8),
+        _buildWeightCategory(
+          'Supporting (1.0)',
+          [
+            'Stochastic',
+            'ATR',
+            'OBV',
+            'CCI',
+            'Parabolic SAR',
+            'Williams %R',
+            'Volume',
+            'ROC',
+            'Chaikin Money Flow'
+          ],
+          Colors.grey,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Interpretation:',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 8),
+        _buildStrengthRange(
+            '90-100%', 'Extreme — All indicators aligned', Colors.green),
+        _buildStrengthRange(
+            '75-89%', 'Very Strong — High confidence BUY', Colors.green),
+        _buildStrengthRange(
+            '60-74%', 'Strong — Actionable BUY signal', Colors.green),
+        _buildStrengthRange(
+            '40-59%', 'Moderate — Mixed signals, HOLD', Colors.amber),
+        _buildStrengthRange('25-39%', 'Weak — Caution, rare SELL', Colors.red),
+        _buildStrengthRange(
+            '0-24%', 'No Consensus — Avoid trading', Colors.red),
+      ],
+    );
+  }
+
+  Widget _buildWeightCategory(
+      String title, List<String> indicators, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            indicators.join(', '),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: 11,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStrengthRange(String range, String description, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 65,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              range,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                    color: color,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              description,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDocSection(String key) {
     return IndicatorDocumentationWidget(
       indicatorKey: key,
       showContainer: false,
+    );
+  }
+
+  Widget _buildSparkline(List<double> data, Color color) {
+    if (data.isEmpty) return const SizedBox.shrink();
+    final minVal = data.reduce(math.min);
+    final maxVal = data.reduce(math.max);
+    final range = maxVal - minVal == 0 ? 1.0 : maxVal - minVal;
+
+    return CustomPaint(
+      painter: _SparklinePainter(data, color, minVal, range),
+    );
+  }
+
+  Widget _buildSignalTypePill(String signalType) {
+    bool isBuy = signalType == 'BUY';
+    bool isSell = signalType == 'SELL';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isBuy
+            ? Colors.green.withValues(alpha: 0.1)
+            : (isSell
+                ? Colors.red.withValues(alpha: 0.1)
+                : Colors.grey.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isBuy
+              ? Colors.green.withValues(alpha: 0.3)
+              : (isSell
+                  ? Colors.red.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3)),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isBuy
+                ? Icons.trending_up
+                : (isSell ? Icons.trending_down : Icons.trending_flat),
+            color: isBuy ? Colors.green : (isSell ? Colors.red : Colors.grey),
+            size: 18,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            signalType,
+            style: TextStyle(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w700,
+              color: isBuy ? Colors.green : (isSell ? Colors.red : Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStrengthBadge(int strength) {
+    final color = _getSignalStrengthColor(strength);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Confidence',
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 60,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$strength%',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold, color: color),
+              ),
+              const SizedBox(height: 2),
+              LinearProgressIndicator(
+                value: strength / 100,
+                backgroundColor: color.withValues(alpha: 0.1),
+                color: color,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -5201,29 +5502,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             );
                           },
                         ),
-                        ValueListenableBuilder<bool>(
-                          valueListenable: _isGeneratingSignalNotifier,
-                          builder: (context, isGeneratingSignal, _) {
-                            return IconButton(
-                              icon: isGeneratingSignal
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.auto_awesome),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8.0),
-                              constraints: const BoxConstraints(),
-                              tooltip: 'Generate Trade Signal',
-                              onPressed: isGeneratingSignal
-                                  ? null
-                                  : () => _generateTradeSignal(context),
-                            );
-                          },
-                        ),
                         if (provider.tradeSignal != null)
                           ValueListenableBuilder<bool>(
                             valueListenable: _isAssessingRiskNotifier,
@@ -5254,6 +5532,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               );
                             },
                           ),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _isGeneratingSignalNotifier,
+                          builder: (context, isGeneratingSignal, _) {
+                            return IconButton(
+                              icon: isGeneratingSignal
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.refresh_outlined),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Generate Trade Signal',
+                              onPressed: isGeneratingSignal
+                                  ? null
+                                  : () => _generateTradeSignal(context),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -5520,313 +5821,239 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
               // Determine signal color and icon
               Color signalColor;
-              IconData signalIcon;
               switch (signalType) {
                 case 'BUY':
                   signalColor = Colors.green;
-                  signalIcon = Icons.trending_up;
                   break;
                 case 'SELL':
                   signalColor = Colors.red;
-                  signalIcon = Icons.trending_down;
                   break;
                 default:
                   signalColor = Colors.grey;
-                  signalIcon = Icons.trending_flat;
               }
 
               final isMarketOpen = MarketHours.isMarketOpen();
 
-              return Card(
-                elevation: 2,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // Header with signal badge and timestamp
-                    Container(
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: signalColor.withValues(alpha: 0.1),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          topRight: Radius.circular(12),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Timestamp and Status
+                  Container(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "${formatCompactDateTimeWithHour.format(timestamp)} · ${_getTimeAgo(timestamp)}${multiIndicator?['bars'] != null ? ' · ${multiIndicator?['bars']} bars' : ''}",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade700,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isMarketOpen
+                                ? Colors.amber.withValues(alpha: 0.15)
+                                : Colors.blue.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isMarketOpen
+                                  ? Colors.amber.withValues(alpha: 0.3)
+                                  : Colors.blue.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                children: [
-                                  // Signal Badge
-                                  Tooltip(
-                                    message: signal['reason'] ??
-                                        'No reason provided',
-                                    padding: const EdgeInsets.all(12),
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 16),
-                                    showDuration: const Duration(seconds: 5),
-                                    triggerMode: TooltipTriggerMode.tap,
-                                    child: InkWell(
-                                      onTap: optimization != null
-                                          ? () {
-                                              _showAIReasoningNotifier.value =
-                                                  !_showAIReasoningNotifier
-                                                      .value;
-                                            }
-                                          : null,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16.0,
-                                          vertical: 8.0,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: signalColor,
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          boxShadow: optimization != null
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Colors.purple
-                                                        .withValues(alpha: 0.3),
-                                                    blurRadius: 8,
-                                                    spreadRadius: 1,
-                                                  )
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              optimization != null
-                                                  ? Icons.auto_awesome
-                                                  : signalIcon,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              signalType,
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            if (optimization != null) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.2),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                child: Text(
-                                                  "${optimization['confidenceScore']}% AI",
-                                                  style: const TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              ValueListenableBuilder<bool>(
-                                                  valueListenable:
-                                                      _showAIReasoningNotifier,
-                                                  builder: (context,
-                                                      showAIReasoning, child) {
-                                                    return Icon(
-                                                      showAIReasoning
-                                                          ? Icons
-                                                              .keyboard_arrow_up
-                                                          : Icons
-                                                              .keyboard_arrow_down,
-                                                      color: Colors.white,
-                                                      size: 16,
-                                                    );
-                                                  }),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              Icon(
+                                isMarketOpen
+                                    ? Icons.wb_sunny_rounded
+                                    : Icons.nightlight_round,
+                                size: 10,
+                                color: isMarketOpen
+                                    ? Colors.amber.shade700
+                                    : Colors.blue.shade700,
                               ),
-                              // Timestamp and Status
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "${formatCompactDateTimeWithHour.format(timestamp)} · ${_getTimeAgo(timestamp)}",
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.grey.shade300
-                                          : Colors.grey.shade700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: isMarketOpen
-                                          ? Colors.amber.withValues(alpha: 0.15)
-                                          : Colors.blue.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: isMarketOpen
-                                            ? Colors.amber
-                                                .withValues(alpha: 0.3)
-                                            : Colors.blue
-                                                .withValues(alpha: 0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          isMarketOpen
-                                              ? Icons.wb_sunny_rounded
-                                              : Icons.nightlight_round,
-                                          size: 10,
-                                          color: isMarketOpen
-                                              ? Colors.amber.shade700
-                                              : Colors.blue.shade700,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          isMarketOpen
-                                              ? 'Market Open'
-                                              : 'After Hours',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: isMarketOpen
-                                                ? Colors.amber.shade800
-                                                : Colors.blue.shade800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(width: 4),
+                              Text(
+                                isMarketOpen ? 'Market Open' : 'After Hours',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isMarketOpen
+                                      ? Colors.amber.shade800
+                                      : Colors.blue.shade800,
+                                ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-
-                    // ML Optimization Section - Content Only if expanded or relevant
-                    if (optimization != null &&
-                        optimization['reasoning'] != null)
-                      ValueListenableBuilder<bool>(
-                        valueListenable: _showAIReasoningNotifier,
-                        builder: (context, showAIReasoning, child) {
-                          if (!showAIReasoning) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 12.0),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? [
-                                          Colors.purple.shade900
-                                              .withValues(alpha: 0.3),
-                                          Colors.blue.shade900
-                                              .withValues(alpha: 0.3)
-                                        ]
-                                      : [
-                                          Colors.purple.shade50,
-                                          Colors.blue.shade50
-                                        ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.purpleAccent
-                                          .withValues(alpha: 0.2)
-                                      : Colors.purple.withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    ShaderMask(
-                                      shaderCallback: (bounds) =>
-                                          const LinearGradient(
-                                        colors: [Colors.purple, Colors.blue],
-                                      ).createShader(bounds),
-                                      child: const Icon(
-                                        Icons.auto_awesome,
-                                        size: 18,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text("AI Insight",
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            foreground: Paint()
-                                              ..shader = const LinearGradient(
-                                                colors: [
-                                                  Colors.purple,
-                                                  Colors.blue
-                                                ],
-                                              ).createShader(
-                                                  const Rect.fromLTWH(
-                                                      0.0, 0.0, 200.0, 70.0))))
-                                  ]),
-                                  const SizedBox(height: 12),
-                                  SelectableText(
-                                    optimization['reasoning'],
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.color,
-                                        height: 1.5),
-                                  ),
-                                ],
+                  ),
+                  Card(
+                    elevation: 2,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        // Sparkline, Signal Strength Row - Header
+                        if (multiIndicator?['sparkline'] != null ||
+                            multiIndicator?['signalStrength'] != null)
+                          Container(
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: signalColor.withValues(alpha: 0.1),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildSignalTypePill(signalType),
+                                if (multiIndicator?['sparkline'] != null)
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      child: SizedBox(
+                                        height: 30,
+                                        child: _buildSparkline(
+                                            (multiIndicator!['sparkline']
+                                                    as List)
+                                                .map((e) =>
+                                                    (e as num).toDouble())
+                                                .toList(),
+                                            signalColor),
+                                      ),
+                                    ),
+                                  ),
+                                if (multiIndicator?['signalStrength'] != null)
+                                  _buildStrengthBadge(
+                                      multiIndicator!['signalStrength'] as int),
+                              ],
+                            ),
+                          ),
 
-                    // Multi-Indicator Display
-                    if (multiIndicator != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                        child: _buildMultiIndicatorDisplay(multiIndicator),
-                      ),
+                        // ML Optimization Section - Content Only if expanded or relevant
+                        if (optimization != null &&
+                            optimization['reasoning'] != null)
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _showAIReasoningNotifier,
+                            builder: (context, showAIReasoning, child) {
+                              if (!showAIReasoning) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 12.0),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? [
+                                              Colors.purple.shade900
+                                                  .withValues(alpha: 0.3),
+                                              Colors.blue.shade900
+                                                  .withValues(alpha: 0.3)
+                                            ]
+                                          : [
+                                              Colors.purple.shade50,
+                                              Colors.blue.shade50
+                                            ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.purpleAccent
+                                              .withValues(alpha: 0.2)
+                                          : Colors.purple
+                                              .withValues(alpha: 0.1),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(children: [
+                                        ShaderMask(
+                                          shaderCallback: (bounds) =>
+                                              const LinearGradient(
+                                            colors: [
+                                              Colors.purple,
+                                              Colors.blue
+                                            ],
+                                          ).createShader(bounds),
+                                          child: const Icon(
+                                            Icons.auto_awesome,
+                                            size: 18,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text("AI Insight",
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                foreground: Paint()
+                                                  ..shader =
+                                                      const LinearGradient(
+                                                    colors: [
+                                                      Colors.purple,
+                                                      Colors.blue
+                                                    ],
+                                                  ).createShader(
+                                                          const Rect.fromLTWH(
+                                                              0.0,
+                                                              0.0,
+                                                              200.0,
+                                                              70.0))))
+                                      ]),
+                                      const SizedBox(height: 12),
+                                      SelectableText(
+                                        optimization['reasoning'],
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.color,
+                                            height: 1.5),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
 
-                    // Action Buttons
-                  ],
-                ),
+                        // Multi-Indicator Display
+                        if (multiIndicator != null)
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                            child: _buildMultiIndicatorDisplay(multiIndicator),
+                          ),
+
+                        // Action Buttons
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -6038,6 +6265,65 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ),
     );
   }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> data;
+  final Color color;
+  final double minVal;
+  final double range;
+
+  _SparklinePainter(this.data, this.color, this.minVal, this.range);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.length < 2) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    final stepX = size.width / (data.length - 1);
+
+    for (var i = 0; i < data.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((data[i] - minVal) / range * size.height);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+
+    // Add a gradient fill under the line
+    final fillPath = Path();
+    fillPath.moveTo(0, size.height);
+    for (var i = 0; i < data.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((data[i] - minVal) / range * size.height);
+      fillPath.lineTo(x, y);
+    }
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(fillPath, fillPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // Risk Guard Button Widget

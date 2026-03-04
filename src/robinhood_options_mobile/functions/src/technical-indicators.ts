@@ -55,6 +55,8 @@ export interface MultiIndicatorResult {
   overallSignal: "BUY" | "SELL" | "HOLD";
   reason: string;
   signalStrength: number; // 0-100 score based on indicator alignment
+  bars: number;
+  sparkline?: number[];
 }
 
 /**
@@ -3529,7 +3531,8 @@ export function evaluateAllIndicators(
       config.rocPeriod || 12,
       config.marketFastPeriod || 10,
       config.marketSlowPeriod || 30,
-      35 // MACD lookback
+      35, // MACD lookback
+      80 // Ichimoku (spanBPeriod 52 + displacement 26/lagging 26)
     );
 
     // Only filter if we have some valid volumes
@@ -3885,6 +3888,9 @@ export function evaluateAllIndicators(
     overallSignal,
     reason,
     signalStrength,
+    bars: symbolData.closes.length,
+    sparkline: symbolData.closes.slice(-80),
+    // Use exactly the max history (Ichimoku uses 52+26=78)
   };
 
   if (Object.keys(customResults).length > 0) {

@@ -505,7 +505,7 @@ class FidelityService implements IBrokerageService {
       final fidSymbols = symbols.map((s) {
         var fidS = s;
         if (s.startsWith("^")) {
-          fidS = "." + s.substring(1);
+          fidS = ".${s.substring(1)}";
         }
         // Fidelity specific mappings
         final sUpper = fidS.toUpperCase();
@@ -515,14 +515,15 @@ class FidelityService implements IBrokerageService {
         if (sUpper == "DX-Y.NYB" ||
             sUpper == "DX=F" ||
             sUpper == "DXY" ||
-            sUpper == "DX") fidS = ".DXY";
+            sUpper == "DX") {
+          fidS = ".DXY";
+        }
         if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
         if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
         return fidS;
       }).join(",");
 
-      final url = "https://fastquote.fidelity.com/service/quote/json?" +
-          "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
+      final url = "https://fastquote.fidelity.com/service/quote/json?" "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
 
       final resp = await http.get(Uri.parse(url), headers: {
         "Referer": "https://www.fidelity.com/",

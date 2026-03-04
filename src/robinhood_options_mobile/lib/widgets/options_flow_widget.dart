@@ -1583,7 +1583,7 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: expirationRange,
+                        initialValue: expirationRange,
                         decoration: InputDecoration(
                           labelText: 'Expiration Range',
                           border: OutlineInputBorder(

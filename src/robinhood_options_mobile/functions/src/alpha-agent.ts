@@ -261,9 +261,13 @@ export async function handleAlphaTask(marketData: any,
   if (overallSignal === "HOLD") {
     // Persist signal only if it changed from the previous signal
     if (!config?.skipSignalUpdate) {
+      const prevResult = previousSignalDoc?.multiIndicatorResult;
+      const currResult = multiIndicatorResult;
+
       const signalChanged = !previousSignalDoc ||
         previousSignalDoc.signal !== overallSignal ||
-        previousSignalDoc.reason !== reason;
+        previousSignalDoc.reason !== reason ||
+        JSON.stringify(prevResult) !== JSON.stringify(currResult);
 
       if (signalChanged) {
         try {
@@ -280,7 +284,6 @@ export async function handleAlphaTask(marketData: any,
             multiIndicatorResult,
             optimization,
             currentPrice: marketData.currentPrice,
-            bars: closes.length,
             config,
             portfolioState,
           };
@@ -461,9 +464,13 @@ export async function handleAlphaTask(marketData: any,
 
   // Persist trade signal to Firestore only if it changed
   if (!config?.skipSignalUpdate) {
+    const prevResult = previousSignalDoc?.multiIndicatorResult;
+    const currResult = multiIndicatorResult;
+
     const signalChanged = !previousSignalDoc ||
       previousSignalDoc.signal !== overallSignal ||
-      previousSignalDoc.reason !== reason;
+      previousSignalDoc.reason !== reason ||
+      JSON.stringify(prevResult) !== JSON.stringify(currResult);
 
     if (signalChanged) {
       try {
@@ -480,7 +487,6 @@ export async function handleAlphaTask(marketData: any,
           multiIndicatorResult,
           optimization,
           currentPrice: marketData.currentPrice,
-          bars: closes.length,
           config,
           portfolioState,
           proposal,

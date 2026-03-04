@@ -1563,6 +1563,10 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
     final isBuy = signalType == 'BUY';
     final isSell = signalType == 'SELL';
 
+    final sparklineData = (multiIndicatorResult?['sparkline'] as List?)
+        ?.map((v) => (v as num).toDouble())
+        .toList();
+
     // Calculate indicator counts for display
     int buyIndicators = 0;
     int sellIndicators = 0;
@@ -1741,22 +1745,37 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSignalTypePill(signalType, isBuy, isSell),
+                    if (sparklineData != null && sparklineData.isNotEmpty)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: SizedBox(
+                            height: 30,
+                            child: _buildSparkline(
+                                sparklineData,
+                                isBuy
+                                    ? Colors.green
+                                    : (isSell ? Colors.red : Colors.grey)),
+                          ),
+                        ),
+                      ),
                     if (displayStrength != null)
                       _buildStrengthBadge(displayStrength),
                   ],
                 ),
-                if (widget.signal['reason'] != null &&
-                    widget.signal['reason'].toString().isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.signal['reason'],
-                    style: TextStyle(
-                      fontSize: 13.0,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
+                // Redundant with indicator summary, can be re-added if we want to show the reason text more prominently
+                // if (widget.signal['reason'] != null &&
+                //     widget.signal['reason'].toString().isNotEmpty) ...[
+                //   const SizedBox(height: 12),
+                //   Text(
+                //     widget.signal['reason'],
+                //     style: TextStyle(
+                //       fontSize: 13.0,
+                //       color: Theme.of(context).colorScheme.onSurface,
+                //       fontStyle: FontStyle.italic,
+                //     ),
+                //   ),
+                // ],
                 if (indicatorSignals.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -2067,4 +2086,74 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
       return Colors.red;
     }
   }
+
+  Widget _buildSparkline(List<double> data, Color color) {
+    if (data.isEmpty) return const SizedBox.shrink();
+    final minVal = data.reduce(math.min);
+    final maxVal = data.reduce(math.max);
+    final range = maxVal - minVal == 0 ? 1.0 : maxVal - minVal;
+
+    return CustomPaint(
+      painter: _SparklinePainter(data, color, minVal, range),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> data;
+  final Color color;
+  final double minVal;
+  final double range;
+
+  _SparklinePainter(this.data, this.color, this.minVal, this.range);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.length < 2) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    final stepX = size.width / (data.length - 1);
+
+    for (var i = 0; i < data.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((data[i] - minVal) / range * size.height);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+
+    // Add a gradient fill under the line
+    final fillPath = Path();
+    fillPath.moveTo(0, size.height);
+    for (var i = 0; i < data.length; i++) {
+      final x = i * stepX;
+      final y = size.height - ((data[i] - minVal) / range * size.height);
+      fillPath.lineTo(x, y);
+    }
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(fillPath, fillPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

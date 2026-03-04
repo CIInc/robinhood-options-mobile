@@ -318,10 +318,8 @@ class PaperService implements IBrokerageService {
       if (optionIds.isNotEmpty) {
         final fetched = await getOptionInstrumentByIds(user, optionIds);
         for (var pos in positions) {
-          if (pos.optionInstrument == null) {
-            pos.optionInstrument = fetched
+          pos.optionInstrument ??= fetched
                 .firstWhereOrNull((i) => pos.legs.first.option.contains(i.id));
-          }
         }
       }
 

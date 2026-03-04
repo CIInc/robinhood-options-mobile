@@ -225,7 +225,6 @@ export async function performFuturesSignal(request: any) {
       reason,
       multiIndicatorResult,
       currentPrice: lastPrice,
-      bars: marketData.closes.length,
       config,
       proposal,
       assessment,
