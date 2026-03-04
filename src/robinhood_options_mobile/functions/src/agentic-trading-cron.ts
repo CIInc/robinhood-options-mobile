@@ -16,17 +16,17 @@ export interface AgenticTradingCronResult {
 }
 
 /**
- * Core logic that scans all agentic_trading chart documents and
+ * Core logic that scans all charts documents and
  * triggers trade proposals. Can be invoked by the scheduled function
  * or ad-hoc via the callable endpoint.
  */
 export async function runAgenticTradingCron() {
   logger.info(
-    "Agentic Trading Cron: Scanning all agentic_trading chart documents"
+    "Agentic Trading Cron: Scanning all chart documents in charts collection"
   );
-  const docRefs = await db.collection("agentic_trading").listDocuments();
+  const docRefs = await db.collection("charts").listDocuments();
   if (docRefs.length === 0) {
-    logger.warn("⚠️ No agentic_trading documents found in Firestore!");
+    logger.warn("⚠️ No chart documents found in Firestore charts collection!");
     return {
       processedCount: 0,
       errorCount: 0,
@@ -36,7 +36,7 @@ export async function runAgenticTradingCron() {
 
   logger.info(
     `📊 Found ${docRefs.length} documents in ` +
-    "agentic_trading collection"
+    "charts collection"
   );
 
   let processedCount = 0;
@@ -47,11 +47,6 @@ export async function runAgenticTradingCron() {
   // Filter docs first
   const docsToProcess = docRefs.filter((doc) => {
     // Skip intraday charts (only process daily charts)
-    if (!doc.id.startsWith("chart_")) {
-      // skippedCount++;
-      return false;
-    }
-
     if (doc.id.endsWith("_15m") ||
       doc.id.endsWith("_1h") ||
       doc.id.endsWith("_30m")) {

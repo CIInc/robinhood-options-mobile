@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/device.dart';
 import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/futures_strategy_config.dart';
 import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 
 class User {
@@ -36,6 +37,9 @@ class User {
 
   // Agentic Trading Configuration
   AgenticTradingConfig? agenticTradingConfig;
+
+  // Futures Trading Configuration
+  FuturesTradingConfig? futuresTradingConfig;
 
   // Rebalancing Configuration
   RebalancingConfig? rebalancingConfig;
@@ -72,6 +76,7 @@ class User {
       this.investmentProfile,
       this.tradeSignalNotificationSettings,
       this.agenticTradingConfig,
+      this.futuresTradingConfig,
       this.rebalancingConfig,
       this.optionFilterPresets,
       this.defaultOptionFilterPreset,
@@ -121,13 +126,14 @@ class User {
                 ? AgenticTradingConfig.fromJson(
                     json['agenticTradingConfig'] as Map<String, dynamic>)
                 : null,
+            futuresTradingConfig: json['futuresTradingConfig'] != null
+                ? FuturesTradingConfig.fromJson(
+                    json['futuresTradingConfig'] as Map<String, dynamic>)
+                : null,
             rebalancingConfig: json['rebalancingConfig'] != null
-                ? RebalancingConfig.fromJson(
-                    json['rebalancingConfig'] as Map<String, dynamic>)
+                ? RebalancingConfig.fromJson(json['rebalancingConfig'] as Map<String, dynamic>)
                 : null,
-            optionFilterPresets: json['optionFilterPresets'] != null
-                ? (json['optionFilterPresets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)))
-                : null,
+            optionFilterPresets: json['optionFilterPresets'] != null ? (json['optionFilterPresets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map))) : null,
             defaultOptionFilterPreset: json['defaultOptionFilterPreset'] as String?,
             assetAllocationTargets: json['assetAllocationTargets'] != null ? (json['assetAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
             sectorAllocationTargets: json['sectorAllocationTargets'] != null ? (json['sectorAllocationTargets'] as Map<String, dynamic>).map((key, value) => MapEntry(key, (value as num).toDouble())) : null,
@@ -160,6 +166,7 @@ class User {
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson(),
+      'futuresTradingConfig': futuresTradingConfig?.toJson(),
       'rebalancingConfig': rebalancingConfig?.toJson(),
       'optionFilterPresets': optionFilterPresets,
       'defaultOptionFilterPreset': defaultOptionFilterPreset,

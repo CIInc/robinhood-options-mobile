@@ -71,7 +71,7 @@ export const initiateTradeProposal = onCall(async (request) => {
 });
 
 /**
- * Seeds the agentic_trading collection with chart documents for popular
+ * Seeds the charts collection with chart documents for popular
  * symbols. This can be run manually to ensure all popular symbols are
  * monitored.
  */
@@ -102,7 +102,7 @@ export const seedAgenticTrading = onCall(async (request) => {
   for (let i = 0; i < targetSymbols.length; i += CHUNK_SIZE) {
     const chunk = targetSymbols.slice(i, i + CHUNK_SIZE);
     const promises = chunk.map(async (symbol) => {
-      const docRef = db.doc(`agentic_trading/chart_${symbol}`);
+      const docRef = db.doc(`charts/${symbol}`);
       try {
         const doc = await docRef.get();
         if (!doc.exists) {

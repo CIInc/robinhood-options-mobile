@@ -96,6 +96,19 @@ service cloud.firestore {
       match /paper_account/{id} {
         allow read, write: if request.auth.uid == uid;
       }
+      match /futures_paper_account/{id} {
+        allow read, write: if request.auth.uid == uid;
+      }
+      match /futures_auto_trade_history/{id} {
+        allow read: if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      }
+      match /futures_pending_orders/{id} {
+        allow read: if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      }
       match /paper_equity_history/{id} {
         allow read: if request.auth.uid == uid;
         allow write: if false; // server-side only
@@ -111,6 +124,18 @@ service cloud.firestore {
     }
     
     match /agentic_trading/{doc} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
+    match /signals/{doc} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
+    match /charts/{doc} {
       allow read: if true;
       allow create, update: if request.auth.uid != null;
       allow delete: if request.auth.token.role == 'admin';

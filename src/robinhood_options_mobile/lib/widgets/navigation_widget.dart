@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/futures_auto_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
 import 'package:robinhood_options_mobile/model/option_flow_notifications_store.dart';
@@ -154,7 +155,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       service = _getService(userStore.currentUser!);
 
       var futureUserInfo = service!.getUser(userStore.currentUser!);
-      futureArr.add(futureUserInfo.catchError((e) => null));
+      futureArr.add(futureUserInfo.catchError((e) {
+        debugPrint('Error loading user info: $e');
+        return Future.value(null);
+      }));
     } else {
       service = null;
     }
@@ -768,6 +772,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             // Start auto-trade timer via provider (prevents duplicate starts)
             if (service != null) {
               agenticProvider.startAutoTradeTimer(
+                context: context,
+                brokerageService: service,
+                userDocRef: userDoc,
+              );
+            }
+
+            final futuresProvider =
+                Provider.of<FuturesAutoTradingProvider>(context, listen: false);
+            futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
+            futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+            futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+
+            if (service != null) {
+              futuresProvider.startAutoTradeTimer(
                 context: context,
                 brokerageService: service,
                 userDocRef: userDoc,

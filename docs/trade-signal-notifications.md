@@ -193,7 +193,7 @@ firebase deploy --only firestore:rules
 
 ```javascript
 // In Firebase Console or using admin SDK
-db.collection('agentic_trading').add({
+db.collection('signals').add({
   symbol: 'AAPL',
   signal: 'BUY',
   interval: '1d',

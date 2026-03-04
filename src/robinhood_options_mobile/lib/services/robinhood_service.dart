@@ -408,9 +408,18 @@ Response: {
       var bu = userModel.brokerageUsers.firstWhere((bu) =>
           bu.userName == brokerageUser.userName &&
           bu.source == brokerageUser.source);
-      bu.accounts = accounts;
-      await _firestoreService.updateUser(
-          userDoc as DocumentReference<User>, userModel);
+
+      // Only update if accounts have changed
+      final accountsChanged = bu.accounts == null ||
+          bu.accounts.length != accounts.length ||
+          bu.accounts.asMap().entries.any((entry) =>
+              entry.value.accountNumber != accounts[entry.key].accountNumber);
+
+      if (accountsChanged) {
+        bu.accounts = accounts;
+        await _firestoreService.updateUser(
+            userDoc as DocumentReference<User>, userModel);
+      }
     }
     return accounts;
   }
@@ -777,8 +786,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return results;
   }
 
-// https://api.robinhood.com/arsenal/v1/futures/margin_requirement?contractId=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&marginType=MARGIN_TYPE_OVERNIGHT&accountType=ACCOUNT_TYPE_MARGIN_LIMITED
-
+  // https://api.robinhood.com/arsenal/v1/futures/margin_requirement?contractId=b4daeb2e-ab77-4f22-b49e-ad0db4b14d40&marginType=MARGIN_TYPE_OVERNIGHT&accountType=ACCOUNT_TYPE_MARGIN_LIMITED
   Future<dynamic> getFuturesProduct(
       BrokerageUser user, String productId) async {
     var url = "$endpoint/arsenal/v1/futures/products/$productId";
@@ -786,6 +794,7 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return resultJson;
   }
 
+  // 1-Ounce Gold Futures product ID = f2e7cd0e-c09c-44d2-bf83-45fd8bfb7b15
   Future<List<dynamic>> getFuturesProductsByIds(
       BrokerageUser user, List<String> productIds) async {
     if (productIds.isEmpty) {
@@ -796,6 +805,27 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     var resultJson = await getJson(user, url);
     return resultJson['results'] ?? [];
   }
+
+  // https://api.robinhood.com/arsenal/v1/futures/contracts/symbol/MHGZ25
+  // https://api.robinhood.com/arsenal/v1/futures/contracts/symbol/1OZJ26
+  // {
+  //   "result": {
+  //     "id": "a323cf62-cfd3-418f-a57f-45826c3b2e42",
+  //     "productId": "f2e7cd0e-c09c-44d2-bf83-45fd8bfb7b15",
+  //     "symbol": "/1OZJ26:XCEC",
+  //     "displaySymbol": "/1OZJ26",
+  //     "description": "1-Ounce Gold Futures, Apr-26",
+  //     "multiplier": "1",
+  //     "expirationMmy": "202604",
+  //     "expiration": "2026-03-27",
+  //     "customerLastCloseDate": "2026-03-27",
+  //     "tradability": "FUTURES_TRADABILITY_TRADABLE",
+  //     "state": "FUTURES_STATE_ACTIVE",
+  //     "settlementStartTime": "12:30",
+  //     "firstTradeDate": "2025-01-13",
+  //     "settlementDate": "2026-03-27"
+  //   }
+  // }
 
   Future<dynamic> getFuturesContract(
       BrokerageUser user, String contractId) async {
@@ -816,6 +846,32 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
         "$endpoint/arsenal/v1/futures/contracts?contractIds=${Uri.encodeComponent(contractIds.join(","))}";
     var resultJson = await getJson(user, url);
     return resultJson['results'] ?? [];
+  }
+
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    var url = "$endpoint/arsenal/v1/futures/contracts/symbol/$symbol";
+    var resultJson = await getJson(user, url);
+    return resultJson['result'];
+  }
+
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    if (symbols.isEmpty) {
+      return Future.value([]);
+    }
+    final List<dynamic> contracts = [];
+    for (final symbol in symbols) {
+      try {
+        final contract = await getFuturesContractBySymbol(user, symbol);
+        if (contract != null) {
+          contracts.add(contract);
+        }
+      } catch (e) {
+        debugPrint('Error fetching contract for symbol $symbol: $e');
+      }
+    }
+    return contracts;
   }
 
   Future<List<dynamic>> getFuturesClosesByIds(
@@ -1282,6 +1338,7 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
     return results;
   }
 
+  @override
   Future<List<dynamic>> getFuturesOrders(
       BrokerageUser user, String account) async {
     // https://api.robinhood.com/ceres/v1/accounts/{params}/orders?orderState=QUEUED&orderState=CONFIRMED&orderState=UNCONFIRMED&orderState=PENDING_CANCELLED&orderState=PARTIALLY_FILLED&orderState=FILLED&orderState=CANCELLED&orderState=REJECTED
@@ -1296,6 +1353,58 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
       debugPrint('Error getting futures orders: $e');
     }
     return [];
+  }
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) async {
+    final payload = {
+      'accountId': accountId,
+      'orderLegs': [
+        {
+          'contractType': 'OUTRIGHT',
+          'contractId': contractId,
+          'ratioQuantity': 1,
+          'orderSide': side.toUpperCase(),
+        }
+      ],
+      'quantity': quantity.toString(),
+      'orderType': orderType,
+      'orderTrigger': orderTrigger,
+      'timeInForce': timeInForce,
+      'positionEffectAtPlacementTime': positionEffect,
+      'refId': const Uuid().v4(),
+    };
+
+    if (limitPrice != null) {
+      payload['limitPrice'] = limitPrice.toString();
+    }
+    if (stopPrice != null) {
+      payload['stopPrice'] = stopPrice.toString();
+    }
+
+    final url = "$endpoint/ceres/v1/accounts/$accountId/orders";
+    final result = await user.oauth2Client!.post(
+      Uri.parse(url),
+      body: jsonEncode(payload),
+      headers: {
+        'content-type': 'application/json',
+        'accept': 'application/json',
+      },
+    );
+
+    return result;
   }
 
 /*
@@ -1458,8 +1567,6 @@ https://api.robinhood.com/arsenal/v1/futures/products/83cc60f2-3ffa-4f6d-93d1-35
 }
 
 Futures Contracts
-https://api.robinhood.com/arsenal/v1/futures/contracts/symbol/MHGZ25
-or
 https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=95a375cb-00a1-4078-aab6-f1a56708cc29%2C95a375cb-00a1-4078-aab6-f1a56708cc29
 {
     "result": {

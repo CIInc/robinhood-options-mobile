@@ -12,6 +12,48 @@ import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
+class FuturesPaperPosition {
+  final String contractId;
+  final String symbol;
+  double quantity;
+  double avgPrice;
+  double multiplier;
+  double lastPrice;
+
+  FuturesPaperPosition({
+    required this.contractId,
+    required this.symbol,
+    required this.quantity,
+    required this.avgPrice,
+    required this.multiplier,
+    required this.lastPrice,
+  });
+
+  double get openPnl => (lastPrice - avgPrice) * quantity * multiplier;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'contractId': contractId,
+      'symbol': symbol,
+      'quantity': quantity,
+      'avgPrice': avgPrice,
+      'multiplier': multiplier,
+      'lastPrice': lastPrice,
+    };
+  }
+
+  factory FuturesPaperPosition.fromJson(Map<String, dynamic> json) {
+    return FuturesPaperPosition(
+      contractId: json['contractId'] as String,
+      symbol: json['symbol'] as String? ?? '',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+      avgPrice: (json['avgPrice'] as num?)?.toDouble() ?? 0.0,
+      multiplier: (json['multiplier'] as num?)?.toDouble() ?? 1.0,
+      lastPrice: (json['lastPrice'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 class PaperTradingStore extends ChangeNotifier {
   final FirebaseFirestore _firestore;
   firebase_auth.User? _user;
@@ -26,6 +68,7 @@ class PaperTradingStore extends ChangeNotifier {
   double _commission = 0.0;
   List<InstrumentPosition> _positions = [];
   List<OptionAggregatePosition> _optionPositions = [];
+  List<FuturesPaperPosition> _futuresPositions = [];
   List<Map<String, dynamic>> _history = [];
   bool _isLoading = false;
 
@@ -37,6 +80,8 @@ class PaperTradingStore extends ChangeNotifier {
   List<InstrumentPosition> get positions => List.unmodifiable(_positions);
   List<OptionAggregatePosition> get optionPositions =>
       List.unmodifiable(_optionPositions);
+  List<FuturesPaperPosition> get futuresPositions =>
+      List.unmodifiable(_futuresPositions);
   List<Map<String, dynamic>> get history => List.unmodifiable(_history);
   bool get isLoading => _isLoading;
 
@@ -62,6 +107,9 @@ class PaperTradingStore extends ChangeNotifier {
               0);
       total += (pos.quantity ?? 0) * price * 100;
     }
+    for (var pos in _futuresPositions) {
+      total += (pos.lastPrice - pos.avgPrice) * pos.quantity * pos.multiplier;
+    }
     return total;
   }
 
@@ -79,6 +127,7 @@ class PaperTradingStore extends ChangeNotifier {
     _initialCapital = 100000.0;
     _positions = [];
     _optionPositions = [];
+    _futuresPositions = [];
     _history = [];
     notifyListeners();
   }
@@ -125,6 +174,13 @@ class PaperTradingStore extends ChangeNotifier {
           }).toList();
         }
 
+        if (data['futuresPositions'] != null) {
+          _futuresPositions = (data['futuresPositions'] as List)
+              .map((e) =>
+                  FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+
         if (data['history'] != null) {
           _history = List<Map<String, dynamic>>.from(data['history']);
         }
@@ -156,6 +212,7 @@ class PaperTradingStore extends ChangeNotifier {
             _positions.map((p) => _instrumentPositionToJson(p)).toList(),
         'optionPositions':
             _optionPositions.map((p) => _optionAggregationToJson(p)).toList(),
+        'futuresPositions': _futuresPositions.map((p) => p.toJson()).toList(),
         'history': _history,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -333,6 +390,28 @@ class PaperTradingStore extends ChangeNotifier {
       }
     }
 
+    // 3. Futures
+    var futureIds = _futuresPositions.map((p) => p.contractId).toList();
+    if (futureIds.isNotEmpty) {
+      try {
+        var data = await service.getFuturesClosesByIds(user, futureIds);
+        for (var item in data) {
+          final id = item['id']?.toString();
+          if (id != null) {
+            final idx = _futuresPositions.indexWhere((p) => p.contractId == id);
+            final lastPrice =
+                double.tryParse(item['last_price']?.toString() ?? '0') ?? 0.0;
+            if (idx >= 0 && lastPrice > 0) {
+              _futuresPositions[idx].lastPrice = lastPrice;
+              changed = true;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Error refreshing paper futures quotes: $e");
+      }
+    }
+
     if (changed) {
       notifyListeners();
     }
@@ -364,6 +443,7 @@ class PaperTradingStore extends ChangeNotifier {
     _cashBalance = initialCapital;
     _positions = [];
     _optionPositions = [];
+    _futuresPositions = [];
     _history = [];
     await _save();
     notifyListeners();
@@ -696,7 +776,7 @@ class PaperTradingStore extends ChangeNotifier {
 
   void _addToHistory(
       String type, String action, String symbol, double quantity, double price,
-      {String? detail, double? profitLoss}) {
+      {String? detail, double? profitLoss, double? multiplier}) {
     _history.insert(0, {
       'timestamp': DateTime.now().toIso8601String(),
       'type': type.toUpperCase(),
@@ -707,6 +787,7 @@ class PaperTradingStore extends ChangeNotifier {
       'detail': detail,
       'paperMode': true,
       if (profitLoss != null) 'profitLoss': profitLoss,
+      if (multiplier != null) 'multiplier': multiplier,
     });
     if (_history.length > 100) {
       _history = _history.sublist(0, 100);
@@ -750,6 +831,92 @@ class PaperTradingStore extends ChangeNotifier {
       _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
           detail: "Expired worthless at $underlyingPrice");
     }
+    _save();
+  }
+
+  void updateFuturesPrice(String contractId, double lastPrice) {
+    final idx = _futuresPositions.indexWhere((p) => p.contractId == contractId);
+    if (idx >= 0) {
+      _futuresPositions[idx].lastPrice = lastPrice;
+      notifyListeners();
+      _save();
+    }
+  }
+
+  void applyFuturesTrade({
+    required String contractId,
+    required String symbol,
+    required String side,
+    required int quantity,
+    required double price,
+    required double multiplier,
+  }) {
+    if (quantity <= 0) return;
+    final signedTradeQty = side.toLowerCase() == 'sell' ? -quantity : quantity;
+
+    final idx = _futuresPositions.indexWhere((p) => p.contractId == contractId);
+    if (idx >= 0) {
+      final pos = _futuresPositions[idx];
+      final currentQty = pos.quantity;
+
+      // Check if we are closing part of the position or adding to it
+      bool isClosing = (currentQty > 0 && signedTradeQty < 0) ||
+          (currentQty < 0 && signedTradeQty > 0);
+
+      if (isClosing) {
+        final qtyToClose = signedTradeQty.abs() > currentQty.abs()
+            ? currentQty.abs()
+            : signedTradeQty.abs();
+
+        // Realize P&L for closed portion
+        final realizedPnL = (price - pos.avgPrice) *
+            qtyToClose *
+            pos.multiplier *
+            (currentQty > 0 ? 1 : -1);
+        _cashBalance += realizedPnL;
+
+        final newQty = currentQty + signedTradeQty;
+        if (newQty.abs() < 0.000001) {
+          _futuresPositions.removeAt(idx);
+        } else {
+          // If we reversed the position (went from long to short or vice-versa)
+          if ((currentQty > 0 && newQty < 0) ||
+              (currentQty < 0 && newQty > 0)) {
+            pos.avgPrice = price; // The "open" price for the reversed portion
+          }
+          // If we just reduced the position, avgPrice stays the same
+          pos.quantity = newQty;
+          pos.lastPrice = price;
+        }
+      } else {
+        // Adding to existing position
+        final totalCost =
+            (pos.avgPrice * currentQty.abs()) + (price * quantity);
+        final newQty = currentQty + signedTradeQty;
+        pos.avgPrice = totalCost / newQty.abs();
+        pos.quantity = newQty;
+        pos.lastPrice = price;
+      }
+    } else {
+      // New position
+      _futuresPositions.add(FuturesPaperPosition(
+        contractId: contractId,
+        symbol: symbol,
+        quantity: signedTradeQty.toDouble(),
+        avgPrice: price,
+        multiplier: multiplier,
+        lastPrice: price,
+      ));
+    }
+
+    _cashBalance -= _commission; // Fee for opening/adjusting position
+
+    _addToHistory(
+        "futures", side.toLowerCase(), symbol, quantity.toDouble(), price,
+        detail: "Contract ID: $contractId, Multiplier: $multiplier",
+        multiplier: multiplier);
+
+    notifyListeners();
     _save();
   }
 }

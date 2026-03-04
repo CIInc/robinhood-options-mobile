@@ -110,10 +110,10 @@ export async function handleAlphaTask(marketData: any,
 
   // Check if indicators have changed since last run to avoid expensive ML calls
   const signalDocId = interval === "1d" ?
-    `signals_${symbol}` : `signals_${symbol}_${interval}`;
+    `${symbol}` : `${symbol}_${interval}`;
   let previousSignalDoc: any = null;
   try {
-    const doc = await db.doc(`agentic_trading/${signalDocId}`).get();
+    const doc = await db.doc(`signals/${signalDocId}`).get();
     if (doc.exists) {
       previousSignalDoc = doc.data();
     }
@@ -259,32 +259,44 @@ export async function handleAlphaTask(marketData: any,
 
   // If not all indicators are green, hold
   if (overallSignal === "HOLD") {
-    // Persist signal even when holding
+    // Persist signal only if it changed from the previous signal
     if (!config?.skipSignalUpdate) {
-      try {
-        const { getFirestore } = await import("firebase-admin/firestore");
-        const db = getFirestore();
-        const signalDocId = interval === "1d" ?
-          `signals_${symbol}` : `signals_${symbol}_${interval}`;
-        const signalDoc = {
-          timestamp: Date.now(),
-          symbol: symbol,
-          interval: interval,
-          signal: overallSignal,
-          reason,
-          multiIndicatorResult,
-          optimization,
-          currentPrice: marketData.currentPrice,
-          config,
-          portfolioState,
-        };
-        await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
+      const signalChanged = !previousSignalDoc ||
+        previousSignalDoc.signal !== overallSignal ||
+        previousSignalDoc.reason !== reason;
+
+      if (signalChanged) {
+        try {
+          const { getFirestore } = await import("firebase-admin/firestore");
+          const db = getFirestore();
+          const signalDocId = interval === "1d" ?
+            symbol : `${symbol}_${interval}`;
+          const signalDoc = {
+            timestamp: Date.now(),
+            symbol: symbol,
+            interval: interval,
+            signal: overallSignal,
+            reason,
+            multiIndicatorResult,
+            optimization,
+            currentPrice: marketData.currentPrice,
+            bars: closes.length,
+            config,
+            portfolioState,
+          };
+          await db.doc(`signals/${signalDocId}`).set(signalDoc);
+          logger.info(
+            `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
+            signalDoc
+          );
+        } catch (err) {
+          logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+        }
+      } else {
         logger.info(
-          `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
-          signalDoc
+          `Signal unchanged for ${symbol} - skipping write to reduce ` +
+          "onTradeSignalUpdated invocations"
         );
-      } catch (err) {
-        logger.warn(`Failed to persist trade signal for ${symbol}`, err);
       }
     } else {
       logger.info(`Skipping signal update for ${symbol} (HOLD)`);
@@ -447,35 +459,43 @@ export async function handleAlphaTask(marketData: any,
       });
   }
 
-  // Persist trade signal to Firestore
+  // Persist trade signal to Firestore only if it changed
   if (!config?.skipSignalUpdate) {
-    try {
-      const { getFirestore } = await import("firebase-admin/firestore");
-      const db = getFirestore();
-      const signalDocId = interval === "1d" ?
-        `signals_${symbol}` : `signals_${symbol}_${interval}`;
-      const signalDoc = {
-        timestamp: Date.now(),
-        symbol: symbol,
-        interval: interval,
-        signal: overallSignal,
-        reason,
-        multiIndicatorResult,
-        optimization,
-        currentPrice: marketData.currentPrice,
-        pricesLength: Array.isArray(marketData.prices) ?
-          marketData.prices.length : 0,
-        volumesLength: Array.isArray(marketData.volumes) ?
-          marketData.volumes.length : 0,
-        config,
-        portfolioState,
-        proposal,
-        assessment,
-      };
-      await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-      logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
-    } catch (err) {
-      logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+    const signalChanged = !previousSignalDoc ||
+      previousSignalDoc.signal !== overallSignal ||
+      previousSignalDoc.reason !== reason;
+
+    if (signalChanged) {
+      try {
+        const { getFirestore } = await import("firebase-admin/firestore");
+        const db = getFirestore();
+        const signalDocId = interval === "1d" ?
+          symbol : `${symbol}_${interval}`;
+        const signalDoc = {
+          timestamp: Date.now(),
+          symbol: symbol,
+          interval: interval,
+          signal: overallSignal,
+          reason,
+          multiIndicatorResult,
+          optimization,
+          currentPrice: marketData.currentPrice,
+          bars: closes.length,
+          config,
+          portfolioState,
+          proposal,
+          assessment,
+        };
+        await db.doc(`signals/${signalDocId}`).set(signalDoc);
+        logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
+      } catch (err) {
+        logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+      }
+    } else {
+      logger.info(
+        `Signal unchanged for ${symbol} - skipping write to reduce ` +
+        "onTradeSignalUpdated invocations"
+      );
     }
   } else {
     logger.info(`Skipping signal update for ${symbol} (${overallSignal})`);

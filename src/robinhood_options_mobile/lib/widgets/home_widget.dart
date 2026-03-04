@@ -66,12 +66,12 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
 import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
 
@@ -1088,6 +1088,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             _loadPortfolioHistoricals();
           });
         }
+      }).catchError((error) {
+        debugPrint('Error loading aggregated accounts: $error');
       });
       return;
     }
@@ -1120,6 +1122,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           _loadPortfolioHistoricals();
         });
       }
+    }).catchError((error) {
+      debugPrint('Error loading accounts: $error');
     });
 
     if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
@@ -1596,157 +1600,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
             SliverToBoxAdapter(
-              child:
-                  // Promote Automated Trading & Backtesting
-                  Padding(
-                padding:
-                    const EdgeInsetsGeometry.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                child: Card(
-                  elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      width: 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.auto_graph,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Automated Trading',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  Text(
-                                    '& Backtesting',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Let the system trade for you or simulate strategies on historical data.',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.settings, size: 18),
-                                label: const Text('Configure'),
-                                onPressed: (widget.user == null ||
-                                        widget.userDoc == null ||
-                                        isAggregateMode)
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                AgenticTradingSettingsWidget(
-                                              user: widget.user!,
-                                              userDocRef: widget.userDoc!,
-                                              service: widget.service!,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.history, size: 18),
-                                label: const Text('Backtest'),
-                                onPressed: (widget.user == null ||
-                                        widget.userDoc == null ||
-                                        isAggregateMode)
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BacktestingWidget(
-                                              user: widget.user,
-                                              userDocRef: widget.userDoc,
-                                              brokerageUser:
-                                                  widget.brokerageUser,
-                                              service: widget.service,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              child: AgenticTradingCardWidget(
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: FuturesAutoTradingCardWidget(
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                service: widget.service,
+                analytics: widget.analytics,
               ),
             ),
             SliverToBoxAdapter(

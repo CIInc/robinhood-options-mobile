@@ -115,8 +115,8 @@ export async function getMarketData(symbol: string,
 
   // Try to load cached prices from Firestore
   const cacheKey = interval === "1d" ?
-    `agentic_trading/chart_${decodedSymbol}` :
-    `agentic_trading/chart_${decodedSymbol}_${interval}`;
+    `charts/${decodedSymbol}` :
+    `charts/${decodedSymbol}_${interval}`;
   try {
     const doc = await db.doc(cacheKey).get();
     if (doc.exists) {
@@ -181,8 +181,8 @@ export async function getMarketData(symbol: string,
   // If still no prices, fetch from Yahoo Finance
   if (!closes.length) {
     try {
-      // Ensure we have enough data for MACD (35) and RSI (15)
-      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 35);
+      // Ensure we have enough data for MACD (35) and Patterns (30-60)
+      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 60);
 
       // Determine range based on interval and period
       let dataRange = range;
@@ -190,11 +190,11 @@ export async function getMarketData(symbol: string,
         if (interval === "1d") {
           dataRange = maxPeriod > 250 ? "2y" : "1y";
         } else if (interval === "1h") {
-          dataRange = maxPeriod > 30 ? "1mo" : "5d";
+          dataRange = maxPeriod > 30 ? "1mo" : "2y";
         } else if (interval === "30m") {
-          dataRange = maxPeriod > 13 ? "5d" : "1d";
+          dataRange = maxPeriod > 13 ? "5d" : "1mo";
         } else if (interval === "15m") {
-          dataRange = maxPeriod > 26 ? "5d" : "1d";
+          dataRange = maxPeriod > 26 ? "5d" : "1mo";
         }
       }
 

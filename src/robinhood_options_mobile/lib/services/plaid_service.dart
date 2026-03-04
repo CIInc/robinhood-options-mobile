@@ -805,4 +805,53 @@ class PlaidService implements IBrokerageService {
       double? stopPrice}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) {
+    return Future.error(
+      'Futures orders are not supported in PlaidService',
+    );
+  }
 }

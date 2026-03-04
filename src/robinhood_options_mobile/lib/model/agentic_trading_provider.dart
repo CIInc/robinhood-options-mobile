@@ -1802,12 +1802,11 @@ class AgenticTradingProvider with ChangeNotifier {
           // Use Future.wait to fetch all signals in parallel
           await Future.wait(symbolsToFetch.map((symbol) async {
             try {
-              final docId = interval == '1d'
-                  ? 'signals_$symbol'
-                  : 'signals_${symbol}_$interval';
+              final docId = interval == '1d' ? symbol : '${symbol}_$interval';
+
               final doc = await FirebaseFirestore.instance
-                  .collection('agentic_trading')
-                  .doc(docId)
+                  .collection('signals')
+                  .doc(docId!)
                   .get();
               if (doc.exists && doc.data() != null) {
                 fetchedSignals[symbol!] = doc.data()!;

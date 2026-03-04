@@ -154,8 +154,10 @@ class _SearchWidgetState extends State<SearchWidget>
           widget.service!.getTopMovers(widget.brokerageUser!, instrumentStore!);
       if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
           widget.brokerageUser!.source == BrokerageSource.demo) {
-        watchlistStream ??= widget.service!.streamLists(widget.brokerageUser!,
-            instrumentStore!, Provider.of<QuoteStore>(context, listen: false));
+        watchlistStream ??= widget.service!
+            .streamLists(widget.brokerageUser!, instrumentStore!,
+                Provider.of<QuoteStore>(context, listen: false))
+            .asBroadcastStream();
       }
     } else {
       futureMovers = Future.value([]);
@@ -448,85 +450,6 @@ class _SearchWidgetState extends State<SearchWidget>
                               ),
                             )),
                   ),
-                  if (watchlistStream != null) ...[
-                    SliverToBoxAdapter(
-                      child: StreamBuilder<List<Watchlist>>(
-                        stream: watchlistStream,
-                        builder: (context, snapshot) {
-                          final visible = search == null ||
-                              (search is List && search.isEmpty);
-                          if (visible && snapshot.hasData) {
-                            var lists = snapshot.data!;
-                            return SizedBox(
-                              height: 50,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16.0, 12.0, 16.0, 0.0),
-                                scrollDirection: Axis.horizontal,
-                                itemCount: lists.length + 1,
-                                itemBuilder: (context, index) {
-                                  if (index == 0) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: ActionChip(
-                                        avatar: const Icon(Icons.list),
-                                        label: const Text('All Lists'),
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => ListsWidget(
-                                                widget.brokerageUser!,
-                                                widget.service!,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService,
-                                                user: widget.user,
-                                                userDocRef: widget.userDocRef,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }
-                                  var list = lists[index - 1];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: ActionChip(
-                                      label: Text(list.displayName),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ListWidget(
-                                              widget.brokerageUser!,
-                                              widget.service!,
-                                              list.id,
-                                              ownerType: "custom",
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              generativeService:
-                                                  widget.generativeService,
-                                              user: widget.user,
-                                              userDocRef: widget.userDocRef,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                  ],
                   if (welcomeWidget != null) ...[
                     SliverToBoxAdapter(
                         child: SizedBox(
@@ -700,6 +623,89 @@ class _SearchWidgetState extends State<SearchWidget>
                   //   observer: widget.observer,
                   //   generativeService: widget.generativeService,
                   // ),
+                  if (watchlistStream != null) ...[
+                    SliverToBoxAdapter(
+                      child: StreamBuilder<List<Watchlist>>(
+                        stream: watchlistStream,
+                        builder: (context, snapshot) {
+                          final visible = search == null ||
+                              (search is List && search.isEmpty);
+                          if (visible && snapshot.hasData) {
+                            var lists = snapshot.data!;
+                            return SizedBox(
+                              height: 50,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16.0, 12.0, 16.0, 0.0),
+                                scrollDirection: Axis.horizontal,
+                                itemCount: lists.length + 1,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(right: 8.0),
+                                      child: ActionChip(
+                                        avatar: const Icon(Icons.list),
+                                        label: const Text('All Lists'),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => ListsWidget(
+                                                widget.brokerageUser!,
+                                                widget.service!,
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                generativeService:
+                                                    widget.generativeService,
+                                                user: widget.user,
+                                                userDocRef: widget.userDocRef,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }
+                                  var list = lists[index - 1];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: ActionChip(
+                                      label: Text(list.displayName),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ListWidget(
+                                              widget.brokerageUser!,
+                                              widget.service!,
+                                              list.id,
+                                              ownerType: "custom",
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              user: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 12.0,
+                  )),
                   if (movers != null && movers.isNotEmpty) ...[
                     // const SliverToBoxAdapter(
                     //     child: SizedBox(

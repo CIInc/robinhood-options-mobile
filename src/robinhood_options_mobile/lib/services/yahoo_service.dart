@@ -830,7 +830,7 @@ class YahooService {
       final docSnapshot = await docRef.get();
       if (docSnapshot.exists) {
         final data = docSnapshot.data();
-        if (data != null && data.containsKey('lastUpdated')) {
+        if (data != null && data.containsKey('lastUpdated') && data['lastUpdated'] != null) {
           final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
           if (DateTime.now().difference(lastUpdated) < ttl &&
               data['data'] != null) {
@@ -1324,18 +1324,33 @@ class YahooService {
     return [];
   }
 
+  /// Fetch chart data for a given symbol
+  Future<Map<String, dynamic>?> getChartData(
+      String symbol, String range, String interval) async {
+    // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
+    final normalizedSymbol = Uri.decodeComponent(symbol);
+    final querySymbol = normalizedSymbol.replaceAll('.', '-');
+    final encodedSymbol = Uri.encodeComponent(querySymbol);
+
+    final url =
+        'https://query2.finance.yahoo.com/v8/finance/chart/$encodedSymbol?range=$range&interval=$interval';
+    final json = await getJson(url);
+
+    if (json['chart'] != null &&
+        json['chart']['result'] != null &&
+        (json['chart']['result'] as List).isNotEmpty) {
+      return json['chart']['result'][0] as Map<String, dynamic>;
+    }
+    return null;
+  }
+
   /// Fetch historicals for a given symbol
   Future<List<InstrumentHistorical>> getHistoricals(
       String symbol, String range, String interval) async {
     // https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
-    var url =
-        'https://query2.finance.yahoo.com/v8/finance/chart/$symbol?range=$range&interval=$interval';
-    var json = await getJson(url);
+    final res = await getChartData(symbol, range, interval);
     List<InstrumentHistorical> candles = [];
-    if (json['chart'] != null &&
-        json['chart']['result'] != null &&
-        (json['chart']['result'] as List).isNotEmpty) {
-      var res = json['chart']['result'][0];
+    if (res != null) {
       var timestamp = res['timestamp'] as List<dynamic>?;
       var indicators = res['indicators'];
       var quote = indicators['quote'][0];

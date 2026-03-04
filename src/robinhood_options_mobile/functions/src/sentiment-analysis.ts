@@ -75,7 +75,7 @@ async function calculateMarketSentiment(): Promise<SentimentData> {
 
   // Fetch signals for market indices
   const snapshots = await Promise.all(
-    MARKET_INDICES.map((s) => db.doc(`agentic_trading/signals_${s}`).get())
+    MARKET_INDICES.map((s) => db.doc(`signals/${s}`).get())
   );
 
   for (let i = 0; i < snapshots.length; i++) {
@@ -141,7 +141,7 @@ async function calculateTrendingSentiment(): Promise<SentimentData[]> {
   // We limit batch concurrency if list grows, but 15 is fine.
   const snapshots = await Promise.all(
     POPULAR_SYMBOLS.map((s) =>
-      db.doc(`agentic_trading/signals_${s}`).get())
+      db.doc(`signals/${s}`).get())
   );
 
   for (const snap of snapshots) {
@@ -187,7 +187,7 @@ async function generateSentimentFeed(): Promise<SentimentFeedItem[]> {
   // 1. Get Signals from Popular Symbols
   const snapshots = await Promise.all(
     POPULAR_SYMBOLS.map((s) =>
-      db.doc(`agentic_trading/signals_${s}`).get())
+      db.doc(`signals/${s}`).get())
   );
 
   for (const snap of snapshots) {

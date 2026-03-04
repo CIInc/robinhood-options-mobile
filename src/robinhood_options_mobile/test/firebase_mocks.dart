@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 class MockFirebasePlatform extends FirebasePlatform {
   @override
@@ -48,6 +49,15 @@ class FakeFirebaseAuth extends Fake implements FirebaseAuth {
   Stream<User?> authStateChanges() {
     return Stream.value(currentUser);
   }
+}
+
+class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object?>? parameters,
+    AnalyticsCallOptions? callOptions,
+  }) async {}
 }
 
 class MockRemoteConfig extends Fake implements FirebaseRemoteConfig {

@@ -43,45 +43,44 @@ export const cronDiagnostics = onRequest(async (request, response) => {
       recommendations: [],
     };
 
-    // Check Firestore collection
-    const snapshot = await db.collection("agentic_trading").get();
-    diagnostics.firestoreData.totalDocuments = snapshot.docs.length;
+    // Check Firestore collections
+    const chartSnapshot = await db.collection("charts").get();
+    const signalSnapshot = await db.collection("signals").get();
+    diagnostics.firestoreData.chartsCount = chartSnapshot.docs.length;
+    diagnostics.firestoreData.signalsCount = signalSnapshot.docs.length;
 
-    if (snapshot.empty) {
+    if (chartSnapshot.empty) {
       diagnostics.issues.push(
-        "❌ No documents found in agentic_trading collection!"
+        "❌ No documents found in charts collection!"
       );
       diagnostics.recommendations.push(
         "Ensure you have chart documents " +
-        "(e.g., chart_AAPL, chart_SPY) in " +
-        "the agentic_trading collection"
+        "(e.g., AAPL, SPY) in " +
+        "the charts collection"
       );
     } else {
       // Categorize documents
       const dailyCharts = [];
       const hourlyCharts = [];
       const fifteenMinCharts = [];
-      const signalDocs = [];
       const otherDocs = [];
 
-      for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_")) {
+      for (const doc of chartSnapshot.docs) {
+        if (doc.id.includes("_")) {
           if (doc.id.endsWith("_1h")) {
             hourlyCharts.push(doc.id);
           } else if (doc.id.endsWith("_15m")) {
             fifteenMinCharts.push(doc.id);
-          } else if (doc.id.endsWith("_30m")) {
-            otherDocs.push(doc.id);
           } else {
-            // Daily chart (no suffix)
-            dailyCharts.push(doc.id);
+            otherDocs.push(doc.id);
           }
-        } else if (doc.id.startsWith("signals_")) {
-          signalDocs.push(doc.id);
         } else {
-          otherDocs.push(doc.id);
+          // Daily chart (no suffix)
+          dailyCharts.push(doc.id);
         }
       }
+
+      const signalDocs = signalSnapshot.docs.map((doc) => doc.id);
 
       diagnostics.firestoreData.dailyCharts = {
         count: dailyCharts.length,
@@ -147,7 +146,7 @@ export const cronDiagnostics = onRequest(async (request, response) => {
 
       // Check recent signal updates
       const recentSignals = await db
-        .collection("agentic_trading")
+        .collection("signals")
         .where(
           "timestamp",
           ">",

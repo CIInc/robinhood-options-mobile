@@ -707,7 +707,7 @@ Required composite indexes for optimized queries (configured in `firebase/firest
 **Signal type + timestamp:**
 ```json
 {
-  "collectionGroup": "agentic_trading",
+  "collectionGroup": "signals",
   "queryScope": "COLLECTION",
   "fields": [
     {"fieldPath": "signal", "order": "ASCENDING"},
@@ -719,7 +719,7 @@ Required composite indexes for optimized queries (configured in `firebase/firest
 **Interval + timestamp:**
 ```json
 {
-  "collectionGroup": "agentic_trading",
+  "collectionGroup": "signals",
   "queryScope": "COLLECTION",
   "fields": [
     {"fieldPath": "interval", "order": "ASCENDING"},

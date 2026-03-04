@@ -91,6 +91,10 @@ class _PaperTradingDashboardWidgetState
         sb.writeln(
             "- Option: ${p.symbol} ${p.strategy}, Qty: ${p.quantity}, Avg: ${p.averageOpenPrice}, Current: ${p.optionInstrument?.optionMarketData?.adjustedMarkPrice}");
       }
+      for (var p in store.futuresPositions) {
+        sb.writeln(
+            "- Futures: ${p.symbol} (${p.contractId}), Qty: ${p.quantity}, Avg: ${p.avgPrice}, Current: ${p.lastPrice}, Multiplier: ${p.multiplier}");
+      }
 
       final prompt = sb.toString();
       final response = await _generativeService.model.generateContent([
@@ -171,11 +175,14 @@ class _PaperTradingDashboardWidgetState
                   _buildAiAnalysisCard(store),
                   const SizedBox(height: 16),
                   if (store.positions.isNotEmpty ||
-                      store.optionPositions.isNotEmpty)
+                      store.optionPositions.isNotEmpty ||
+                      store.futuresPositions.isNotEmpty)
                     _buildAllocationChart(store, formatCurrency),
                   const SizedBox(height: 24),
                   _buildSectionHeader('Positions'),
-                  if (store.positions.isEmpty && store.optionPositions.isEmpty)
+                  if (store.positions.isEmpty &&
+                      store.optionPositions.isEmpty &&
+                      store.futuresPositions.isEmpty)
                     _buildEmptyState('No active positions. Start trading!'),
                   ...store.positions.map((pos) => _buildStockPosition(
                         context,
@@ -184,6 +191,12 @@ class _PaperTradingDashboardWidgetState
                         formatPercentage,
                       )),
                   ...store.optionPositions.map((pos) => _buildOptionPosition(
+                        context,
+                        pos,
+                        formatCurrency,
+                        formatPercentage,
+                      )),
+                  ...store.futuresPositions.map((pos) => _buildFuturesPosition(
                         context,
                         pos,
                         formatCurrency,
@@ -275,7 +288,9 @@ class _PaperTradingDashboardWidgetState
 
   Widget _buildAiAnalysisCard(PaperTradingStore store) {
     if (_aiAnalysis == null && !_isAnalyzing) {
-      if (store.positions.isEmpty && store.optionPositions.isEmpty) {
+      if (store.positions.isEmpty &&
+          store.optionPositions.isEmpty &&
+          store.futuresPositions.isEmpty) {
         return const SizedBox.shrink(); // Hide if no positions and no analysis
       }
       return Card(
@@ -406,10 +421,17 @@ class _PaperTradingDashboardWidgetState
       optionValue += (pos.quantity ?? 0) * currentPrice * 100;
     }
 
+    double futuresValue = 0;
+    for (var pos in store.futuresPositions) {
+      futuresValue +=
+          (pos.lastPrice - pos.avgPrice) * pos.quantity * pos.multiplier;
+    }
+
     return [
       if (store.cashBalance > 0) PieChartData('Cash', store.cashBalance),
       if (stockValue > 0) PieChartData('Stocks', stockValue),
       if (optionValue > 0) PieChartData('Options', optionValue),
+      if (futuresValue != 0) PieChartData('Futures', futuresValue.abs()),
     ];
   }
 
@@ -577,6 +599,112 @@ class _PaperTradingDashboardWidgetState
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFuturesPosition(
+    BuildContext context,
+    FuturesPaperPosition pos,
+    NumberFormat formatCurrency,
+    NumberFormat formatPercentage,
+  ) {
+    final quantity = pos.quantity;
+    final avgCost = pos.avgPrice;
+    final currentPrice = pos.lastPrice;
+    final pnl = (currentPrice - avgCost) * quantity * pos.multiplier;
+    final totalCost = avgCost * quantity.abs() * pos.multiplier;
+    final pnlPercent = totalCost > 0 ? pnl / totalCost : 0.0;
+    final isPositive = pnl >= 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.orange.withOpacity(0.2),
+                      child: const Icon(Icons.show_chart, color: Colors.orange),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            pos.symbol.isNotEmpty ? pos.symbol : pos.contractId,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text("${quantity.toStringAsFixed(0)} contracts",
+                            style: const TextStyle(
+                                color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(formatCurrency.format(currentPrice),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text("Multiplier: ${pos.multiplier}",
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 11)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Avg Price',
+                        style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    Text(formatCurrency.format(avgCost),
+                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text('Total Return',
+                        style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    Row(
+                      children: [
+                        Icon(
+                          isPositive
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: isPositive ? Colors.green : Colors.red,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${formatCurrency.format(pnl)} (${formatPercentage.format(pnlPercent)})",
+                          style: TextStyle(
+                            color: isPositive ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -762,7 +890,7 @@ class _PaperTradingDashboardWidgetState
             Text(
               formatCurrency.format((h['quantity'] ?? 0) *
                   (h['price'] ?? 0) *
-                  (type == 'OPTION' ? 100 : 1)),
+                  (h['multiplier'] ?? (type == 'OPTION' ? 100 : 1))),
               style: TextStyle(color: color, fontSize: 12),
             )
           ],

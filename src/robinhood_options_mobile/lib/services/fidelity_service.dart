@@ -472,7 +472,7 @@ class FidelityService implements IBrokerageService {
       BrokerageUser user, QuoteStore store, List<String> symbols,
       {bool fromCache = true}) async {
     if (symbols.isEmpty) return [];
-    
+
     try {
       // Try to fetch quotes from Fidelity API via Firebase Cloud Function
       final quotes = await getQuotesFromFidelity(symbols);
@@ -512,7 +512,9 @@ class FidelityService implements IBrokerageService {
         if (sUpper == ".GSPC") fidS = ".SPX";
         if (sUpper == "^PCC" || sUpper == "^CPCE") fidS = ".PCCE";
         if (sUpper == "^CPC") fidS = ".PCC";
-        if (sUpper == "DX-Y.NYB" || sUpper == "DX=F" || sUpper == "DXY" ||
+        if (sUpper == "DX-Y.NYB" ||
+            sUpper == "DX=F" ||
+            sUpper == "DXY" ||
             sUpper == "DX") fidS = ".DXY";
         if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
         if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
@@ -522,12 +524,10 @@ class FidelityService implements IBrokerageService {
       final url = "https://fastquote.fidelity.com/service/quote/json?" +
           "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
 
-      final resp = await http.get(Uri.parse(url),
-          headers: {
-            "Referer": "https://www.fidelity.com/",
-            "Origin": "https://www.fidelity.com",
-          }
-      ).timeout(const Duration(seconds: 10));
+      final resp = await http.get(Uri.parse(url), headers: {
+        "Referer": "https://www.fidelity.com/",
+        "Origin": "https://www.fidelity.com",
+      }).timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
         throw Exception('Fidelity API returned status ${resp.statusCode}');
@@ -541,16 +541,16 @@ class FidelityService implements IBrokerageService {
         throw Exception("Invalid Fidelity Quotes response format");
       }
       final jsonText = text.substring(startIndex + 1, endIndex).trim();
-      
+
       // Parse the JSON
       final dynamic jsonData = jsonDecode(jsonText);
-      
+
       if (jsonData is! Map<String, dynamic>) {
         throw Exception('Expected Map response from Fidelity');
       }
 
       final data = jsonData;
-      
+
       if (data['STATUS'] != null && data['STATUS'] is Map) {
         final status = data['STATUS'] as Map<String, dynamic>;
         if (status['ERROR_CODE'] != "0") {
@@ -589,16 +589,18 @@ class FidelityService implements IBrokerageService {
   Quote _parseFidelityQuote(String symbol, dynamic quoteData) {
     // Fidelity quote response has QUOTE array with bid/ask/last data
     final quote = quoteData is Map<String, dynamic> ? quoteData : {};
-    
+
     final bidPrice = _parseDouble(quote['bidPrice']);
     final bidSize = _parseInt(quote['bidSize']);
     final askPrice = _parseDouble(quote['askPrice']);
     final askSize = _parseInt(quote['askSize']);
-    final lastPrice = _parseDouble(quote['lastPrice']) ?? 
-                      _parseDouble(quote['bidPrice']) ??
-                      _parseDouble(quote['askPrice']) ?? 0.0;
-    final previousClose = _parseDouble(quote['openPrice']) ?? 
-                         _parseDouble(quote['lastPrice']) ?? 0.0;
+    final lastPrice = _parseDouble(quote['lastPrice']) ??
+        _parseDouble(quote['bidPrice']) ??
+        _parseDouble(quote['askPrice']) ??
+        0.0;
+    final previousClose = _parseDouble(quote['openPrice']) ??
+        _parseDouble(quote['lastPrice']) ??
+        0.0;
 
     return Quote(
       symbol: symbol,
@@ -649,14 +651,13 @@ class FidelityService implements IBrokerageService {
     } catch (e) {
       debugPrint('Error fetching quote from Fidelity: $e');
     }
-    
+
     // Fallback to Yahoo Finance
     final yahooService = YahooService();
     return await yahooService.getQuote(symbol);
   }
 
   @override
-
   Future<Quote> refreshQuote(
       BrokerageUser user, QuoteStore store, String symbol) async {
     return await getQuote(user, store, symbol);
@@ -1139,6 +1140,55 @@ class FidelityService implements IBrokerageService {
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) {
+    return Future.error(
+      'Futures orders are not supported in FidelityService',
+    );
   }
 
   // --- CSV Import Functionality (Ported from CsvImportService) ---

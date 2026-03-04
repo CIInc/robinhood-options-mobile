@@ -2,7 +2,7 @@
  * Trade Signal Notifications Firebase Functions
  *
  * Sends push notifications to users when trade signals are created or updated
- * in the agentic_trading collection. Notifications are sent when signals change
+ * in the signals collection. Notifications are sent when signals change
  * to BUY or SELL based on user preferences.
  */
 
@@ -471,7 +471,7 @@ async function notifyInterestedUsers(
  * Triggered when a new trade signal document is created
  */
 export const onTradeSignalCreated = onDocumentCreated(
-  "agentic_trading/{documentId}",
+  "signals/{documentId}",
   async (event) => {
     try {
       const signalData = event.data?.data() as TradeSignal | undefined;
@@ -504,7 +504,7 @@ export const onTradeSignalCreated = onDocumentCreated(
  * Triggered when a trade signal document is updated
  */
 export const onTradeSignalUpdated = onDocumentUpdated(
-  "agentic_trading/{documentId}",
+  "signals/{documentId}",
   async (event) => {
     try {
       const beforeData = event.data?.before.data() as TradeSignal | undefined;

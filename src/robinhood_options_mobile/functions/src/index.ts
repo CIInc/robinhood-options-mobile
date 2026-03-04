@@ -34,6 +34,8 @@ import * as chatNotifications from "./chat-notifications";
 import * as macroAgent from "./macro-agent";
 import * as alphaFactorDiscovery from "./alpha-factor-discovery";
 import * as marketData from "./market-data";
+import * as futuresTrading from "./agentic-futures-trading";
+import * as futuresSignalsCron from "./agentic-futures-trading-signals-cron";
 import * as groupWatchlists from "./group-watchlists";
 import * as watchlistAlerts from "./watchlist-alerts-cron";
 import * as customAlertsCron from "./custom-alerts-cron";
@@ -102,6 +104,7 @@ export const getMacroAssessment = macroAgent.getMacroAssessmentCall;
 export const getMacroHistory = macroAgent.getMacroHistoryCall;
 export const macroAssessmentCronJob = macroAgent.macroAssessmentCron;
 export const getQuotes = marketData.getQuotesCall;
+export const getFuturesSignals = futuresTrading.getFuturesSignals;
 export const createGroupWatchlist =
   groupWatchlists.createGroupWatchlist;
 export const deleteGroupWatchlist =
@@ -122,3 +125,4 @@ export const checkCustomAlerts = customAlertsCron.checkCustomAlerts;
 export const updatePaperHistoricalsCronJob =
   paperTradingCron.updatePaperHistoricalsCron;
 export const rebalancingCronJob = rebalancingCronFuncs.rebalancingCron;
+export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;

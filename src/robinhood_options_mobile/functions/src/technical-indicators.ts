@@ -2052,8 +2052,8 @@ export function evaluateBollingerBands(
   // 1. Advanced TTM Squeeze (if Highs/Lows available)
   // Squeeze is on when Bollinger Bands are completely inside Keltner Channels
   if (highs && lows &&
-      highs.length === prices.length &&
-      lows.length === prices.length) {
+    highs.length === prices.length &&
+    lows.length === prices.length) {
     // Default TTM settings: KC(20, 1.5) vs BB(20, 2.0)
     const kcArray = computeKeltnerChannelsArray(
       highs,
@@ -3523,9 +3523,21 @@ export function evaluateAllIndicators(
       }
     }
 
-    // Only filter if we have some valid volumes.
-    // If ALL volumes are zero (e.g. Index like ^VIX), keep the data.
-    if (hasZeroVolume && validIndices.length > 0) {
+    const minBarsRequired = Math.max(
+      30, // priceMovement pattern scan
+      config.rsiPeriod || 14,
+      config.rocPeriod || 12,
+      config.marketFastPeriod || 10,
+      config.marketSlowPeriod || 30,
+      35 // MACD lookback
+    );
+
+    // Only filter if we have some valid volumes
+    // AND enough bars remain for indicators.
+    // If ALL volumes are zero (e.g. Index like ^VIX),
+    // or filtering would drop below
+    // the minimum bars needed, keep the data as-is.
+    if (hasZeroVolume && validIndices.length >= minBarsRequired) {
       const v = symbolData.volumes;
       symbolData.closes = validIndices.map((i) => symbolData.closes[i]);
       symbolData.volumes = validIndices.map((i) => v[i]);
@@ -3867,15 +3879,23 @@ export function evaluateAllIndicators(
   });
   */
 
-  return {
+  const result: MultiIndicatorResult = {
     allGreen,
     indicators,
-    customIndicators: customResults,
-    macroAssessment,
     overallSignal,
     reason,
     signalStrength,
   };
+
+  if (Object.keys(customResults).length > 0) {
+    result.customIndicators = customResults;
+  }
+
+  if (macroAssessment !== undefined) {
+    result.macroAssessment = macroAssessment;
+  }
+
+  return result;
 }
 
 
@@ -4462,10 +4482,16 @@ export function evaluateCustomIndicator(
 
     const metadata: Record<string, unknown> = {
       condition: config.condition,
-      threshold: config.threshold,
-      compareToPrice: config.compareToPrice,
-      signalType: config.signalType,
     };
+    if (config.threshold !== undefined && config.threshold !== null) {
+      metadata.threshold = config.threshold;
+    }
+    if (config.compareToPrice !== undefined && config.compareToPrice !== null) {
+      metadata.compareToPrice = config.compareToPrice;
+    }
+    if (config.signalType !== undefined && config.signalType !== null) {
+      metadata.signalType = config.signalType;
+    }
     if (prevValue !== null) metadata.prevValue = prevValue;
 
     return { value, signal, reason, metadata };

@@ -65,13 +65,13 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 
 ## Stock Universe & Seeding
 
-The system monitoring is driven by a seeded list of documents in the `agentic_trading` collection.
+The system monitoring is driven by a seeded list of documents in the `charts` collection.
 
 ### Seeding the Database
 To initialize or expand the list of monitored stocks, use the `seedAgenticTrading` Firebase Cloud Function.
 
 **Usage:**
-Call the function with a JSON body to seed the `agentic_trading` collection.
+Call the function with a JSON body to seed the `charts` collection.
 
 **Options:**
 - **Default (Popular Only):**

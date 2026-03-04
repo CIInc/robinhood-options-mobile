@@ -21,13 +21,13 @@ export const agenticTradingIntradayCron = onSchedule(
   },
   async () => {
     logger.info(
-      "Intraday Agentic Trading Cron: Scanning all agentic_trading " +
-      "chart documents for hourly signals"
+      "Intraday Agentic Trading Cron: Scanning all chart documents " +
+      "for hourly signals"
     );
     try {
-      const docRefs = await db.collection("agentic_trading").listDocuments();
+      const docRefs = await db.collection("charts").listDocuments();
       if (docRefs.length === 0) {
-        logger.info("No agentic_trading documents found");
+        logger.info("No chart documents found");
         return;
       }
 
@@ -36,9 +36,7 @@ export const agenticTradingIntradayCron = onSchedule(
       let errorCount = 0;
 
       const docsToProcess = docRefs.filter((doc) =>
-        doc.id.startsWith("chart_") &&
-        !doc.id.endsWith("_1h") &&
-        !doc.id.endsWith("_15m")
+        !doc.id.includes("_")
       );
 
       const delay = (ms: number) =>
@@ -54,7 +52,7 @@ export const agenticTradingIntradayCron = onSchedule(
         }
 
         await Promise.all(batch.map(async (doc) => {
-          const symbol = doc.id.replace("chart_", "");
+          const symbol = doc.id;
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
             return;
@@ -114,12 +112,13 @@ export const agenticTrading15mCron = onSchedule(
   },
   async () => {
     logger.info(
-      "15-minute Agentic Trading Cron: Scanning for 15m signals"
+      "15-minute Agentic Trading Cron: Scanning for 15m signals in " +
+      "charts collection"
     );
     try {
-      const docRefs = await db.collection("agentic_trading").listDocuments();
+      const docRefs = await db.collection("charts").listDocuments();
       if (docRefs.length === 0) {
-        logger.info("No agentic_trading documents found");
+        logger.info("No chart documents found");
         return;
       }
 
@@ -128,16 +127,14 @@ export const agenticTrading15mCron = onSchedule(
       let errorCount = 0;
 
       const docsToProcess = docRefs.filter((doc) =>
-        doc.id.startsWith("chart_") &&
-        !doc.id.endsWith("_1h") &&
-        !doc.id.endsWith("_15m")
+        !doc.id.includes("_")
       );
 
       const BATCH_SIZE = 25;
       for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
         const batch = docsToProcess.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (doc) => {
-          const symbol = doc.id.replace("chart_", "");
+          const symbol = doc.id;
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
             return;

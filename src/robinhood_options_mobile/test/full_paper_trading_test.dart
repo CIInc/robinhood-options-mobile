@@ -104,7 +104,7 @@ class MockAnalytics extends Fake implements FirebaseAnalytics {
 
 class MockObserver extends Fake implements FirebaseAnalyticsObserver {}
 
-class FakePaperTradingStore extends ChangeNotifier
+class FakePaperTradingStore extends Fake
     implements PaperTradingStore {
   bool executedStock = false;
   bool executedOption = false;
@@ -126,6 +126,26 @@ class FakePaperTradingStore extends ChangeNotifier
 
   @override
   List<InstrumentPosition> get positions => [];
+
+  @override
+  List<FuturesPaperPosition> get futuresPositions => [];
+
+  @override
+  void applyFuturesTrade({
+    required String contractId,
+    required String symbol,
+    required String side,
+    required int quantity,
+    required double price,
+    required double multiplier,
+  }) {
+    print("EXECUTED FUTURES TRADE IN FAKE STORE - Side: $side, Qty: $quantity");
+    executedStock = true;
+    notifyListeners();
+  }
+
+  @override
+  void updateFuturesPrice(String contractId, double lastPrice) {}
 
   @override
   Future<void> executeStockOrder({

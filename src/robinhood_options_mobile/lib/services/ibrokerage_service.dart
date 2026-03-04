@@ -273,6 +273,29 @@ abstract class IBrokerageService {
       String trigger = 'immediate',
       String timeInForce = 'gtc'});
 
+  // Futures
+  Future<List<dynamic>> getFuturesOrders(BrokerageUser user, String account);
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds);
+  Future<dynamic> getFuturesContractBySymbol(BrokerageUser user, String symbol);
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols);
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds);
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  });
+
   Future<List<ForexOrder>> getForexOrders(BrokerageUser user);
 
   Future<dynamic> placeForexOrder(

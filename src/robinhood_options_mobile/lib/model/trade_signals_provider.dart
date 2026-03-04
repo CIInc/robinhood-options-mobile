@@ -519,11 +519,11 @@ class TradeSignalsProvider with ChangeNotifier {
       final effectiveInterval =
           interval ?? _selectedInterval ?? _getDefaultInterval();
       final docId = effectiveInterval == '1d'
-          ? 'signals_$symbol'
-          : 'signals_${symbol}_$effectiveInterval';
+          ? symbol
+          : '${symbol}_$effectiveInterval';
 
       final doc = await FirebaseFirestore.instance
-          .collection('agentic_trading')
+          .collection('signals')
           .doc(docId)
           .get(const GetOptions(source: Source.server));
       if (doc.exists && doc.data() != null) {
@@ -553,7 +553,7 @@ class TradeSignalsProvider with ChangeNotifier {
     String sortBy = 'signalStrength',
   }) {
     Query<Map<String, dynamic>> query =
-        FirebaseFirestore.instance.collection('agentic_trading');
+        FirebaseFirestore.instance.collection('signals');
 
     final effectiveInterval = interval ?? selectedInterval;
 
