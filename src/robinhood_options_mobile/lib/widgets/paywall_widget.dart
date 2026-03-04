@@ -115,8 +115,25 @@ class _PaywallWidgetState extends State<PaywallWidget> {
   }
 
   Future<void> _subscribe(ProductDetails product) async {
-    _subscriptionService.buySubscription(product);
-    // Feedback is handled by IAP UI and subsequent stream events
+    setState(() => _isLoading = true);
+    try {
+      await _subscriptionService.buySubscription(product);
+      // Feedback is handled by IAP UI and subsequent stream events in SubscriptionService
+      debugPrint('Purchase initiated for ${product.id}');
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = "Purchase failed: $e";
+          _isLoading = false;
+        });
+      }
+    } finally {
+      // We keep loading true while wait for the stream if it's quick, 
+      // but usually buySubscription returns after the system dialog is shown.
+      // If the user cancels it, we might stay in loading state indefinitely if we don't reset it.
+      // However, the system dialog is modal.
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _launchUrl(String urlString) async {
@@ -358,14 +375,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
                                       ),
                                     ),
                                     SizedBox(height: 4),
                                     Text(
                                       'Then \$9.99/month. Cancel anytime.',
-                                      style: TextStyle(
-                                          color: Colors.white70, fontSize: 13),
+                                      style: TextStyle(fontSize: 13),
                                     ),
                                   ],
                                 ),
@@ -395,12 +410,9 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                                   style: const TextStyle(
                                                       fontSize: 16,
                                                       fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.white)),
+                                                          FontWeight.bold)),
                                               Text(product.description,
-                                                  style: TextStyle(
-                                                    color: Colors.white
-                                                        .withOpacity(0.8),
+                                                  style: const TextStyle(
                                                     fontSize: 12,
                                                   ),
                                                   maxLines: 2,
@@ -409,12 +421,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Text(
                                           product.price,
                                           style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white,
                                           ),
                                         ),
                                       ],
@@ -592,14 +604,22 @@ class _PaywallWidgetState extends State<PaywallWidget> {
     required VoidCallback onTap,
     required Widget child,
   }) {
+    final textColor = Theme.of(context).brightness == Brightness.dark
+        ? Theme.of(context).colorScheme.onPrimaryContainer
+        : Colors.white;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
+            Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.primaryContainer
+                : Theme.of(context).colorScheme.primary,
+            Theme.of(context).brightness == Brightness.dark
+                ? Theme.of(context).colorScheme.secondaryContainer
+                : Theme.of(context).colorScheme.secondary,
           ],
         ),
         boxShadow: [
@@ -617,7 +637,15 @@ class _PaywallWidgetState extends State<PaywallWidget> {
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            child: Center(child: child),
+            child: Center(
+              child: DefaultTextStyle.merge(
+                style: TextStyle(color: textColor),
+                child: IconTheme.merge(
+                  data: IconThemeData(color: textColor),
+                  child: child,
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/model/investor_group_store.dart';
 import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
+import 'package:robinhood_options_mobile/services/subscription_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
@@ -75,6 +76,7 @@ void main() async {
   );
 
   await RemoteConfigService.initialize();
+  SubscriptionService().initialize();
 
   auth = FirebaseAuth.instanceFor(app: app);
 
