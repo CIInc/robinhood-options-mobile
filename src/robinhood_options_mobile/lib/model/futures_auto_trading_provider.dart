@@ -95,6 +95,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
   void loadConfigFromUser(FuturesTradingConfig? config) {
     _config =
         config ?? FuturesTradingConfig(strategyConfig: FuturesStrategyConfig());
+    _log('Futures config loaded');
     _analytics.logEvent(name: 'futures_auto_trading_config_loaded');
     notifyListeners();
   }
@@ -108,8 +109,10 @@ class FuturesAutoTradingProvider with ChangeNotifier {
       await userDocRef.update({
         'futuresTradingConfig': newConfig.toJson(),
       });
+      _log('Settings saved');
       _analytics.logEvent(name: 'futures_auto_trading_config_updated');
     } catch (e) {
+      _log('Failed to save settings: $e');
       _analytics.logEvent(
         name: 'futures_auto_trading_config_update_failed',
         parameters: {'error': e.toString()},
@@ -210,10 +213,12 @@ class FuturesAutoTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
   }) {
     if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
+      _log('Auto-trade timer already running');
       return;
     }
     _autoTradeTimer?.cancel();
     initializeAutoTradeTimer();
+    _log('Auto-trade timer started (${_config.checkIntervalMinutes} min)');
     _autoTradeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       final countdownReachedZero = tickAutoTradeCountdown();
       if (!countdownReachedZero) return;

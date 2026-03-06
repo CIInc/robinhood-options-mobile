@@ -168,14 +168,27 @@ class _FuturesTradingSettingsWidgetState
     _requireAllIndicatorsGreen =
         config.strategyConfig.requireAllIndicatorsGreen;
 
-    // Add listeners for auto-save
-    _minSignalStrengthController.addListener(_saveConfig);
-    _rsiPeriodController.addListener(_saveConfig);
-    _rocPeriodController.addListener(_saveConfig);
-    _smaFastController.addListener(_saveConfig);
-    _smaSlowController.addListener(_saveConfig);
-    _marketIndexController.addListener(_saveConfig);
-    _contractsController.addListener(_saveConfig);
+    // Add listeners for auto-save and dirty-state refresh
+    _contractsController.addListener(_refreshDirtyState);
+    _maxContractsController.addListener(_refreshDirtyState);
+    _maxNotionalController.addListener(_refreshDirtyState);
+    _maxDailyLossController.addListener(_refreshDirtyState);
+    _tradeQuantityController.addListener(_refreshDirtyState);
+    _checkIntervalController.addListener(_refreshDirtyState);
+    _cooldownController.addListener(_refreshDirtyState);
+    _windowStartController.addListener(_refreshDirtyState);
+    _windowEndController.addListener(_refreshDirtyState);
+    _minSignalStrengthController.addListener(_refreshDirtyState);
+    _stopLossController.addListener(_refreshDirtyState);
+    _takeProfitController.addListener(_refreshDirtyState);
+    _trailingStopAtrController.addListener(_refreshDirtyState);
+    _autoExitBufferController.addListener(_refreshDirtyState);
+    _rsiPeriodController.addListener(_refreshDirtyState);
+    _rocPeriodController.addListener(_refreshDirtyState);
+    _smaFastController.addListener(_refreshDirtyState);
+    _smaSlowController.addListener(_refreshDirtyState);
+    _marketIndexController.addListener(_refreshDirtyState);
+
   }
 
   @override
@@ -200,14 +213,32 @@ class _FuturesTradingSettingsWidgetState
     _smaSlowController.dispose();
     _marketIndexController.dispose();
     _templateScrollController.dispose();
-    _contractsController.removeListener(_saveConfig);
-    _minSignalStrengthController.removeListener(_saveConfig);
-    _rsiPeriodController.removeListener(_saveConfig);
-    _rocPeriodController.removeListener(_saveConfig);
-    _smaFastController.removeListener(_saveConfig);
-    _smaSlowController.removeListener(_saveConfig);
-    _marketIndexController.removeListener(_saveConfig);
+    _contractsController.removeListener(_refreshDirtyState);
+    _maxContractsController.removeListener(_refreshDirtyState);
+    _maxNotionalController.removeListener(_refreshDirtyState);
+    _maxDailyLossController.removeListener(_refreshDirtyState);
+    _tradeQuantityController.removeListener(_refreshDirtyState);
+    _checkIntervalController.removeListener(_refreshDirtyState);
+    _cooldownController.removeListener(_refreshDirtyState);
+    _windowStartController.removeListener(_refreshDirtyState);
+    _windowEndController.removeListener(_refreshDirtyState);
+    _minSignalStrengthController.removeListener(_refreshDirtyState);
+    _stopLossController.removeListener(_refreshDirtyState);
+    _takeProfitController.removeListener(_refreshDirtyState);
+    _trailingStopAtrController.removeListener(_refreshDirtyState);
+    _autoExitBufferController.removeListener(_refreshDirtyState);
+    _rsiPeriodController.removeListener(_refreshDirtyState);
+    _rocPeriodController.removeListener(_refreshDirtyState);
+    _smaFastController.removeListener(_refreshDirtyState);
+    _smaSlowController.removeListener(_refreshDirtyState);
+    _marketIndexController.removeListener(_refreshDirtyState);
+
     super.dispose();
+  }
+
+  void _refreshDirtyState() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Widget _buildNumberField({
@@ -263,7 +294,7 @@ class _FuturesTradingSettingsWidgetState
         }
         return null;
       },
-      onChanged: (_) => _saveConfig(),
+      onChanged: (_) => _refreshDirtyState(),
     );
   }
 
@@ -359,7 +390,7 @@ class _FuturesTradingSettingsWidgetState
       _multiIntervalAnalysis = config.multiIntervalAnalysis;
       _requireAllIndicatorsGreen = config.requireAllIndicatorsGreen;
     });
-    _saveConfig();
+    _refreshDirtyState();
   }
 
   void _toggleSymbol(String symbol) {
@@ -381,14 +412,14 @@ class _FuturesTradingSettingsWidgetState
     setState(() {
       _contractsController.text = symbols.join(',');
     });
-    _saveConfig();
+    _refreshDirtyState();
   }
 
   void _onToggleIndicator(String key, bool value) {
     setState(() {
       _enabledIndicators[key] = value;
     });
-    _saveConfig();
+    _refreshDirtyState();
   }
 
   void _onToggleAllIndicators() {
@@ -396,7 +427,7 @@ class _FuturesTradingSettingsWidgetState
     setState(() {
       _enabledIndicators.updateAll((k, v) => !allEnabled);
     });
-    _saveConfig();
+    _refreshDirtyState();
   }
 
   FuturesTradingConfig _buildConfig() {
@@ -460,10 +491,59 @@ class _FuturesTradingSettingsWidgetState
     await provider.updateConfig(_buildConfig(), widget.userDocRef);
   }
 
+  bool _hasUnsavedChanges(FuturesTradingConfig savedConfig) {
+    final draft = _normalizeForCompare(_buildConfig().toJson());
+    final saved = _normalizeForCompare(savedConfig.toJson());
+    return !_deepEquals(draft, saved);
+  }
+
+  dynamic _normalizeForCompare(dynamic value) {
+    if (value is Map) {
+      final entries = value.entries.toList()
+        ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
+      return {
+        for (final entry in entries)
+          entry.key.toString(): _normalizeForCompare(entry.value),
+      };
+    }
+    if (value is List) {
+      return value.map(_normalizeForCompare).toList();
+    }
+    if (value is num) {
+      // Normalize numeric representation to avoid false positives (e.g., 65 vs 65.0).
+      return value.toDouble();
+    }
+    return value;
+  }
+
+  bool _deepEquals(dynamic a, dynamic b) {
+    if (a.runtimeType != b.runtimeType) return false;
+
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key)) return false;
+        if (!_deepEquals(a[key], b[key])) return false;
+      }
+      return true;
+    }
+
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (int i = 0; i < a.length; i++) {
+        if (!_deepEquals(a[i], b[i])) return false;
+      }
+      return true;
+    }
+
+    return a == b;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<FuturesAutoTradingProvider>(
       builder: (context, provider, child) {
+        final hasUnsavedChanges = _hasUnsavedChanges(provider.config);
         return Scaffold(
           appBar: AppBar(
             title: const Text('Futures Auto-Trading'),
@@ -481,9 +561,7 @@ class _FuturesTradingSettingsWidgetState
                   );
                 },
               ),
-              if (_autoTradeEnabled != provider.config.autoTradeEnabled ||
-                  _paperTradingMode != provider.config.paperTradingMode ||
-                  _requireApproval != provider.config.requireApproval)
+              if (hasUnsavedChanges)
                 IconButton(
                   icon: const Icon(Icons.save),
                   onPressed: _saveConfig,
@@ -684,7 +762,7 @@ class _FuturesTradingSettingsWidgetState
                       if (confirmed != true) return;
                     }
                     setState(() => _autoTradeEnabled = value);
-                    await _saveConfig();
+                    _refreshDirtyState();
                   },
                 ),
               ],
@@ -929,7 +1007,6 @@ class _FuturesTradingSettingsWidgetState
   }
 
   Widget _buildActivitySection(FuturesAutoTradingProvider provider) {
-    if (provider.activityLog.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return _buildSection(
@@ -944,24 +1021,35 @@ class _FuturesTradingSettingsWidgetState
             border:
                 Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
           ),
-          child: ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: provider.activityLog.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final log = provider.activityLog[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  log,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontFamily: 'monospace',
-                    color: colorScheme.onSurfaceVariant,
+          child: provider.activityLog.isEmpty
+              ? Center(
+                  child: Text(
+                    'No activity yet. Enable auto-trading or save settings to see log entries.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: provider.activityLog.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final log = provider.activityLog[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        log,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -1478,7 +1566,7 @@ class _FuturesTradingSettingsWidgetState
               TextButton.icon(
                 onPressed: () {
                   setState(() => _contractsController.clear());
-                  _saveConfig();
+                  _refreshDirtyState();
                 },
                 icon: const Icon(Icons.clear_all, size: 16),
                 label: const Text('Clear All'),
