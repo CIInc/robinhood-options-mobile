@@ -10,7 +10,7 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 
 Users can explore trade signals in the **Search** tab using advanced filtering options:
 
-1.  **Signal Strength**: Filter by **Strong** (75-100), **Moderate** (50-74), or **Weak** (0-49) signals.
+1.  **Signal Strength**: Filter by **Strong** (70-100), **Moderate** (50-69), or **Weak** (0-49) signals.
 2.  **Indicator States**: Filter by specific indicator states using a 4-way toggle (Off/BUY/SELL/HOLD). For example, you can search for "RSI: BUY" and "MACD: BUY" to find specific momentum setups.
 3.  **Sorting**: Sort results by **Signal Strength** (default) or **Timestamp** to find the most relevant or most recent signals.
 
@@ -22,18 +22,31 @@ The system uses a weighted scoring model to determine the overall strength of a 
 
 **Weight Distribution:**
 
-1.  **High Impact (Weight 1.5):**
-    *   **Price Movement**: Patterns and candlestick formations are the most direct reflection of market sentiment and often precede other indicators.
+1.  **Critical (Weight 2.0):**
+  *   **Price Movement**: Patterns and candlestick formations are the most direct reflection of market sentiment and often precede other indicators.
 
-2.  **Medium Impact (Weight 1.2):**
-    *   **Momentum**: RSI, Stochastic (Leading indicators).
-    *   **Trend**: MACD, ADX, Market Direction (Trend confirmation).
-    *   **Support/Resistance**: Fibonacci Retracements, VWAP.
+2.  **High Impact (Weight 1.5):**
+  *   **Momentum**: RSI and momentum signals.
+  *   **Trend**: MACD and Ichimoku.
 
-3.  **Standard Impact (Weight 1.0):**
-    *   **Volume/Volatility**: Volume, Bollinger Bands, ATR, OBV, Chaikin Money Flow, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC.
+3.  **Standard Impact (Weight 1.2):**
+  *   **Trend Confirmation**: ADX, Market Direction.
+  *   **Support/Resistance**: Fibonacci Retracements, Pivot Points, VWAP.
+  *   **Volatility**: Bollinger Bands.
 
-The final score (0-100) reflects the net positive influence of all indicators. A score > 75 is considered a **Strong BUY**, while a score < 25 is a **Strong SELL**.
+4.  **Supporting (Weight 1.0):**
+  *   **Volume/Volatility**: Volume, ATR, OBV, Chaikin Money Flow.
+  *   **Momentum/Trend**: Stochastic, Williams %R, CCI, Parabolic SAR, ROC.
+
+**Formula:**
+
+$SignalStrength = \frac{WeightedScore + TotalWeight}{2 \times TotalWeight} \times 100$
+
+The final score (0-100) reflects the net positive influence of all indicators. A score $\ge 70$ is considered a **Strong BUY**, while a score $\le 30$ is a **Strong SELL**.
+
+**Sparkline Context:**
+
+The multi-indicator result includes a `sparkline` series (last 80 closes) used to render quick trend previews in signal cards.
 
 ## The 19 Technical Indicators
 
@@ -404,7 +417,7 @@ Stochastic  ATR       OBV      VWAP     ADX   Williams%R
     ↓         ↓         ↓        ↓        ↓        ↓
     └────┬────┴─────────┴────────┴────────┴────────┘
          ↓
-   All 12 Green? + Signal Strength Score
+  All 19 Green? + Signal Strength Score
          ↓
     Yes → Trade Proposal → RiskGuard → Execute
     No  → HOLD (with strength score for analytics)
@@ -654,7 +667,7 @@ Document structure:
   "symbol": "AAPL",
   "interval": "1h",
   "signal": "BUY" | "SELL" | "HOLD",
-  "reason": "All 12 indicators are GREEN - Strong BUY signal",
+  "reason": "All 19 indicators are GREEN - Strong BUY signal",
   "multiIndicatorResult": {
     "allGreen": true,
     "overallSignal": "BUY",
@@ -783,7 +796,7 @@ The Agentic Trading Settings screen displays:
   - ✓ Green arrow up = BUY signal
   - ✓ Red arrow down = SELL signal
   - ✓ Gray horizontal line = HOLD signal
-- Overall signal status with highlighting when all 12 are green
+- Overall signal status with highlighting when all 19 are green
 
 #### Search Tab - Trade Signals Section
 
@@ -878,7 +891,7 @@ firebase deploy --only functions:agenticTradingIntradayCronJob,functions:agentic
 3. Configure parameters (optional)
 4. Tap "Initiate Test Trade Proposal"
 5. Review indicator status display
-6. Check if all 12 indicators are green
+6. Check if all 19 indicators are green
 
 ### Testing Individual Indicators
 
@@ -896,7 +909,7 @@ You can test individual indicators by:
 - RSI < 30 (oversold)
 - SPY 10-day MA crosses above 30-day MA
 - Volume spike with price increase
-- **Expected Result:** All 12 indicators BUY → Trade executed
+- **Expected Result:** All 19 indicators BUY → Trade executed
 
 **Scenario 2: Mixed Signals**
 - Price in consolidation
@@ -910,7 +923,7 @@ You can test individual indicators by:
 - RSI > 70 (overbought)
 - SPY 10-day MA crosses below 30-day MA
 - Volume spike with price decrease
-- **Expected Result:** All 12 indicators SELL → Potential short (if enabled)
+- **Expected Result:** All 19 indicators SELL → Potential short (if enabled)
 
 ## Best Practices
 
@@ -941,7 +954,7 @@ The multi-indicator system works best when combined with:
 ### Monitoring
 
 Regularly review:
-- Signal frequency (how often all 12 align)
+- Signal frequency (how often all 19 align)
 - False positive rate
 - Trade win/loss ratio
 - Indicator individual performance
@@ -952,7 +965,7 @@ Regularly review:
 
 **Check:**
 1. Is agentic trading enabled in settings?
-2. Are all 12 indicators rarely aligning?
+2. Are all 19 indicators rarely aligning?
 3. Review Firestore `signals_{SYMBOL}` for indicator status
 4. Check Firebase Functions logs for errors
 5. Verify market data is being fetched (Yahoo Finance API working)
@@ -1117,7 +1130,7 @@ The technical indicators module has been improved for accuracy, robustness, and 
 
 ## Custom Indicators
 
-The system now supports **Custom Indicators**, allowing users to extend the analysis capabilities beyond the core 12 indicators.
+The system now supports **Custom Indicators**, allowing users to extend the analysis capabilities beyond the core 19 indicators.
 
 - **Definition:** Users can define custom logic using available market data (price, volume, etc.).
 - **Integration:** Custom indicators are evaluated alongside standard indicators and contribute to the overall signal generation.

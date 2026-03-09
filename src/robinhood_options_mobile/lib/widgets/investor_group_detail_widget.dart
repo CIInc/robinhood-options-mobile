@@ -846,6 +846,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_ios,
+                          size: 16, color: _getTertiaryTextColor()),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -926,14 +929,15 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         const SizedBox(height: 8),
                       ],
                     ),
-                  Text(
-                    hasData
-                        ? 'Tap to view all watchlists'
-                        : 'Create and manage collaborative watchlists with group members',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: _getSecondaryTextColor(),
-                        ),
-                  ),
+                  !hasData
+                      ? Text(
+                          'Create and manage collaborative watchlists with group members',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: _getSecondaryTextColor(),
+                                  ),
+                        )
+                      : const SizedBox.shrink(),
                 ],
               );
             },
@@ -1317,9 +1321,9 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                       ),
-                    if (group.isPrivate) const SizedBox(width: 8),
-                    if (group.isPrivate)
-                      const Icon(Icons.chevron_right, size: 20),
+                    // if (group.isPrivate) const SizedBox(width: 8),
+                    // if (group.isPrivate)
+                    //   const Icon(Icons.chevron_right, size: 20),
                   ],
                 ),
                 shape: RoundedRectangleBorder(

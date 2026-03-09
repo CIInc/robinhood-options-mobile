@@ -19,9 +19,10 @@
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
 - **[Instrument Charting](index.md#instrument-charting):** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges and **interactive technical overlays** (SMA, EMA, VWAP, Bollinger Bands).
 - **[Instrument Notes](instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
-- Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick) and weighted signal strength visualization (Price > Momentum > Trend).
+- Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick), weighted signal strength visualization, and sparkline previews.
 - Integration with social media for sentiment analysis.
 - Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
+- **Futures Auto-Trading:** Automated futures strategy execution with settings, performance tracking, activity logs, and emergency stop controls.
 - **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
 - **[Trading Strategies](agentic-trading.md#trading-strategy-management):** Switch between pre-defined trading styles (e.g., Momentum, Mean Reversion) instantly.
 - **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
@@ -46,6 +47,10 @@
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators. **New:** Option Flow alerts and a dedicated notifications feed.
+- **[Market Data Providers Research](market-data-providers-research.md):** Comparative analysis of equities, options, and futures data vendors.
+- **[Options/Futures API Endpoints](options-futures-api-endpoints.md):** Survey of broker and market data APIs for derivatives coverage.
+- **[Databento vs. Twelve Data](databento-vs-twelve-data-analysis.md):** Vendor comparison on latency, coverage, and pricing.
+- **[Twelve Data Migration](twelve-data-migration.md):** Migration plan and phased rollout strategy for market data ingestion.
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
 - **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals.
@@ -86,8 +91,9 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 
 ### Key Components
 - **Multi-Indicator Correlation:** Analyzes 19 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) to generate high-confidence trade signals
-- **Signal Strength Visualization:** Color-coded signal strength scores (0-100) with filtering by minimum strength threshold
-- **Indicator Documentation Widget:** In-app technical reference for all 12 indicators with detailed explanations of signals, configuration, and technical details
+- **Signal Strength Visualization:** Weighted signal strength scores (0-100) with filtering by minimum strength threshold
+- **Sparkline Previews:** Mini trend lines on signal cards for quick pattern context
+- **Indicator Documentation Widget:** In-app technical reference for all 19 indicators with detailed explanations of signals, configuration, and technical details
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
 - **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
 - **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours
@@ -210,7 +216,6 @@ The Futures Positions feature enriches raw futures holdings with contract & prod
 - **Service-Oriented:** Logic contained in service layer; no secrets moved client-side.
 
 ### Limitations (Initial Version)
-- No realized or day P&L yet.
 - No margin requirement or leverage analytics.
 - No contract roll alerts or calendar spread tracking.
 - No Greeks or term structure metrics.
@@ -219,6 +224,17 @@ The Futures Positions feature enriches raw futures holdings with contract & prod
 - Margin & risk metrics (SPAN-style), realized/day P&L, roll detection, Greeks & volatility surfaces, contract seasonality analytics, VAR integration.
 
 See [Futures Positions](futures.md) for full details.
+
+## Futures Auto-Trading Feature
+
+Futures Auto-Trading extends the agentic system to futures contracts with configurable strategies, performance tracking, and safety controls.
+
+### Key Components
+- **FuturesAutoTradingProvider:** Manages configuration, auto-trade cadence, countdown timers, and activity logs.
+- **FuturesTradingSettingsWidget:** Full configuration UI with dirty-state tracking, quick saves, and emergency stop toggles.
+- **FuturesTradingPerformanceWidget:** Dedicated performance dashboard for futures trades, P&L, and win rate.
+- **Home Cards:** Agentic and Futures Auto-Trading cards surface daily trades, total P&L, and active symbols.
+- **Backend Pipeline:** `agentic-futures-trading.ts` + cron tasks to generate and execute futures signals.
 
 ## Investor Groups Feature
 

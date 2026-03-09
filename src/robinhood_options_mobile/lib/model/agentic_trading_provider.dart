@@ -509,6 +509,17 @@ class AgenticTradingProvider with ChangeNotifier {
         userDocRef: userDocRef,
       );
 
+      if (result['tradesExecuted'] > 0) {
+        final count = result['tradesExecuted'];
+        final symbols = (result['trades'] as List)
+            .map((t) => t['symbol'])
+            .toSet()
+            .join(', ');
+        _log('✅ Executed $count auto-trades: $symbols');
+      } else if (tradeSignals.isNotEmpty) {
+        _log('ℹ️ No trades executed from ${tradeSignals.length} signals');
+      }
+
       updateLastAutoTradeResult(result);
 
       // Prune processed signals older than 24 hours
@@ -526,7 +537,7 @@ class AgenticTradingProvider with ChangeNotifier {
           : instrumentPositionStore.items;
 
       if (positionsToMonitor.isNotEmpty) {
-        _log('📊 Monitoring ${positionsToMonitor.length} positions for TP/SL');
+        // _log('📊 Monitoring ${positionsToMonitor.length} positions for TP/SL');
         final tpSlResult = await monitorTakeProfitStopLoss(
           positions: positionsToMonitor,
           brokerageUser: currentUser,
@@ -1769,12 +1780,14 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // _log(
       //     '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      /*
       if (_automatedBuyTrades.isNotEmpty) {
         final symbols = _automatedBuyTrades
             .map((t) => '${t['symbol']} x${t['quantity']}')
             .join(', ');
         _log('📝 Automated buy trades: $symbols');
       }
+      */
 
       final executedExits = <Map<String, dynamic>>[];
       final tradesToRemove = <Map<String, dynamic>>[];

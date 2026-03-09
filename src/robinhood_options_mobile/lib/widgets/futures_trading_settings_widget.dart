@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/futures_auto_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/futures_strategies.dart';
@@ -188,7 +189,6 @@ class _FuturesTradingSettingsWidgetState
     _smaFastController.addListener(_refreshDirtyState);
     _smaSlowController.addListener(_refreshDirtyState);
     _marketIndexController.addListener(_refreshDirtyState);
-
   }
 
   @override
@@ -549,7 +549,7 @@ class _FuturesTradingSettingsWidgetState
             title: const Text('Futures Auto-Trading'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.insights),
+                icon: const Icon(Icons.analytics_outlined),
                 tooltip: 'View Performance',
                 onPressed: () {
                   Navigator.push(
@@ -1060,42 +1060,70 @@ class _FuturesTradingSettingsWidgetState
     final colorScheme = theme.colorScheme;
     final templates = FuturesStrategyDefaults.defaultTemplates;
 
+    var displayTemplates = List<FuturesStrategyTemplate>.from(templates);
+    if (_selectedTemplateId != null) {
+      final selectedIndex =
+          displayTemplates.indexWhere((t) => t.id == _selectedTemplateId);
+      if (selectedIndex != -1) {
+        final selectedTemplate = displayTemplates.removeAt(selectedIndex);
+        displayTemplates.insert(0, selectedTemplate);
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
           child: Row(
             children: [
-              Icon(Icons.auto_awesome, size: 20, color: colorScheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.bolt_rounded,
+                    size: 20, color: colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
               Text(
-                'Strategy Templates',
-                style: theme.textTheme.titleMedium?.copyWith(
+                'Trading Strategies',
+                style: TextStyle(
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.primary,
+                  color: colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
-              if (_selectedTemplateId != null)
-                TextButton(
-                  onPressed: () => setState(() => _selectedTemplateId = null),
-                  child: const Text('Clear Custom'),
-                ),
+              // if (_selectedTemplateId != null)
+              //   TextButton(
+              //     onPressed: () => setState(() => _selectedTemplateId = null),
+              //     child: const Text('Clear Custom'),
+              //   ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
         SizedBox(
-          height: 160,
+          height: 200,
           child: CarouselView(
             controller: _templateScrollController,
-            itemExtent: 220,
+            itemExtent: 312,
+            shrinkExtent: 200,
+            itemSnapping: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             onTap: (index) {
-              _showTemplateDetailsSheet(context, templates[index]);
+              if (index < displayTemplates.length) {
+                _showTemplateDetailsSheet(context, displayTemplates[index]);
+              }
             },
-            children: templates.map((template) {
+            children: displayTemplates.map((template) {
               final isSelected = _selectedTemplateId == template.id;
-              return _buildTemplateCard(template, isSelected);
+              return _buildTemplateCard(template, isSelected, true);
             }).toList(),
           ),
         ),
@@ -1421,75 +1449,331 @@ class _FuturesTradingSettingsWidgetState
     );
   }
 
-  Widget _buildTemplateCard(FuturesStrategyTemplate template, bool isSelected) {
+  Widget _buildTemplateCard(
+      FuturesStrategyTemplate template, bool isSelected, bool isDefault) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return Card(
-      elevation: isSelected ? 4 : 0,
-      margin: EdgeInsets.zero,
-      color: isSelected
-          ? colorScheme.primaryContainer
-          : colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: SizedBox(
+        width: 300,
+        child: Card(
+          elevation: isSelected ? 2 : 0,
+          shadowColor: isSelected
+              ? colorScheme.primary.withValues(alpha: 0.3)
+              : Colors.transparent,
+          clipBehavior: Clip.antiAlias,
           color: isSelected
-              ? colorScheme.primary
-              : colorScheme.outline.withValues(alpha: 0.1),
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: Stack(
-        children: [
-          Padding(
+              ? colorScheme.primaryContainer.withValues(alpha: 0.15)
+              : Theme.of(context).cardColor,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.outline.withValues(alpha: 0.1),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  _getTemplateIcon(template.id),
-                  color: isSelected
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.primary,
-                  size: 24,
+                // Header row with Icon, Name, and Status/Type Badges
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? colorScheme.primary.withValues(alpha: 0.2)
+                            : colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _getTemplateIcon(template.id),
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  template.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(Icons.check_circle_rounded,
+                                    color: colorScheme.primary, size: 18),
+                            ],
+                          ),
+                          if (isDefault) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                    color: Colors.amber.withValues(alpha: 0.5),
+                                    width: 1),
+                              ),
+                              child: Text(
+                                'SYSTEM',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  color: Colors.amber[900],
+                                ),
+                              ),
+                            ),
+                          ] else if (template.lastUsedAt != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Used ${_formatTime(template.lastUsedAt!)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  template.name,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurface,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Text(
                   template.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer.withValues(alpha: 0.8)
-                        : colorScheme.onSurfaceVariant,
-                    fontSize: 11,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                // Stats Badge Row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildStatBadge(
+                        context,
+                        '',
+                        template.config.interval,
+                        colorScheme.tertiary,
+                        icon: Icons.timer_outlined,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'TP',
+                        '${template.config.takeProfitPct.toStringAsFixed(1)}%',
+                        Colors.green,
+                        icon: Icons.trending_up_rounded,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'SL',
+                        '${template.config.stopLossPct.toStringAsFixed(1)}%',
+                        Colors.red,
+                        icon: Icons.trending_down_rounded,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatBadge(
+                        context,
+                        'Risk',
+                        '${(template.config.riskPerTrade * 100).toStringAsFixed(1)}%',
+                        Colors.orange,
+                        icon: Icons.shield_outlined,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Features Wrap/Row
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      _buildFeatureChip(
+                          context,
+                          Icons.show_chart_rounded,
+                          template.config.contractIds.isEmpty
+                              ? "All Mapped"
+                              : (template.config.contractIds.length > 3
+                                  ? "${template.config.contractIds.take(3).join(', ')} +${template.config.contractIds.length - 3}"
+                                  : template.config.contractIds.join(', '))),
+                      const SizedBox(width: 8),
+                      _buildFeatureChip(context, Icons.layers_outlined,
+                          _getIndicatorsSummary(template.config)),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          if (isSelected)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Icon(Icons.check_circle,
-                  color: colorScheme.onPrimaryContainer, size: 20),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(
+      BuildContext context, String label, String value, Color color,
+      {IconData? icon}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+          ],
+          if (label.isNotEmpty) ...[
+            Text(
+              '$label ',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color.withValues(alpha: 0.8),
+              ),
             ),
+          ],
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildFeatureChip(BuildContext context, IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              size: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getIndicatorsSummary(FuturesStrategyConfig config) {
+    final Map<String, String> friendlyNames = {
+      'priceMovement': 'Price',
+      'momentum': 'RSI',
+      'marketDirection': 'Market',
+      'volume': 'Vol',
+      'macd': 'MACD',
+      'bollingerBands': 'BB',
+      'stochastic': 'Stoch',
+      'atr': 'ATR',
+      'obv': 'OBV',
+      'vwap': 'VWAP',
+      'adx': 'ADX',
+      'williamsR': 'WillR',
+      'ichimoku': 'Ichi',
+      'cci': 'CCI',
+      'parabolicSar': 'SAR',
+      'roc': 'ROC',
+      'chaikinMoneyFlow': 'CMF',
+      'fibonacciRetracements': 'Fib',
+      'pivotPoints': 'Pivots',
+    };
+
+    final activeKeys = config.enabledIndicators.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+
+    var names = activeKeys
+        .map((k) => friendlyNames[k] ?? k)
+        .toList(); // Map to friendly names
+
+    if (names.isEmpty) return 'No indicators';
+
+    if (names.length <= 3) {
+      return names.join(', ');
+    }
+    return '${names.take(3).join(", ")} +${names.length - 3}';
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM dd').format(time);
+    }
   }
 
   Widget _buildInstrumentsSection(FuturesAutoTradingProvider provider) {
@@ -1876,8 +2160,13 @@ class _FuturesTradingSettingsWidgetState
         ...provider.pendingOrders.map((order) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                title: Text('${order['symbol']} ${order['side']}'),
-                subtitle: Text('Qty: ${order['quantity']} @ ${order['price']}'),
+                title: Text(
+                    '${order['symbol'] ?? order['contractId'] ?? 'Contract'} ${order['action'] ?? order['side'] ?? ''}'
+                        .trim()),
+                subtitle: Text(
+                  'Qty: ${order['quantity'] ?? '?'} @ ${order['price'] ?? '?'}'
+                  '${(order['reason'] ?? (order['proposal'] as Map?)?['reason']) != null ? '\nReason: ${order['reason'] ?? (order['proposal'] as Map?)?['reason']}' : ''}',
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

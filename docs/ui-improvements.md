@@ -2,6 +2,14 @@
 
 ## Completed Improvements
 
+### Trade Signals & Futures Auto-Trading UI (v0.34.0)
+- **Components**: `TradeSignalsWidget`, `InstrumentWidget`, `AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`, `FuturesTradingSettingsWidget`.
+- **Features**:
+  - **Sparkline Previews**: Mini trend lines on signal cards for quick context.
+  - **Weighted Strength Badges**: Signal strength rendered with weighted scoring alignment.
+  - **Home Cards**: New agentic and futures auto-trading cards showing daily trades and total P&L.
+  - **Settings UX**: Dirty-state tracking and explicit save actions in futures auto-trading settings.
+
 ### Paper Trading Dashboard (v0.31.4)
 - **Component**: `PaperTradingDashboardWidget`.
 - **Features**:

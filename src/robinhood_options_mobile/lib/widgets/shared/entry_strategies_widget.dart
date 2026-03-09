@@ -553,6 +553,66 @@ class EntryStrategiesWidget extends StatelessWidget {
     );
   }
 
+  void _showIndicatorDetail(BuildContext context, String key) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final metadata = indicatorMetadata[key];
+    final reason = indicatorReasons[key];
+    if (metadata == null || reason == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(metadata.icon, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            Expanded(child: Text(metadata.label)),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Evaluation Reason:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(reason),
+                const Divider(height: 32),
+                const Text(
+                  'About this Indicator:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                IndicatorDocumentationWidget(
+                  indicatorKey: key,
+                  showContainer: false,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIndicatorToggle(BuildContext context, String key) {
     final isEnabled = enabledIndicators[key] ?? true;
     final colorScheme = Theme.of(context).colorScheme;
@@ -622,10 +682,20 @@ class EntryStrategiesWidget extends StatelessWidget {
                             indicatorReasons[key]!.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(left: 4.0),
-                            child: Icon(
-                              Icons.info_outline_rounded,
-                              size: 16,
-                              color: colorScheme.secondary,
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: IconButton(
+                                icon: const Icon(Icons.info_outline_rounded),
+                                onPressed: () =>
+                                    _showIndicatorDetail(context, key),
+                                iconSize: 16,
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                color: colorScheme.secondary,
+                                tooltip: 'Indicator Signal Details',
+                              ),
                             ),
                           ),
                       ],

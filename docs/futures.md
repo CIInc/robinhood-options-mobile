@@ -58,10 +58,10 @@ LastTradePrice = 4527.25
 Quantity = 3
 Multiplier = 50
 DayPnlCalc = (4527.25 - 4518.50) * 3 * 50 = 1312.50
-```ealized P&L
-Realized P&L is calculated based on closed positions during the current session, factoring in execution prices and quantities.
+```
 
-### R
+### Realized P&L
+Realized P&L is calculated based on closed positions during the current session, factoring in execution prices and quantities.
 
 ### Risk Metrics
 Basic risk metrics are provided to monitor exposure.
@@ -90,6 +90,17 @@ A pie chart visualizes the distribution of Notional Value across different futur
     - Notional Value per position.
     - Contract details and multipliers.
 
+## Futures Auto-Trading
+
+Futures Auto-Trading adds automated strategy execution on futures contracts with configurable rules, activity logging, and safety controls.
+
+### Key Elements
+- **Provider:** `FuturesAutoTradingProvider` manages config, countdown timers, and trade history.
+- **Settings UI:** `FuturesTradingSettingsWidget` exposes strategy templates, risk controls, and save state.
+- **Performance UI:** `FuturesTradingPerformanceWidget` summarizes P&L, win rate, and recent trades.
+- **Home Cards:** Quick visibility into daily trades, total P&L, and active contracts.
+- **Backend:** `agentic-futures-trading.ts` and cron jobs generate futures signals and execution flow.
+
 ## Technical Implementation
 - Service layer method (`streamFuturePositions`) fetches aggregated positions, then sequentially:
   1. Fetches contract & product metadata via `getFuturesContractsByIds` and `getFuturesProductsByIds`.
@@ -104,14 +115,12 @@ A pie chart visualizes the distribution of Notional Value across different futur
 - No Greeks or implied volatility surface metrics.
 - Assumes multiplier is available and non-null; positions without multiplier may show `openPnlCalc = null` and `dayPnlCalc = null`.
 - Day P&L calculation depends on availability of previous close price; if unavailable, `dayPnlCalc` will be null.
-- No Greeks or implied volatility surface metrics.
-##anned enhancements:
+
+## Planned Enhancements
 - Margin metrics & risk layer (SPAN-style summary).
 - Realized P&L tracking using trade history.
 - Contract roll assistant (alerts near expiration, auto-suggest roll strikes/months).
 - Greeks and term structure analytics for rate-sensitive products.
-- Volatility overlays and seasonal tendencies.
-- Aggregated portfolio risk (VaR / expected shortfall) including futures.
 - Volatility overlays and seasonal tendencies.
 - Aggregated portfolio risk (VaR / expected shortfall) including futures.
 
@@ -126,6 +135,4 @@ Before extending futures logic:
 2. Add unit tests for new calculations (especially margin, realized P&L).
 3. Maintain consistent naming (snake_case files, UpperCamelCase classes).
 ## Summary
-Futures support now delivers enriched contract context with transparent Open P&L and Day P&L calculations, providing comprehensive position tracking and forming the foundation for advanced risk and analytics to come.
-## Summary
-Initial futures support delivers enriched contract context and transparent Open P&L, forming the foundation for advanced risk and analytics to come.
+Futures support now delivers enriched contract context with transparent Open P&L and Day P&L calculations, and futures auto-trading extends the platform with configurable automated execution.

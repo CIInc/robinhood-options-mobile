@@ -24,17 +24,23 @@ class SubscriptionService {
   SubscriptionService._internal();
 
   void initialize() {
-    debugPrint('Initializing SubscriptionService...');
+    debugPrint('SubscriptionService: Initializing...');
+    
+    // Check if IAP is available
+    _iap.isAvailable().then((available) {
+      debugPrint('SubscriptionService: IAP available: $available');
+    });
+
     final Stream<List<PurchaseDetails>> purchaseUpdated = _iap.purchaseStream;
     _subscription = purchaseUpdated.listen((purchaseDetailsList) {
       debugPrint(
-          'IAP Stream Event: ${purchaseDetailsList.length} items received');
+          'SubscriptionService: IAP Stream Event: ${purchaseDetailsList.length} items received');
       _listenToPurchaseUpdated(purchaseDetailsList);
     }, onDone: () {
-      debugPrint('IAP Stream Done');
+      debugPrint('SubscriptionService: IAP Stream Done');
       _subscription?.cancel();
     }, onError: (error) {
-      debugPrint('IAP Stream Error: $error');
+      debugPrint('SubscriptionService: IAP Stream Error: $error');
     });
   }
 
@@ -103,8 +109,19 @@ class SubscriptionService {
   }
 
   Future<void> buySubscription(ProductDetails product) async {
+    debugPrint('SubscriptionService: buySubscription for ${product.id}');
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+    try {
+      if (kIsWeb) {
+        // IAP not supported on web
+        throw Exception('In-app purchases are not supported on web.');
+      }
+      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      debugPrint('SubscriptionService: buyNonConsumable call successful');
+    } catch (e) {
+      debugPrint('SubscriptionService: Error in buySubscription: $e');
+      rethrow;
+    }
   }
 
   Future<List<ProductDetails>> loadProducts() async {

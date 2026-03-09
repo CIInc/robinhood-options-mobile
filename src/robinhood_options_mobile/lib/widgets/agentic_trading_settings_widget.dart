@@ -1033,6 +1033,20 @@ class _AgenticTradingSettingsWidgetState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Automated Trading'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'View Performance',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AgenticTradingPerformanceWidget(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: GestureDetector(
         onTap: () {
@@ -1079,36 +1093,38 @@ class _AgenticTradingSettingsWidgetState
     IconData icon, {
     Color? valueColor,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Icon(
-              icon,
-              size: 12,
-              color: colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outline.withValues(alpha: 0.05),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: valueColor ?? colorScheme.onSurface,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: valueColor,
+              fontSize: 14,
+            ),
           ),
-        ),
-      ],
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1864,7 +1880,7 @@ class _AgenticTradingSettingsWidgetState
                       newConfig, widget.userDocRef);
                 },
                 title: Text(
-                  'Auto-Trading',
+                  'Auto-Trading${isEnabled ? ' Active' : ' Paused'}',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1872,7 +1888,8 @@ class _AgenticTradingSettingsWidgetState
                   ),
                 ),
                 subtitle: Text(
-                  isEnabled ? 'Currently Active • $strategyDisplay' : 'Paused',
+                  strategyDisplay,
+                  // isEnabled ? 'Currently Active • $strategyDisplay' : 'Paused',
                   style: TextStyle(
                     fontSize: 13,
                     color: isEnabled
@@ -1973,63 +1990,47 @@ class _AgenticTradingSettingsWidgetState
                         color:
                             colorScheme.outlineVariant.withValues(alpha: 0.5),
                       ),
-                      const SizedBox(height: 16),
-                      // Config Summary
-                      IntrinsicHeight(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _buildSummaryItem(
-                                context,
-                                'Indicators',
-                                '${agenticTradingProvider.config.strategyConfig.enabledIndicators.values.where((e) => e).length + agenticTradingProvider.config.strategyConfig.customIndicators.length} Active',
-                                Icons.psychology,
-                              ),
-                            ),
-                            _buildVerticalDivider(colorScheme),
-                            Expanded(
-                              child: _buildSummaryItem(
-                                context,
-                                'Take Profit',
-                                '${agenticTradingProvider.config.strategyConfig.takeProfitPercent}%',
-                                Icons.trending_up,
-                                valueColor: Colors.green,
-                              ),
-                            ),
-                            _buildVerticalDivider(colorScheme),
-                            Expanded(
-                              child: _buildSummaryItem(
-                                context,
-                                'Stop Loss',
-                                '${agenticTradingProvider.config.strategyConfig.stopLossPercent}%',
-                                Icons.trending_down,
-                                valueColor: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // const SizedBox(height: 16),
+                      // // Config Summary
+                      // Row(
+                      //   children: [
+                      //     Expanded(
+                      //       child: _buildSummaryItem(
+                      //         context,
+                      //         'Indicators',
+                      //         '${agenticTradingProvider.config.strategyConfig.enabledIndicators.values.where((e) => e).length + agenticTradingProvider.config.strategyConfig.customIndicators.length} Active',
+                      //         Icons.psychology,
+                      //       ),
+                      //     ),
+                      //     const SizedBox(width: 8),
+                      //     Expanded(
+                      //       child: _buildSummaryItem(
+                      //         context,
+                      //         'Take Profit',
+                      //         '${agenticTradingProvider.config.strategyConfig.takeProfitPercent}%',
+                      //         Icons.trending_up,
+                      //         valueColor: Colors.green,
+                      //       ),
+                      //     ),
+                      //     const SizedBox(width: 8),
+                      //     Expanded(
+                      //       child: _buildSummaryItem(
+                      //         context,
+                      //         'Stop Loss',
+                      //         '${agenticTradingProvider.config.strategyConfig.stopLossPercent}%',
+                      //         Icons.trending_down,
+                      //         valueColor: Colors.red,
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
                       const SizedBox(height: 16),
 
                       // Metrics Row
                       Row(
                         children: [
                           Expanded(
-                            child: _buildMetricCard(
-                              context,
-                              'Trades', // Shortened from Daily Trades
-                              '${agenticTradingProvider.dailyTradeCount}/${int.tryParse(_dailyTradeLimitController.text) ?? 5}',
-                              Icons.receipt_long,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildMetricCard(
-                              context,
-                              lastTradeLabel,
-                              lastTradeValue,
-                              Icons.history,
-                              valueColor: lastTradeColor,
+                            child: InkWell(
                               onTap: () {
                                 if (agenticTradingProvider
                                         .lastAutoTradeResult !=
@@ -2038,16 +2039,28 @@ class _AgenticTradingSettingsWidgetState
                                       context, agenticTradingProvider);
                                 }
                               },
+                              borderRadius: BorderRadius.circular(12),
+                              child: _buildSummaryItem(
+                                context,
+                                'Last Run',
+                                lastTradeValue,
+                                Icons.history,
+                                valueColor: lastTradeColor,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildMetricCard(
+                            child: _buildSummaryItem(
                               context,
-                              'Performance',
-                              perfValue,
-                              Icons.analytics,
-                              valueColor: perfColor,
+                              'Today',
+                              '${agenticTradingProvider.dailyTradeCount} trades',
+                              Icons.today,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: InkWell(
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -2057,6 +2070,24 @@ class _AgenticTradingSettingsWidgetState
                                   ),
                                 );
                               },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Builder(builder: (context) {
+                                double totalPnl = 0;
+                                for (var trade in agenticTradingProvider
+                                    .autoTradeHistory) {
+                                  totalPnl +=
+                                      (trade['profitLoss'] as num? ?? 0.0)
+                                          .toDouble();
+                                }
+                                return _buildSummaryItem(
+                                  context,
+                                  'Performance',
+                                  '${totalPnl >= 0 ? '+' : ''}\$${totalPnl.toStringAsFixed(2)}',
+                                  Icons.analytics,
+                                  valueColor:
+                                      totalPnl >= 0 ? Colors.green : Colors.red,
+                                );
+                              }),
                             ),
                           ),
                         ],

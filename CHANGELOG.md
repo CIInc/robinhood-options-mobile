@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-03-06
+**Futures Auto-Trading & Signal Visualization**
+
+### Added
+- **Futures Auto-Trading:** New provider, settings UI, performance dashboard, activity log, and home cards for futures auto-trading status and results.
+- **Agentic Futures Trading Backend:** New functions and cron pipeline for futures signal generation and automated execution.
+- **Signal Sparklines:** Trade Signals and Instrument views now include sparkline trend previews on signal cards.
+- **Weighted Signal Strength:** UI now surfaces weighted signal strength aligned with backend indicator weights and macro adjustments.
+- **Research Docs:** Added market data provider research, options/futures API endpoints, Twelve Data migration plan, and Databento vs Twelve Data analysis.
+
+### Changed
+- **Signal Strength Thresholds:** Strong/weak thresholds adjusted to 70/30 to align UI filters with backend scoring.
+- **Subscriptions:** Subscription service initializes at app startup; paywall flow now reports load, restore, and purchase errors with clearer status feedback.
+
 ## [0.33.1] - 2026-02-22
 
 ### Added

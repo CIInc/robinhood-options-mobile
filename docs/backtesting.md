@@ -118,7 +118,7 @@ Comprehensive backtesting interface for testing trading strategies on historical
    - **Capital**: Initial investment amount
    - **Trade Quantity**: Shares per trade
    - **Risk Management**: TP/SL percentages
-5. Enable desired indicators (default: all 12 enabled)
+5. Enable desired indicators (default: all 19 enabled)
 4. Optionally configure advanced settings
 5. Click "Run Backtest"
 
@@ -269,7 +269,7 @@ users/{userId}/backtest_templates/{templateId}
 - **Long-term (> 1 year)**: Use 1d intervals with extended data
 
 ### Indicator Selection
-- Start with all 12 indicators enabled
+- Start with all 19 indicators enabled
 - Incrementally disable indicators to test sensitivity
 - Compare results to find optimal indicator combinations
 - Document findings in template descriptions

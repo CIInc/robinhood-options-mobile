@@ -188,6 +188,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
     // Read receipts info
     int readCount = message.readBy.length;
     bool isRead = readCount > 0;
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onLongPress: () {
@@ -195,126 +196,149 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
           _showMessageOptions(context, message, canEdit, canDelete);
         }
       },
-      child: Column(
-        crossAxisAlignment:
-            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          if (showHeader && !isMe) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (message.senderPhotoUrl != null)
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundImage:
-                        CachedNetworkImageProvider(message.senderPhotoUrl!),
-                  )
-                else
-                  const CircleAvatar(
-                    radius: 12,
-                    child: Icon(Icons.person, size: 16),
-                  ),
-                const SizedBox(width: 8),
-                Text(
-                  message.senderName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          mainAxisAlignment:
+              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isMe && showHeader) ...[
+              if (message.senderPhotoUrl != null)
+                CircleAvatar(
+                  radius: 16,
+                  backgroundImage:
+                      CachedNetworkImageProvider(message.senderPhotoUrl!),
+                )
+              else
+                const CircleAvatar(
+                  radius: 16,
+                  child: Icon(Icons.person, size: 20),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat.jm().format(message.timestamp),
-                  style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-          ],
-          if (showHeader && isMe) const SizedBox(height: 16),
-          Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isMe
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
-                bottomLeft: isMe ? const Radius.circular(20) : Radius.zero,
-                bottomRight: isMe ? Radius.zero : const Radius.circular(20),
-              ),
-            ),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.text,
-                  style: TextStyle(
-                    color: isMe
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (isMe)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.end,
+              const SizedBox(width: 8),
+            ] else if (!isMe && !showHeader) ...[
+              const SizedBox(width: 40), // 32 (avatar) + 8 (spacing)
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  if (showHeader && !isMe) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0, left: 4.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            message.senderName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat.jm().format(message.timestamp),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(20),
+                        topRight: const Radius.circular(20),
+                        bottomLeft:
+                            isMe ? const Radius.circular(20) : Radius.zero,
+                        bottomRight:
+                            isMe ? Radius.zero : const Radius.circular(20),
+                      ),
+                      border: !isMe
+                          ? Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5),
+                            )
+                          : null,
+                    ),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          DateFormat.jm().format(message.timestamp),
+                          message.text,
                           style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withValues(alpha: 0.7),
+                            color: isMe
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (isMe) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            isRead ? Icons.done_all : Icons.done,
-                            size: 14,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withValues(alpha: isRead ? 1.0 : 0.7),
-                          ),
-                          if (isRead && readCount > 0)
-                            GestureDetector(
-                              onTap: () {
-                                _showReadReceipts(context, message);
-                              },
-                              child: Text(
-                                ' $readCount',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onPrimary
-                                      .withValues(alpha: 0.7),
+                        if (isMe)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  DateFormat.jm().format(message.timestamp),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: theme.colorScheme.onPrimary
+                                        .withValues(alpha: 0.7),
+                                  ),
                                 ),
-                              ),
-                            )
-                        ],
+                                if (isMe) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    isRead ? Icons.done_all : Icons.done,
+                                    size: 14,
+                                    color: theme.colorScheme.onPrimary
+                                        .withValues(alpha: isRead ? 1.0 : 0.7),
+                                  ),
+                                  if (isRead && readCount > 0)
+                                    GestureDetector(
+                                      onTap: () {
+                                        _showReadReceipts(context, message);
+                                      },
+                                      child: Text(
+                                        ' $readCount',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.onPrimary
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    )
+                                ],
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -17,7 +17,7 @@ Users can customize their notification preferences with the following settings:
 3. **Include HOLD** - Optionally receive notifications for HOLD signals
 4. **Intervals** - Filter notifications by time interval (1d, 1h, 30m, 15m)
 5. **Symbol Filter** - Receive notifications only for specific symbols
-6. **Confidence Threshold** - Only notify if signal confidence exceeds a threshold (0-100%)
+6. **Confidence Threshold** - Only notify if signal confidence exceeds a threshold (stored as 0-1, displayed as 0-100%)
 
 ### Notification Triggers
 
@@ -42,7 +42,7 @@ Each notification includes:
 - Symbol
 - Current price (if available)
 - Interval (Daily, Hourly, 30-min, 15-min)
-- Confidence level (if available)
+- Weighted signal strength (if available; normalized to 0-1 for filtering)
 - Data payload for app navigation
 
 ### Rich Notifications

@@ -1647,12 +1647,44 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          if (_instrument?.logoUrl != null) ...[
+                          if (_instrument?.logoUrl != null &&
+                              _instrument!.logoUrl!.isNotEmpty) ...[
                             CircleAvatar(
                               radius: 20,
                               backgroundColor: Colors.transparent,
                               backgroundImage:
                                   NetworkImage(_instrument!.logoUrl!),
+                              onBackgroundImageError: (exception, stackTrace) {
+                                setState(() {
+                                  debugPrint(
+                                      'Error loading logo for $symbol: $exception');
+                                  _instrument!.logoUrl = null;
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                          ] else ...[
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  symbol.substring(
+                                      0, math.min<int>(symbol.length, 1)),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
                           ],
