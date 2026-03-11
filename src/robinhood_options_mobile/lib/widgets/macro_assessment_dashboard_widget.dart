@@ -79,6 +79,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildIndicatorHeatmap(context, assessment),
+          const SizedBox(height: 12),
+          _buildDivergenceSection(context, assessment),
           const SizedBox(height: 24),
 
           // Score History Chart
@@ -795,6 +797,25 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                                   fontSize: 40,
                                 ),
                       ),
+                      const SizedBox(height: 2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${assessment.confidence}% CONF',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 9,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         'POINTS',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -815,179 +836,93 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-              border:
-                  Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  statusColor.withValues(alpha: 0.05),
+                  colorScheme.surface,
+                ],
+              ),
+              border: Border.all(color: statusColor.withValues(alpha: 0.1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Summary Stats Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildSummaryStat(
+                        context,
+                        "Confidence",
+                        "${assessment.confidence}%",
+                        _getConfidenceColor(assessment.confidence)),
+                    Container(
+                        height: 30,
+                        width: 1,
+                        color: colorScheme.outline.withValues(alpha: 0.1)),
+                    _buildSummaryStat(
+                        context,
+                        "Volatility",
+                        assessment.indicators.vix.value != null
+                            ? assessment.indicators.vix.value! < 20
+                                ? "LOW"
+                                : "HIGH"
+                            : "--",
+                        assessment.indicators.vix.signal == 'BULLISH'
+                            ? Colors.green
+                            : Colors.red),
+                    Container(
+                        height: 30,
+                        width: 1,
+                        color: colorScheme.outline.withValues(alpha: 0.1)),
+                    _buildSummaryStat(
+                        context,
+                        "Momentum",
+                        assessment.indicators.marketTrend.momentum
+                                ?.split(' ')
+                                .first ??
+                            "Neutral",
+                        _getStatusColor(
+                            context, assessment.indicators.marketTrend.signal)),
+                  ],
+                ),
+                const Divider(height: 24),
+                // Signal Breadth
+                _buildSignalDistribution(context, assessment),
+                const SizedBox(height: 20),
+                // Guidance Section
+                _buildSummaryGuidance(context, assessment),
+                // const SizedBox(height: 20),
                 // Confidence Meter
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.shield_moon,
-                            size: 16, color: colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Assessment Confidence',
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.primary,
-                                  ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '${assessment.confidence}%',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: _getConfidenceColor(assessment.confidence),
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: assessment.confidence / 100,
-                    minHeight: 6,
-                    backgroundColor: colorScheme.outline.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _getConfidenceColor(assessment.confidence),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Signal Divergence
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Signal Alignment',
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildSignalBar(
-                                  'Bullish',
-                                  assessment.signalDivergence.bullishCount,
-                                  Colors.green,
-                                  colorScheme,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: _buildSignalBar(
-                                  'Neutral',
-                                  assessment.signalDivergence.neutralCount,
-                                  Colors.orange,
-                                  colorScheme,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: _buildSignalBar(
-                                  'Bearish',
-                                  assessment.signalDivergence.bearishCount,
-                                  Colors.red,
-                                  colorScheme,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                if (assessment.signalDivergence.isConflicted) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info, size: 14, color: Colors.orange),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Mixed signals detected - Monitor closely',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Colors.orange.shade700,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+
+                // Redundant with pillar indicators below
+                // Row(
+                //   children: [
+                //     Icon(Icons.info_outline,
+                //         size: 14, color: statusColor.withValues(alpha: 0.6)),
+                //     const SizedBox(width: 8),
+                //     Flexible(
+                //       child: Text(
+                //         assessment.reason,
+                //         style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                //               color:
+                //                   colorScheme.onSurface.withValues(alpha: 0.7),
+                //               fontStyle: FontStyle.italic,
+                //               height: 1.3,
+                //             ),
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          _buildSummaryGuidance(context, assessment),
         ],
       ),
     );
-  }
-
-  Widget _buildSignalBar(
-      String label, int count, Color color, ColorScheme colorScheme) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          height: 20,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
-          ),
-          child: Center(
-            child: Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-              fontSize: 8, color: colorScheme.onSurface.withValues(alpha: 0.6)),
-        ),
-      ],
-    );
-  }
-
-  Color _getConfidenceColor(int confidence) {
-    if (confidence >= 80) return Colors.green;
-    if (confidence >= 60) return Colors.blue;
-    if (confidence >= 40) return Colors.orange;
-    return Colors.red;
   }
 
   Widget _buildSummaryGuidance(
@@ -1034,6 +969,117 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
+  Color _getConfidenceColor(int confidence) {
+    if (confidence >= 80) return Colors.green;
+    if (confidence >= 60) return Colors.blue;
+    if (confidence >= 40) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildSummaryStat(
+      BuildContext context, String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSignalDistribution(
+      BuildContext context, MacroAssessment assessment) {
+    final colorScheme = Theme.of(context).colorScheme;
+    int bullish = 0;
+    int neutral = 0;
+    int bearish = 0;
+
+    final signals = [
+      assessment.indicators.vix.signal,
+      assessment.indicators.tnx.signal,
+      assessment.indicators.marketTrend.signal,
+      assessment.indicators.putCallRatio?.signal ?? 'NEUTRAL',
+      assessment.indicators.riskAppetite?.signal ?? 'NEUTRAL',
+      assessment.indicators.advDecline?.signal ?? 'NEUTRAL',
+    ];
+
+    for (var s in signals) {
+      if (s == 'BULLISH' || s == 'RISK_ON')
+        bullish++;
+      else if (s == 'BEARISH' || s == 'RISK_OFF')
+        bearish++;
+      else
+        neutral++;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Signal Breadth",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            Text(
+              "$bullish Bull / $bearish Bear",
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 6,
+            child: Row(
+              children: [
+                if (bullish > 0)
+                  Expanded(
+                    flex: bullish,
+                    child: Container(color: Colors.green),
+                  ),
+                if (neutral > 0)
+                  Expanded(
+                    flex: neutral,
+                    child: Container(color: Colors.amber),
+                  ),
+                if (bearish > 0)
+                  Expanded(
+                    flex: bearish,
+                    child: Container(color: Colors.red),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDetailedIndicatorCard(BuildContext context, String symbol,
       String name, MacroIndicator indicator, String description, IconData icon,
       {String? unit}) {
@@ -1044,8 +1090,16 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.05),
+            colorScheme.surface,
+          ],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1053,87 +1107,138 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        )
-                      ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: color, size: 24),
                     ),
-                    child: Icon(icon, color: color, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name,
-                              style: Theme.of(context).textTheme.titleSmall),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: colorScheme.outline.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              symbol,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface
-                                    .withValues(alpha: 0.6),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.outline
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  symbol,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              if (indicator.trend != 'Unknown') ...[
+                                Icon(
+                                  indicator.trend
+                                              .toUpperCase()
+                                              .contains('UP') ||
+                                          indicator.trend
+                                              .toUpperCase()
+                                              .contains('RISING')
+                                      ? Icons.trending_up_rounded
+                                      : indicator.trend
+                                                  .toUpperCase()
+                                                  .contains('DOWN') ||
+                                              indicator.trend
+                                                  .toUpperCase()
+                                                  .contains('FALLING')
+                                          ? Icons.trending_down_rounded
+                                          : Icons.trending_flat_rounded,
+                                  size: 14,
+                                  color: color.withValues(alpha: 0.7),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                indicator.trend,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      Text(
-                        indicator.trend,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                colorScheme.onSurface.withValues(alpha: 0.6)),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    unit == '\$'
-                        ? '\$${indicator.value?.toStringAsFixed(2) ?? '--'}'
-                        : "${indicator.value?.toStringAsFixed(2) ?? '--'}${unit ?? ''}",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        unit == '\$'
+                            ? '\$${indicator.value?.toStringAsFixed(2) ?? '--'}'
+                            : "${indicator.value?.toStringAsFixed(2) ?? '--'}${unit ?? ''}",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.onSurface,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 4),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4)),
-                    child: Text(indicator.signal,
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: color)),
+                        color: color.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border:
+                            Border.all(color: color.withValues(alpha: 0.3))),
+                    child: Text(
+                      indicator.signal,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   )
                 ],
               ),
@@ -1147,6 +1252,40 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                   height: 1.4,
                 ),
           ),
+          if (indicator.momentum != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.speed_rounded, size: 14, color: color),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Momentum: ",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  Text(
+                    indicator.momentum!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1320,6 +1459,113 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.bold)),
         ],
       ),
+    );
+  }
+
+  Widget _buildDivergenceSection(
+      BuildContext context, MacroAssessment assessment) {
+    final div = assessment.signalDivergence;
+    final total = div.bullishCount + div.bearishCount + div.neutralCount;
+    if (total == 0) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              "Signal Composition",
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+            ),
+            const Spacer(),
+            if (div.isConflicted)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.compare_arrows, size: 12, color: Colors.orange),
+                    SizedBox(width: 4),
+                    Text(
+                      "DIVERGENCE DETECTED",
+                      style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 12,
+            child: Row(
+              children: [
+                if (div.bullishCount > 0)
+                  Expanded(
+                    flex: div.bullishCount,
+                    child: Container(color: Colors.green),
+                  ),
+                if (div.neutralCount > 0)
+                  Expanded(
+                    flex: div.neutralCount,
+                    child: Container(color: Colors.amber),
+                  ),
+                if (div.bearishCount > 0)
+                  Expanded(
+                    flex: div.bearishCount,
+                    child: Container(color: Colors.red),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildDivLabel(context, "Bullish", div.bullishCount, Colors.green),
+            _buildDivLabel(context, "Neutral", div.neutralCount, Colors.amber),
+            _buildDivLabel(context, "Bearish", div.bearishCount, Colors.red),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivLabel(
+      BuildContext context, String label, int count, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          "$label ($count)",
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
+                fontSize: 10,
+              ),
+        ),
+      ],
     );
   }
 
@@ -1748,9 +1994,15 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   Color _getStatusColor(BuildContext context, String? status) {
     status = status?.toUpperCase();
     final isLight = Theme.of(context).brightness == Brightness.light;
-    if (status == 'RISK_ON' || status == 'BULLISH') {
+    if (status == 'RISK_ON' ||
+        status == 'BULLISH' ||
+        status == 'BULL' ||
+        status == 'OVERWEIGHT') {
       return isLight ? Colors.green.shade700 : Colors.green;
-    } else if (status == 'RISK_OFF' || status == 'BEARISH') {
+    } else if (status == 'RISK_OFF' ||
+        status == 'BEARISH' ||
+        status == 'BEAR' ||
+        status == 'UNDERWEIGHT') {
       return isLight ? Colors.red.shade700 : Colors.red;
     } else {
       return isLight ? Colors.orange.shade800 : Colors.amber;
