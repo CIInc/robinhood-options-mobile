@@ -178,8 +178,95 @@ export async function getMarketData(symbol: string,
     logger.warn(`Failed to load cached ${interval} prices for ${symbol}`, err);
   }
 
-  // If still no prices, fetch from Yahoo Finance
+  // Handle Put/Call Ratio symbols separately (Primary CBOE, Fallback Fid/Yahoo)
+  if (!closes.length && isPccSymbol) {
+    try {
+      const cboeRes = await fetchFromCBOE(decodedSymbol);
+      if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
+        const resQuote = cboeRes.indicators.quote[0];
+        opens = resQuote.open;
+        highs = resQuote.high;
+        lows = resQuote.low;
+        closes = resQuote.close;
+        volumes = resQuote.volume;
+        timestamps = cboeRes.timestamp;
+        currentPrice = cboeRes.meta.regularMarketPrice;
+        logger.info(`🌐 CBOE FETCH: Retrieved Put/Call data for ${symbol} ` +
+          "from CBOE");
+        // Cache CBOE result to prevent frequent refetches
+        try {
+          await db.doc(cacheKey).set({ chart: cboeRes, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} ` +
+            `from CBOE for ${symbol}`, err);
+        }
+      }
+    } catch (cboeErr) {
+      logger.warn(`Failed to fetch Put/Call data from CBOE for ${symbol}`,
+        cboeErr);
+    }
+  }
+
+  // If still no prices, fetch from Fidelity Open API (Primary)
   if (!closes.length) {
+    logger.info(`🌐 FRESH FETCH: Attempting Fidelity Open API for ${symbol}`);
+    try {
+      // Ensure we have enough data for MACD (35) and RSI (15)
+      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 35);
+      let dataRange = range || "1y";
+      if (!range) {
+        if (interval === "1d") {
+          dataRange = maxPeriod > 250 ? "2y" : "1y";
+        } else if (interval === "1h") {
+          dataRange = maxPeriod > 30 ? "1mo" : "5d";
+        } else {
+          dataRange = "5d";
+        }
+      }
+
+      const result =
+        await fetchFromFidelity(decodedSymbol, interval, dataRange);
+
+      if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
+        Array.isArray(result?.timestamp)) {
+        const opes = result.indicators.quote[0].open;
+        const higs = result.indicators.quote[0].high;
+        const los = result.indicators.quote[0].low;
+        const clos = result.indicators.quote[0].close;
+        const vols = result.indicators.quote[0].volume || [];
+        const tss = result.timestamp || [];
+        opens = opes.filter((p: any) => p !== null);
+        highs = higs.filter((p: any) => p !== null);
+        lows = los.filter((p: any) => p !== null);
+        closes = clos.filter((p: any) => p !== null);
+        volumes = vols.filter((v: any) => v !== null);
+        timestamps = tss.filter((t: any) => t !== null);
+        logger.info(`🌐 FIDELITY FETCH: Retrieved ${closes.length} ` +
+          `${interval} prices for ${symbol} from Fidelity`);
+      }
+      if (result && typeof result?.meta?.regularMarketPrice === "number") {
+        currentPrice = result.meta.regularMarketPrice;
+      } else if (Array.isArray(closes) && closes.length > 0) {
+        currentPrice = closes[closes.length - 1];
+      }
+      // Cache Fidelity data too for resilience
+      if (result) {
+        try {
+          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} ` +
+            `from Fidelity for ${symbol}`, err);
+        }
+      }
+    } catch (fidErr) {
+      logger.error(`Failed to fetch ${interval} data from ` +
+        `Fidelity for ${symbol}`, fidErr);
+    }
+  }
+
+  // Fallback to Yahoo Finance if Fidelity fails
+  if (!closes.length) {
+    logger.info(`🌐 FALLBACK: Attempting Yahoo Finance for ${symbol}`);
     try {
       // Ensure we have enough data for MACD (35) and Patterns (30-60)
       const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 60);
@@ -206,7 +293,7 @@ export async function getMarketData(symbol: string,
           "Referer": "https://finance.yahoo.com/",
           "Origin": "https://finance.yahoo.com",
         },
-      });
+      }, 1);
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
 
@@ -268,92 +355,6 @@ export async function getMarketData(symbol: string,
     } catch (err) {
       logger.error(`Failed to fetch ${interval} data from ` +
         `Yahoo Finance for ${symbol}`, err);
-    }
-  }
-
-  // Fallback to Fidelity Open API if Yahoo is rate limited or no results
-  if (!closes.length) {
-    logger.info(`🌐 FALLBACK: Attempting Fidelity Open API for ${symbol}`);
-    try {
-      // Ensure we have enough data for MACD (35) and RSI (15)
-      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow, 35);
-      let dataRange = range || "1y";
-      if (!range) {
-        if (interval === "1d") {
-          dataRange = maxPeriod > 250 ? "2y" : "1y";
-        } else if (interval === "1h") {
-          dataRange = maxPeriod > 30 ? "1mo" : "5d";
-        } else {
-          dataRange = "5d";
-        }
-      }
-
-      const result =
-        await fetchFromFidelity(decodedSymbol, interval, dataRange);
-
-      if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
-        Array.isArray(result?.timestamp)) {
-        const opes = result.indicators.quote[0].open;
-        const higs = result.indicators.quote[0].high;
-        const los = result.indicators.quote[0].low;
-        const clos = result.indicators.quote[0].close;
-        const vols = result.indicators.quote[0].volume || [];
-        const tss = result.timestamp || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        timestamps = tss.filter((t: any) => t !== null);
-        logger.info(`🌐 FIDELITY FETCH: Retrieved ${closes.length} ` +
-          `${interval} prices for ${symbol} from Fidelity`);
-      }
-      if (result && typeof result?.meta?.regularMarketPrice === "number") {
-        currentPrice = result.meta.regularMarketPrice;
-      } else if (Array.isArray(closes) && closes.length > 0) {
-        currentPrice = closes[closes.length - 1];
-      }
-      // Cache Fidelity data too for resilience
-      if (result) {
-        try {
-          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
-        } catch (err) {
-          logger.warn(`Failed to update cached ${interval} ` +
-            `from Fidelity for ${symbol}`, err);
-        }
-      }
-    } catch (fidErr) {
-      logger.error(`Failed to fetch ${interval} data from ` +
-        `Fidelity for ${symbol}`, fidErr);
-    }
-  }
-
-  // Final fallback specifically for Put/Call Ratios from CBOE (CSV)
-  if (!closes.length && isPccSymbol) {
-    try {
-      const cboeRes = await fetchFromCBOE(decodedSymbol);
-      if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
-        const resQuote = cboeRes.indicators.quote[0];
-        opens = resQuote.open;
-        highs = resQuote.high;
-        lows = resQuote.low;
-        closes = resQuote.close;
-        volumes = resQuote.volume;
-        timestamps = cboeRes.timestamp;
-        currentPrice = cboeRes.meta.regularMarketPrice;
-        logger.info(`🌐 CBOE FETCH: Retrieved Put/Call data for ${symbol} ` +
-          "from CBOE");
-        // Cache CBOE result to prevent frequent refetches
-        try {
-          await db.doc(cacheKey).set({ chart: cboeRes, updated: Date.now() });
-        } catch (err) {
-          logger.warn(`Failed to update cached ${interval} ` +
-            `from CBOE for ${symbol}`, err);
-        }
-      }
-    } catch (cboeErr) {
-      logger.warn(`Failed to fetch Put/Call data from CBOE for ${symbol}`,
-        cboeErr);
     }
   }
 
