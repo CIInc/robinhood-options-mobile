@@ -8,7 +8,7 @@ import 'package:robinhood_options_mobile/model/sentiment_data.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as model_user;
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/sentiment_service.dart';
-import 'package:robinhood_options_mobile/widgets/sentiment_analysis_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/market_sentiment_analysis_dashboard_widget.dart';
 import 'dart:math' as math;
 
 class MarketSentimentCardWidget extends StatelessWidget {

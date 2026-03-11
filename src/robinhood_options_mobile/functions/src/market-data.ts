@@ -487,7 +487,11 @@ async function fetchFromFidelity(
 
   if (symbol.startsWith("^")) {
     fidSymbol = "." + symbol.substring(1);
+  } else if (symbol.includes(".")) {
+    // Fidelity likes "/" for parts (e.g. BRK/B) or stripped "."
+    fidSymbol = symbol.replace(/\./g, "/");
   }
+
   // Fidelity specific mappings
   const fidUpper = fidSymbol.toUpperCase();
   const symUpper2 = symbol.toUpperCase();

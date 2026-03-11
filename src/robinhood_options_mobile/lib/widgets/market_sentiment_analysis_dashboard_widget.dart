@@ -2,6 +2,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 import '../model/brokerage_user.dart';
@@ -118,11 +119,24 @@ class _SentimentAnalysisDashboardWidgetState
       future: _marketSentimentFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-              child: Padding(
-            padding: EdgeInsets.all(20.0),
-            child: CircularProgressIndicator(),
-          ));
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Shimmer.fromColors(
+              baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              highlightColor: Theme.of(context).colorScheme.surface,
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24.0),
+                ),
+                child: Container(
+                  height: 480,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24.0),
+                ),
+              ),
+            ),
+          );
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (snapshot.hasData) {
@@ -321,8 +335,32 @@ class _SentimentAnalysisDashboardWidgetState
       future: _trendingSentimentFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-              height: 100, child: Center(child: CircularProgressIndicator()));
+          return SizedBox(
+            height: 165,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 3,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              itemBuilder: (context, index) {
+                return Shimmer.fromColors(
+                  baseColor:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  highlightColor: Theme.of(context).colorScheme.surface,
+                  child: Container(
+                    width: 175,
+                    margin: const EdgeInsets.only(right: 12.0),
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
         } else if (snapshot.hasData) {
           final items = snapshot.data!;
           return SizedBox(
@@ -466,7 +504,29 @@ class _SentimentAnalysisDashboardWidgetState
       future: _sentimentFeedFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 5,
+            separatorBuilder: (context, index) => const Divider(),
+            itemBuilder: (context, index) {
+              return Shimmer.fromColors(
+                baseColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                highlightColor: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const SizedBox(height: 120),
+                  ),
+                ),
+              );
+            },
+          );
         } else if (snapshot.hasData) {
           final items = snapshot.data!;
           return ListView.separated(
