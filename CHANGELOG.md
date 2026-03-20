@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-03-19
+**Twelve Data Integration & Whale Watch Features**
+
+### Added
+- **Whale Watch Tracker:** New feature in Search widget to track institutional accumulation and large transactions (Whales) with data aggregation and dashboard visualization.
+- **Twelve Data Integration:** Integrated Twelve Data API for real-time options and market data fetching, including support for `TWELVE_DATA_API_KEY` secret management.
+- **Market Sentiment Enrichment:** Enhanced sentiment analysis with a dedicated dashboard and card widgets for market-wide and trending sentiment.
+- **Macro Assessment Enhancements:** Updated `MacroAssessmentDashboardWidget` with signal breadth distribution, divergence detection, and summary statistics.
+
+### Changed
+- **Market Data Backend:** Updated `getQuotes` to prioritize Twelve Data with Fidelity fallback; enhanced error handling and caching logic.
+- **Backend Dependencies:** Upgraded `firebase-functions` to v7.1.1.
+- **Agentic Trading Config:** Added server-side support for `skipSignalUpdate` and `skipRiskGuard` in trade proposals.
+
 ## [0.34.0] - 2026-03-06
 **Futures Auto-Trading & Signal Visualization**
 

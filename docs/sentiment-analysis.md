@@ -14,8 +14,10 @@ Located on the main search and home dashboards, this card provides an at-a-glanc
 ### Sentiment Analysis Dashboard
 A dedicated dashboard for deeper analysis.
 - **Detailed Metrics:** Breakdown of sentiment by sector and asset class.
+- **Trending Sentiment:** Heatmap and list of symbols with the most significant sentiment shifts.
 - **Historical Trend:** A chart showing how sentiment has shifted over the last week or month.
-- **News Integration:** Linked news stories that are driving the sentiment score.
+- **News & Social Feed:** Real-time integration of news stories and social signals driving the sentiment score.
+- **Market Impact:** AI-driven analysis of how current sentiment is likely to affect different market segments.
 
 ## How It Works
 The sentiment score is derived from a combination of:

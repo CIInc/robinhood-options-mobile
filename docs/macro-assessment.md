@@ -52,7 +52,11 @@ The **AgenticTradingProvider** now maintains a history of previous macro assessm
 The **Macro Market State** card provides an at-a-glance view of the current status, score, trend icons, and additional indicators (Put/Call, A/D, Risk Appetite).
 
 ### Macro Assessment Dashboard
-A dedicated dashboard view expands the macro assessment into detailed panels for each indicator pillar, historical context, and actionable guidance. Use it to review trend shifts and understand how macro signals influence rebalancing and risk posture.
+A dedicated dashboard view expands the macro assessment into detailed panels for each indicator pillar, historical context, and actionable guidance.
+- **Signal Breadth Distribution:** Visualizes the alignment of indicators across bearish, neutral, and bullish states.
+- **Market Pillar Summary:** Quick statistics on VIX, bond yields, and market trend with real-time momentum tracking.
+- **Divergence Detection:** Automatically flags mixed signals to alert traders of potential regime shifts or trend exhaustion.
+Use it to review trend shifts and understand how macro signals influence rebalancing and risk posture.
 
 ### Automated Trading
 *   **Position Sizing:** In `RISK_OFF` environments, automated agents (and manual RiskGuard) can automatically reduce position sizes (e.g., cutting allocation by 50%) to preserve capital.

@@ -167,6 +167,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Weighted signal strength alignment (70/30 thresholds) and signal sparklines
 - Subscription paywall reliability improvements (startup init, restore/purchase feedback)
 
+### v0.34.1 ✅ (Released Mar 19, 2026)
+**Twelve Data Integration & Whale Watch Features**
+- ✅ **Whale Watch Tracker:** Institutional accumulation and large transaction dashboard.
+- ✅ **Twelve Data Integration:** Real-time options and market data fetching from Twelve Data.
+- ✅ **Market Sentiment:** Enhanced dashboard and card widgets for market-wide and trending sentiment.
+- ✅ **Macro Assessment Dash:** Signal breadth distribution and divergence detection.
+- ✅ **Backend Improvements:** Firebase functions v7.1.1 and Twelve Data fallback to Fidelity.
+
 ### v0.35.0 (Q2 2026 - April)
 **Schwab API Integration - Phase 2 & Smart Alerts**
 - Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
