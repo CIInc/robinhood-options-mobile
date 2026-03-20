@@ -6,6 +6,149 @@ import { fetchWithRetry } from "./utils";
 const db = getFirestore();
 
 /**
+ * Fetches real-time quotes from Twelve Data.
+ * @param {string[]} symbols List of stock symbols.
+ * @return {Promise<any>} An object mapping symbols to their quote data.
+ */
+async function fetchQuotesFromTwelveData(symbols: string[]): Promise<any> {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) {
+    logger.warn("TWELVE_DATA_API_KEY secret is not configured.");
+    return null;
+  }
+
+  // Twelve Data allows comma-separated symbols
+  const symString = symbols.join(",");
+  const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symString)}&apikey=${apiKey}`;
+
+  try {
+    const resp = await fetchWithRetry(url);
+    if (!resp.ok) {
+      throw new Error(`Twelve Data Quotes API returned status ${resp.status}`);
+    }
+    const data = await resp.json();
+
+    const quotes: any = {};
+    // Twelve Data returns either a single object or a map of objects
+    const results = symbols.length === 1 ? { [symbols[0]]: data } : data;
+
+    for (const symbol of symbols) {
+      const sData = results[symbol];
+      // Check for sData.code to detect errors per symbol
+      if (sData && sData.symbol && !sData.code) {
+        quotes[symbol] = {
+          symbol: sData.symbol,
+          last: parseFloat(sData.close),
+          change: parseFloat(sData.change) || 0,
+          percentChange: parseFloat(sData.percent_change) || 0,
+          volume: parseInt(sData.volume) || 0,
+          high: parseFloat(sData.high) || 0,
+          low: parseFloat(sData.low) || 0,
+          open: parseFloat(sData.open) || 0,
+          name: sData.name || sData.symbol,
+          timestamp: sData.timestamp || Math.floor(Date.now() / 1000),
+        };
+      }
+    }
+    return quotes;
+  } catch (err) {
+    logger.error("Failed to fetch quotes from Twelve Data", err);
+    return null;
+  }
+}
+
+/**
+ * Fetches market data for a given symbol from Twelve Data.
+ * @param {string} symbol The stock symbol.
+ * @param {string} interval The chart interval (1d, 1h, etc.)
+ * @param {string} range The time range (1y, 5d, etc.)
+ * @return {Promise<any>} A Yahoo-compatible chart result object.
+ */
+async function fetchFromTwelveData(
+  symbol: string, interval: string, range: string
+): Promise<any> {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) {
+    logger.warn("TWELVE_DATA_API_KEY secret is not configured.");
+    return null;
+  }
+
+  // Map intervals
+  let twelveInterval = interval;
+  if (interval === "1d") twelveInterval = "1day";
+  else if (interval === "1h") twelveInterval = "1h";
+  else if (interval === "30m") twelveInterval = "30min";
+  else if (interval === "15m") twelveInterval = "15min";
+  else if (interval === "5m") twelveInterval = "5min";
+  else if (interval === "1m") twelveInterval = "1min";
+
+  // Map range to outputsize (approximate)
+  let outputsize = 252; // default 1y
+  if (range === "5d") outputsize = 5;
+  else if (range === "1mo") outputsize = 22;
+  else if (range === "3mo") outputsize = 66;
+  else if (range === "6mo") outputsize = 132;
+  else if (range === "2y") outputsize = 504;
+  else if (range === "5y") outputsize = 1260;
+
+  // For intraday, adjust outputsize based on interval
+  if (interval !== "1d") {
+    // Roughly 6.5 hours of trading
+    const barsPerDay = interval === "1h" ? 7 :
+      interval === "30m" ? 13 :
+        interval === "15m" ? 26 :
+          interval === "5m" ? 78 : 390;
+    if (range === "1d") outputsize = barsPerDay;
+    else if (range === "5d") outputsize = barsPerDay * 5;
+    else if (range === "1mo") outputsize = barsPerDay * 22;
+    else outputsize = barsPerDay * 5; // Default for intraday
+  }
+
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${twelveInterval}&outputsize=${outputsize}&apikey=${apiKey}`;
+
+  try {
+    const resp = await fetchWithRetry(url);
+    if (!resp.ok) {
+      throw new Error(`Twelve Data Time Series returned status ${resp.status}`);
+    }
+    const data = await resp.json();
+
+    if (data.status === "error" || !data.values || data.values.length === 0) {
+      logger.warn(`Twelve Data API error for ${symbol}: ` +
+        `${data.message || "No values"}`);
+      return null;
+    }
+
+    // Reverse values to oldest first (Twelve Data returns newest first)
+    const values = [...data.values].reverse();
+
+    return {
+      meta: {
+        symbol: data.meta.symbol,
+        regularMarketPrice: parseFloat(values[values.length - 1].close),
+        currency: data.meta.currency,
+        exchangeName: data.meta.exchange,
+      },
+      timestamp: values.map((v: any) =>
+        Math.floor(new Date(v.datetime).getTime() / 1000)),
+      indicators: {
+        quote: [{
+          open: values.map((v: any) => parseFloat(v.open)),
+          high: values.map((v: any) => parseFloat(v.high)),
+          low: values.map((v: any) => parseFloat(v.low)),
+          close: values.map((v: any) => parseFloat(v.close)),
+          volume: values.map((v: any) => parseInt(v.volume) || 0),
+        }],
+      },
+    };
+  } catch (err) {
+    logger.error(`Failed to fetch ${interval} data from Twelve Data ` +
+      `for ${symbol}`, err);
+    return null;
+  }
+}
+
+/**
  * Fetches market data for a given symbol, utilizing a cache in Firestore.
  * @param {string} symbol The stock symbol to fetch data for.
  * @param {number} smaPeriodFast The fast SMA period.
@@ -207,7 +350,40 @@ export async function getMarketData(symbol: string,
     }
   }
 
-  // If still no prices, fetch from Fidelity Open API (Primary)
+  // If still no prices, fetch from Twelve Data (Primary)
+  if (!closes.length) {
+    logger.info(`🌐 FRESH FETCH: Attempting Twelve Data for ${symbol}`);
+    try {
+      const result =
+        await fetchFromTwelveData(decodedSymbol, interval, range || "1y");
+
+      if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
+        Array.isArray(result?.timestamp)) {
+        const resQuote = result.indicators.quote[0];
+        opens = resQuote.open;
+        highs = resQuote.high;
+        lows = resQuote.low;
+        closes = resQuote.close;
+        volumes = resQuote.volume;
+        timestamps = result.timestamp;
+        currentPrice = result.meta.regularMarketPrice;
+        logger.info(`🌐 TWELVE DATA FETCH: Retrieved ${closes.length} ` +
+          `${interval} prices for ${symbol} from Twelve Data`);
+        // Cache result
+        try {
+          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+        } catch (err) {
+          logger.warn(`Failed to update cached ${interval} ` +
+            `from Twelve Data for ${symbol}`, err);
+        }
+      }
+    } catch (twelveErr) {
+      logger.error(`Failed to fetch ${interval} data from ` +
+        `Twelve Data for ${symbol}`, twelveErr);
+    }
+  }
+
+  // If still no prices, fetch from Fidelity Open API (Secondary)
   if (!closes.length) {
     logger.info(`🌐 FRESH FETCH: Attempting Fidelity Open API for ${symbol}`);
     try {
@@ -393,6 +569,19 @@ export async function getQuotes(symbols: string[]): Promise<any> {
     return {};
   }
 
+  // Primary: Twelve Data
+  try {
+    const twelveQuotes = await fetchQuotesFromTwelveData(symbols);
+    if (twelveQuotes && Object.keys(twelveQuotes).length > 0) {
+      logger.info("🌐 TWELVE DATA QUOTES: Retrieved " +
+        `${Object.keys(twelveQuotes).length} quotes`);
+      return twelveQuotes;
+    }
+  } catch (err) {
+    logger.error("Failed to fetch quotes from Twelve Data, " +
+      "falling back to Fidelity", err);
+  }
+
   // Map symbols to Fidelity format
   const fidSymbols = symbols.map((s) => {
     let fidS = s;
@@ -447,7 +636,9 @@ export async function getQuotes(symbols: string[]): Promise<any> {
 /**
  * Callable function to fetch quotes.
  */
-export const getQuotesCall = onCall(async (request) => {
+export const getQuotesCall = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (request) => {
   const symbols = request.data?.symbols;
   if (!symbols || !Array.isArray(symbols)) {
     return { error: "Expected 'symbols' as an array of strings." };

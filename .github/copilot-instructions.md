@@ -51,12 +51,12 @@ Patterns & conventions (concrete examples):
 
 Developer workflows (notes an agent should surface when changing code):
 - Pod / iOS problems: if `pod install` fails, the README instructs `rm -rf ./ios/Pods; rm ./ios/Podfile.lock; flutter clean; flutter pub get; flutter build ios` and/or `pod repo update`.
-- Linting & functions: JS/TS linting runs in `functions` with `npm run lint`. Use `-- --fix` to autoapply fixable rules.
+- Linting & functions: JS/TS linting is mandatory for all Cloud Functions. The `build` and `deploy` commands in `src/robinhood_options_mobile/functions/package.json` are configured to automatically run `npm run lint`. Always verify that code compiles and passes linting by running `npm run build` in the `functions` directory before proposing changes. Use `-- --fix` to auto-apply fixable rules when necessary.
 - Secrets: do NOT add API keys to the repo. Use `firebase functions:secrets:set` or the `firebase` project secret manager as used in README.
 
 What to change vs what to avoid (safety/side-effects):
 - Make UI/logic changes in Dart files under `lib/` and update corresponding stores in `lib/model/`.
-- Put server-side or secret-dependent logic into `functions/` and reference them via `cloud_functions` from the app.
+- Put server-side or secret-dependent logic into `functions/` and reference them via `cloud_functions` from the app. Ensure all new functions use Firebase Functions v2 (`firebase-functions/v2`) and follow the established export patterns in `index.ts`.
 - Avoid editing generated or build artifacts under `build/`.
 
 Where to look for tests and minimal verification:

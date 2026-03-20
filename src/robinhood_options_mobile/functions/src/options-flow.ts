@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { fetchOptionsFlowForSymbols } from "./options-flow-utils";
@@ -9,11 +9,13 @@ if (admin.apps.length === 0) {
 }
 
 // Deprecated: Using client to load options flow data
-export const getOptionsFlow = functions.https.onCall(async (request) => {
+export const getOptionsFlow = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (request) => {
   logger.info("getOptionsFlow called via onCall", { data: request.data });
   // Check authentication
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -26,7 +28,7 @@ export const getOptionsFlow = functions.https.onCall(async (request) => {
   } else if (request.data.symbols && Array.isArray(request.data.symbols)) {
     symbols = request.data.symbols;
   } else {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Symbol or symbols list is required"
     );
@@ -43,16 +45,16 @@ export const getOptionsFlow = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error fetching options flow", error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "internal",
       "Failed to fetch options flow data"
     );
   }
 });
 
-export const createOptionAlert = functions.https.onCall(async (request) => {
+export const createOptionAlert = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -70,35 +72,35 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
   } = request.data;
 
   if (!symbol || typeof symbol !== "string") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Symbol is required and must be a string"
     );
   }
 
   if (targetPremium && typeof targetPremium !== "number") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Target premium must be a number"
     );
   }
 
   if (minPremium && typeof minPremium !== "number") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Min premium must be a number"
     );
   }
 
   if (minVolume && typeof minVolume !== "number") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Min volume must be a number"
     );
   }
 
   if (flags && !Array.isArray(flags)) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Flags must be an array"
     );
@@ -108,7 +110,7 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
     expirationRange &&
     !["any", "0-7", "8-30", "30+"].includes(expirationRange)
   ) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Invalid expiration range"
     );
@@ -135,13 +137,13 @@ export const createOptionAlert = functions.https.onCall(async (request) => {
     return { success: true, id: alertRef.id };
   } catch (error) {
     logger.error("Error creating option alert", error);
-    throw new functions.https.HttpsError("internal", "Failed to create alert");
+    throw new HttpsError("internal", "Failed to create alert");
   }
 });
 
-export const toggleOptionAlert = functions.https.onCall(async (request) => {
+export const toggleOptionAlert = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -151,7 +153,7 @@ export const toggleOptionAlert = functions.https.onCall(async (request) => {
   const uid = request.auth.uid;
 
   if (!alertId) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "Alert ID is required"
     );
@@ -164,11 +166,11 @@ export const toggleOptionAlert = functions.https.onCall(async (request) => {
 
     const doc = await alertRef.get();
     if (!doc.exists) {
-      throw new functions.https.HttpsError("not-found", "Alert not found");
+      throw new HttpsError("not-found", "Alert not found");
     }
 
     if (doc.data()?.uid !== uid) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "permission-denied",
         "Not authorized to update this alert"
       );
@@ -182,13 +184,13 @@ export const toggleOptionAlert = functions.https.onCall(async (request) => {
     return { success: true };
   } catch (error) {
     logger.error("Error toggling option alert", error);
-    throw new functions.https.HttpsError("internal", "Failed to toggle alert");
+    throw new HttpsError("internal", "Failed to toggle alert");
   }
 });
 
-export const getOptionAlerts = functions.https.onCall(async (request) => {
+export const getOptionAlerts = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -211,13 +213,13 @@ export const getOptionAlerts = functions.https.onCall(async (request) => {
     return { alerts };
   } catch (error) {
     logger.error("Error fetching option alerts", error);
-    throw new functions.https.HttpsError("internal", "Failed to fetch alerts");
+    throw new HttpsError("internal", "Failed to fetch alerts");
   }
 });
 
-export const deleteOptionAlert = functions.https.onCall(async (request) => {
+export const deleteOptionAlert = onCall(async (request) => {
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "unauthenticated",
       "The function must be called while authenticated."
     );
@@ -233,11 +235,11 @@ export const deleteOptionAlert = functions.https.onCall(async (request) => {
 
     const doc = await alertRef.get();
     if (!doc.exists) {
-      throw new functions.https.HttpsError("not-found", "Alert not found");
+      throw new HttpsError("not-found", "Alert not found");
     }
 
     if (doc.data()?.uid !== uid) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         "permission-denied",
         "Not authorized to delete this alert"
       );
@@ -247,6 +249,6 @@ export const deleteOptionAlert = functions.https.onCall(async (request) => {
     return { success: true };
   } catch (error) {
     logger.error("Error deleting option alert", error);
-    throw new functions.https.HttpsError("internal", "Failed to delete alert");
+    throw new HttpsError("internal", "Failed to delete alert");
   }
 });

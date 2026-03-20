@@ -278,7 +278,7 @@ function computeWilliamsRArrayLocal(
     let highest = -Infinity;
     let lowest = Infinity;
 
-    for (let j=start; j<end; j++) {
+    for (let j = start; j < end; j++) {
       if (highs[j] > highest) highest = highs[j];
       if (lows[j] < lowest) lowest = lows[j];
     }
@@ -560,7 +560,11 @@ function computeFactorValues(
 
 // --- Main Cloud Function ---
 
-export const discoverAlphaFactors = onCall(async (request) => {
+export const discoverAlphaFactors = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+  timeoutSeconds: 300,
+  memory: "512MiB",
+}, async (request) => {
   // 1. Validate inputs
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be logged in.");

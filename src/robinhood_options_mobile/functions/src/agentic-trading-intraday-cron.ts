@@ -16,6 +16,7 @@ export const agenticTradingIntradayCron = onSchedule(
     // Monday-Friday at 30 minutes past each hour
     schedule: "30 9-16 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
+    secrets: ["TWELVE_DATA_API_KEY"],
     memory: "1GiB",
     timeoutSeconds: 540,
   },
@@ -107,6 +108,7 @@ export const agenticTrading15mCron = onSchedule(
     // At 15, 30, 45, and 00 minutes past the hour
     schedule: "15,30,45,0 9-16 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
+    secrets: ["TWELVE_DATA_API_KEY"],
     memory: "1GiB",
     timeoutSeconds: 540,
   },

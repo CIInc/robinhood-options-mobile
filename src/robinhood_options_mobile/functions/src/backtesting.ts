@@ -81,7 +81,11 @@ interface EquityPoint {
  * Takes a backtest configuration and simulates trades over historical data
  * using the same multi-indicator trading logic as live trading.
  */
-export const runBacktest = onCall(async (request) => {
+export const runBacktest = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+  timeoutSeconds: 300,
+  memory: "512MiB",
+}, async (request) => {
   logger.info("Starting backtest", { structuredData: true });
 
   const config = request.data;

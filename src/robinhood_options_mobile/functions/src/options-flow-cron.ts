@@ -10,7 +10,10 @@ if (admin.apps.length === 0) {
 }
 
 export const optionsFlowCron = onSchedule(
-  { schedule: "every 15 minutes" },
+  {
+    schedule: "every 15 minutes",
+    secrets: ["TWELVE_DATA_API_KEY"],
+  },
   async (event) => {
     logger.info("Running optionsFlowCron", { event });
 

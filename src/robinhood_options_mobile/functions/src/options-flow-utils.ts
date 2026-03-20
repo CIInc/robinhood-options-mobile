@@ -351,6 +351,92 @@ const fetchYahooOptions = async (
   };
 };
 
+/**
+ * Fetches option chain from Twelve Data.
+ * @param {string} symbol The stock symbol.
+ * @param {string} [expirationDate] Optional expiration date string.
+ * @return {Promise<YahooOptionsResult | null>} A Yahoo-compatible result.
+ */
+const fetchTwelveDataOptions = async (
+  symbol: string,
+  expirationDate?: string
+): Promise<YahooOptionsResult | null> => {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) {
+    console.log("TWELVE_DATA_API_KEY not configured");
+    return null;
+  }
+
+  try {
+    // 1. Get expiration dates if not provided
+    let targetExpiration = expirationDate;
+    if (!targetExpiration) {
+      const datesUrl = `https://api.twelvedata.com/options/expiration?symbol=${symbol}&apikey=${apiKey}`;
+      const datesResp = await fetchWithRetry(datesUrl);
+      const datesData = await datesResp.json() as any;
+      if (datesData.dates && datesData.dates.length > 0) {
+        targetExpiration = datesData.dates[0];
+      }
+    }
+
+    if (!targetExpiration) return null;
+
+    // 2. Fetch the chain
+    const chainUrl = `https://api.twelvedata.com/options/chain?symbol=${symbol}&expiration_date=${targetExpiration}&apikey=${apiKey}`;
+    const chainResp = await fetchWithRetry(chainUrl);
+    const chainData = await chainResp.json() as any;
+
+    if (!chainData.calls && !chainData.puts) {
+      console.warn(`No options found for ${symbol} via Twelve Data`);
+      return null;
+    }
+
+    // 3. Transform to Yahoo-compatible format
+    return {
+      expirationDates: [new Date(targetExpiration)],
+      quote: {
+        regularMarketPrice: parseFloat(chainData.underlying_price || "0"),
+      },
+      options: [{
+        expirationDate: new Date(targetExpiration),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        calls: chainData.calls?.map((c: any) => ({
+          strike: parseFloat(c.strike),
+          lastPrice: parseFloat(c.last),
+          volume: parseInt(c.volume),
+          openInterest: parseInt(c.open_interest),
+          impliedVolatility: parseFloat(c.implied_volatility),
+          bid: parseFloat(c.bid),
+          ask: parseFloat(c.ask),
+          contractSymbol: c.symbol,
+        })) || [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        puts: chainData.puts?.map((p: any) => ({
+          strike: parseFloat(p.strike),
+          lastPrice: parseFloat(p.last),
+          volume: parseInt(p.volume),
+          openInterest: parseInt(p.open_interest),
+          impliedVolatility: parseFloat(p.implied_volatility),
+          bid: parseFloat(p.bid),
+          ask: parseFloat(p.ask),
+          contractSymbol: p.symbol,
+        })) || [],
+      }],
+      strikes: [
+        ...new Set([
+          ...(chainData.calls?.map((c: any) => parseFloat(c.strike)) || []),
+          ...(chainData.puts?.map((p: any) => parseFloat(p.strike)) || []),
+        ]),
+      ].sort((a, b) => a - b),
+      underlyingSymbol: symbol,
+      lastUpdated: Date.now(),
+    } as YahooOptionsResult;
+  } catch (err) {
+    console.error(`Error fetching Twelve Data options for ${symbol}:`, err);
+    return null;
+  }
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
   await fetchCrumb();
@@ -494,19 +580,14 @@ const fetchForSymbol = async (
   try {
     if (!cachedResult) {
       console.log(`Cache miss for ${symbol}, fetching fresh data`);
-      // Initial fetch if no cache
-      const initialResult = await fetchYahooOptions(symbol);
-      cachedResult = initialResult;
-      // {
-      //   expirationDates: initialResult.expirationDates,
-      //   hasMiniOptions: initialResult.hasMiniOptions,
-      //   quote: initialResult.quote,
-      // // initialResult usually contains options for the first expiration date
-      //   options: initialResult.options || [],
-      //   strikes: initialResult.strikes,
-      //   underlyingSymbol: initialResult.underlyingSymbol,
-      //   lastUpdated: Date.now(),
-      // };
+      // Try Twelve Data FIRST
+      let initialResult = await fetchTwelveDataOptions(symbol);
+      if (!initialResult) {
+        // Fallback to Yahoo
+        console.log(`Twelve Data failed for ${symbol}, falling back to Yahoo`);
+        initialResult = await fetchYahooOptions(symbol);
+      }
+      cachedResult = initialResult as YahooOptionsResult;
     }
 
     // Now we have a cachedResult

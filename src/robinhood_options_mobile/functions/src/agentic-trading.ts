@@ -66,7 +66,9 @@ export async function performTradeProposal(request: any) {
   }
 }
 
-export const initiateTradeProposal = onCall(async (request) => {
+export const initiateTradeProposal = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (request) => {
   return performTradeProposal(request);
 });
 
@@ -75,7 +77,9 @@ export const initiateTradeProposal = onCall(async (request) => {
  * symbols. This can be run manually to ensure all popular symbols are
  * monitored.
  */
-export const seedAgenticTrading = onCall(async (request) => {
+export const seedAgenticTrading = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (request) => {
   const inputSymbols = request.data.symbols;
   const useFullList = request.data.full === true;
 

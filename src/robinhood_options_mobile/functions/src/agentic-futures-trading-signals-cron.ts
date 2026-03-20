@@ -16,6 +16,7 @@ export const futuresSignalsCron = onSchedule(
   {
     schedule: "*/15 * * * 1-5",
     timeZone: "America/New_York",
+    secrets: ["TWELVE_DATA_API_KEY"],
     memory: "1GiB",
     timeoutSeconds: 540,
   },

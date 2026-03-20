@@ -129,6 +129,7 @@ export const agenticTradingCron = onSchedule(
   {
     schedule: "0 16 * * 1-5", // Every weekday at 4:00 PM
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
+    secrets: ["TWELVE_DATA_API_KEY"],
     memory: "1GiB", // Increase memory for processing multiple symbols
     timeoutSeconds: 540, // 9 minutes timeout
   },

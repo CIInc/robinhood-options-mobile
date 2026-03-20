@@ -1327,7 +1327,7 @@ async function saveMacroAssessmentToHistory(assessment: MacroAssessment) {
 }
 
 export const getMacroAssessmentCall = onCall({
-  secrets: ["GEMINI_API_KEY"],
+  secrets: ["GEMINI_API_KEY", "TWELVE_DATA_API_KEY"],
 }, async () => {
   const assessment = await getMacroAssessment();
 
@@ -1358,7 +1358,9 @@ export const macroAssessmentCron = onSchedule({
   logger.info("✅ Daily Macro Assessment Cron completed");
 });
 
-export const getMacroHistoryCall = onCall(async (request) => {
+export const getMacroHistoryCall = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (request) => {
   const limit = request.data.limit || 30;
   const snapshot = await db.collection("macro_assessments")
     .orderBy("timestamp", "desc")
