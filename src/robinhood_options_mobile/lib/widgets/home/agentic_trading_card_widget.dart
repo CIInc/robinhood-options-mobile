@@ -114,7 +114,7 @@ class AgenticTradingCardWidget extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Agentic Trading',
+                                    'Stocks Agentic Trading', //Agentic Trading
                                     style:
                                         theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
@@ -140,6 +140,25 @@ class AgenticTradingCardWidget extends StatelessWidget {
                             ),
                             if (provider.isAutoTrading)
                               const _AutoTradingIndicator()
+                            else
+                              IconButton(
+                                icon: const Icon(Icons.settings_outlined),
+                                onPressed: (user == null || userDocRef == null)
+                                    ? null
+                                    : () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                AgenticTradingSettingsWidget(
+                                              user: user!,
+                                              userDocRef: userDocRef!,
+                                              service: service!,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                              ),
                           ],
                         ),
                         const SizedBox(height: 16),

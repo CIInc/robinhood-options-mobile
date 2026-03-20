@@ -1964,16 +1964,27 @@ class _AlphaFactorDiscoveryWidgetState
                 Icon(Icons.trending_up,
                     size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 8),
-                Text(
-                  "Strongest Category: ",
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: "Strongest Category: ",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                        TextSpan(
+                          text:
+                              "$bestCat (Avg IC: ${(bestCatScore * 100).toStringAsFixed(1)}%)",
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Text(
-                  "$bestCat (Avg IC: ${(bestCatScore * 100).toStringAsFixed(1)}%)",
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                )
               ],
             )
           ]

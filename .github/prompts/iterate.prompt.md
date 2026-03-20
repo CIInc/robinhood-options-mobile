@@ -1,7 +1,7 @@
 ---
 name: iterate
 description: Iterate on a feature or piece of code by improving it, checking for errors, and suggesting next steps.
-model: Gemini 3 Pro (Preview) (copilot)
+#model: Gemini 3 Pro (Preview) (copilot)
 argument-hint: A description of the feature or code to iterate on.
 ---
 

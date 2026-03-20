@@ -1018,12 +1018,13 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     ];
 
     for (var s in signals) {
-      if (s == 'BULLISH' || s == 'RISK_ON')
+      if (s == 'BULLISH' || s == 'RISK_ON') {
         bullish++;
-      else if (s == 'BEARISH' || s == 'RISK_OFF')
+      } else if (s == 'BEARISH' || s == 'RISK_OFF') {
         bearish++;
-      else
+      } else {
         neutral++;
+      }
     }
 
     return Column(

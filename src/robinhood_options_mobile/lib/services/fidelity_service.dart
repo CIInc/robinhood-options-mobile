@@ -235,7 +235,6 @@ class FidelityService implements IBrokerageService {
         var manualPositions =
             positions.where((p) => p.url.startsWith('manual_pos')).toList();
         if (manualPositions.isNotEmpty) {
-          /*
           var instrumentUrls =
               manualPositions.map((p) => p.instrument).toSet().toList();
           List<Instrument> instruments = [];
@@ -253,13 +252,10 @@ class FidelityService implements IBrokerageService {
                 snapshot.docs.map((d) => Instrument.fromJson(d.data())));
           }
           var instrumentMap = {for (var i in instruments) i.url: i};
-          */
           for (var p in manualPositions) {
-            /*
             if (instrumentMap.containsKey(p.instrument)) {
               p.instrumentObj = instrumentMap[p.instrument];
             }
-            */
             store.addOrUpdate(p);
           }
         }
@@ -307,7 +303,6 @@ class FidelityService implements IBrokerageService {
         var manualPositions =
             positions.where((p) => p.id.startsWith('manual_op_')).toList();
         if (manualPositions.isNotEmpty) {
-          /*
           Set<String> optUrls = {};
           for (var p in manualPositions) {
             for (var leg in p.legs) {
@@ -317,20 +312,26 @@ class FidelityService implements IBrokerageService {
             }
           }
 
-          var optionInstruments = await firestoreService
-              .getOptionInstrumentsByUrls(optUrls.toList());
+          List<OptionInstrument> optionInstruments = [];
+          for (var url in optUrls) {
+            var snapshot = await FirebaseFirestore.instance
+                .collection(firestoreService.optionInstrumentCollectionName)
+                .where('url', isEqualTo: url)
+                .get();
+            if (snapshot.docs.isNotEmpty) {
+              optionInstruments.addAll(snapshot.docs
+                  .map((d) => OptionInstrument.fromJson(d.data())));
+            }
+          }
           var optMap = {for (var o in optionInstruments) o.url: o};
-          */
 
           for (var p in manualPositions) {
-            /*
             if (p.legs.isNotEmpty) {
               var url = p.legs.first.option;
               if (optMap.containsKey(url)) {
                 p.optionInstrument = optMap[url];
               }
             }
-            */
             var exists = store.items.any((existing) => existing.id == p.id);
             if (!exists) {
               store.add(p);
@@ -456,15 +457,30 @@ class FidelityService implements IBrokerageService {
   @override
   Future<Instrument?> getInstrumentBySymbol(
       BrokerageUser user, InstrumentStore store, String symbol) async {
+    final firestoreService = FirestoreService();
+    var instrument = await firestoreService.getInstrument(symbol: symbol);
+    if (instrument != null) {
+      store.addOrUpdate(instrument);
+      return instrument;
+    }
     return Instrument.fromJson({'symbol': symbol, 'description': symbol});
   }
 
   @override
   Future<List<Instrument>> getInstrumentsByIds(
       BrokerageUser user, InstrumentStore store, List<String> ids) async {
-    return ids
-        .map((id) => Instrument.fromJson({'symbol': id, 'description': id}))
-        .toList();
+    final firestoreService = FirestoreService();
+    List<Instrument> results = [];
+    for (var id in ids) {
+      var instrument = await firestoreService.getInstrument(id: id);
+      if (instrument != null) {
+        store.addOrUpdate(instrument);
+        results.add(instrument);
+      } else {
+        results.add(Instrument.fromJson({'symbol': id, 'description': id}));
+      }
+    }
+    return results;
   }
 
   @override
@@ -523,7 +539,8 @@ class FidelityService implements IBrokerageService {
         return fidS;
       }).join(",");
 
-      final url = "https://fastquote.fidelity.com/service/quote/json?" "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
+      final url = "https://fastquote.fidelity.com/service/quote/json?"
+          "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
 
       final resp = await http.get(Uri.parse(url), headers: {
         "Referer": "https://www.fidelity.com/",

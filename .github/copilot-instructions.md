@@ -7,7 +7,6 @@ Key facts (quick):
 - Flutter mobile app (Dart) in `src/robinhood_options_mobile/`.
 - Backend helpers and server code live under `src/robinhood_options_mobile/functions/` and `src/robinhood_options_mobile/firebase/` (Firebase Functions + admin tooling).
 - Firebase is heavily used: `firebase_core`, `firebase_auth`, `cloud_firestore`, `cloud_functions`, `firebase_analytics`, and `firebase_ai`.
-- Futures support: service-layer enrichment only (no secrets) adding contract & product metadata + quotes and computing Open P&L per contract.
 
 Quick-start commands an agent can recommend or run (macOS / zsh):
 - Install and verify environment: `flutter doctor -v`.

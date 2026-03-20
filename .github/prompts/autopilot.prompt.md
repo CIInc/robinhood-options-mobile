@@ -1,0 +1,1 @@
+Analyze the whole codebase and identify the best new feature or improvement to make based on recent edits. Then, iterate on that feature or piece of code by improving it, checking for errors, and suggesting next steps.

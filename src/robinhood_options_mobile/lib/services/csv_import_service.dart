@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 class CsvImportService {
   static Future<void> importFidelityCsv(BuildContext context) async {
@@ -88,7 +89,7 @@ class CsvImportService {
         // Detect File Type
         if (headerMap.containsKey('Run Date') &&
             headerMap.containsKey('Action')) {
-          _importHistory(context, fields, headerMap, dataStartRow);
+          await _importHistory(context, fields, headerMap, dataStartRow);
           return;
         }
 
@@ -157,15 +158,15 @@ class CsvImportService {
 
           if (match != null) {
             importedOptions++;
-            _importOption(context, cleanSymbol, match, quantity, averageCost,
-                lastPrice, previousClose);
+            await _importOption(context, cleanSymbol, match, quantity,
+                averageCost, lastPrice, previousClose);
           } else {
             // Filter out Cash
             if (cleanSymbol.contains('**')) continue;
 
             importedStocks++;
-            _importStock(context, cleanSymbol, quantity, averageCost, lastPrice,
-                previousClose);
+            await _importStock(context, cleanSymbol, quantity, averageCost,
+                lastPrice, previousClose);
           }
         }
 
@@ -187,8 +188,11 @@ class CsvImportService {
     return input.replaceAll('\$', '').replaceAll(',', '').replaceAll('+', '');
   }
 
-  static void _importHistory(BuildContext context, List<List<dynamic>> fields,
-      Map<String, int> headerMap, int dataStartRow) {
+  static Future<void> _importHistory(
+      BuildContext context,
+      List<List<dynamic>> fields,
+      Map<String, int> headerMap,
+      int dataStartRow) async {
     int importedOrders = 0;
 
     for (int i = dataStartRow; i < fields.length; i++) {
@@ -252,10 +256,10 @@ class CsvImportService {
       if (isDividend) {
         _importDividend(context, cleanSymbol, date, amount);
       } else if (isOption && match != null) {
-        _importOptionOrder(
+        await _importOptionOrder(
             context, cleanSymbol, match, date, action, quantity, price, amount);
       } else {
-        _importStockOrder(
+        await _importStockOrder(
             context, cleanSymbol, date, action, quantity, price, amount);
       }
       importedOrders++;
@@ -287,14 +291,14 @@ class CsvImportService {
     store.add(dividend);
   }
 
-  static void _importStockOrder(
+  static Future<void> _importStockOrder(
       BuildContext context,
       String symbol,
       DateTime? date,
       String action,
       double quantity,
       double price,
-      double amount) {
+      double amount) async {
     var store = Provider.of<InstrumentOrderStore>(context, listen: false);
 
     String side = 'buy'; // Default
@@ -350,7 +354,10 @@ class CsvImportService {
         );
 
     // Create Dummy Instrument if needed?
-    order.instrumentObj = Instrument(
+    final firestoreService = FirestoreService();
+    var instrument = await firestoreService.getInstrument(symbol: symbol);
+
+    instrument ??= Instrument(
         id: 'manual_$symbol',
         url: 'manual_inst_$symbol',
         quote: 'manual_quote_$symbol',
@@ -371,11 +378,12 @@ class CsvImportService {
         isTest: false,
         ipoAccessSupportsDsp: false,
         dateCreated: DateTime.now());
+    order.instrumentObj = instrument;
 
     store.add(order);
   }
 
-  static void _importOptionOrder(
+  static Future<void> _importOptionOrder(
       BuildContext context,
       String occSymbol,
       Match match,
@@ -383,7 +391,7 @@ class CsvImportService {
       String action,
       double quantity,
       double price,
-      double amount) {
+      double amount) async {
     var store = Provider.of<OptionOrderStore>(context, listen: false);
 
     String symbol = match.group(1)!;
@@ -449,8 +457,13 @@ class CsvImportService {
     store.add(order);
   }
 
-  static void _importStock(BuildContext context, String symbol, double quantity,
-      double averageCost, double lastPrice, double previousClose) {
+  static Future<void> _importStock(
+      BuildContext context,
+      String symbol,
+      double quantity,
+      double averageCost,
+      double lastPrice,
+      double previousClose) async {
     var store = Provider.of<InstrumentPositionStore>(context, listen: false);
 
     Quote quote = Quote(
@@ -469,7 +482,10 @@ class CsvImportService {
       lastTradePriceSource: 'consolidated',
     );
 
-    Instrument instrument = Instrument(
+    final firestoreService = FirestoreService();
+    var instrument = await firestoreService.getInstrument(symbol: symbol);
+
+    instrument ??= Instrument(
         id: 'manual_$symbol',
         url: 'manual_inst_$symbol',
         quote: 'manual_quote_$symbol',
@@ -528,14 +544,14 @@ class CsvImportService {
     store.add(position);
   }
 
-  static void _importOption(
+  static Future<void> _importOption(
       BuildContext context,
       String occSymbol,
       Match match,
       double quantity,
       double averageCost,
       double lastPrice,
-      double previousClose) {
+      double previousClose) async {
     var store = Provider.of<OptionPositionStore>(context, listen: false);
 
     String symbol = match.group(1)!;
@@ -649,7 +665,10 @@ class CsvImportService {
     );
 
     position.optionInstrument = optInstrument;
-    position.instrumentObj = Instrument(
+    final firestoreService = FirestoreService();
+    var instrument = await firestoreService.getInstrument(symbol: symbol);
+
+    instrument ??= Instrument(
         id: 'manual_$symbol',
         url: 'manual_inst_$symbol',
         quote: 'manual_quote_$symbol',
@@ -670,6 +689,7 @@ class CsvImportService {
         isTest: false,
         ipoAccessSupportsDsp: false,
         dateCreated: DateTime.now());
+    position.instrumentObj = instrument;
 
     store.add(position);
   }

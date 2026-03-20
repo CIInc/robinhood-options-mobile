@@ -41,6 +41,7 @@ import * as watchlistAlerts from "./watchlist-alerts-cron";
 import * as customAlertsCron from "./custom-alerts-cron";
 import * as paperTradingCron from "./paper-trading-cron";
 import * as rebalancingCronFuncs from "./rebalancing-cron";
+import * as whaleWatchCron from "./whale-watch-cron";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -126,3 +127,4 @@ export const updatePaperHistoricalsCronJob =
   paperTradingCron.updatePaperHistoricalsCron;
 export const rebalancingCronJob = rebalancingCronFuncs.rebalancingCron;
 export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;
+export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;

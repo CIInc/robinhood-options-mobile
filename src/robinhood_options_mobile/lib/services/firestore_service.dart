@@ -19,8 +19,10 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/group_message.dart';
 import 'package:robinhood_options_mobile/model/instrument_note.dart';
+import 'package:robinhood_options_mobile/model/whale_watch.dart';
 
 class FirestoreService {
+  FirestoreService();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final String instrumentCollectionName = 'instrument';
@@ -441,6 +443,24 @@ class FirestoreService {
     } else {
       return addOptionPosition(optionPosition, userDoc);
     }
+  }
+
+  /// Whale Watch Methods
+
+  Stream<WhaleWatchAggregate> streamWhaleWatchAggregate() {
+    return _db
+        .collection('market_intelligence')
+        .doc('whale_watch_aggregate')
+        .snapshots()
+        .map((snapshot) => WhaleWatchAggregate.fromSnapshot(snapshot));
+  }
+
+  Future<WhaleWatchAggregate> getWhaleWatchAggregate() async {
+    var snapshot = await _db
+        .collection('market_intelligence')
+        .doc('whale_watch_aggregate')
+        .get();
+    return WhaleWatchAggregate.fromSnapshot(snapshot);
   }
 
   /// ForexPosition Methods

@@ -25,6 +25,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/model/whale_watch.dart';
 
 class PersonalizedCoachingWidget extends StatefulWidget {
   final IBrokerageService service;
@@ -2254,11 +2256,29 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             "PRIMARY FOCUS: Overall Holistic Improvement. Balance all aspects equally.";
     }
 
+    // Fetch Whale Watch context for risk detection
+    WhaleWatchAggregate? whaleContext;
+    try {
+      whaleContext = await FirestoreService().getWhaleWatchAggregate();
+    } catch (_) {}
+
+    String whaleWatchString = "";
+    if (whaleContext != null && whaleContext.topAccumulatedSymbols.isNotEmpty) {
+      final topSyms = whaleContext.topAccumulatedSymbols
+          .take(10)
+          .map((e) => e.symbol)
+          .join(", ");
+      whaleWatchString =
+          "\nWHALE WATCH CONTEXT (Market-wide accumulation): $topSyms\n"
+          "Institutional Sentiment: Buy Total \$${(whaleContext.buyTotal / 1e6).toStringAsFixed(1)}M vs Sell Total \$${(whaleContext.sellTotal / 1e6).toStringAsFixed(1)}M\n";
+    }
+
     final prompt = '''
 You are an Elite AI Trading Performance Coach (Pattern Recognition Expert).
 Your objective is to audit the user's trading logs, identify profitability leaks, and prescribe corrective protocols.
 
 CONTEXT:
+$whaleWatchString
 - Asset Class: $filterText
 - Analysis Window: ${_getAnalysisWindowLabel(_analysisWindow)}
 - User Focus Request: $focusInstruction
