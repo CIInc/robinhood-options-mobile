@@ -1784,8 +1784,9 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
         var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
         for (var quoteObj in quoteObjs) {
           // Update Position
-          var position = store.items.firstWhere(
-              (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+          var position = store.items.firstWhereOrNull(
+              (element) => element.instrumentObj?.symbol == quoteObj.symbol);
+          if (position == null) continue;
           if (position.instrumentObj!.quoteObj == null ||
               position.instrumentObj!.quoteObj!.updatedAt!
                   .isBefore(quoteObj.updatedAt!)) {

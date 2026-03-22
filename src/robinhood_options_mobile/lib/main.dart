@@ -80,6 +80,9 @@ void main() async {
 
   auth = FirebaseAuth.instanceFor(app: app);
 
+  // ignore: avoid_print
+  //print('🔑 Firebase UID: ${auth.currentUser?.uid}');
+
   authUtil = AuthUtil(auth);
   userRole = await authUtil.userRole();
 
