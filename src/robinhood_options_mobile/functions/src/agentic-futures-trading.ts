@@ -216,8 +216,10 @@ export async function performFuturesSignal(request: any) {
     const signalDocId = interval === "1d" ?
       `${contractId}` :
       `${contractId}_${interval}`;
+    const now = new Date();
     await db.doc(`signals/${signalDocId}`).set({
-      timestamp: Date.now(),
+      timestamp: now.getTime(),
+      date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
       symbol,
       contractId,
       interval,

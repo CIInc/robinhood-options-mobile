@@ -42,6 +42,7 @@ import * as customAlertsCron from "./custom-alerts-cron";
 import * as paperTradingCron from "./paper-trading-cron";
 import * as rebalancingCronFuncs from "./rebalancing-cron";
 import * as whaleWatchCron from "./whale-watch-cron";
+import * as migrations from "./migrations";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
@@ -98,6 +99,7 @@ export const getOptionsFlow = optionsFlow.getOptionsFlow;
 export const createOptionAlert = optionsFlow.createOptionAlert;
 export const getOptionAlerts = optionsFlow.getOptionAlerts;
 export const deleteOptionAlert = optionsFlow.deleteOptionAlert;
+export const migrateSignalsDate = migrations.migrateSignalsDate;
 export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
 export const verifySubscription = verifySubscriptionFunc;

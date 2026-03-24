@@ -275,8 +275,10 @@ export async function handleAlphaTask(marketData: any,
           const db = getFirestore();
           const signalDocId = interval === "1d" ?
             symbol : `${symbol}_${interval}`;
+          const now = new Date();
           const signalDoc = {
-            timestamp: Date.now(),
+            timestamp: now.getTime(),
+            date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
             symbol: symbol,
             interval: interval,
             signal: overallSignal,
@@ -478,8 +480,10 @@ export async function handleAlphaTask(marketData: any,
         const db = getFirestore();
         const signalDocId = interval === "1d" ?
           symbol : `${symbol}_${interval}`;
+        const now = new Date();
         const signalDoc = {
-          timestamp: Date.now(),
+          timestamp: now.getTime(),
+          date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
           symbol: symbol,
           interval: interval,
           signal: overallSignal,

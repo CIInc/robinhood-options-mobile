@@ -518,9 +518,8 @@ class TradeSignalsProvider with ChangeNotifier {
 
       final effectiveInterval =
           interval ?? _selectedInterval ?? _getDefaultInterval();
-      final docId = effectiveInterval == '1d'
-          ? symbol
-          : '${symbol}_$effectiveInterval';
+      final docId =
+          effectiveInterval == '1d' ? symbol : '${symbol}_$effectiveInterval';
 
       final doc = await FirebaseFirestore.instance
           .collection('signals')
@@ -619,10 +618,12 @@ class TradeSignalsProvider with ChangeNotifier {
       query = query.orderBy('symbol');
       query = query.orderBy('timestamp', descending: true);
     } else if (sortBy == 'signalStrength') {
+      query = query.orderBy('date', descending: true);
       query = query.orderBy('multiIndicatorResult.signalStrength',
           descending: true);
-      query = query.orderBy('timestamp', descending: true);
+      // query = query.orderBy('timestamp', descending: true);
     } else {
+      // query = query.orderBy('date', descending: true);
       query = query.orderBy('timestamp', descending: true);
       query = query.orderBy('multiIndicatorResult.signalStrength',
           descending: true);
