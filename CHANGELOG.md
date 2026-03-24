@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.34.2] - 2026-03-23
+**Trade Signal Metadata & Position Stability Fixes**
+
+### Added
+- **Signal Date Metadata:** Added `date` field to trade signals in `performFuturesSignal` and `handleAlphaTask` functions for improved historical tracking and sorting.
+- **Signal Migration:** Implemented a migration function in `migrations.ts` to backfill the `date` field for existing signals in Firestore.
+- **Enhanced Signal Sorting:** Firestore queries for signals are now optimized to order by both date and signal strength.
+
+### Fixed
+- **Position Update Crash:** Resolved a `StateError` crash in `robinhood_service.dart` and `main.dart` where `firstWhere` failed on unmatched quotes; replaced with `firstWhereOrNull` and added protective null guards.
+
+### Changed
+- **Backend Dependencies:** Upgraded `firebase-functions` to v7.2.2.
+- **Podfile Updates:** Updated `Podfile.lock` with latest dependency checksums for iOS stability.
+
 ## [0.34.1] - 2026-03-19
 **Twelve Data Integration & Whale Watch Features**
 

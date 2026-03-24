@@ -336,7 +336,7 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
   Widget _buildDateHeader(String date) {
     final isCollapsed = _collapsedDates.contains(date);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: InkWell(
         onTap: () {
           setState(() {
