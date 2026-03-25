@@ -300,31 +300,31 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         // More nuanced VIX evaluation with weighted scoring
         if (vixValue < 12) {
           vixSignal = "BULLISH";
-          score += 18; // Very low vol = strong complacency
+          score += 15; // Slightly reduced to account for structural low vol
           explanation.push(`VIX is very low (${vixValue.toFixed(2)}), ` +
-            "extreme complacency - watch for reversal.");
+            "complacency check - watch for reversals.");
         } else if (vixValue < 15) {
           vixSignal = "BULLISH";
-          score += 12;
+          score += 10; // Reduced from 12
           explanation.push(`VIX is low (${vixValue.toFixed(2)}), ` +
             "suggesting low market stress.");
         } else if (vixValue < 20) {
-          vixSignal = "NEUTRAL";
-          score += 5; // Slightly positive in normal range
-          explanation.push(`VIX is in normal range (${vixValue.toFixed(2)}).`);
+          vixSignal = "BULLISH"; // BULLISH in normal range
+          score += 5; // Balanced
+          explanation.push(`VIX is in healthy range (${vixValue.toFixed(2)}).`);
         } else if (vixValue < 25) {
           vixSignal = "NEUTRAL";
-          score -= 5; // Elevated but not panic
+          score -= 3; // Reduced penalty from 5
           explanation.push(`VIX is elevated (${vixValue.toFixed(2)}), ` +
             "moderate caution warranted.");
         } else if (vixValue < 35) {
           vixSignal = "BEARISH";
-          score -= 18;
+          score -= 15; // Reduced from 18
           explanation.push(`VIX is high (${vixValue.toFixed(2)}), ` +
             "significant market fear.");
         } else {
           vixSignal = "BEARISH";
-          score -= 25; // Extreme fear = major risk-off
+          score -= 20; // Reduced from 25
           explanation.push(`VIX is extreme (${vixValue.toFixed(2)}), ` +
             "panic conditions - potential reversal zone.");
         }
@@ -397,24 +397,24 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         if (normSma10 > normSma50 * 1.05) {
           tnxSignal = "BEARISH"; // Rapidly rising yields
           tnxTrend = "Sharply Rising";
-          score -= 15;
+          score -= 10; // Reduced from 15
           explanation
             .push("Yields (TNX) are rising rapidly - tightening conditions.");
         } else if (normSma10 > normSma50 * 1.02) {
           tnxSignal = "BEARISH"; // Rising yields
           tnxTrend = "Rising";
-          score -= 10;
+          score -= 5; // Reduced from 10
           explanation.push("Yields (TNX) are rising.");
         } else if (normSma10 < normSma50 * 0.95) {
           tnxSignal = "BULLISH"; // Falling yields can support equities
           tnxTrend = "Sharply Falling";
-          score += 10;
+          score += 15; // Increased from 10
           explanation
             .push("Yields (TNX) are falling rapidly - easing conditions.");
         } else if (normSma10 < normSma50 * 0.98) {
           tnxSignal = "BULLISH";
           tnxTrend = "Falling";
-          score += 5;
+          score += 8; // Increased from 5
           explanation.push("Yields (TNX) are falling/stable.");
         } else {
           tnxTrend = "Stable";
@@ -509,24 +509,24 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         if (yieldSpread < -1.0) {
           yieldCurveSignal = "BEARISH";
           yieldCurveTrend = "Severely Inverted";
-          score -= 25; // Extreme inversion = very high recession risk
+          score -= 15; // Prolonged inversion had delayed impact
           explanation.push("Yield Curve severely inverted " +
             `(${yieldSpread.toFixed(2)}%), high recession probability.`);
         } else if (yieldSpread < -0.5) {
           yieldCurveSignal = "BEARISH";
           yieldCurveTrend = "Deeply Inverted";
-          score -= 18;
+          score -= 10; // Reduced from 18
           explanation.push("Yield Curve deeply inverted " +
             `(${yieldSpread.toFixed(2)}%), recession warning.`);
         } else if (yieldSpread < -0.2) {
           yieldCurveSignal = "BEARISH";
           yieldCurveTrend = "Moderately Inverted";
-          score -= 10;
+          score -= 5; // Reduced from 10
           explanation.push("Yield Curve moderately inverted - caution.");
         } else if (yieldSpread < 0) {
           yieldCurveSignal = "BEARISH";
           yieldCurveTrend = "Slightly Inverted";
-          score -= 5;
+          score -= 2; // Reduced from 5
           explanation.push("Yield Curve slightly inverted.");
         } else if (yieldSpread < 0.5) {
           yieldCurveSignal = "NEUTRAL";
