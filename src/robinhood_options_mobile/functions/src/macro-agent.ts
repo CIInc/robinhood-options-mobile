@@ -17,9 +17,29 @@ export interface MacroStrategy {
   description: string;
 }
 
-// Indicator weights in the scoring system (should sum to 100)
-// Note: Not currently used in weighted scoring, but kept for future
-// implementation of indicator-specific weights
+// Indicator weights in the scoring system (sum = 100)
+const MACRO_WEIGHTS = {
+  vix: 15,
+  marketTrend: 15, // SPY
+  tnx: 10,
+  yieldCurve: 10,
+  hyg: 8,
+  pcr: 8,
+  nya: 6, // Adv/Decline
+  riskAppetite: 6, // IWM/SPY
+  creditSpreads: 5,
+  btc: 4,
+  copper: 3,
+  globalRisk: 2, // EEM
+  gold: 2,
+  oil: 2,
+  dxy: 1,
+  move: 1,
+  kre: 1,
+  breadth: 1, // RSP/SPY
+  globalLeadership: 0, // FXI (not used in core score but tracked)
+};
+
 export interface MacroAssessment {
   status: "RISK_ON" | "RISK_OFF" | "NEUTRAL";
   score: number; // 0 to 100, where 100 is max bullish/risk-on
@@ -91,6 +111,41 @@ export interface MacroAssessment {
       trend: string;
     };
     riskAppetite: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    creditSpreads: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    globalRisk: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    copper: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    interestRateVol: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    bankingHealth: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    breadthQuality: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    globalLeadership: {
       value: number | null;
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
@@ -206,12 +261,14 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     // We use "1d" interval and "1y" range to calculate SMAs
     const [
       vixData, tnxData, spyData, irxData, gldData, usoData, btcData,
-      dxyData, hygData, pccrData, nyaData, iwmData,
+      dxyData, hygData, pccrData, nyaData, iwmData, lqdData, eemData, hgfData,
+      moveData, kreData, rspData, fxiData,
     ] = await Promise.all([
       getMarketData("^VIX", 5, 20, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch VIX data", e);
         return null;
       }),
+      // ... (tnx, spy, irx, gld, uso, btc, dxy, hyg, pcc, nya)
       getMarketData("^TNX", 10, 50, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch TNX data", e);
         return null;
@@ -237,11 +294,11 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         logger.error("Failed to fetch BTC data", e);
         return null;
       }),
-      // dx-y.nyb often fails, check if empty and fallback to DX=F
-      getMarketData("DX-Y.NYB", 50, 200, "1d", "1y")
+      // dx-y.nyb is incorrect for Twelve Data, use DXY as primary with fallback
+      getMarketData("DXY", 50, 200, "1d", "1y")
         .then((data) => {
           if (data && data.closes && data.closes.length > 0) return data;
-          logger.info("DX-Y.NYB returned no data, falling back to DX=F");
+          logger.info("DXY returned no data, falling back to DX=F");
           return getMarketData("DX=F", 50, 200, "1d", "1y");
         })
         .catch((e) => {
@@ -274,6 +331,46 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }),
       getMarketData("IWM", 50, 200, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch IWM data", e);
+        return null;
+      }),
+      getMarketData("LQD", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch LQD data", e);
+        return null;
+      }),
+      getMarketData("EEM", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch EEM data", e);
+        return null;
+      }),
+      // Copper with multiple fallbacks
+      getMarketData("HG=F", 50, 200, "1d", "1y")
+        .then((data) => {
+          if (data && data.closes && data.closes.length > 0) return data;
+          logger.info("HG=F no data, falling back to CPER (ETF)");
+          return getMarketData("CPER", 50, 200, "1d", "1y");
+        })
+        .then((data) => {
+          if (data && data.closes && data.closes.length > 0) return data;
+          logger.info("CPER no data, falling back to COPX (Miners ETF)");
+          return getMarketData("COPX", 50, 200, "1d", "1y");
+        })
+        .catch((e) => {
+          logger.error("Failed to fetch Copper data", e);
+          return null;
+        }),
+      getMarketData("^MOVE", 5, 20, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch ^MOVE data", e);
+        return null;
+      }),
+      getMarketData("KRE", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch KRE data", e);
+        return null;
+      }),
+      getMarketData("RSP", 20, 50, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch RSP data", e);
+        return null;
+      }),
+      getMarketData("FXI", 50, 200, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch FXI data", e);
         return null;
       }),
     ]);
@@ -841,6 +938,186 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }
     }
 
+    // 13. Evaluate Credit Spreads (LQD vs Treasuries)
+    let creditSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let creditTrend = "Flat";
+    let creditValue: number | null = null;
+    if (lqdData && lqdData.closes && lqdData.closes.length > 0) {
+      creditValue = lqdData.currentPrice ||
+        lqdData.closes[lqdData.closes.length - 1];
+      const sma50 = computeSMA(lqdData.closes, 50);
+      const sma200 = computeSMA(lqdData.closes, 200);
+      if (creditValue !== null && sma50 && sma200) {
+        if (creditValue > sma50 && creditValue > sma200) {
+          creditSignal = "BULLISH";
+          creditTrend = "Tightening Spreads";
+          score += 5;
+          explanation.push(
+            "Investment grade credit showing strength (Lower stress).");
+        } else if (creditValue < sma200) {
+          creditSignal = "BEARISH";
+          creditTrend = "Widening Spreads";
+          score -= 8;
+          explanation.push("Credit markets under pressure - widening spreads.");
+        }
+      }
+    }
+
+    // 14. Evaluate Global Risk (EEM Stress)
+    let globalSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let globalTrend = "Flat";
+    let globalValue: number | null = null;
+    if (eemData && eemData.closes && eemData.closes.length > 0) {
+      globalValue = eemData.currentPrice ||
+        eemData.closes[eemData.closes.length - 1];
+      const sma50 = computeSMA(eemData.closes, 50);
+      if (globalValue !== null && sma50) {
+        if (globalValue > sma50) {
+          globalSignal = "BULLISH";
+          globalTrend = "Uptrend";
+          score += 3;
+          explanation.push("Emerging markets showing resilience.");
+        } else {
+          globalSignal = "BEARISH";
+          globalTrend = "Downtrend";
+          score -= 5;
+          explanation.push("Global/EM markets lagging - narrowing liquidity.");
+        }
+      }
+    }
+
+    // 15. Evaluate Copper (Dr. Copper)
+    let copperSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let copperTrend = "Flat";
+    let copperValue: number | null = null;
+    if (hgfData && hgfData.closes && hgfData.closes.length > 0) {
+      copperValue = hgfData.currentPrice ||
+        hgfData.closes[hgfData.closes.length - 1];
+      const sma50 = computeSMA(hgfData.closes, 50);
+      if (copperValue !== null && sma50) {
+        if (copperValue > sma50) {
+          copperSignal = "BULLISH";
+          copperTrend = "Expanding Demand";
+          score += 5;
+          explanation.push("Copper prices rising - industrial demand growth.");
+        } else {
+          copperSignal = "BEARISH";
+          copperTrend = "Weakening Demand";
+          score -= 5;
+          explanation.push(
+            "Copper prices falling - potential industrial slowdown.");
+        }
+      }
+    }
+
+    // 16. Evaluate Interest Rate Volatility (^MOVE)
+    let moveSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let moveTrend = "Flat";
+    let moveValue: number | null = null;
+    if (moveData && moveData.closes && moveData.closes.length > 0) {
+      moveValue = moveData.currentPrice ||
+        moveData.closes[moveData.closes.length - 1];
+      const sma20 = computeSMA(moveData.closes, 20);
+      if (moveValue !== null && sma20) {
+        if (moveValue < 100) {
+          moveSignal = "BULLISH";
+          moveTrend = "Stable";
+          score += 5;
+          explanation.push(
+            "Interest rate volatility is low (Stable environment).");
+        } else if (moveValue > 140) {
+          moveSignal = "BEARISH";
+          moveTrend = "Extreme Stress";
+          score -= 10;
+          explanation.push("Extreme stress in Treasury volatility (^MOVE).");
+        } else if (moveValue > 120 || moveValue > sma20 * 1.1) {
+          moveSignal = "BEARISH";
+          moveTrend = "Rising Stress";
+          score -= 5;
+          explanation.push("Treasury volatility (^MOVE) is elevated/rising.");
+        }
+      }
+    }
+
+    // 17. Evaluate Banking Health (KRE)
+    let kreSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let kreTrend = "Flat";
+    let kreValue: number | null = null;
+    if (kreData && kreData.closes && kreData.closes.length > 0) {
+      kreValue = kreData.currentPrice ||
+        kreData.closes[kreData.closes.length - 1];
+      const sma50 = computeSMA(kreData.closes, 50);
+      const sma200 = computeSMA(kreData.closes, 200);
+      if (kreValue !== null && sma50 && sma200) {
+        if (kreValue > sma50 && kreValue > sma200) {
+          kreSignal = "BULLISH";
+          kreTrend = "Healthy";
+          score += 5;
+          explanation.push("Banking sector (KRE) healthy - credit flowing.");
+        } else if (kreValue < sma200) {
+          kreSignal = "BEARISH";
+          kreTrend = "Distressed";
+          score -= 8;
+          explanation.push("Banking sector (KRE) under long-term stress.");
+        } else if (kreValue < sma50) {
+          kreSignal = "BEARISH";
+          kreTrend = "Weakening";
+          score -= 5;
+          explanation.push("Banking sector (KRE) showing short-term weakness.");
+        }
+      }
+    }
+
+    // 18. Evaluate Breadth Quality (RSP / SPY)
+    let breadthSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let breadthTrend = "Flat";
+    let breadthValue: number | null = null;
+    if (rspData && rspData.closes && rspData.closes.length > 0 &&
+      spyData && spyData.closes && spyData.closes.length > 0) {
+      const rspCloses = rspData.closes;
+      const spyCloses = spyData.closes;
+      const ratioCloses = rspCloses.map((c, i) => c / spyCloses[i]);
+      breadthValue = ratioCloses[ratioCloses.length - 1];
+      const sma20 = computeSMA(ratioCloses, 20);
+      if (breadthValue !== null && sma20) {
+        if (breadthValue > sma20 * 1.01) {
+          breadthSignal = "BULLISH";
+          breadthTrend = "Broadening";
+          score += 5;
+          explanation.push(
+            "Market breadth is healthy (Equal-weight outperforming).");
+        } else if (breadthValue < sma20 * 0.99) {
+          breadthSignal = "BEARISH";
+          breadthTrend = "Narrowing";
+          score -= 5;
+          explanation.push("Market breadth narrowing (Fragile rally).");
+        }
+      }
+    }
+
+    // 19. Evaluate Global Leadership (FXI)
+    let fxiSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let fxiTrend = "Flat";
+    let fxiValue: number | null = null;
+    if (fxiData && fxiData.closes && fxiData.closes.length > 0) {
+      fxiValue = fxiData.currentPrice ||
+        fxiData.closes[fxiData.closes.length - 1];
+      const sma50 = computeSMA(fxiData.closes, 50);
+      if (fxiValue !== null && sma50) {
+        if (fxiValue > sma50) {
+          fxiSignal = "BULLISH";
+          fxiTrend = "Leading";
+          score += 3;
+          explanation.push("Global liquidity leader (FXI) is strong.");
+        } else {
+          fxiSignal = "BEARISH";
+          fxiTrend = "Lagging";
+          score -= 5;
+          explanation.push("Global liquidity leader (FXI) is weak.");
+        }
+      }
+    }
+
     // Determine Status with more nuanced thresholds
     let status: "RISK_ON" | "RISK_OFF" | "NEUTRAL" = "NEUTRAL";
     if (score >= 65) {
@@ -863,6 +1140,8 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       vixSignal, tnxSignal, spySignal, yieldCurveSignal,
       goldSignal, oilSignal, dxySignal, btcSignal,
       hygSignal, pccrSignal, nyaSignal, riskSignal,
+      creditSignal, globalSignal, copperSignal,
+      moveSignal, kreSignal, breadthSignal, fxiSignal,
     ];
 
     const bullishCount = signals.filter((s) => s === "BULLISH").length;
@@ -873,7 +1152,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     const maxCount = Math.max(bullishCount, bearishCount);
     const minCount = Math.min(bullishCount, bearishCount);
     const isConflicted =
-      (minCount > maxCount * 0.33) || (neutralCount > 4);
+      (minCount > maxCount * 0.33) || (neutralCount > 5);
 
     const confidence = calculateConfidence(
       bullishCount,
@@ -1021,9 +1300,48 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       ];
     }
 
+    // Weighted Scoring Implementation
+    const bullishSignals = [
+      { signal: vixSignal, weight: MACRO_WEIGHTS.vix },
+      { signal: spySignal, weight: MACRO_WEIGHTS.marketTrend },
+      { signal: tnxSignal, weight: MACRO_WEIGHTS.tnx },
+      { signal: yieldCurveSignal, weight: MACRO_WEIGHTS.yieldCurve },
+      { signal: hygSignal, weight: MACRO_WEIGHTS.hyg },
+      { signal: pccrSignal, weight: MACRO_WEIGHTS.pcr },
+      { signal: nyaSignal, weight: MACRO_WEIGHTS.nya },
+      { signal: riskSignal, weight: MACRO_WEIGHTS.riskAppetite },
+      { signal: creditSignal, weight: MACRO_WEIGHTS.creditSpreads },
+      { signal: btcSignal, weight: MACRO_WEIGHTS.btc },
+      { signal: copperSignal, weight: MACRO_WEIGHTS.copper },
+      { signal: globalSignal, weight: MACRO_WEIGHTS.globalRisk },
+      { signal: goldSignal, weight: MACRO_WEIGHTS.gold },
+      { signal: oilSignal, weight: MACRO_WEIGHTS.oil },
+      { signal: dxySignal, weight: MACRO_WEIGHTS.dxy },
+      { signal: moveSignal, weight: MACRO_WEIGHTS.move },
+      { signal: kreSignal, weight: MACRO_WEIGHTS.kre },
+      { signal: breadthSignal, weight: MACRO_WEIGHTS.breadth },
+    ];
+
+    let weightedScore = 0;
+    let totalWeight = 0;
+    bullishSignals.forEach((item) => {
+      const weight = item.weight;
+      totalWeight += weight;
+      if (item.signal === "BULLISH") {
+        weightedScore += weight;
+      } else if (item.signal === "NEUTRAL") {
+        weightedScore += weight * 0.5;
+      }
+      // BEARISH adds 0 to score
+    });
+
+    // Normalize score to 0-100
+    const finalScore =
+      totalWeight > 0 ? (weightedScore / totalWeight) * 100 : 50;
+
     return {
       status,
-      score: Math.max(0, Math.min(100, score)),
+      score: Math.round(finalScore),
       confidence: Math.round(confidence),
       signalDivergence: {
         bullishCount,
@@ -1096,6 +1414,41 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
           signal: riskSignal,
           trend: riskTrend,
         },
+        creditSpreads: {
+          value: creditValue,
+          signal: creditSignal,
+          trend: creditTrend,
+        },
+        globalRisk: {
+          value: globalValue,
+          signal: globalSignal,
+          trend: globalTrend,
+        },
+        copper: {
+          value: copperValue,
+          signal: copperSignal,
+          trend: copperTrend,
+        },
+        interestRateVol: {
+          value: moveValue,
+          signal: moveSignal,
+          trend: moveTrend,
+        },
+        bankingHealth: {
+          value: kreValue,
+          signal: kreSignal,
+          trend: kreTrend,
+        },
+        breadthQuality: {
+          value: breadthValue,
+          signal: breadthSignal,
+          trend: breadthTrend,
+        },
+        globalLeadership: {
+          value: fxiValue,
+          signal: fxiSignal,
+          trend: fxiTrend,
+        },
       },
       sectorRotation: {
         bullish: sectorsBullish,
@@ -1131,6 +1484,13 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         putCallRatio: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         advDecline: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         riskAppetite: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        creditSpreads: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        globalRisk: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        copper: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        interestRateVol: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        bankingHealth: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        breadthQuality: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        globalLeadership: { value: null, signal: "NEUTRAL", trend: "Unknown" },
       },
       sectorRotation: {
         bullish: [],
@@ -1173,6 +1533,9 @@ async function getAiMacroAnalysis(
     vix, tnx, marketTrend: spy, yieldCurve: curv,
     dxy, btc, putCallRatio: pcr,
     advDecline: nya,
+    creditSpreads: lqd, globalRisk: eem, copper: hgf,
+    interestRateVol: move, bankingHealth: kre,
+    breadthQuality: rsp, globalLeadership: fxi,
   } = assessment.indicators;
   const status = assessment.status;
   const score = assessment.score;
@@ -1190,10 +1553,17 @@ async function getAiMacroAnalysis(
     - Yields (TNX): ${tnx.value} (${tnx.signal})
     - Trend (SPY): ${spy.value} (${spy.signal})
     - Curve: ${curv?.value}% (${curv?.signal})
+    - Bond Vol (MOVE): ${move?.value} (${move?.signal})
+    - Regional Banks (KRE): ${kre?.value} (${kre?.signal})
+    - Breadth (RSP/SPY): ${rsp?.value} (${rsp?.signal})
+    - Global Lead (FXI): ${fxi?.value} (${fxi?.signal})
     - USD: ${dxy?.value} (${dxy?.signal})
     - BTC: ${btc?.value} (${btc?.signal})
     - PCR: ${pcr?.value} (${pcr?.signal})
     - NYA: ${nya?.value} (${nya?.signal})
+    - Credit (LQD): ${lqd?.value} (${lqd?.signal})
+    - Global (EEM): ${eem?.value} (${eem?.signal})
+    - Copper: ${hgf?.value} (${hgf?.signal})
     
     Guidance:
     - Bull Sectors: ${assessment.sectorRotation.bullish.join(", ")}
@@ -1328,7 +1698,32 @@ async function saveMacroAssessmentToHistory(assessment: MacroAssessment) {
 
 export const getMacroAssessmentCall = onCall({
   secrets: ["GEMINI_API_KEY", "TWELVE_DATA_API_KEY"],
-}, async () => {
+}, async (request) => {
+  const forceRefresh = request.data?.forceRefresh === true;
+
+  // en-CA gives YYYY-MM-DD format
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const dateStr = formatter.format(new Date());
+
+  if (!forceRefresh) {
+    // Check if we already have an assessment for today
+    const existingDoc = await db.collection("macro_assessments")
+      .doc(dateStr)
+      .get();
+
+    if (existingDoc.exists) {
+      logger.info(`Returning cached macro assessment for ${dateStr}`);
+      return existingDoc.data();
+    }
+  }
+
+  logger.info(`Generating new macro assessment for ${dateStr} ` +
+    `(forceRefresh: ${forceRefresh})`);
   const assessment = await getMacroAssessment();
 
   // Add AI analysis
@@ -1352,6 +1747,14 @@ export const macroAssessmentCron = onSchedule({
   timeoutSeconds: 300,
 }, async () => {
   logger.info("🕐 Daily Macro Assessment Cron triggered at 4:00 PM ET");
+
+  // Skip weekends (0 = Sunday, 6 = Saturday)
+  const day = new Date().getDay();
+  if (day === 0 || day === 6) {
+    logger.info("Market is closed (Weekend). Skipping daily macro assessment.");
+    return;
+  }
+
   const assessment = await getMacroAssessment();
   assessment.aiAnalysis = await getAiMacroAnalysis(assessment);
   await saveMacroAssessmentToHistory(assessment);

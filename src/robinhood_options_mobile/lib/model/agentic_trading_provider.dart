@@ -105,11 +105,11 @@ class AgenticTradingProvider with ChangeNotifier {
   List<MacroAssessment> _macroHistory = [];
   List<MacroAssessment> get macroHistory => _macroHistory;
 
-  Future<void> fetchMacroAssessment() async {
+  Future<void> fetchMacroAssessment({bool forceRefresh = false}) async {
     try {
       final functions = FirebaseFunctions.instance;
       final callable = functions.httpsCallable('getMacroAssessment');
-      final result = await callable.call();
+      final result = await callable.call({'forceRefresh': forceRefresh});
       if (result.data != null) {
         if (_macroAssessment != null) {
           _previousMacroAssessment = _macroAssessment;
@@ -117,7 +117,8 @@ class AgenticTradingProvider with ChangeNotifier {
         _macroAssessment =
             MacroAssessment.fromMap(Map<String, dynamic>.from(result.data));
         notifyListeners();
-        _log("Macro assessment updated: ${_macroAssessment?.status}");
+        _log(
+            "Macro assessment updated: ${_macroAssessment?.status}${forceRefresh ? ' (Refreshed)' : ''}");
 
         // Also fetch history
         await fetchMacroHistory();

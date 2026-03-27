@@ -158,6 +158,13 @@ class MacroIndicators {
   final MacroIndicator? putCallRatio;
   final MacroIndicator? advDecline;
   final MacroIndicator? riskAppetite;
+  final MacroIndicator? creditSpreads; // LQD vs SYP/Yields
+  final MacroIndicator? globalRisk; // EEM Stress
+  final MacroIndicator? copper; // HG=F Industrial Growth
+  final MacroIndicator? interestRateVol; // ^MOVE
+  final MacroIndicator? bankingHealth; // KRE
+  final MacroIndicator? breadthQuality; // RSP vs SPY
+  final MacroIndicator? globalLeadership; // FXI
 
   MacroIndicators({
     required this.vix,
@@ -172,6 +179,13 @@ class MacroIndicators {
     this.putCallRatio,
     this.advDecline,
     this.riskAppetite,
+    this.creditSpreads,
+    this.globalRisk,
+    this.copper,
+    this.interestRateVol,
+    this.bankingHealth,
+    this.breadthQuality,
+    this.globalLeadership,
   });
 
   factory MacroIndicators.fromMap(Map<String, dynamic> map) {
@@ -210,6 +224,34 @@ class MacroIndicators {
       riskAppetite: map['riskAppetite'] != null
           ? MacroIndicator.fromMap(
               Map<String, dynamic>.from(map['riskAppetite'] ?? {}))
+          : null,
+      creditSpreads: map['creditSpreads'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['creditSpreads'] ?? {}))
+          : null,
+      globalRisk: map['globalRisk'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['globalRisk'] ?? {}))
+          : null,
+      copper: map['copper'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['copper'] ?? {}))
+          : null,
+      interestRateVol: map['interestRateVol'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['interestRateVol'] ?? {}))
+          : null,
+      bankingHealth: map['bankingHealth'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['bankingHealth'] ?? {}))
+          : null,
+      breadthQuality: map['breadthQuality'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['breadthQuality'] ?? {}))
+          : null,
+      globalLeadership: map['globalLeadership'] != null
+          ? MacroIndicator.fromMap(
+              Map<String, dynamic>.from(map['globalLeadership'] ?? {}))
           : null,
     );
   }

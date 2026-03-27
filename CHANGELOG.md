@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.34.3] - 2026-03-27
+**Advanced Macro Analysis & Strategy Precision**
+
+### Added
+- **Expanded Macro Coverage:** Added 7 new institutional-grade indicators to the Macro Assessment engine: LQD (Credit Spreads), EEM (Global Risk), Copper (Industrial Growth), MOVE (Interest Rate Vol), KRE (Banking Health), RSP/SPY (Breadth Quality), and FXI (Global Leadership).
+- **Weighted Scoring System:** Implemented a new `MACRO_WEIGHTS` model that assigns specific importance to each indicator (e.g., VIX and SPY at 15% each) for a more robust composite Macro Score.
+- **Dynamic Macro Cache:** Added server-side caching to `getMacroAssessmentCall` with a `forceRefresh` option, reducing API costs and improving client performance.
+- **Market Hours Logic:** Added weekend skipping to the daily Macro Assessment cron to avoid stale data generation during market closures.
+
+### Changed
+- **Macro Dashboard UI:** Redesigned the "Indicators Pulse" with a 19-pillar heatmap, enhanced tooltips, and a new bottom-sheet detail view for each indicator including momentum tracking and weighted impact.
+- **Regime Visuals:** Updated the Macro Score gauge with a multi-color progress gradient and added an "About" guide with detailed regime definitions and strategy mappings.
+- **Indicator Reliability:** Improved Twelve Data symbol mapping and added fallback logic for indices like DXY and Put/Call Ratios.
+
+### Fixed
+- **Search Widget Stability:** Added null safety checks to Whale Watch and Alpha Discovery navigation in `search_widget.dart` to prevent potential crashes on uninitialized accounts.
+
 ## [0.34.2] - 2026-03-23
 **Trade Signal Metadata & Position Stability Fixes**
 

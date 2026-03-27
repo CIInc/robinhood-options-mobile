@@ -522,46 +522,49 @@ class _SearchWidgetState extends State<SearchWidget>
                       userDocRef: widget.userDocRef,
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
-                      child: Card(
-                        elevation: 0,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                            width: 1,
+                  if (widget.brokerageUser != null && widget.service != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Card(
+                          elevation: 0,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant,
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => Scaffold(
-                                          appBar: AppBar(
-                                              title: const Text('Whale Watch')),
-                                          body: WhaleWatchDashboardWidget(
-                                            brokerageUser:
-                                                widget.brokerageUser!,
-                                            service: widget.service!,
-                                            user: widget.user,
-                                            userDocRef: widget.userDocRef,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                            generativeService:
-                                                widget.generativeService,
-                                          ),
-                                        )));
-                          },
-                          child: Padding(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => Scaffold(
+                                            appBar: AppBar(
+                                                title:
+                                                    const Text('Whale Watch')),
+                                            body: WhaleWatchDashboardWidget(
+                                              brokerageUser:
+                                                  widget.brokerageUser!,
+                                              service: widget.service!,
+                                              user: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                            ),
+                                          )));
+                            },
+                            child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
@@ -613,35 +616,37 @@ class _SearchWidgetState extends State<SearchWidget>
                       ),
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
-                      child: Card(
-                        elevation: 0,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                            width: 1,
+                  if (widget.brokerageUser != null && widget.service != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Card(
+                          elevation: 0,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant,
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const AlphaFactorDiscoveryWidget(),
-                              ),
-                            );
-                          },
-                          child: Padding(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AlphaFactorDiscoveryWidget(),
+                                ),
+                              );
+                            },
+                            child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [

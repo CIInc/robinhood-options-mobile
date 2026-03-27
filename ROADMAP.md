@@ -182,6 +182,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Position Stability:** Resolved runtime crashes when updating positions from quote store.
 - ✅ **Backend Improvements:** Upgraded `firebase-functions` to v7.2.2.
 
+### v0.34.3 ✅ (Released Mar 25, 2026)
+**Advanced Macro Analysis & Strategy Precision**
+- ✅ **Macro Multi-Index:** Implemented 19-indicator weighted scoring (MOVE, KRE, Credit Spreads, Breadth).
+- ✅ **Regime Logic:** Enhanced signal-regime alignment for regime-aware position sizing.
+- ✅ **UI Pulse:** Redesigned Macro Dashboard with indicator detail sheets and weighted heatmaps.
+- ✅ **Search Stability:** Fixed navigation issues in Search widget when filtering signals.
+- ✅ **Cron Efficiency:** Added weekend-aware skipping for macro refresh jobs.
+
 ### v0.35.0 (Q2 2026 - April)
 **Schwab API Integration - Phase 2 & Smart Alerts**
 - Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))

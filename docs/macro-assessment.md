@@ -2,49 +2,52 @@
 
 ## Overview
 
-The Macro Assessment engine provides a real-time, quantitative evaluation of the overall market environment. It analyzes key macroeconomic indicators to determine the current risk regime: **RISK_ON**, **RISK_OFF**, or **NEUTRAL**. This assessment is used to inform trading decisions, adjust risk parameters, and provide context for automated strategies.
+The Macro Assessment engine provides a real-time, quantitative evaluation of the overall market environment. It analyzes 19 institutional-grade macroeconomic indicators to determine the current risk regime: **RISK_ON**, **RISK_OFF**, or **NEUTRAL**. This assessment is used to inform trading decisions, adjust risk parameters, and provide context for automated strategies.
 
 ## Core Components
 
-The assessment algorithm aggregates data from three primary pillars:
+The assessment algorithm aggregates data from 19 indicators across four primary pillars:
 
-### 1. Volatility (VIX)
-We analyze the CBOE Volatility Index (VIX) to gauge market fear and sentiment.
-*   **Low VIX (< 20):** Suggests a stable environment favorable for equities (Bullish).
-*   **High VIX (> 30):** Indicates high stress and potential downside risk (Bearish).
-*   **Trend:** Rising VIX is a leading indicator of market corrections.
+### 1. Volatility (VIX & MOVE)
+*   **VIX (Equities):** We analyze the CBOE Volatility Index to gauge market fear. Low VIX (< 20) is constructive, while spikes above 30 indicate high stress.
+*   **MOVE (Bonds):** The Treasury Volatility Index measures stability in the bond market. Elevated MOVE readings often precede equity de-risking.
 
-### 2. Market Breadth & Sentiment
-We monitor internal market dynamics to identify strength and exhaustion.
-*   **Put/Call Ratio:** Gauges option market sentiment. Extreme levels signal potential reversals.
-*   **Advance/Decline (A/D):** Measures the number of advancing vs. declining stocks to confirm trend strength.
-*   **Risk Appetite:** A synthetic indicator derived from high-beta vs. low-beta asset performance.
+### 2. Credit & Liquidity
+*   **Yield Curve (10Y-3M):** Monitors growth expectations. Inversions (negative values) are primary recession warnings.
+*   **Credit Health (HYG):** Tracks high-yield corporate bonds. Weakness often precedes broad equity sell-offs.
+*   **Credit Spreads (LQD):** Comparing investment-grade bonds against Treasuries reveals corporate borrowing stress.
+*   **Banking Health (KRE):** Regional banks act as the primary transmission mechanism for domestic liquidity.
 
-### 3. Bond Yields (TNX)
-We monitor the 10-Year Treasury Yield (TNX) to understand the interest rate environment.
-*   **Rapidly Rising Yields:** Often headwinds for growth stocks and equities (Bearish).
-*   **Stable/Falling Yields:** generally supportive of equity valuations (Bullish).
+### 3. Market Internals & Breadth
+*   **Market Trend (SPY):** Analyzes the S&P 500 against its 200-day moving average to define the primary trend.
+*   **Advance/Decline (NYA):** Measures the net number of stocks rising versus falling to confirm trend quality.
+*   **Breadth Quality (RSP/SPY):** Compares equal-weight vs. cap-weight performance to detect high-concentration fragility.
+*   **Small Caps (IWM):** Outperformance in small caps is a key sign of "risk-on" rotation.
 
-### 4. Market Trend (Market Width)
-We analyze the price action of major indices (SPY, QQQ) against their long-term Moving Averages (SMA 200, SMA 50).
-*   **Price > SMA 200:** Long-term uptrend.
-*   **Price < SMA 50:** Short-term weakness.
+### 4. Global Context & Sentiment
+*   **Put/Call Ratio (PCCR):** Extremes act as powerful contrarian signals for market reversals.
+*   **Global Risk (EEM):** Monitors stress in emerging markets and global liquidity.
+*   **Global Leadership (FXI):** China's credit cycle often leads global risk sentiment.
+*   **Commodities (Copper, Gold, Oil):** Dr. Copper tracks industrial demand, while Gold serves as a safe haven and inflation hedge.
+*   **Risk Appetite (BTC):** Bitcoin acts as a leading indicator for global speculative liquidity.
 
-## Scoring System
+## Scoring & Weighting System
 
-The engine computes a **Macro Score (0-100)**:
-*   **80-100 (Strong Risk On):** All systems go. Aggressive strategies favored.
-*   **60-79 (Risk On):** Constructive market. Standard sizing.
-*   **40-59 (Neutral):** Mixed signals. Caution advised.
-*   **20-39 (Risk Off):** Defensive posture. Reduce exposure.
-*   **0-19 (Strong Risk Off):** High danger. Capital preservation mode.
+The engine computes a **Weighted Macro Score (0-100)** using specific importance factors for each indicator:
 
-## Historical Tracking
+| Indicator | Weight | Pillar |
+| :--- | :--- | :--- |
+| **VIX** | 15% | Volatility |
+| **Market Trend (SPY)** | 15% | Trend |
+| **TNX / Yield Curve** | 20% | Rates |
+| **Credit (HYG/LQD)** | 13% | Credit |
+| **Breadth (NYA/RSP)** | 7% | Internals |
+| **Others (BTC, Commodities, DXY)** | 30% | Macro Context |
 
-The **AgenticTradingProvider** now maintains a history of previous macro assessments. This enables:
-*   **Trend Visualization:** Displaying whether the market regime is improving or deteriorating.
-*   **Signal Correlation:** Analyzing how indicator changes correspond to past performance.
-*   **Regime Transition Alerts:** Notifications when the macro score crosses key thresholds (e.g., crossing from Neutral to Risk Off).
+### Status Thresholds:
+*   **65-100 (RISK ON):** Constructive environment. Standard or aggressive sizing favored.
+*   **36-64 (NEUTRAL):** Mixed signals. Caution and selective rotation advised.
+*   **0-35 (RISK OFF):** Defensive posture. Focus on capital preservation and hedging.
 
 ## Integration
 
@@ -52,12 +55,24 @@ The **AgenticTradingProvider** now maintains a history of previous macro assessm
 The **Macro Market State** card provides an at-a-glance view of the current status, score, trend icons, and additional indicators (Put/Call, A/D, Risk Appetite).
 
 ### Macro Assessment Dashboard
-A dedicated dashboard view expands the macro assessment into detailed panels for each indicator pillar, historical context, and actionable guidance.
-- **Signal Breadth Distribution:** Visualizes the alignment of indicators across bearish, neutral, and bullish states.
-- **Market Pillar Summary:** Quick statistics on VIX, bond yields, and market trend with real-time momentum tracking.
-- **Divergence Detection:** Automatically flags mixed signals to alert traders of potential regime shifts or trend exhaustion.
-Use it to review trend shifts and understand how macro signals influence rebalancing and risk posture.
+A dedicated dashboard view (`MacroAssessmentDashboardWidget`) expands the assessment into detailed panels:
+- **Indicators Pulse:** A 19-pillar heatmap providing a real-time snapshot of every indicator's signal and trend.
+- **Detailed Indicator Sheets:** Tap any pillar to see its current value, momentum tracking, weighted impact, and descriptive analysis.
+- **Regime Transition Matrices:** Visualization of "Signal Breadth" to see if the majority of indicators confirm the current status.
+- **Dynamic Charting:** Interactive gauge with a multi-color progress gradient representing the current Macro Score.
 
-### Automated Trading
-*   **Position Sizing:** In `RISK_OFF` environments, automated agents (and manual RiskGuard) can automatically reduce position sizes (e.g., cutting allocation by 50%) to preserve capital.
-*   **Strategy Selection:** Certain strategies may be disabled or prioritized based on the macro regime.
+## Automated Trading Integration
+
+*   **Adaptive Position Sizing:** In `RISK_OFF` regimes, automated agents are programmed to automatically reduce position sizes (e.g., 50% reduction).
+*   **Regime-Aware Strategy Selection:**
+    *   **Risk-On:** Priority on Bull Call Spreads, Long Calls, and Cash Secured Puts.
+    *   **Risk-Off:** Priority on Bear Put Spreads, Long Puts, and Covered Calls.
+    *   **Neutral:** Priority on Iron Condors, Calendar Spreads, and Butterfly Spreads.
+*   **RiskGuard Enforcement:** Advanced risk controls use macro status as a multiplier for sector limits and drawdown protection.
+
+## Historical Tracking
+
+The **AgenticTradingProvider** now maintains a history of previous macro assessments. This enables:
+*   **Trend Visualization:** Displaying whether the market regime is improving or deteriorating.
+*   **Signal Correlation:** Analyzing how indicator changes correspond to past performance.
+*   **Regime Transition Alerts:** Notifications when the macro score crosses key thresholds (e.g., crossing from Neutral to Risk Off).

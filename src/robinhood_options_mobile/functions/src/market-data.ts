@@ -6,6 +6,33 @@ import { fetchWithRetry } from "./utils";
 const db = getFirestore();
 
 /**
+ * Maps common index symbols to Twelve Data format.
+ * @param {string} symbol The symbol to map.
+ * @return {string} The mapped symbol.
+ */
+function mapToTwelveDataSymbol(symbol: string): string {
+  const symUpper = symbol.toUpperCase();
+  if (symUpper === "DX-Y.NYB" || symUpper === "DX=F" || symUpper === "DXY") {
+    return "DXY";
+  }
+  if (symUpper === "^VIX") return "VIX";
+  if (symUpper === "^TNX") return "TNX"; // 10Y Yield
+  if (symUpper === "^IRX") return "IRX"; // 13W Yield
+  if (symUpper === "^NYA") return "NYA"; // NYSE Composite
+  if (symUpper === "^MOVE") return "MOVE"; // Bond Vol
+  if (symUpper === "BTC-USD") return "BTC/USD";
+  if (symUpper === "ETH-USD") return "ETH/USD";
+  if (symUpper === "HG=F") return "HG"; // Copper Futures
+  if (symUpper === "GC=F") return "GC"; // Gold Futures
+  if (symUpper === "CL=F") return "CL"; // Oil Futures
+  if (symUpper === "^PCC" || symUpper === "^CPC" || symUpper === "^CPCE") {
+    // Twelve Data has limited Putnam Put/Call data, but let's try standard
+    return symUpper.substring(1);
+  }
+  return symbol;
+}
+
+/**
  * Fetches real-time quotes from Twelve Data.
  * @param {string[]} symbols List of stock symbols.
  * @return {Promise<any>} An object mapping symbols to their quote data.
@@ -18,7 +45,7 @@ async function fetchQuotesFromTwelveData(symbols: string[]): Promise<any> {
   }
 
   // Twelve Data allows comma-separated symbols
-  const symString = symbols.join(",");
+  const symString = symbols.map((s) => mapToTwelveDataSymbol(s)).join(",");
   const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symString)}&apikey=${apiKey}`;
 
   try {
@@ -33,7 +60,8 @@ async function fetchQuotesFromTwelveData(symbols: string[]): Promise<any> {
     const results = symbols.length === 1 ? { [symbols[0]]: data } : data;
 
     for (const symbol of symbols) {
-      const sData = results[symbol];
+      const twelveS = mapToTwelveDataSymbol(symbol);
+      const sData = results[twelveS];
       // Check for sData.code to detect errors per symbol
       if (sData && sData.symbol && !sData.code) {
         quotes[symbol] = {
@@ -352,10 +380,12 @@ export async function getMarketData(symbol: string,
 
   // If still no prices, fetch from Twelve Data (Primary)
   if (!closes.length) {
-    logger.info(`🌐 FRESH FETCH: Attempting Twelve Data for ${symbol}`);
+    const twelveSymbol = mapToTwelveDataSymbol(decodedSymbol);
+
+    logger.info(`🌐 FRESH FETCH: Attempting Twelve Data for ${twelveSymbol}`);
     try {
       const result =
-        await fetchFromTwelveData(decodedSymbol, interval, range || "1y");
+        await fetchFromTwelveData(twelveSymbol, interval, range || "1y");
 
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
