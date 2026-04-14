@@ -466,6 +466,9 @@ class PaperTradingStore extends ChangeNotifier {
       }
       _cashBalance -= amount;
       _updateStockPosition(instrument, quantity, executionPrice, 1);
+
+      _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
+          detail: orderType != null ? "Type: $orderType" : null);
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice) - _commission;
@@ -580,6 +583,16 @@ class PaperTradingStore extends ChangeNotifier {
       }
       _cashBalance -= amount;
       _updateOptionPosition(optionInstrument, quantity, executionPrice, 1);
+
+      String detail =
+          "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
+      if (orderType != null) {
+        detail += " | $orderType";
+      }
+
+      _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+          executionPrice,
+          detail: detail);
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice * multiplier) - _commission;

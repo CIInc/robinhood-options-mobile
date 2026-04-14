@@ -1549,7 +1549,11 @@ class _UserWidgetState extends State<UserWidget> {
       _isLoading = true;
     });
     await widget.auth.signOut();
-    await GoogleSignIn().signOut();
+    try {
+      await GoogleSignIn().signOut();
+    } catch (e) {
+      debugPrint('Google sign-out failed: $e');
+    }
     setState(() {
       _isLoading = false;
     });

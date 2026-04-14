@@ -25,6 +25,8 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -177,23 +179,70 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   void _updateBalances() {
     var instrument = widget.instrument;
-    positionOrdersBalance = instrument.positionOrders != null &&
-            instrument.positionOrders!.isNotEmpty
-        ? instrument.positionOrders!
+    final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
+
+    var positionOrders = instrument.positionOrders ?? [];
+    if (isPaper) {
+      final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
+      var history = paperStore.history
+          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+          .toList();
+      positionOrders =
+          history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+    }
+
+    positionOrdersBalance = positionOrders.isNotEmpty
+        ? positionOrders
             .map((e) =>
                 (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
                 (e.side == "buy" ? 1 : -1))
             .reduce((a, b) => a + b)
         : 0.0;
 
-    optionOrdersPremiumBalance =
-        instrument.optionOrders != null && instrument.optionOrders!.isNotEmpty
-            ? instrument.optionOrders!
-                .map((e) =>
-                    (e.processedPremium != null ? e.processedPremium! : 0) *
-                    (e.direction == "credit" ? 1 : -1))
-                .reduce((a, b) => a + b) as double
-            : 0;
+    var optionOrders = instrument.optionOrders ?? [];
+    if (isPaper) {
+      final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
+      var history = paperStore.history
+          .where(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+          .toList();
+      optionOrders = history.map((h) {
+        return OptionOrder(
+          "paper_${h['timestamp']}",
+          "",
+          h['symbol'],
+          null,
+          0,
+          h['action'] == 'BUY' ? 'debit' : 'credit',
+          [],
+          0,
+          h['price'],
+          h['price'],
+          h['price'],
+          h['quantity'],
+          h['quantity'],
+          "paper_${h['timestamp']}",
+          "filled",
+          "gtc",
+          "immediate",
+          "limit",
+          null,
+          null,
+          null,
+          null,
+          DateTime.tryParse(h['timestamp']),
+          DateTime.tryParse(h['timestamp']),
+        );
+      }).toList();
+    }
+
+    optionOrdersPremiumBalance = optionOrders.isNotEmpty
+        ? optionOrders
+            .map((e) =>
+                (e.processedPremium != null ? e.processedPremium! : 0) *
+                (e.direction == "credit" ? 1 : -1))
+            .reduce((a, b) => a + b) as double
+        : 0;
   }
 
   void _loadData() {
@@ -204,18 +253,59 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     _institutionalOwnershipFuture =
         _yahooService.getInstitutionalOwnership(instrument.symbol);
 
+    final isPaper = user.source == BrokerageSource.paper;
+    final paperStore =
+        isPaper ? Provider.of<PaperTradingStore>(context, listen: false) : null;
+
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
-    var optionOrders = optionOrderStore.items
-        .where((element) => element.chainSymbol == widget.instrument.symbol)
-        .toList();
-    if (optionOrders.isNotEmpty) {
-      futureOptionOrders = Future.value(optionOrders);
-    } else if (widget.instrument.tradeableChainId != null) {
-      futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
-          optionOrderStore, widget.instrument.tradeableChainId!);
+
+    if (isPaper && paperStore != null) {
+      var history = paperStore.history
+          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+          .toList();
+      var paperOrders = history.map((h) {
+        var order = OptionOrder(
+          "paper_${h['timestamp']}",
+          "",
+          h['symbol'],
+          null,
+          0,
+          h['action'] == 'BUY' ? 'debit' : 'credit',
+          [],
+          0,
+          h['price'],
+          h['price'],
+          h['price'],
+          h['quantity'],
+          h['quantity'],
+          "paper_${h['timestamp']}",
+          "filled",
+          "gtc",
+          "immediate",
+          "limit",
+          null,
+          null,
+          null,
+          null,
+          DateTime.tryParse(h['timestamp']),
+          DateTime.tryParse(h['timestamp']),
+        );
+        return order;
+      }).toList();
+      futureOptionOrders = Future.value(paperOrders);
     } else {
-      futureOptionOrders = Future.value([]);
+      var optionOrders = optionOrderStore.items
+          .where((element) => element.chainSymbol == widget.instrument.symbol)
+          .toList();
+      if (optionOrders.isNotEmpty) {
+        futureOptionOrders = Future.value(optionOrders);
+      } else if (widget.instrument.tradeableChainId != null) {
+        futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
+            optionOrderStore, widget.instrument.tradeableChainId!);
+      } else {
+        futureOptionOrders = Future.value([]);
+      }
     }
     futureOptionOrders?.then((value) {
       if (mounted) {
@@ -228,16 +318,27 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     var stockPositionOrderStore =
         Provider.of<InstrumentOrderStore>(context, listen: false);
-    var positionOrders = stockPositionOrderStore.items
-        .where((element) => element.instrumentId == widget.instrument.id)
-        .toList();
-    if (positionOrders.isNotEmpty) {
-      futureInstrumentOrders = Future.value(positionOrders);
+
+    if (isPaper && paperStore != null) {
+      var history = paperStore.history
+          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+          .toList();
+      var paperOrders = history.map((h) {
+        return InstrumentOrder.fromPaperJson(h);
+      }).toList();
+      futureInstrumentOrders = Future.value(paperOrders);
     } else {
-      futureInstrumentOrders = widget.service.getInstrumentOrders(
-          widget.brokerageUser,
-          stockPositionOrderStore,
-          [widget.instrument.url]);
+      var positionOrders = stockPositionOrderStore.items
+          .where((element) => element.instrumentId == widget.instrument.id)
+          .toList();
+      if (positionOrders.isNotEmpty) {
+        futureInstrumentOrders = Future.value(positionOrders);
+      } else {
+        futureInstrumentOrders = widget.service.getInstrumentOrders(
+            widget.brokerageUser,
+            stockPositionOrderStore,
+            [widget.instrument.url]);
+      }
     }
     futureInstrumentOrders?.then((value) {
       if (mounted) {
@@ -1273,8 +1374,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
           Consumer<InstrumentPositionStore>(
               builder: (context, stockPositionStore, child) {
-            var position = stockPositionStore.items
-                .firstWhereOrNull((e) => e.instrument == instrument.url);
+            InstrumentPosition? position;
+            if (widget.brokerageUser.source == BrokerageSource.paper) {
+              final paperStore =
+                  Provider.of<PaperTradingStore>(context, listen: false);
+              position = paperStore.positions.firstWhereOrNull(
+                  (e) => e.instrument == widget.instrument.url);
+            } else {
+              position = stockPositionStore.items.firstWhereOrNull(
+                  (e) => e.instrument == instrument.url);
+            }
             if (position == null) {
               return SliverToBoxAdapter(child: Container());
             }
@@ -1320,9 +1429,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           }),
           Consumer<OptionPositionStore>(
               builder: (context, optionPositionStore, child) {
-            var optionPositions = optionPositionStore.items
-                .where((e) => e.symbol == widget.instrument.symbol)
-                .toList();
+            List<OptionAggregatePosition> optionPositions = [];
+            if (widget.brokerageUser.source == BrokerageSource.paper) {
+              final paperStore =
+                  Provider.of<PaperTradingStore>(context, listen: false);
+              optionPositions = paperStore.optionPositions
+                  .where((e) => e.symbol == widget.instrument.symbol)
+                  .toList();
+            } else {
+              optionPositions = optionPositionStore.items
+                  .where((e) => e.symbol == widget.instrument.symbol)
+                  .toList();
+            }
             optionPositions.sort((a, b) {
               int comp = a.legs.first.expirationDate!
                   .compareTo(b.legs.first.expirationDate!);
@@ -1584,22 +1702,69 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
           Consumer<InstrumentOrderStore>(
               builder: (context, stockOrderStore, child) {
-            //var positionOrders = stockOrderStore.items.where(
-            //    (element) => element.instrumentId == widget.instrument.id);
+            List<InstrumentOrder>? positionOrders;
+            if (widget.brokerageUser.source == BrokerageSource.paper) {
+              final paperStore =
+                  Provider.of<PaperTradingStore>(context, listen: false);
+              var history = paperStore.history
+                  .where((h) =>
+                      h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+                  .toList();
+              positionOrders =
+                  history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+            } else {
+              positionOrders = instrument.positionOrders;
+            }
 
-            if (instrument.positionOrders != null &&
-                instrument.positionOrders!.isNotEmpty) {
-              return positionOrdersWidget(instrument.positionOrders!);
+            if (positionOrders != null && positionOrders.isNotEmpty) {
+              return positionOrdersWidget(positionOrders);
             }
             return const SliverToBoxAdapter(child: SizedBox.shrink());
           }),
           Consumer<OptionOrderStore>(
               builder: (context, optionOrderStore, child) {
-            //var optionOrders = optionOrderStore.items.where(
-            //    (element) => element.chainSymbol == widget.instrument.symbol);
-            if (instrument.optionOrders != null &&
-                instrument.optionOrders!.isNotEmpty) {
-              return _buildOptionOrdersWidget(instrument.optionOrders!);
+            List<OptionOrder>? optionOrders;
+            if (widget.brokerageUser.source == BrokerageSource.paper) {
+              final paperStore =
+                  Provider.of<PaperTradingStore>(context, listen: false);
+              var history = paperStore.history
+                  .where((h) =>
+                      h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+                  .toList();
+              optionOrders = history.map((h) {
+                return OptionOrder(
+                  "paper_${h['timestamp']}",
+                  "",
+                  h['symbol'],
+                  null,
+                  0,
+                  h['action'] == 'BUY' ? 'debit' : 'credit',
+                  [],
+                  0,
+                  h['price'],
+                  h['price'],
+                  h['price'],
+                  h['quantity'],
+                  h['quantity'],
+                  "paper_${h['timestamp']}",
+                  "filled",
+                  "gtc",
+                  "immediate",
+                  "limit",
+                  null,
+                  null,
+                  null,
+                  null,
+                  DateTime.tryParse(h['timestamp']),
+                  DateTime.tryParse(h['timestamp']),
+                );
+              }).toList();
+            } else {
+              optionOrders = instrument.optionOrders;
+            }
+
+            if (optionOrders != null && optionOrders.isNotEmpty) {
+              return _buildOptionOrdersWidget(optionOrders);
             }
             return const SliverToBoxAdapter(child: SizedBox.shrink());
           }),
@@ -3512,16 +3677,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget positionOrdersWidget(List<InstrumentOrder> positionOrders) {
-    if (positionOrders.isNotEmpty) {
-      positionOrdersBalance = positionOrders
-          .map((e) =>
-              (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
-              (e.side == "sell" ? 1 : -1))
-          .reduce((a, b) => a + b);
-    } else {
-      positionOrdersBalance = 0;
-    }
-
+    _updateBalances();
     var filteredPositionOrders = positionOrders
         .where((element) =>
             orderFilters.isEmpty || orderFilters.contains(element.state))
@@ -3659,16 +3815,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildOptionOrdersWidget(List<OptionOrder> optionOrders) {
-    if (optionOrders.isNotEmpty) {
-      optionOrdersPremiumBalance = optionOrders
-          .map((e) =>
-              (e.processedPremium != null ? e.processedPremium! : 0) *
-              (e.direction == "credit" ? 1 : -1))
-          .reduce((a, b) => a + b) as double;
-    } else {
-      optionOrdersPremiumBalance = 0;
-    }
-
+    _updateBalances();
     var filteredOptionOrders = optionOrders
         .where((element) =>
             orderFilters.isEmpty || orderFilters.contains(element.state))

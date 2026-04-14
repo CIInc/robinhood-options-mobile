@@ -73,6 +73,14 @@ class AuthUtil {
     }
   }
 
+  Future<firebase_auth.UserCredential> ensureFirebaseUserSession() async {
+    if (auth.currentUser == null) {
+      debugPrint('No Firebase user found. Signing in anonymously...');
+      return await auth.signInAnonymously();
+    }
+    throw Exception('User already signed in');
+  }
+
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
   Future<User> setUser(FirestoreService store,

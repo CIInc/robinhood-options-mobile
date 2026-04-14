@@ -191,7 +191,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                       ? formatCurrency.format(positionOrder.averagePrice)
                       : "-"),
               _buildDetailRow(
-                  "Fees", formatCurrency.format(positionOrder.fees)),
+                  "Fees",
+                  positionOrder.fees != null
+                      ? formatCurrency.format(positionOrder.fees)
+                      : "-"),
               const Divider(),
               _buildSectionHeader("Order Settings"),
               _buildDetailRow("Side", positionOrder.side),
@@ -357,7 +360,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           trailing: Wrap(
             spacing: 8,
             children: [
-              if (instrument.quoteObj != null) ...[
+              if (instrument.quoteObj != null &&
+                  instrument.quoteObj!.lastTradePrice != null &&
+                  instrument.quoteObj!.adjustedPreviousClose != null) ...[
                 Icon(
                     instrument.quoteObj!.changeToday > 0
                         ? Icons.trending_up

@@ -483,11 +483,7 @@ class _AuthGateState extends State<AuthGate> {
                                           height: 50,
                                           child: SignInButton(
                                             button,
-                                            // onPressed: authButtons[button]!,
-                                            onPressed: () {
-                                              ScaffoldSnackbar.of(context).show(
-                                                  '${button.name} login not yet available.');
-                                            },
+                                            onPressed: authButtons[button],
                                           ),
                                         ),
                                 ),
@@ -846,37 +842,62 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _signInWithGoogle() async {
-    // Trigger the authentication flow
-    final googleUser = await GoogleSignIn().signIn();
+    try {
+      if (kIsWeb) {
+        await auth.signInWithPopup(GoogleAuthProvider());
+        return;
+      }
 
-    // Obtain the auth details from the request
-    final googleAuth = await googleUser?.authentication;
+      final googleSignIn = GoogleSignIn(scopes: const ['email']);
 
-    if (googleAuth != null) {
-      // Create a new credential
+      // Trigger the authentication flow.
+      final googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        return;
+      }
+
+      // Obtain the auth details from the request.
+      final googleAuth = await googleUser.authentication;
+
+      // Create a new credential.
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Once signed in, return the UserCredential
+      // Once signed in, return the UserCredential.
       await auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        error = e.message ?? 'Google sign-in failed. Please try again.';
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        error = e.message ?? 'Google sign-in failed. Please try again.';
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Google sign-in failed. Please try again.';
+      });
     }
   }
 
   Future<void> _signInWithFacebook() async {
-    // Trigger the authentication flow
-    // by default we request the email and the public profile
+    // Trigger the authentication flow.
+    // By default we request the email and public profile permissions.
     final LoginResult result = await FacebookAuth.instance.login();
 
     if (result.status == LoginStatus.success) {
-      // Get access token
+      // Get access token.
       final AccessToken accessToken = result.accessToken!;
 
-      // Login with token
+      // Login with token.
       await auth.signInWithCredential(
         FacebookAuthProvider.credential(accessToken.tokenString),
       );
+    } else if (result.status == LoginStatus.cancelled) {
+      return;
     } else {
       debugPrint('Facebook login did not succeed');
       debugPrint(result.status.toString());

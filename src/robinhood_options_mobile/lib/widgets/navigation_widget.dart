@@ -1790,11 +1790,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       //   futureUser = null;
       // });
 
+      final authUtil = AuthUtil(auth);
+      if (auth.currentUser == null && result.source == BrokerageSource.paper) {
+        await authUtil.ensureFirebaseUserSession();
+      }
+
       if (auth.currentUser != null) {
         var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-        final authUtil = AuthUtil(auth);
-        await authUtil.setUser(_firestoreService,
+        user = await authUtil.setUser(_firestoreService,
             brokerageUserStore: userStore);
+        if (result.source == BrokerageSource.paper) {
+          Provider.of<PaperTradingStore>(context, listen: false)
+              .setUser(auth.currentUser);
+        }
       }
 
       // After the Selection Screen returns a result, hide any previous snackbars

@@ -117,7 +117,15 @@ class FirestoreService {
     if (lastVisited != null) {
       fields['lastVisited'] = lastVisited;
     }
-    await userDocumentReference.update(fields);
+    try {
+      await userDocumentReference.update(fields);
+    } on FirebaseException catch (e) {
+      if (e.code == 'not-found') {
+        debugPrint('User document $uid not found, skipping field update.');
+      } else {
+        rethrow;
+      }
+    }
   }
 
   /// OptionInstrument Methods
