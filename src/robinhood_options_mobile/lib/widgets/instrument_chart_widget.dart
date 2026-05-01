@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/full_screen_instrument_chart_widget.dart';
 import 'package:robinhood_options_mobile/utils/technical_indicators.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 
 const String _indicatorRendererId = 'indicatorLine';
 
@@ -2145,7 +2146,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
-                            }),
+                            }, indicatorKey: 'momentum'),
                             _buildIndicatorWithSignal(
                                 "Stochastic (14, 3)", stochK, (v) {
                               if (v > 80) {
@@ -2160,7 +2161,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   text: "Neutral", color: Colors.grey);
                             },
                                 valueText:
-                                    "K: ${stochK?.toStringAsFixed(2)} D: ${stochD?.toStringAsFixed(2)}"),
+                                    "K: ${stochK?.toStringAsFixed(2)} D: ${stochD?.toStringAsFixed(2)}",
+                                indicatorKey: 'stochastic'),
                             _buildIndicatorWithSignal("CCI (20)", cci, (v) {
                               if (v > 100) {
                                 return const Signal(
@@ -2172,7 +2174,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
-                            }),
+                            }, indicatorKey: 'cci'),
                             _buildIndicatorWithSignal(
                                 "Williams %R (14)", williamsR, (v) {
                               if (v > -20) {
@@ -2185,7 +2187,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
-                            }),
+                            }, indicatorKey: 'williamsR'),
                             _buildIndicatorWithSignal("MACD (12, 26, 9)", macd,
                                 (v) {
                               if (signal == null) {
@@ -2198,7 +2200,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Bearish", color: Colors.red);
-                            }, valueText: "${macd?.toStringAsFixed(2)}"),
+                            },
+                                valueText: "${macd?.toStringAsFixed(2)}",
+                                indicatorKey: 'macd'),
                             _buildIndicatorWithSignal("ROC (9)", roc, (v) {
                               if (v > 0) {
                                 return const Signal(
@@ -2206,7 +2210,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Bearish", color: Colors.red);
-                            }),
+                            }, indicatorKey: 'roc'),
                             _buildIndicatorWithSignal("CMF (20)", cmf, (v) {
                               if (v > 0.05) {
                                 return const Signal(
@@ -2218,7 +2222,9 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Neutral", color: Colors.grey);
-                            }, valueText: cmf?.toStringAsFixed(3)),
+                            },
+                                valueText: cmf?.toStringAsFixed(3),
+                                indicatorKey: 'chaikinMoneyFlow'),
 
                             const Divider(),
                             _buildSectionHeader(context, "Trend Strength"),
@@ -2229,7 +2235,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                               }
                               return const Signal(
                                   text: "Weak Trend", color: Colors.grey);
-                            }),
+                            }, indicatorKey: 'adx'),
                             _buildIndicatorWithSignal("Ichimoku Cloud", spanA,
                                 (v) {
                               final sA = spanA;
@@ -2255,7 +2261,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   color: Colors.grey);
                             },
                                 valueText:
-                                    "A: ${spanA?.toStringAsFixed(2)} B: ${spanB?.toStringAsFixed(2)}"),
+                                    "A: ${spanA?.toStringAsFixed(2)} B: ${spanB?.toStringAsFixed(2)}",
+                                indicatorKey: 'ichimoku'),
                             if (sar != null)
                               _buildIndicatorWithSignal("Parabolic SAR", sar,
                                   (v) {
@@ -2265,31 +2272,39 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                 }
                                 return const Signal(
                                     text: "Bearish", color: Colors.red);
-                              }),
+                              }, indicatorKey: 'parabolicSar'),
 
                             const Divider(),
                             _buildSectionHeader(context, "Moving Averages"),
                             _buildIndicatorWithSignal("SMA 10", sma10,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("SMA 20", sma20,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("SMA 50", sma50,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("SMA 200", sma200,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("EMA 12", ema12,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("EMA 26", ema26,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'priceMovement'),
                             _buildIndicatorWithSignal("VWAP", vwap,
-                                (v) => _comparePrice(currentPrice, v)),
+                                (v) => _comparePrice(currentPrice, v),
+                                indicatorKey: 'vwap'),
                             const Divider(),
                             _buildSectionHeader(context, "Volatility & Volume"),
                             _buildIndicatorWithSignal(
                                 "ATR (14)",
                                 atr,
                                 (v) => const Signal(
-                                    text: "Volatility", color: Colors.grey)),
+                                    text: "Volatility", color: Colors.grey),
+                                indicatorKey: 'atr'),
                             _buildIndicatorWithSignal(
                                 "OBV",
                                 obv,
@@ -2297,7 +2312,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                     text: "Volume", color: Colors.grey),
                                 valueText: formatCompactCurrency
                                     .format(obv)
-                                    .replaceAll('\$', '')),
+                                    .replaceAll('\$', ''),
+                                indicatorKey: 'obv'),
                             _buildIndicatorWithSignal("Bollinger Bands", null,
                                 (v) {
                               if (upper != null && currentPrice > upper) {
@@ -2312,7 +2328,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   text: "Within Bands", color: Colors.grey);
                             },
                                 valueText:
-                                    "U: ${upper?.toStringAsFixed(2)} / L: ${lower?.toStringAsFixed(2)}"),
+                                    "U: ${upper?.toStringAsFixed(2)} / L: ${lower?.toStringAsFixed(2)}",
+                                indicatorKey: 'bollingerBands'),
                             _buildIndicatorWithSignal(
                                 "TTM Squeeze", isSqueezeIndepth ? 1.0 : 0.0,
                                 (v) {
@@ -2353,10 +2370,18 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
 
   Widget _buildIndicatorWithSignal(
       String label, double? value, Signal Function(double) getSignal,
-      {String? valueText}) {
+      {String? valueText, String? indicatorKey}) {
     Signal signal = const Signal(text: "N/A", color: Colors.grey);
     if (value != null) {
       signal = getSignal(value);
+    }
+
+    String tooltipMessage = signal.text;
+    if (indicatorKey != null) {
+      final doc = TradeSignalsProvider.indicatorDocumentation(indicatorKey);
+      if (doc.containsKey('description')) {
+        tooltipMessage = "${signal.text}\n\n${doc['description']}";
+      }
     }
 
     return Padding(
@@ -2364,24 +2389,44 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Row(children: [
-            Text(valueText ?? value?.toStringAsFixed(2) ?? "N/A",
-                style: const TextStyle(fontWeight: FontWeight.w400)),
-            const SizedBox(width: 8),
-            Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                    color: signal.color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                    border:
-                        Border.all(color: signal.color.withValues(alpha: 0.5))),
-                child: Text(signal.text,
-                    style: TextStyle(
-                        color: signal.color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)))
-          ])
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(valueText ?? value?.toStringAsFixed(2) ?? "N/A",
+                    style: const TextStyle(fontWeight: FontWeight.w400)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Tooltip(
+                    message: tooltipMessage,
+                    // triggerMode: TooltipTriggerMode.tap,
+                    showDuration: const Duration(seconds: 30),
+                    child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: signal.color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: signal.color.withValues(alpha: 0.5))),
+                        child: Text(signal.text,
+                            style: TextStyle(
+                                color: signal.color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis)),
+                  ),
+                )
+              ],
+            ),
+          )
         ],
       ),
     );

@@ -200,16 +200,29 @@ class OptionFlowListItem extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (isItm) ...[
+                                    const SizedBox(width: 6),
+                                    OptionFlowFlagBadge(
+                                        flag: 'ITM',
+                                        small: true,
+                                        showTooltip: false),
+                                  ],
+                                ],
+                              ),
                             ),
-                            if (isItm) ...[
-                              const SizedBox(width: 6),
-                              OptionFlowFlagBadge(
-                                  flag: 'ITM', small: true, showTooltip: false),
-                            ],
-                            const Spacer(),
+                            const SizedBox(width: 8),
                             Text(
                               _timeFormat.format(item.lastTradeDate ??
                                   DateTime.fromMillisecondsSinceEpoch(0)),

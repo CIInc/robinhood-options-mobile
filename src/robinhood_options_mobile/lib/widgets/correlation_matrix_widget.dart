@@ -331,9 +331,13 @@ class _CorrelationMatrixWidgetState extends State<CorrelationMatrixWidget> {
                 Icon(Icons.grid_on,
                     color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Correlation Matrix',
-                    style: Theme.of(context).textTheme.titleLarge),
-                const Spacer(),
+                Expanded(
+                  child: Text(
+                    'Correlation Matrix',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.filter_list),
                   onPressed: () => _showFilterDialog(context),

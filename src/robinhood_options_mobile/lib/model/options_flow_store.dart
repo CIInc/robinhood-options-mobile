@@ -1197,6 +1197,7 @@ class OptionsFlowStore extends ChangeNotifier {
 
   Future<void> refresh() async {
     _isLoading = true;
+    _allItems.clear();
     notifyListeners();
 
     try {
