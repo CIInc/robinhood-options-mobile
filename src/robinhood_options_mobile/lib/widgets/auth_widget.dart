@@ -136,21 +136,6 @@ class _AuthGateState extends State<AuthGate> {
         Buttons.Google: () => _handleMultiFactorException(
               _signInWithGoogle,
             ),
-        Buttons.GitHub: () => _handleMultiFactorException(
-              _signInWithGitHub,
-            ),
-        Buttons.Microsoft: () => _handleMultiFactorException(
-              _signInWithMicrosoft,
-            ),
-        Buttons.Twitter: () => _handleMultiFactorException(
-              _signInWithTwitter,
-            ),
-        Buttons.Yahoo: () => _handleMultiFactorException(
-              _signInWithYahoo,
-            ),
-        Buttons.Facebook: () => _handleMultiFactorException(
-              _signInWithFacebook,
-            ),
       };
     }
   }
@@ -224,6 +209,52 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                             ),
                             const SizedBox(height: 20),
+                            ...authButtons.keys.map(
+                              (button) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 5),
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: isLoading
+                                      ? Container(
+                                          color: Colors.grey[200],
+                                          height: 50,
+                                          width: double.infinity,
+                                        )
+                                      : SizedBox(
+                                          width: double.infinity,
+                                          height: 50,
+                                          child: SignInButton(
+                                            button,
+                                            onPressed: authButtons[button],
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              children: [
+                                const Expanded(child: Divider()),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Text(
+                                    'Or sign in with',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
+                                const Expanded(child: Divider()),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
                             SegmentedButton(
                               expandedInsets: const EdgeInsets.all(8),
                               style: SegmentedButton.styleFrom(
@@ -254,7 +285,7 @@ class _AuthGateState extends State<AuthGate> {
                                 }
                               },
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 10),
                             AnimatedCrossFade(
                                 // excludeBottomFocus: false,
                                 firstChild: Padding(
@@ -442,82 +473,7 @@ class _AuthGateState extends State<AuthGate> {
                                         ],
                                       )
                                     : null),
-                            SizedBox(
-                              height: 20,
-                            ),
-                            Row(
-                              children: [
-                                const Expanded(child: Divider()),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                  child: Text(
-                                    'Or sign in with',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                        ),
-                                  ),
-                                ),
-                                const Expanded(child: Divider()),
-                              ],
-                            ),
-                            ...authButtons.keys.map(
-                              (button) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 5),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: isLoading
-                                      ? Container(
-                                          color: Colors.grey[200],
-                                          height: 50,
-                                          width: double.infinity,
-                                        )
-                                      : SizedBox(
-                                          width: double.infinity,
-                                          height: 50,
-                                          child: SignInButton(
-                                            button,
-                                            onPressed: authButtons[button],
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 20),
-                            // if (mode != AuthMode.phone)
-                            //   RichText(
-                            //     text: TextSpan(
-                            //       style: Theme.of(context).textTheme.bodyLarge,
-                            //       children: [
-                            //         TextSpan(
-                            //           text: mode == AuthMode.login
-                            //               ? "Don't have an account? "
-                            //               : 'You have an account? ',
-                            //         ),
-                            //         TextSpan(
-                            //           text: mode == AuthMode.login
-                            //               ? 'Register now'
-                            //               : 'Click to login',
-                            //           style: const TextStyle(color: Colors.blue),
-                            //           recognizer: TapGestureRecognizer()
-                            //             ..onTap = () {
-                            //               setState(() {
-                            //                 mode = mode == AuthMode.login
-                            //                     ? AuthMode.register
-                            //                     : AuthMode.login;
-                            //               });
-                            //             },
-                            //         ),
-                            //       ],
-                            //     ),
-                            //   ),
-                            const SizedBox(height: 10),
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -758,7 +714,8 @@ class _AuthGateState extends State<AuthGate> {
       });
     } catch (e) {
       setState(() {
-        error = 'An unexpected error occurred. Please try again.';
+        debugPrint('Auth unexpected error: $e');
+        error = e.toString();
       });
     }
     setIsLoading();
@@ -848,26 +805,31 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
-      final googleSignIn = GoogleSignIn(scopes: const ['email']);
+      // final googleSignIn = GoogleSignIn.instance(scopes: const ['email', 'profile']);
 
       // Trigger the authentication flow.
-      final googleUser = await googleSignIn.signIn();
+      // final googleUser = await googleSignIn.signIn();
+      final googleUser = await GoogleSignIn.instance
+          .authenticate(scopeHint: const ['email', 'profile']);
 
-      if (googleUser == null) {
-        return;
-      }
+      // if (googleUser.authentication. == null) {
+      //   return;
+      // }
 
       // Obtain the auth details from the request.
-      final googleAuth = await googleUser.authentication;
+      final googleAuth = googleUser.authentication;
 
       // Create a new credential.
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        // accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       // Once signed in, return the UserCredential.
       await auth.signInWithCredential(credential);
+      if (widget.onSignin != null && auth.currentUser != null) {
+        widget.onSignin!(auth.currentUser!);
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         error = e.message ?? 'Google sign-in failed. Please try again.';

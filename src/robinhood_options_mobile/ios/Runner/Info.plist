@@ -22,6 +22,8 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>GIDClientID</key>
+	<string>409452439863-00j7akbam2a150maathv8rug365dmjk2.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -33,6 +35,7 @@
 			<array>
 				<string>realizealpha</string>
 				<string>investing-mobile</string>
+				<string>com.googleusercontent.apps.409452439863-00j7akbam2a150maathv8rug365dmjk2</string>
 			</array>
 		</dict>
 		<dict>

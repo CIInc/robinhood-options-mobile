@@ -36,8 +36,7 @@ dependencies:
   firebase_auth: ^5.4.2
   flutter_facebook_auth: ^7.0.1
   flutter_signin_button: ^2.0.0
-  google_sign_in: ^6.1.0
-  google_sign_in_dartio: ^0.3.0
+  google_sign_in: ^7.2.0
   # Used by Firebase auth for TOTP code.
   barcode_widget: ^2.0.4
   # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications

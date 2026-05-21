@@ -1550,7 +1550,8 @@ class _UserWidgetState extends State<UserWidget> {
     });
     await widget.auth.signOut();
     try {
-      await GoogleSignIn().signOut();
+      // await GoogleSignIn().signOut();
+      await GoogleSignIn.instance.signOut();
     } catch (e) {
       debugPrint('Google sign-out failed: $e');
     }
