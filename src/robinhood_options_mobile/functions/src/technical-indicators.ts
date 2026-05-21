@@ -45,6 +45,7 @@ export interface MultiIndicatorResult {
     chaikinMoneyFlow: IndicatorResult;
     fibonacciRetracements: IndicatorResult;
     pivotPoints: IndicatorResult;
+    gammaExposure: IndicatorResult;
   };
   customIndicators?: Record<string, IndicatorResult>;
   macroAssessment?: {
@@ -3470,10 +3471,11 @@ export function evaluateParabolicSAR(
 }
 
 /**
- * Evaluate all 12 indicators and determine if all are "green" meeting criteria
+ * Evaluate all 20 indicators and determine if all are "green" meeting criteria
  * @param {object} symbolData - Symbol OHLCV data.
  * @param {object} marketData - Market index price and volume data.
  * @param {object} config - Configuration for indicator parameters.
+ * @param {IndicatorResult} gammaExposureResult - Optional pre-computed GEX result.
  * @return {MultiIndicatorResult} Combined result from all indicators.
  */
 export function evaluateAllIndicators(
@@ -3492,7 +3494,8 @@ export function evaluateAllIndicators(
     marketSlowPeriod?: number;
     customIndicators?: CustomIndicatorConfig[];
     enabledIndicators?: string[];
-  } = {}
+  } = {},
+  gammaExposureResult?: IndicatorResult
 ): MultiIndicatorResult {
   // Optimization: Reduce logging spam in loops
   // logger.info("Evaluating all technical indicators", { ... });
@@ -3674,6 +3677,11 @@ export function evaluateAllIndicators(
     evaluatePivotPoints(highs, lows, symbolData.closes) :
     disabledResult;
 
+  // 20. Gamma Exposure (GEX) — pre-computed externally due to options chain requirement
+  const gammaExposure = isEnabled("gammaExposure") && gammaExposureResult ?
+    gammaExposureResult :
+    disabledResult;
+
   // Custom Indicators
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
@@ -3710,6 +3718,7 @@ export function evaluateAllIndicators(
     chaikinMoneyFlow,
     fibonacciRetracements,
     pivotPoints,
+    gammaExposure,
   };
 
   // Calculate weighted signal strength (0-100)
@@ -3725,6 +3734,7 @@ export function evaluateAllIndicators(
     momentum: 1.5,
     macd: 1.5,
     ichimoku: 1.5,
+    gammaExposure: 1.5,
     bollingerBands: 1.2,
     adx: 1.2,
     vwap: 1.2,

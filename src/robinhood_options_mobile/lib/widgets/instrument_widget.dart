@@ -47,6 +47,7 @@ import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_note_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
+import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
@@ -1566,6 +1567,86 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               const SizedBox(height: 4.0),
                               Text(
                                 'View real-time institutional activity for ${instrument.symbol}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+          ],
+          if (instrument.tradeable) ...[
+            SliverToBoxAdapter(
+              child: Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GammaExposurePage(
+                          symbol: instrument.symbol,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10.0),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: const Icon(Icons.adjust, color: Colors.purple),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Gamma Exposure (GEX)',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4.0),
+                              Text(
+                                'Dealer gamma positioning & key levels for ${instrument.symbol}',
                                 style: TextStyle(
                                   fontSize: 14.0,
                                   color: Theme.of(context)
@@ -4430,6 +4511,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'chaikinMoneyFlow',
             'fibonacciRetracements',
             'pivotPoints',
+            'gammaExposure',
           ]) {
             if (enabledIndicators[key] == true) {
               final indicator = indicators[key] as Map<String, dynamic>?;
@@ -4480,6 +4562,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           'chaikinMoneyFlow': 1.0,
           'fibonacciRetracements': 1.2,
           'pivotPoints': 1.2,
+          'gammaExposure': 1.5,
         };
 
         if (enabledCount > 0) {
@@ -4503,6 +4586,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             'chaikinMoneyFlow': 'chaikinMoneyFlow',
             'fibonacciRetracements': 'fibonacciRetracements',
             'pivotPoints': 'pivotPoints',
+            'gammaExposure': 'gammaExposure',
           }.entries) {
             final configKey = entry.key;
             final indicatorKey = entry.value;

@@ -240,6 +240,7 @@ class TradeStrategyConfig {
           'chaikinMoneyFlow': false,
           'fibonacciRetracements': false,
           'pivotPoints': false,
+          'gammaExposure': false,
         }..addAll(enabledIndicators ?? {}),
         indicatorReasons = indicatorReasons ?? {};
 
@@ -479,6 +480,10 @@ class TradeStrategyConfig {
       'roc': false,
       'cci': false,
       'parabolicSar': false,
+      'chaikinMoneyFlow': false,
+      'fibonacciRetracements': false,
+      'pivotPoints': false,
+      'gammaExposure': false,
     };
 
     if (jsonMap == null) return defaults;

@@ -1691,6 +1691,7 @@ class _AgenticTradingSettingsWidgetState
       'chaikinMoneyFlow': 'CMF',
       'fibonacciRetracements': 'Fib',
       'pivotPoints': 'Pivots',
+      'gammaExposure': 'GEX',
     };
 
     final activeKeys = config.enabledIndicators.entries

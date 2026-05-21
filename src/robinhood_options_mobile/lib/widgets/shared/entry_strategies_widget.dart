@@ -76,6 +76,10 @@ class EntryStrategiesWidget extends StatelessWidget {
         'Pivot Points',
         'Support/Resistance based on previous day prices',
         Icons.pivot_table_chart),
+    'gammaExposure': IndicatorMetadata(
+        'Gamma Exposure (GEX)',
+        'Net dealer gamma position — positive pins price, negative amplifies moves',
+        Icons.adjust),
   };
 
   static final TextEditingController _disabled100Controller =

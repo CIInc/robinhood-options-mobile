@@ -5,6 +5,7 @@ import * as indicators from "./technical-indicators";
 import { optimizeSignal } from "./signal-optimizer";
 import { getMacroAssessment } from "./macro-agent";
 import { getMarketData } from "./market-data";
+import { fetchGammaExposure, evaluateGammaExposure } from "./gamma-exposure";
 import { getFirestore } from "firebase-admin/firestore";
 
 const db = getFirestore();
@@ -36,7 +37,17 @@ export async function handleAlphaTask(marketData: any,
 
   // Fetch market index data (SPY by default, or QQQ if configured)
   const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
-  const [marketIndexData, macroAssessment] = await Promise.all([
+
+  // Determine if GEX is enabled for this run
+  const enabledIndicatorKeys: string[] = config?.enabledIndicators ?
+    Object.entries(config.enabledIndicators)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k) :
+    [];
+  const gexEnabled = enabledIndicatorKeys.includes("gammaExposure") ||
+    enabledIndicatorKeys.length === 0; // also fetch if all indicators active
+
+  const [marketIndexData, macroAssessment, gexData] = await Promise.all([
     getMarketData(
       marketIndexSymbol,
       config?.smaPeriodFast || 10,
@@ -44,6 +55,10 @@ export async function handleAlphaTask(marketData: any,
       "1d"
     ),
     getMacroAssessment(),
+    gexEnabled ? fetchGammaExposure(symbol).catch((e) => {
+      logger.warn(`GEX fetch failed for ${symbol}`, e);
+      return null;
+    }) : Promise.resolve(null),
   ]);
 
   // Log detailed market data for debugging cache consistency
@@ -56,18 +71,15 @@ export async function handleAlphaTask(marketData: any,
     lastPrice: lastFewPrices[lastFewPrices.length - 1],
   });
 
-  // Evaluate all 9 technical indicators
+  // Evaluate all 20 technical indicators
   const indicatorConfig = {
     rsiPeriod: config?.rsiPeriod || 14,
     rocPeriod: config?.rocPeriod || 9,
     marketFastPeriod: config?.smaPeriodFast || 10,
     marketSlowPeriod: config?.smaPeriodSlow || 30,
     customIndicators: config?.customIndicators || [],
-    enabledIndicators: config?.enabledIndicators ?
-      Object.entries(config.enabledIndicators)
-        .filter(([, v]) => v === true)
-        .map(([k]) => k) :
-      undefined,
+    enabledIndicators: enabledIndicatorKeys.length > 0 ?
+      enabledIndicatorKeys : undefined,
   };
 
   logger.info(`📊 Evaluating indicators for ${symbol} with config`, {
@@ -78,12 +90,18 @@ export async function handleAlphaTask(marketData: any,
     marketDataClosesLength: marketIndexData.closes.length,
     symbolDataClosesLength: closes.length,
     marketIndexDataLastFive: marketIndexData.closes.slice(-5),
+    gexEnabled,
+    gexAvailable: !!gexData,
   });
+
+  // Pre-compute GEX indicator result if data available
+  const gammaExposureResult = gexData ? evaluateGammaExposure(gexData) : undefined;
 
   const multiIndicatorResult = indicators.evaluateAllIndicators(
     { opens, highs, lows, closes, volumes },
     marketIndexData,
-    indicatorConfig
+    indicatorConfig,
+    gammaExposureResult
   );
 
   // Integrate Macro Assessment

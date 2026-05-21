@@ -1903,6 +1903,7 @@ class _AgenticTradingPerformanceWidgetState
       'chaikinMoneyFlow': 'Chaikin Money Flow',
       'fibonacciRetracements': 'Fibonacci Retracements',
       'pivotPoints': 'Pivot Points',
+      'gammaExposure': 'Gamma Exposure (GEX)',
     };
     return labels[key] ?? key;
   }
