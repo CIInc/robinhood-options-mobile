@@ -95,7 +95,9 @@ export async function handleAlphaTask(marketData: any,
   });
 
   // Pre-compute GEX indicator result if data available
-  const gammaExposureResult = gexData ? evaluateGammaExposure(gexData) : undefined;
+  const gammaExposureResult = gexData ?
+    evaluateGammaExposure(gexData) :
+    undefined;
 
   const multiIndicatorResult = indicators.evaluateAllIndicators(
     { opens, highs, lows, closes, volumes },

@@ -5,7 +5,8 @@
  * Positive GEX → dealers are net long gamma (price pinning / mean-reverting).
  * Negative GEX → dealers are net short gamma (trend amplifying).
  *
- * GEX per strike = (call_gamma × call_OI − put_gamma × put_OI) × 100 × spotPrice
+ * GEX per strike = (call_gamma × call_OI − put_gamma × put_OI)
+ *                 × 100 × spotPrice
  * Black-Scholes gamma: Γ = N'(d1) / (S × σ × √T)
  */
 
@@ -48,6 +49,8 @@ export interface GammaExposureData {
 
 /**
  * Standard normal PDF (probability density function).
+ * @param {number} x - The value to evaluate the PDF at.
+ * @return {number} The PDF value.
  */
 function normalPDF(x: number): number {
   return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
@@ -55,12 +58,12 @@ function normalPDF(x: number): number {
 
 /**
  * Compute Black-Scholes gamma for a single option.
- * @param S - Current underlying price
- * @param K - Strike price
- * @param T - Time to expiration in years
- * @param r - Risk-free rate (default 0.05)
- * @param sigma - Implied volatility (annualized, e.g. 0.25 for 25%)
- * @returns Gamma value or 0 on invalid inputs
+ * @param {number} S - Current underlying price
+ * @param {number} K - Strike price
+ * @param {number} T - Time to expiration in years
+ * @param {number} r - Risk-free rate (default 0.05)
+ * @param {number} sigma - Implied volatility (annualized, e.g. 0.25 for 25%)
+ * @return {number} Gamma value or 0 on invalid inputs
  */
 export function computeBlackScholesGamma(
   S: number,
@@ -72,13 +75,18 @@ export function computeBlackScholesGamma(
   if (S <= 0 || K <= 0 || T <= 0 || sigma <= 0) return 0;
 
   const sqrtT = Math.sqrt(T);
-  const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+  const d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) /
+    (sigma * sqrtT);
 
   return normalPDF(d1) / (S * sigma * sqrtT);
 }
 
 /**
  * Compute GEX for each strike from options chain data.
+ * @param {object} options - Options chain data
+ * @param {number} spotPrice - Current underlying price
+ * @param {number} riskFreeRate - Risk-free rate (default 0.05)
+ * @return {GexStrikeLevel[]} Array of GEX levels per strike
  */
 export function computeGEXByStrike(
   options: {
@@ -104,10 +112,16 @@ export function computeGEXByStrike(
   const now = Date.now();
 
   // Build a map of strike → { callGamma, callOI, putGamma, putOI }
-  const strikeMap: Map<number, Omit<GexStrikeLevel, "netGEX" | "callGEX" | "putGEX">> = new Map();
+  const strikeMap: Map<number, Omit<GexStrikeLevel,
+    "netGEX" | "callGEX" | "putGEX">> = new Map();
 
   const processOption = (
-    opt: { strike: number; impliedVolatility?: number; openInterest?: number; expiration?: Date | number },
+    opt: {
+      strike: number;
+      impliedVolatility?: number;
+      openInterest?: number;
+      expiration?: Date | number;
+    },
     side: "call" | "put",
     defaultExpiration?: Date
   ) => {
@@ -118,14 +132,20 @@ export function computeGEXByStrike(
     let expirationMs: number | null = null;
     const rawExp = opt.expiration ?? defaultExpiration;
     if (rawExp) {
-      expirationMs = rawExp instanceof Date ? rawExp.getTime() : rawExp as number;
+      expirationMs = rawExp instanceof Date ?
+        rawExp.getTime() :
+        rawExp as number;
     }
-    const T = expirationMs ? Math.max((expirationMs - now) / (365 * 24 * 60 * 60 * 1000), 0.001) : 0.05;
+    const T = expirationMs ?
+      Math.max((expirationMs - now) / (365 * 24 * 60 * 60 * 1000), 0.001) :
+      0.05;
 
     const sigma = (opt.impliedVolatility || 0);
-    const effectiveSigma = sigma > 0 ? sigma : 0.3; // fallback to 30% IV if not available
+    const effectiveSigma = sigma > 0 ? sigma : 0.3; // fallback to 30% IV
 
-    const gamma = computeBlackScholesGamma(spotPrice, strike, T, riskFreeRate, effectiveSigma);
+    const gamma = computeBlackScholesGamma(
+      spotPrice, strike, T, riskFreeRate, effectiveSigma
+    );
     const oi = opt.openInterest || 0;
 
     if (!strikeMap.has(strike)) {
@@ -175,6 +195,8 @@ export function computeGEXByStrike(
 
 /**
  * Aggregate GEX across all option expirations.
+ * @param {Array<Array<GexStrikeLevel>>} allExpirationGEX - Levels.
+ * @return {Array<GexStrikeLevel>} Aggregatd levels.
  */
 export function aggregateGEXByStrike(
   allExpirationGEX: GexStrikeLevel[][]
@@ -204,6 +226,9 @@ export function aggregateGEXByStrike(
 /**
  * Find the gamma flip point — the strike where cumulative GEX
  * transitions from positive to negative (or vice versa) nearest to spot price.
+ * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
+ * @param {number} spotPrice - Spot price.
+ * @return {number | null} Gamma flip level.
  */
 export function computeGammaFlipLevel(
   gexByStrike: GexStrikeLevel[],
@@ -242,8 +267,12 @@ export function computeGammaFlipLevel(
 
 /**
  * Find the strike with the highest absolute net GEX (strongest gravity well).
+ * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
+ * @return {number | null} Strike with highest absolute net GEX.
  */
-export function findMaxGammaStrike(gexByStrike: GexStrikeLevel[]): number | null {
+export function findMaxGammaStrike(
+  gexByStrike: GexStrikeLevel[]
+): number | null {
   if (gexByStrike.length === 0) return null;
   return gexByStrike.reduce((maxLevel, level) =>
     Math.abs(level.netGEX) > Math.abs(maxLevel.netGEX) ? level : maxLevel
@@ -252,14 +281,28 @@ export function findMaxGammaStrike(gexByStrike: GexStrikeLevel[]): number | null
 
 /**
  * Compute full GammaExposureData from options chain.
+ * @param {string} symbol - Ticker symbol.
+ * @param {number} spotPrice - Current price.
+ * @param {object} optionsChain - Options chain information.
+ * @return {GammaExposureData} Gamma exposure summary.
  */
 export function computeGammaExposure(
   symbol: string,
   spotPrice: number,
   optionsChain: {
     options: Array<{
-      calls?: Array<{ strike: number; impliedVolatility?: number; openInterest?: number; expiration?: Date | number }>;
-      puts?: Array<{ strike: number; impliedVolatility?: number; openInterest?: number; expiration?: Date | number }>;
+      calls?: Array<{
+        strike: number;
+        impliedVolatility?: number;
+        openInterest?: number;
+        expiration?: Date | number;
+      }>;
+      puts?: Array<{
+        strike: number;
+        impliedVolatility?: number;
+        openInterest?: number;
+        expiration?: Date | number;
+      }>;
       expirationDate?: Date;
     }>;
   }
@@ -286,7 +329,9 @@ export function computeGammaExposure(
   const totalPutGEX = gexByStrike.reduce((sum, l) => sum + l.putGEX, 0);
   const totalNetGEX = totalCallGEX - totalPutGEX;
 
-  const gammaFlip = computeGammaFlipLevel(gexByStrike, spotPrice);
+  const gammaFlip = computeGammaFlipLevel(
+    gexByStrike, spotPrice
+  );
   const maxGammaStrike = findMaxGammaStrike(gexByStrike);
 
   let dealerPositioning: "long_gamma" | "short_gamma" | "neutral";
@@ -300,7 +345,8 @@ export function computeGammaExposure(
     dealerPositioning = "short_gamma";
   }
 
-  // Normalize signal strength 0–100 based on GEX magnitude relative to typical range
+  // Normalize signal strength 0–100 based on GEX magnitude
+  // relative to typical range
   // Use $1B as the "max" scale (very high GEX for mega-caps)
   const gexMagnitude = Math.min(Math.abs(totalNetGEX) / 1e9, 1.0);
   const signalStrength = Math.round(gexMagnitude * 100);
@@ -325,27 +371,32 @@ export function computeGammaExposure(
  * Positive GEX (dealers long) → price pinning / mean-reversion → HOLD/BUY.
  * Negative GEX (dealers short) → trend amplification.
  * If price is above gamma flip → BUY context; below → SELL context.
+ * @param {GammaExposureData} gexData - Gamma exposure data.
+ * @return {IndicatorResult} Indicator signal.
  */
 export function evaluateGammaExposure(
   gexData: GammaExposureData
 ): IndicatorResult {
-  const { totalNetGEX, gammaFlip, spotPrice, dealerPositioning, maxGammaStrike } = gexData;
+  const {
+    totalNetGEX, gammaFlip, spotPrice, dealerPositioning, maxGammaStrike,
+  } = gexData;
 
   const absGEX = Math.abs(totalNetGEX);
   const threshold = 1e6;
 
   if (absGEX < threshold) {
+    const valueStr = (totalNetGEX / 1e6).toFixed(0);
     return {
       value: totalNetGEX,
       signal: "HOLD",
-      reason: `GEX near zero ($${(totalNetGEX / 1e6).toFixed(0)}M): neutral dealer positioning`,
+      reason: `GEX near zero ($${valueStr}M): neutral dealer positioning`,
       metadata: { dealerPositioning, gammaFlip, maxGammaStrike },
     };
   }
 
   // Key signal logic:
-  // 1. Price above gamma flip + dealers long gamma → BUY (supports upward pinning)
-  // 2. Price below gamma flip + dealers short gamma → SELL (downward acceleration)
+  // 1. Price above gamma flip + dealers long gamma → BUY (supports pinning)
+  // 2. Price below gamma flip + dealers short gamma → SELL (acceleration)
   // 3. Dealers long gamma regardless → mild BUY (stabilizing)
   // 4. Dealers short gamma regardless → mild SELL (amplifying)
   let signal: "BUY" | "SELL" | "HOLD";
@@ -358,26 +409,32 @@ export function evaluateGammaExposure(
   if (gammaFlip !== null) {
     if (spotPrice > gammaFlip && dealerPositioning === "long_gamma") {
       signal = "BUY";
-      reason = `GEX +$${gexMillions}M: dealers long gamma, price above flip ${flipStr} → pinning support. Max gamma @ ${maxStr}`;
+      reason = `GEX +$${gexMillions}M: dealers long gamma, price above flip ` +
+        `${flipStr} → pinning support. Max gamma @ ${maxStr}`;
     } else if (spotPrice < gammaFlip && dealerPositioning === "short_gamma") {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers short gamma, price below flip ${flipStr} → trend amplification risk. Max gamma @ ${maxStr}`;
+      reason = `GEX $${gexMillions}M: dealers short gamma, price below flip ` +
+        `${flipStr} → trend amplification risk. Max gamma @ ${maxStr}`;
     } else if (spotPrice > gammaFlip && dealerPositioning === "short_gamma") {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers short gamma above flip ${flipStr} → potential breakdown. Max gamma @ ${maxStr}`;
+      reason = `GEX $${gexMillions}M: dealers short gamma above flip ` +
+        `${flipStr} → potential breakdown. Max gamma @ ${maxStr}`;
     } else {
       // Below flip, long gamma → stabilizing below flip
       signal = "HOLD";
-      reason = `GEX +$${gexMillions}M: dealers long gamma, price below flip ${flipStr} → mixed signals. Max gamma @ ${maxStr}`;
+      reason = `GEX +$${gexMillions}M: dealers long gamma, price below flip ` +
+        `${flipStr} → mixed signals. Max gamma @ ${maxStr}`;
     }
   } else {
     // No gamma flip (all same sign)
     if (dealerPositioning === "long_gamma") {
       signal = "BUY";
-      reason = `GEX +$${gexMillions}M: dealers uniformly long gamma → strong pinning regime. Max gamma @ ${maxStr}`;
+      reason = `GEX +$${gexMillions}M: dealers uniformly long gamma ` +
+        `→ strong pinning regime. Max gamma @ ${maxStr}`;
     } else {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers uniformly short gamma → trending/volatile regime. Max gamma @ ${maxStr}`;
+      reason = `GEX $${gexMillions}M: dealers uniformly short gamma ` +
+        `→ trending/volatile regime. Max gamma @ ${maxStr}`;
     }
   }
 
@@ -385,24 +442,32 @@ export function evaluateGammaExposure(
     value: totalNetGEX,
     signal,
     reason,
-    metadata: { dealerPositioning, gammaFlip, maxGammaStrike, totalNetGEX },
+    metadata: {
+      dealerPositioning,
+      gammaFlip,
+      maxGammaStrike,
+      totalNetGEX,
+    },
   };
 }
 
-// ─── Firestore Cache ──────────────────────────────────────────────────────────
+// ─── Firestore Cache ────────────────────────────────────────────────────────
 
-const getCachedGEX = async (symbol: string): Promise<GammaExposureData | null> => {
+const getCachedGEX = async (
+  sym: string
+): Promise<GammaExposureData | null> => {
   try {
-    const doc = await db.collection(GEX_CACHE_COLLECTION).doc(symbol).get();
+    const coll = GEX_CACHE_COLLECTION;
+    const doc = await db.collection(coll).doc(sym).get();
     if (!doc.exists) return null;
     const data = doc.data() as GammaExposureData;
     if (Date.now() - (data.updatedAt || 0) > GEX_CACHE_TTL) {
-      logger.info(`GEX cache expired for ${symbol}`);
+      logger.info(`GEX cache expired for ${sym}`);
       return null;
     }
     return data;
   } catch (e) {
-    logger.warn(`Error reading GEX cache for ${symbol}`, e);
+    logger.warn(`Error reading GEX cache for ${sym}`, e);
     return null;
   }
 };
@@ -417,16 +482,20 @@ const saveGEXCache = async (data: GammaExposureData): Promise<void> => {
 
 /**
  * Compute GEX for a symbol by fetching its options chain.
- * Uses the existing Firestore-cached options data from options-flow-utils.
+ * Uses existing Firestore-cached options data from options-flow-utils.
+ * @param {string} symbol - Ticker symbol.
+ * @return {Promise<GammaExposureData | null>} Gamma exposure data or null.
  */
-export async function fetchGammaExposure(symbol: string): Promise<GammaExposureData | null> {
+export async function fetchGammaExposure(
+  symbol: string
+): Promise<GammaExposureData | null> {
   // Check cache first
   const cached = await getCachedGEX(symbol);
   if (cached) return cached;
 
   try {
-    // Use existing options flow infrastructure to get the options chain
-    // fetchOptionsFlowForSymbols already handles Twelve Data + Yahoo fallback + caching
+    // Use existing options flow infrastructure
+    // fetchOptionsFlowForSymbols handles Twelve Data + Yahoo
     const flowItems = await fetchOptionsFlowForSymbols([symbol]);
 
     if (flowItems.length === 0) {
@@ -440,8 +509,18 @@ export async function fetchGammaExposure(symbol: string): Promise<GammaExposureD
     // Reconstruct a minimal options chain from flow items to compute GEX
     // Group flow items by expiration date and strike
     const expirationMap: Map<string, {
-      calls: Map<number, { strike: number; impliedVolatility: number; openInterest: number; expiration: Date }>;
-      puts: Map<number, { strike: number; impliedVolatility: number; openInterest: number; expiration: Date }>;
+      calls: Map<number, {
+        strike: number;
+        impliedVolatility: number;
+        openInterest: number;
+        expiration: Date;
+      }>;
+      puts: Map<number, {
+        strike: number;
+        impliedVolatility: number;
+        openInterest: number;
+        expiration: Date;
+      }>;
       expirationDate: Date;
     }> = new Map();
 
@@ -476,7 +555,9 @@ export async function fetchGammaExposure(symbol: string): Promise<GammaExposureD
       })),
     };
 
-    const gexData = computeGammaExposure(symbol, spotPrice, optionsChain);
+    const gexData = computeGammaExposure(
+      symbol, spotPrice, optionsChain
+    );
     await saveGEXCache(gexData);
     return gexData;
   } catch (e) {
@@ -485,19 +566,20 @@ export async function fetchGammaExposure(symbol: string): Promise<GammaExposureD
   }
 }
 
-// ─── Firebase Callable Function ───────────────────────────────────────────────
+// ─── Firebase Callable ──────────────────────────────────────────────────────
 
 /**
  * Callable Firebase Function to fetch Gamma Exposure data for a symbol.
+ * @param req - Request.
  */
 export const getGammaExposure = onCall({
   secrets: ["TWELVE_DATA_API_KEY"],
-}, async (request) => {
-  if (!request.auth) {
+}, async (req) => {
+  if (!req.auth) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
 
-  const symbol: string = request.data?.symbol;
+  const symbol: string = req.data?.symbol;
   if (!symbol || typeof symbol !== "string") {
     throw new HttpsError("invalid-argument", "symbol is required.");
   }
@@ -509,7 +591,7 @@ export const getGammaExposure = onCall({
   if (!gexData) {
     return {
       status: "error",
-      message: `Unable to compute GEX for ${symbol}. Options data may not be available.`,
+      message: `Unable to compute GEX for ${symbol}. Data unavailable.`,
     };
   }
 

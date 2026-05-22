@@ -3457,14 +3457,14 @@ export function evaluateParabolicSAR(
     return {
       value: sar,
       signal: "BUY",
-      reason: `Parabolic SAR below price (${sar.toFixed(2)})`,
+      reason: `SAR below price (${sar.toFixed(2)})`,
       metadata: { sar, isUptrend: true },
     };
   } else {
     return {
       value: sar,
       signal: "SELL",
-      reason: `Parabolic SAR above price (${sar.toFixed(2)})`,
+      reason: `SAR above price (${sar.toFixed(2)})`,
       metadata: { sar, isUptrend: false },
     };
   }
@@ -3473,10 +3473,10 @@ export function evaluateParabolicSAR(
 /**
  * Evaluate all 20 indicators and determine if all are "green" meeting criteria
  * @param {object} symbolData - Symbol OHLCV data.
- * @param {object} marketData - Market index price and volume data.
- * @param {object} config - Configuration for indicator parameters.
- * @param {IndicatorResult} gammaExposureResult - Optional pre-computed GEX result.
- * @return {MultiIndicatorResult} Combined result from all indicators.
+ * @param {object} marketData - Market index data.
+ * @param {object} config - Configuration parameters.
+ * @param {IndicatorResult} gammaExposureResult - Optional pre-computed result.
+ * @return {MultiIndicatorResult} Combined result.
  */
 export function evaluateAllIndicators(
   symbolData: {
@@ -3569,11 +3569,7 @@ export function evaluateAllIndicators(
   // 1. Price Movement (chart patterns)
   const priceMovement = isEnabled("priceMovement") ?
     detectChartPattern(
-      symbolData.closes,
-      volumes,
-      symbolData.opens,
-      highs,
-      lows
+      symbolData.closes, volumes, symbolData.opens, highs, lows
     ) :
     disabledResult;
 
@@ -3677,7 +3673,7 @@ export function evaluateAllIndicators(
     evaluatePivotPoints(highs, lows, symbolData.closes) :
     disabledResult;
 
-  // 20. Gamma Exposure (GEX) — pre-computed externally due to options chain requirement
+  // 20. Gamma Exposure (GEX) — pre-computed externally
   const gammaExposure = isEnabled("gammaExposure") && gammaExposureResult ?
     gammaExposureResult :
     disabledResult;
@@ -3686,8 +3682,6 @@ export function evaluateAllIndicators(
   const customResults: Record<string, IndicatorResult> = {};
   if (config.customIndicators) {
     for (const customConfig of config.customIndicators) {
-      // Assuming custom indicators are always enabled if present in this list
-      // Or we can filter them out before passing
       customResults[customConfig.id] = evaluateCustomIndicator(
         customConfig,
         symbolData.closes,

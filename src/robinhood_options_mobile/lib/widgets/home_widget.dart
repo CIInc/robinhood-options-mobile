@@ -1454,7 +1454,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           // physics: ClampingScrollPhysics(),
           slivers: [
             ExpandedSliverAppBar(
-              title: Text(widget.title!),
+              title: Text(widget.title ?? ""),
               auth: auth,
               firestoreService: FirestoreService(),
               automaticallyImplyLeading: true,
@@ -1463,14 +1463,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
               analytics: widget.analytics,
               observer: widget.observer,
-              user: widget.brokerageUser!,
+              user: widget.brokerageUser,
               firestoreUser: widget.user,
               userDocRef: widget.userDoc,
-              service: widget.service!,
+              service: widget.service,
             ),
             if (isAggregateMode)
               SliverToBoxAdapter(child: _buildAggregateBanner(context)),
-            if (widget.brokerageUser!.source == BrokerageSource.fidelity) ...[
+            if (widget.brokerageUser?.source == BrokerageSource.fidelity) ...[
               SliverToBoxAdapter(
                   child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -1521,7 +1521,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               SliverToBoxAdapter(
                 child: PortfolioChartWidget(
                   key: ValueKey(
-                      'portfolio-chart-${_isAggregateMode() ? 'all' : widget.brokerageUser!.userName}'),
+                      'portfolio-chart-${_isAggregateMode() ? 'all' : (widget.brokerageUser?.userName ?? "")}'),
                   brokerageUser: widget.brokerageUser!,
                   chartDateSpanFilter: chartDateSpanFilter,
                   chartBoundsFilter: chartBoundsFilter,
@@ -1580,20 +1580,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PersonalizedCoachingWidget(
-                            service: widget.service!,
-                            user: widget.brokerageUser!,
-                            userDoc: widget.userDoc,
-                            firebaseUser: widget.user,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
+                      if (widget.service != null &&
+                          widget.brokerageUser != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PersonalizedCoachingWidget(
+                              service: widget.service!,
+                              user: widget.brokerageUser!,
+                              userDoc: widget.userDoc,
+                              firebaseUser: widget.user,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     },
                   ),
                 ),
@@ -1629,7 +1632,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
             // FUTURES: If we have futures accounts, stream aggregated positions
-            if (widget.brokerageUser!.source == BrokerageSource.robinhood) ...[
+            if (widget.brokerageUser?.source == BrokerageSource.robinhood) ...[
               Consumer<FuturesPositionStore>(
                   builder: (context, futuresPositionStore, child) {
                 return FuturesPositionsWidget(

@@ -11,13 +11,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
 typedef OAuthSignIn = void Function();
+
+enum AuthButtonType { apple, google }
 
 // If set to true, the app will request notification permissions to use
 // silent verification for SMS MFA instead of Recaptcha.
@@ -105,7 +107,7 @@ class _AuthGateState extends State<AuthGate> {
     });
   }
 
-  late Map<Buttons, OAuthSignIn> authButtons;
+  late Map<AuthButtonType, OAuthSignIn> authButtons;
 
   @override
   void initState() {
@@ -124,16 +126,16 @@ class _AuthGateState extends State<AuthGate> {
 
     if (!kIsWeb && Platform.isMacOS) {
       authButtons = {
-        Buttons.Apple: () => _handleMultiFactorException(
+        AuthButtonType.apple: () => _handleMultiFactorException(
               _signInWithApple,
             ),
       };
     } else {
       authButtons = {
-        Buttons.Apple: () => _handleMultiFactorException(
+        AuthButtonType.apple: () => _handleMultiFactorException(
               _signInWithApple,
             ),
-        Buttons.Google: () => _handleMultiFactorException(
+        AuthButtonType.google: () => _handleMultiFactorException(
               _signInWithGoogle,
             ),
       };
@@ -224,9 +226,9 @@ class _AuthGateState extends State<AuthGate> {
                                       : SizedBox(
                                           width: double.infinity,
                                           height: 50,
-                                          child: SignInButton(
+                                          child: _buildAuthButton(
                                             button,
-                                            onPressed: authButtons[button],
+                                            authButtons[button],
                                           ),
                                         ),
                                 ),
@@ -1054,4 +1056,38 @@ Future<String?> getTotpFromUser(
   );
 
   return smsCode;
+}
+
+Widget _buildAuthButton(AuthButtonType type, VoidCallback? onPressed) {
+  switch (type) {
+    case AuthButtonType.apple:
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.apple, color: Colors.white),
+        label: const Text('Sign in with Apple',
+            style: TextStyle(color: Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    case AuthButtonType.google:
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const FaIcon(FontAwesomeIcons.google, color: Colors.red),
+        label: const Text('Sign in with Google'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          minimumSize: const Size(double.infinity, 50),
+          side: const BorderSide(color: Colors.grey),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+  }
 }

@@ -35,7 +35,6 @@ dependencies:
   # Authentication with Federated Identity Provider (Google)
   firebase_auth: ^5.4.2
   flutter_facebook_auth: ^7.0.1
-  flutter_signin_button: ^2.0.0
   google_sign_in: ^7.2.0
   # Used by Firebase auth for TOTP code.
   barcode_widget: ^2.0.4
@@ -98,6 +97,7 @@ dependencies:
   scrollable_positioned_list: ^0.3.8
   # SMS and Phone number hints
   smart_auth: ^3.2.0
+  font_awesome_flutter: ^11.0.0
   # Used to set app icon badge count (resetting it on app open).
   app_badge_plus: ^1.2.6
   candlesticks: ^2.1.0

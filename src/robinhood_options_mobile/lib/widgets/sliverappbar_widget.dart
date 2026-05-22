@@ -315,7 +315,9 @@ Future<String?> showProfile(
                             const SnackBar(
                                 content: Text('Signed out'),
                                 behavior: SnackBarBehavior.floating));
-                        Navigator.pop(context);
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
                       }
                     },
                     analytics: analytics,
@@ -431,7 +433,9 @@ Future<String?> showLogin(BuildContext context, FirebaseAuth auth,
                         content: Text(
                             'Signed in ${firebaseUser.displayName != null ? 'as ${firebaseUser.displayName}' : ''}'),
                         behavior: SnackBarBehavior.floating));
-                    Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    }
                   }
                 });
           },
