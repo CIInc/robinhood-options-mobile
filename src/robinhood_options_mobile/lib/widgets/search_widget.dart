@@ -19,6 +19,8 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
@@ -70,6 +72,7 @@ class SearchWidget extends StatefulWidget {
 class _SearchWidgetState extends State<SearchWidget>
     with AutomaticKeepAliveClientMixin<SearchWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  final YahooService _yahooService = YahooService();
 
   String? query;
   TextEditingController? searchCtl;
@@ -111,11 +114,15 @@ class _SearchWidgetState extends State<SearchWidget>
       futureSearch = null;
       watchlistStream = null;
 
-      if (searchCtl?.text.isNotEmpty == true && widget.service != null) {
+      if (searchCtl?.text.isNotEmpty == true) {
         debugPrint(
             "SearchWidget: User changed and text present. Retriggering search.");
-        futureSearch =
-            widget.service!.search(widget.brokerageUser!, searchCtl!.text);
+        if (widget.service != null) {
+          futureSearch =
+              widget.service!.search(widget.brokerageUser!, searchCtl!.text);
+        } else {
+          futureSearch = _yahooService.search(searchCtl!.text);
+        }
       }
     }
   }
@@ -161,9 +168,18 @@ class _SearchWidgetState extends State<SearchWidget>
             .asBroadcastStream();
       }
     } else {
-      futureMovers = Future.value([]);
-      futureLosers = Future.value([]);
-      futureListMovers = Future.value([]);
+      // Fallback for non-logged-in users
+      futureMovers ??= _yahooService.getMovers(direction: "up").then(
+          (results) => results
+              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
+                  q['changePercent'], q['price'], q['description']))
+              .toList());
+      futureLosers ??= _yahooService.getMovers(direction: "down").then(
+          (results) => results
+              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
+                  q['changePercent'], q['price'], q['description']))
+              .toList());
+      futureListMovers ??= Future.value([]);
     }
     // futureListMostPopular ??=
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
@@ -353,59 +369,73 @@ class _SearchWidgetState extends State<SearchWidget>
                             debugPrint(
                                 "SearchWidget: onChanged '$text'. Service: ${widget.service}");
                             setState(() {
-                              if (text.contains(',') &&
-                                  widget.service != null) {
+                              if (text.contains(',')) {
                                 var queries = text
                                     .split(',')
                                     .map((e) => e.trim())
                                     .where((e) => e.isNotEmpty)
                                     .toList();
                                 if (queries.isNotEmpty) {
-                                  futureSearch = Future.wait(queries.map((q) =>
-                                          widget.service!.search(
-                                              widget.brokerageUser!, q)))
-                                      .then((results) {
-                                    var combined = [];
-                                    for (var result in results) {
-                                      if (result is List) {
-                                        combined.addAll(result);
-                                      } else if (result is Map) {
-                                        // Assume Robinhood structure
-                                        try {
-                                          var resList =
-                                              result['results'] as List?;
-                                          if (resList != null) {
-                                            for (var res in resList) {
-                                              var content = res['content'];
-                                              if (content != null) {
-                                                var data =
-                                                    content['data'] as List?;
-                                                if (data != null) {
-                                                  for (var d in data) {
-                                                    if (d['item'] != null) {
-                                                      combined.add(d['item']);
+                                  if (widget.service != null) {
+                                    futureSearch = Future.wait(queries.map(
+                                            (q) => widget.service!.search(
+                                                widget.brokerageUser!, q)))
+                                        .then((results) {
+                                      var combined = [];
+                                      for (var result in results) {
+                                        if (result is List) {
+                                          combined.addAll(result);
+                                        } else if (result is Map) {
+                                          // Assume Robinhood structure
+                                          try {
+                                            var resList =
+                                                result['results'] as List?;
+                                            if (resList != null) {
+                                              for (var res in resList) {
+                                                var content = res['content'];
+                                                if (content != null) {
+                                                  var data =
+                                                      content['data'] as List?;
+                                                  if (data != null) {
+                                                    for (var d in data) {
+                                                      if (d['item'] != null) {
+                                                        combined.add(d['item']);
+                                                      }
                                                     }
                                                   }
                                                 }
                                               }
                                             }
+                                          } catch (e) {
+                                            debugPrint(
+                                                'Error parsing search result: $e');
                                           }
-                                        } catch (e) {
-                                          debugPrint(
-                                              'Error parsing search result: $e');
                                         }
                                       }
-                                    }
-                                    return combined;
-                                  });
+                                      return combined;
+                                    });
+                                  } else {
+                                    futureSearch = Future.wait(queries.map(
+                                            (q) => _yahooService.search(q)))
+                                        .then((results) {
+                                      var combined = [];
+                                      for (var result in results) {
+                                        combined.addAll(result);
+                                      }
+                                      return combined;
+                                    });
+                                  }
                                   return;
                                 }
                               }
-                              futureSearch =
-                                  text.isEmpty || widget.service == null
-                                      ? Future.value(null)
-                                      : widget.service!
-                                          .search(widget.brokerageUser!, text);
+                              if (text.isEmpty) {
+                                futureSearch = Future.value(null);
+                              } else if (widget.service != null) {
+                                futureSearch = widget.service!
+                                    .search(widget.brokerageUser!, text);
+                              } else {
+                                futureSearch = _yahooService.search(text);
+                              }
                             });
                           },
                           textInputAction: TextInputAction.search,
@@ -565,57 +595,57 @@ class _SearchWidgetState extends State<SearchWidget>
                                           )));
                             },
                             child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.visibility_outlined,
+                                        size: 24, color: Colors.blue),
                                   ),
-                                  child: const Icon(Icons.visibility_outlined,
-                                      size: 24, color: Colors.blue),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Whale Watch",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                                fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Track insider filings & institutional moves",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant),
-                                      ),
-                                    ],
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Whale Watch",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Track insider filings & institutional moves",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Icon(Icons.chevron_right,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
-                              ],
+                                  Icon(Icons.chevron_right,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                   if (widget.brokerageUser != null && widget.service != null)
                     SliverToBoxAdapter(
                       child: Padding(
@@ -647,57 +677,58 @@ class _SearchWidgetState extends State<SearchWidget>
                               );
                             },
                             child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.purple.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.purple.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.analytics_outlined,
+                                        size: 24, color: Colors.purple),
                                   ),
-                                  child: const Icon(Icons.analytics_outlined,
-                                      size: 24, color: Colors.purple),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Alpha Factor Discovery",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                                fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Backtest predictive factors & correlations",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant),
-                                      ),
-                                    ],
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Alpha Factor Discovery",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Backtest predictive factors & correlations",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Icon(Icons.chevron_right,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant),
-                              ],
+                                  Icon(Icons.chevron_right,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                   SliverToBoxAdapter(
                     child: OptionsFlowCardWidget(
                       brokerageUser: widget.brokerageUser,
@@ -1141,29 +1172,31 @@ class _SearchWidgetState extends State<SearchWidget>
                       ),
                     ])),
             onTap: () async {
-              if (widget.brokerageUser == null || widget.service == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text(
-                        "Please link a brokerage account to view details.")));
+              IBrokerageService activeService =
+                  widget.service ?? PaperService();
+              BrokerageUser activeUser = widget.brokerageUser ??
+                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
+
+              final instrumentStore =
+                  Provider.of<InstrumentStore>(context, listen: false);
+              var instrument = await activeService.getInstrumentBySymbol(
+                  activeUser, instrumentStore, movers[index].instrumentUrl);
+
+              if (!mounted) return;
+
+              if (instrument == null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text("Instrument ${movers[index].symbol} not found.")));
                 return;
               }
-              var instrument = await widget.service!.getInstrument(
-                  widget.brokerageUser!,
-                  instrumentStore!,
-                  movers[index].instrumentUrl);
 
-              /* For navigation within this tab, uncomment
-                widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru,
-                        watchLists[index].instrumentObj as Instrument)));
-                        */
-              if (!mounted) return;
               Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                            widget.brokerageUser!,
-                            widget.service!,
+                            activeUser,
+                            activeService,
                             instrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
@@ -1301,35 +1334,37 @@ class _SearchWidgetState extends State<SearchWidget>
                       ]
                     ])),
             onTap: () async {
-              if (widget.brokerageUser == null || widget.service == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text(
-                        "Please link a brokerage account to view details.")));
-                return;
-              }
+              IBrokerageService activeService =
+                  widget.service ?? PaperService();
+              BrokerageUser activeUser = widget.brokerageUser ??
+                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
+
               final instrumentStore =
                   Provider.of<InstrumentStore>(context, listen: false);
-              var instrument = await widget.service!.getInstrumentBySymbol(
-                  widget.brokerageUser!, instrumentStore, data["symbol"]);
+              var instrument = await activeService.getInstrumentBySymbol(
+                  activeUser, instrumentStore, data["symbol"]);
 
               if (!mounted) return;
 
-              // var instrument = Instrument.fromJson(data);
-              if (instrument != null) {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                              widget.brokerageUser!,
-                              widget.service!,
-                              instrument,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                            )));
+              if (instrument == null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Instrument ${data["symbol"]} not found.")));
+                return;
               }
+
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => InstrumentWidget(
+                            activeUser,
+                            activeService,
+                            instrument,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                          )));
             }));
     /*
     return ListTile(
