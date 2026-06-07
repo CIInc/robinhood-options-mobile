@@ -62,8 +62,12 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires camera access to allow you to take photos of documents, screenshots, and upload profile photos for investor groups.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>BioAuth is needed to login</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to provide timezone-accurate market hours, localized news, and region-specific financial details.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to let you upload images for documents, screenshots, and portfolio documentation.</string>
 	<key>SKAdNetworkItems</key>

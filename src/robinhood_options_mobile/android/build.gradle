@@ -26,6 +26,32 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
+subprojects {
+    def configureProject = { p ->
+        if (p.hasProperty('android')) {
+            p.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+                try {
+                    kotlinOptions {
+                        jvmTarget = "17"
+                    }
+                } catch (ignored) {}
+            }
+        }
+    }
+
+    if (project.state.executed) {
+        configureProject(project)
+    } else {
+        project.afterEvaluate {
+            configureProject(project)
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
