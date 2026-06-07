@@ -14,7 +14,10 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import { IndicatorResult } from "./technical-indicators";
-import { fetchOptionsFlowForSymbols } from "./options-flow-utils";
+import {
+  getYahooOptionsResult,
+  fetchOptionsFlowForSymbols,
+} from "./options-flow-utils";
 
 const db = getFirestore();
 
@@ -45,6 +48,10 @@ export interface GammaExposureData {
   dealerPositioning: "long_gamma" | "short_gamma" | "neutral";
   signalStrength: number; // 0–100 expressing conviction
   updatedAt: number;
+  expirationFilter?: string;
+  callWall: number | null;
+  putWall: number | null;
+  gexRatio: number;
 }
 
 /**
@@ -334,6 +341,27 @@ export function computeGammaExposure(
   );
   const maxGammaStrike = findMaxGammaStrike(gexByStrike);
 
+  // Find call/put walls
+  let callWall: number | null = null;
+  let maxCallGEXVal = -1;
+  let putWall: number | null = null;
+  let maxPutGEXVal = -1;
+
+  for (const s of gexByStrike) {
+    if (s.callGEX > maxCallGEXVal && s.callOI > 0) {
+      maxCallGEXVal = s.callGEX;
+      callWall = s.strike;
+    }
+    if (s.putGEX > maxPutGEXVal && s.putOI > 0) {
+      maxPutGEXVal = s.putGEX;
+      putWall = s.strike;
+    }
+  }
+
+  const gexRatio = (totalCallGEX + totalPutGEX) > 0 ?
+    totalCallGEX / (totalCallGEX + totalPutGEX) :
+    0.5;
+
   let dealerPositioning: "long_gamma" | "short_gamma" | "neutral";
   const absGEX = Math.abs(totalNetGEX);
   const threshold = 1e6; // $1M threshold for neutral zone
@@ -363,6 +391,9 @@ export function computeGammaExposure(
     dealerPositioning,
     signalStrength,
     updatedAt: Date.now(),
+    callWall,
+    putWall,
+    gexRatio,
   };
 }
 
@@ -379,6 +410,7 @@ export function evaluateGammaExposure(
 ): IndicatorResult {
   const {
     totalNetGEX, gammaFlip, spotPrice, dealerPositioning, maxGammaStrike,
+    callWall, putWall, gexRatio,
   } = gexData;
 
   const absGEX = Math.abs(totalNetGEX);
@@ -390,7 +422,14 @@ export function evaluateGammaExposure(
       value: totalNetGEX,
       signal: "HOLD",
       reason: `GEX near zero ($${valueStr}M): neutral dealer positioning`,
-      metadata: { dealerPositioning, gammaFlip, maxGammaStrike },
+      metadata: {
+        dealerPositioning,
+        gammaFlip,
+        maxGammaStrike,
+        callWall,
+        putWall,
+        gexRatio,
+      },
     };
   }
 
@@ -447,6 +486,9 @@ export function evaluateGammaExposure(
       gammaFlip,
       maxGammaStrike,
       totalNetGEX,
+      callWall,
+      putWall,
+      gexRatio,
     },
   };
 }
@@ -454,115 +496,167 @@ export function evaluateGammaExposure(
 // ─── Firestore Cache ────────────────────────────────────────────────────────
 
 const getCachedGEX = async (
-  sym: string
+  sym: string,
+  ignoreExpiration = false
 ): Promise<GammaExposureData | null> => {
   try {
     const coll = GEX_CACHE_COLLECTION;
     const doc = await db.collection(coll).doc(sym).get();
     if (!doc.exists) return null;
-    const data = doc.data() as GammaExposureData;
-    if (Date.now() - (data.updatedAt || 0) > GEX_CACHE_TTL) {
+    const data = doc.data() as any;
+
+    // Handle potential Firestore Timestamp
+    let updatedAt = data.updatedAt;
+    if (updatedAt && typeof updatedAt.toDate === "function") {
+      updatedAt = updatedAt.toDate().getTime();
+    }
+    const updatedAtMs = typeof updatedAt === "number" ? updatedAt : 0;
+
+    if (!ignoreExpiration && Date.now() - updatedAtMs > GEX_CACHE_TTL) {
       logger.info(`GEX cache expired for ${sym}`);
       return null;
     }
-    return data;
+    return { ...data, updatedAt: updatedAtMs } as GammaExposureData;
   } catch (e) {
     logger.warn(`Error reading GEX cache for ${sym}`, e);
     return null;
   }
 };
 
-const saveGEXCache = async (data: GammaExposureData): Promise<void> => {
+const saveGEXCache = async (
+  data: GammaExposureData,
+  cacheKey: string
+): Promise<void> => {
   try {
-    await db.collection(GEX_CACHE_COLLECTION).doc(data.symbol).set(data);
+    await db.collection(GEX_CACHE_COLLECTION).doc(cacheKey).set(data);
   } catch (e) {
-    logger.warn(`Error saving GEX cache for ${data.symbol}`, e);
+    logger.warn(`Error saving GEX cache for ${cacheKey}`, e);
   }
 };
 
 /**
+ * Filter options chain based on the expiration filter.
+ * @param {any} optionsChain - Options chain
+ * @param {string} [filter] - Expiration filter
+ * @return {any} Filtered options chain.
+ */
+function filterOptionsByExpiration(
+  optionsChain: any,
+  filter?: string
+): any {
+  if (!filter || filter === "all" || !optionsChain.options) {
+    return optionsChain;
+  }
+  const now = Date.now();
+  const filteredOptions = optionsChain.options.filter((opt: any) => {
+    let expDate = opt.expirationDate;
+    if (!expDate) {
+      const c = opt.calls?.[0];
+      const p = opt.puts?.[0];
+      const exp = c?.expiration || p?.expiration;
+      if (exp) expDate = new Date(exp);
+    }
+    if (!expDate) return false;
+
+    const d = expDate instanceof Date ? expDate : new Date(expDate);
+    const diffTime = d.getTime() - now;
+    const days = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (filter === "0-7") return days >= -1 && days <= 7;
+    if (filter === "8-30") return days > 7 && days <= 30;
+    if (filter === "30+") return days > 30;
+    return true;
+  });
+
+  return { ...optionsChain, options: filteredOptions };
+}
+
+/**
  * Compute GEX for a symbol by fetching its options chain.
- * Uses existing Firestore-cached options data from options-flow-utils.
+ * Uses existing Firestore-cached options data to avoid rate limits.
  * @param {string} symbol - Ticker symbol.
+ * @param {number} [providedSpotPrice] - Optional spot price from client.
+ * @param {string} [expirationFilter] - Optional expiration date filter.
  * @return {Promise<GammaExposureData | null>} Gamma exposure data or null.
  */
 export async function fetchGammaExposure(
-  symbol: string
+  symbol: string,
+  providedSpotPrice?: number,
+  expirationFilter?: string
 ): Promise<GammaExposureData | null> {
-  // Check cache first
-  const cached = await getCachedGEX(symbol);
-  if (cached) return cached;
+  const filter = expirationFilter || "all";
+  const cacheKey = filter === "all" ? symbol : `${symbol}_${filter}`;
+
+  // Check GEX cache first
+  const cached = await getCachedGEX(cacheKey);
+
+  // If we have a cache and either no provided price or price matches, use cache
+  if (cached && (!providedSpotPrice ||
+    Math.abs(cached.spotPrice - providedSpotPrice) /
+    cached.spotPrice < 0.001)) {
+    return cached;
+  }
 
   try {
-    // Use existing options flow infrastructure
-    // fetchOptionsFlowForSymbols handles Twelve Data + Yahoo
-    const flowItems = await fetchOptionsFlowForSymbols([symbol]);
+    // Attempt cache fetch first
+    let optionsResult = await getYahooOptionsResult(symbol);
 
-    if (flowItems.length === 0) {
-      logger.warn(`No options data available for GEX computation: ${symbol}`);
-      return null;
+    if (!optionsResult || !optionsResult.options ||
+      optionsResult.options.length === 0) {
+      logger.info(
+        `Options cache miss/empty for GEX: ${symbol}. Fetching live options.`
+      );
+      // Triggers live API fetch & caching to firestore under the hood
+      await fetchOptionsFlowForSymbols([symbol], "all");
+      // Retrieve again from cache
+      optionsResult = await getYahooOptionsResult(symbol);
     }
 
-    const spotPrice = flowItems[0]?.spotPrice || 0;
-    if (spotPrice <= 0) return null;
-
-    // Reconstruct a minimal options chain from flow items to compute GEX
-    // Group flow items by expiration date and strike
-    const expirationMap: Map<string, {
-      calls: Map<number, {
-        strike: number;
-        impliedVolatility: number;
-        openInterest: number;
-        expiration: Date;
-      }>;
-      puts: Map<number, {
-        strike: number;
-        impliedVolatility: number;
-        openInterest: number;
-        expiration: Date;
-      }>;
-      expirationDate: Date;
-    }> = new Map();
-
-    for (const item of flowItems) {
-      const expKey = item.expirationDate;
-      if (!expirationMap.has(expKey)) {
-        expirationMap.set(expKey, {
-          calls: new Map(),
-          puts: new Map(),
-          expirationDate: new Date(expKey),
-        });
-      }
-      const expEntry = expirationMap.get(expKey)!;
-      const optEntry = {
-        strike: item.strike,
-        impliedVolatility: item.impliedVolatility || 0.3,
-        openInterest: item.openInterest || 0,
-        expiration: new Date(expKey),
-      };
-      if (item.type === "Call") {
-        expEntry.calls.set(item.strike, optEntry);
-      } else {
-        expEntry.puts.set(item.strike, optEntry);
-      }
+    if (!optionsResult || !optionsResult.options ||
+      optionsResult.options.length === 0) {
+      logger.warn(
+        `No options data available after live fetch for GEX: ${symbol}`
+      );
+      // Fallback to expired cache if available
+      return await getCachedGEX(cacheKey, true);
     }
 
-    const optionsChain = {
-      options: Array.from(expirationMap.values()).map((exp) => ({
-        calls: Array.from(exp.calls.values()),
-        puts: Array.from(exp.puts.values()),
-        expirationDate: exp.expirationDate,
-      })),
-    };
-
-    const gexData = computeGammaExposure(
-      symbol, spotPrice, optionsChain
+    // Filter by options expiration date if requested
+    const filteredResult = filterOptionsByExpiration(
+      optionsResult,
+      filter
     );
-    await saveGEXCache(gexData);
+
+    if (!filteredResult.options || filteredResult.options.length === 0) {
+      logger.warn(`No options found after filter ${filter}: ${symbol}`);
+      return await getCachedGEX(cacheKey, true);
+    }
+
+    // Prioritize provided spot price, then Yahoo quote
+    const spotPrice = providedSpotPrice ||
+      optionsResult.quote?.regularMarketPrice || 0;
+
+    if (spotPrice <= 0) {
+      logger.warn(`No spot price available for GEX: ${symbol}`);
+      return await getCachedGEX(cacheKey, true);
+    }
+
+    // Compute GEX using the filtered chain
+    const gexData = computeGammaExposure(
+      symbol,
+      spotPrice,
+      filteredResult as any
+    );
+
+    gexData.expirationFilter = filter;
+
+    // Save to GEX cache
+    await saveGEXCache(gexData, cacheKey);
+
     return gexData;
   } catch (e) {
     logger.error(`Error computing GEX for ${symbol}`, e);
-    return null;
+    return await getCachedGEX(cacheKey, true);
   }
 }
 
@@ -580,13 +674,23 @@ export const getGammaExposure = onCall({
   }
 
   const symbol: string = req.data?.symbol;
+  const spotPrice: number | undefined = req.data?.spotPrice;
+  const expirationFilter: string | undefined = req.data?.expirationFilter;
+
   if (!symbol || typeof symbol !== "string") {
     throw new HttpsError("invalid-argument", "symbol is required.");
   }
 
-  logger.info(`getGammaExposure called for ${symbol}`);
+  logger.info(`getGammaExposure called for ${symbol}`, {
+    spotPrice,
+    expirationFilter,
+  });
 
-  const gexData = await fetchGammaExposure(symbol.toUpperCase());
+  const gexData = await fetchGammaExposure(
+    symbol.toUpperCase(),
+    spotPrice,
+    expirationFilter
+  );
 
   if (!gexData) {
     return {
@@ -600,3 +704,50 @@ export const getGammaExposure = onCall({
     data: gexData,
   };
 });
+
+/**
+ * Callable Firebase Function to fetch Gamma Exposure data for a collection
+ * of top symbols.
+ */
+export const getTopGammaExposure = onCall({
+  secrets: ["TWELVE_DATA_API_KEY"],
+}, async (req) => {
+  if (!req.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+
+  const defaultSymbols = [
+    "SPY", "QQQ", "IWM", "TSLA", "NVDA", "AAPL", "MSFT", "AMZN",
+    "META", "GOOGL", "AMD", "NFLX", "COIN", "SMCI",
+  ];
+
+  logger.info("getTopGammaExposure called");
+
+  const results: GammaExposureData[] = [];
+  const promises = defaultSymbols.map(async (symbol) => {
+    try {
+      const gexData = await fetchGammaExposure(symbol, undefined, "all");
+      if (gexData) {
+        // Strip out huge gexByStrike to save network size transfer
+        const summary = { ...gexData };
+        delete (summary as any).gexByStrike;
+        results.push(summary);
+      }
+    } catch (e) {
+      logger.warn(`Error fetching GEX for top symbol ${symbol}`, e);
+    }
+  });
+
+  await Promise.all(promises);
+
+  // Sort by absolute Net GEX descending
+  const sorted = [...results].sort(
+    (a, b) => Math.abs(b.totalNetGEX) - Math.abs(a.totalNetGEX)
+  );
+
+  return {
+    status: "ok",
+    data: sorted,
+  };
+});
+

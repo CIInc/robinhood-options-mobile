@@ -78,7 +78,7 @@ dependencies:
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.19.0
   http: ^1.3.0
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^8.0.0
   # Schwab login integration.
   flutter_web_auth_2: ^4.1.0
   # uni_links: ^0.5.1

@@ -1,4 +1,4 @@
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { fetchWithRetry } from "./utils";
 // import { logger } from "firebase-functions/logger";
 
@@ -68,7 +68,7 @@ export interface OptionFlowItem {
   ask?: number;
 }
 
-interface YahooQuote {
+export interface YahooQuote {
   marketCap?: number;
   sector?: string;
   earningsTimestamp?: number;
@@ -77,7 +77,7 @@ interface YahooQuote {
   [key: string]: unknown;
 }
 
-interface YahooOption {
+export interface YahooOption {
   percentChange?: number;
   change?: number;
   lastPrice?: number;
@@ -94,7 +94,7 @@ interface YahooOption {
   inTheMoney?: boolean;
 }
 
-interface YahooOptionsResult {
+export interface YahooOptionsResult {
   expirationDates?: Date[];
   hasMiniOptions?: boolean;
   quote?: YahooQuote;
@@ -115,10 +115,15 @@ const CACHE_CONFIG = {
   COLLECTION: "yahoo_options_results",
 };
 
+/**
+ * Converts Firestore Timestamps to JavaScript Date objects.
+ * @param {any} obj The object to convert.
+ * @return {any} The object with Timestamps converted to Dates.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const convertTimestampsToDates = (obj: any): any => {
   if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Timestamp) return obj.toDate();
+  if (typeof obj.toDate === "function") return obj.toDate();
   if (Array.isArray(obj)) return obj.map(convertTimestampsToDates);
   if (typeof obj === "object") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,7 +138,7 @@ const convertTimestampsToDates = (obj: any): any => {
   return obj;
 };
 
-const getYahooOptionsResult = async (
+export const getYahooOptionsResult = async (
   symbol: string
 ): Promise<YahooOptionsResult | null> => {
   try {
@@ -638,15 +643,13 @@ const fetchForSymbol = async (
     }
   } catch (e) {
     console.error(`Failed to fetch/update options for ${symbol}`, e);
-    throw e;
-    // if (
-    //   !cachedResult ||
-    //   !cachedResult.quote ||
-    //   !cachedResult.expirationDates?.every((d) =>
-    //     cachedResult?.options?.findIndex((o) =>
-    //       o.expirationDate === d) ?? -1 >= 0)) {
-    return [];
-    // }
+    // If we have some data in Firestore, use it instead of failing completely
+    if (cachedResult && cachedResult.options &&
+      cachedResult.options.length > 0) {
+      console.log(`Using stale data for ${symbol} due to fetch error`);
+    } else {
+      return [];
+    }
   }
 
   // Process results

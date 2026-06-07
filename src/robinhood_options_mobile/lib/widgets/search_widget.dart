@@ -35,6 +35,7 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/gamma_exposure_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 
@@ -672,6 +673,97 @@ class _SearchWidgetState extends State<SearchWidget>
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
+                                      GammaExposureDashboardWidget(
+                                    brokerageUser: widget.brokerageUser,
+                                    service: widget.service,
+                                    user: widget.user,
+                                    userDocRef: widget.userDocRef,
+                                    analytics: widget.analytics,
+                                    observer: widget.observer,
+                                    generativeService: widget.generativeService,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.green.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.adjust_outlined,
+                                        size: 24, color: Colors.green),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Gamma Exposure (GEX)",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Analyze dealer positioning & volatility regimes",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (widget.brokerageUser != null && widget.service != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        child: Card(
+                          elevation: 0,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color:
+                                  Theme.of(context).colorScheme.outlineVariant,
+                              width: 1,
+                            ),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
                                       const AlphaFactorDiscoveryWidget(),
                                 ),
                               );
@@ -1180,7 +1272,7 @@ class _SearchWidgetState extends State<SearchWidget>
               final instrumentStore =
                   Provider.of<InstrumentStore>(context, listen: false);
               var instrument = await activeService.getInstrumentBySymbol(
-                  activeUser, instrumentStore, movers[index].instrumentUrl);
+                  activeUser, instrumentStore, movers[index].symbol);
 
               if (!mounted) return;
 

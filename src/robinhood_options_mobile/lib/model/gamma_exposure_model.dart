@@ -11,7 +11,8 @@ class GexStrikeLevel {
   final double putOI;
   final double callGEX;
   final double putGEX;
-  final double netGEX; // positive = long gamma (pinning), negative = short gamma (trending)
+  final double
+      netGEX; // positive = long gamma (pinning), negative = short gamma (trending)
 
   const GexStrikeLevel({
     required this.strike,
@@ -92,6 +93,10 @@ class GammaExposureData {
   final DealerPositioning dealerPositioning;
   final int signalStrength; // 0–100
   final int updatedAt; // epoch ms
+  final String? expirationFilter;
+  final double? callWall; // strike with highest callGEX
+  final double? putWall; // strike with highest putGEX
+  final double gexRatio; // call GEX relative ratio
 
   const GammaExposureData({
     required this.symbol,
@@ -105,6 +110,10 @@ class GammaExposureData {
     required this.dealerPositioning,
     required this.signalStrength,
     required this.updatedAt,
+    this.expirationFilter,
+    this.callWall,
+    this.putWall,
+    this.gexRatio = 0.5,
   });
 
   factory GammaExposureData.fromJson(Map<String, dynamic> json) {
@@ -136,6 +145,10 @@ class GammaExposureData {
       dealerPositioning: positioning,
       signalStrength: json['signalStrength'] as int? ?? 0,
       updatedAt: json['updatedAt'] as int? ?? 0,
+      expirationFilter: json['expirationFilter'] as String?,
+      callWall: (json['callWall'] as num?)?.toDouble(),
+      putWall: (json['putWall'] as num?)?.toDouble(),
+      gexRatio: (json['gexRatio'] as num?)?.toDouble() ?? 0.5,
     );
   }
 
@@ -148,6 +161,7 @@ class GammaExposureData {
         if (gammaFlip != null) 'gammaFlip': gammaFlip,
         if (maxGammaStrike != null) 'maxGammaStrike': maxGammaStrike,
         'gexByStrike': gexByStrike.map((e) => e.toJson()).toList(),
+        if (expirationFilter != null) 'expirationFilter': expirationFilter,
         'dealerPositioning': dealerPositioning == DealerPositioning.longGamma
             ? 'long_gamma'
             : dealerPositioning == DealerPositioning.shortGamma
@@ -155,16 +169,51 @@ class GammaExposureData {
                 : 'neutral',
         'signalStrength': signalStrength,
         'updatedAt': updatedAt,
+        if (callWall != null) 'callWall': callWall,
+        if (putWall != null) 'putWall': putWall,
+        'gexRatio': gexRatio,
       };
 
   /// Returns the strikes closest to spot price, useful for focused chart view.
   List<GexStrikeLevel> get nearMoneyStrikes {
     if (gexByStrike.isEmpty) return gexByStrike;
-    final sorted = [...gexByStrike]
-      ..sort((a, b) =>
-          (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
+    final sorted = [...gexByStrike]..sort((a, b) =>
+        (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
     return sorted.take(20).toList()
       ..sort((a, b) => a.strike.compareTo(b.strike));
+  }
+
+  /// Returns the visible strikes for chart or table, ensuring crucial levels
+  /// (Call Wall, Put Wall, Gamma Flip, Max Gamma Strike) are guaranteed to be included.
+  List<GexStrikeLevel> getVisibleStrikes({int count = 20}) {
+    if (gexByStrike.isEmpty) return gexByStrike;
+    
+    // Take the closest ones to spot
+    final sorted = [...gexByStrike]..sort((a, b) =>
+        (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
+    final baseList = sorted.take(count).toList();
+    
+    final includedStrikes = baseList.map((e) => e.strike).toSet();
+    
+    void addKeyLevel(double? targetStrike) {
+      if (targetStrike == null) return;
+      final matches = gexByStrike.where((e) => (e.strike - targetStrike).abs() < 0.01);
+      if (matches.isNotEmpty) {
+        final match = matches.first;
+        if (!includedStrikes.contains(match.strike)) {
+          baseList.add(match);
+          includedStrikes.add(match.strike);
+        }
+      }
+    }
+    
+    addKeyLevel(callWall);
+    addKeyLevel(putWall);
+    addKeyLevel(gammaFlip);
+    addKeyLevel(maxGammaStrike);
+    
+    baseList.sort((a, b) => a.strike.compareTo(b.strike));
+    return baseList;
   }
 
   /// Net GEX formatted in billions/millions for display.

@@ -1472,6 +1472,7 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         'chaikinMoneyFlow',
         'fibonacciRetracements',
         'pivotPoints',
+        'gammaExposure',
       ];
 
       for (final indicator in indicatorNames) {

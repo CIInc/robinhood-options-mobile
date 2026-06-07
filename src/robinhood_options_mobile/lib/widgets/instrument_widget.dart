@@ -186,7 +186,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
       var history = paperStore.history
-          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+          .where(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
           .toList();
       positionOrders =
           history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
@@ -263,7 +264,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     if (isPaper && paperStore != null) {
       var history = paperStore.history
-          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
+          .where(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
           .toList();
       var paperOrders = history.map((h) {
         var order = OptionOrder(
@@ -302,8 +304,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       if (optionOrders.isNotEmpty) {
         futureOptionOrders = Future.value(optionOrders);
       } else if (widget.instrument.tradeableChainId != null) {
-        futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
-            optionOrderStore, widget.instrument.tradeableChainId!);
+        futureOptionOrders = widget.service.getOptionOrders(
+            widget.brokerageUser,
+            optionOrderStore,
+            widget.instrument.tradeableChainId!);
       } else {
         futureOptionOrders = Future.value([]);
       }
@@ -322,7 +326,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     if (isPaper && paperStore != null) {
       var history = paperStore.history
-          .where((h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
+          .where(
+              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
           .toList();
       var paperOrders = history.map((h) {
         return InstrumentOrder.fromPaperJson(h);
@@ -1382,8 +1387,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               position = paperStore.positions.firstWhereOrNull(
                   (e) => e.instrument == widget.instrument.url);
             } else {
-              position = stockPositionStore.items.firstWhereOrNull(
-                  (e) => e.instrument == instrument.url);
+              position = stockPositionStore.items
+                  .firstWhereOrNull((e) => e.instrument == instrument.url);
             }
             if (position == null) {
               return SliverToBoxAdapter(child: Container());
@@ -1615,6 +1620,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       MaterialPageRoute(
                         builder: (context) => GammaExposurePage(
                           symbol: instrument.symbol,
+                          spotPrice: instrument.quoteObj?.lastTradePrice,
+                          generativeService: widget.generativeService,
                         ),
                       ),
                     );

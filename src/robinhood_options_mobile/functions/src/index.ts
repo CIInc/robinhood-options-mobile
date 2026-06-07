@@ -132,3 +132,4 @@ export const rebalancingCronJob = rebalancingCronFuncs.rebalancingCron;
 export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;
 export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;
 export const getGammaExposure = gammaExposureFuncs.getGammaExposure;
+export const getTopGammaExposure = gammaExposureFuncs.getTopGammaExposure;
