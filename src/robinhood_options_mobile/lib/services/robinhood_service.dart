@@ -345,6 +345,14 @@ Response: {
     return response;
   }
 
+  Future<Response> getChallenge(String id) {
+    var httpClient = Client();
+    var url = 'https://api.robinhood.com/challenge/$id/';
+    debugPrint('GET $url');
+    var response = httpClient.get(Uri.parse(url));
+    return response;
+  }
+
   Future<Response> postUserView(String id) {
     var body = {
       "sequence": 0,

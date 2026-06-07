@@ -51,6 +51,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   final clipboardContentStream = StreamController<String>.broadcast();
   Timer? clipboardTriggerTime;
+  Timer? _promptPollTimer;
   String? clipboardInitialValue;
 
   String? deviceToken;
@@ -123,6 +124,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     myFocusNode.dispose();
 
     _stopMonitoringClipboard();
+    _promptPollTimer?.cancel();
 
     _streamEvent?.cancel();
     _streamExit?.cancel();
@@ -162,9 +164,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                   if (authenticationResponse['challenge'] != null) {
                     challengeRequestId =
                         authenticationResponse['challenge']['id'];
+                    challengeType =
+                        authenticationResponse['challenge']['type'] ?? 'prompt';
                     myFocusNode.requestFocus();
 
                     _startMonitoringClipboard();
+                    if (challengeType == 'prompt') {
+                      _startPollingPromptChallenge();
+                    }
 
                     return FutureBuilder(
                         future: challengeResponse,
@@ -185,6 +192,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   */
                   } else if (authenticationResponse['access_token'] != null) {
                     _stopMonitoringClipboard();
+                    _stopPollingPromptChallenge();
                     var service = source == BrokerageSource.robinhood
                         ? RobinhoodService()
                         : source == BrokerageSource.schwab
@@ -1008,6 +1016,9 @@ class _LoginWidgetState extends State<LoginWidget> {
             challengeRequestId = userView['context']['sheriff_challenge']['id'];
             myFocusNode.requestFocus();
           });
+          if (challengeType == 'prompt') {
+            _startPollingPromptChallenge();
+          }
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context)
@@ -1085,6 +1096,61 @@ class _LoginWidgetState extends State<LoginWidget> {
       clipboardTriggerTime!.cancel();
     }
     clipboardContentStream.close();
+  }
+
+  void _startPollingPromptChallenge() {
+    _promptPollTimer?.cancel();
+    _promptPollTimer =
+        Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (challengeRequestId == null) {
+        timer.cancel();
+        return;
+      }
+      try {
+        var service = RobinhoodService();
+        var response = await service.getChallenge(challengeRequestId!);
+        if (response.statusCode == 200) {
+          var challengeJson = jsonDecode(response.body);
+          var status = challengeJson['status'];
+          debugPrint('Prompt challenge status: $status');
+          if (status == 'validated') {
+            _stopPollingPromptChallenge();
+            if (mounted) {
+              setState(() {
+                loading = true;
+              });
+              challengeResponseId = challengeRequestId;
+              if (computerId != null) {
+                await service.postUserView(computerId!);
+              }
+              _login();
+            }
+          } else if (status != 'issued') {
+            _stopPollingPromptChallenge();
+            if (mounted) {
+              setState(() {
+                loading = false;
+              });
+              ScaffoldMessenger.of(context)
+                ..removeCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Text("Challenge status: $status"),
+                  behavior: SnackBarBehavior.floating,
+                ));
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error polling prompt challenge: $e');
+      }
+    });
+  }
+
+  void _stopPollingPromptChallenge() {
+    if (_promptPollTimer != null) {
+      _promptPollTimer!.cancel();
+      _promptPollTimer = null;
+    }
   }
 
   String generateDeviceToken() {
