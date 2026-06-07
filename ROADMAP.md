@@ -190,14 +190,16 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Search Stability:** Fixed navigation issues in Search widget when filtering signals.
 - ✅ **Cron Efficiency:** Added weekend-aware skipping for macro refresh jobs.
 
-### v0.35.0 (Q2 2026 - April)
-**Schwab API Integration - Phase 2 & Smart Alerts**
-- Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
-- Futures trading UI & order placement
-- Futures charts & historical data
+### v0.35.0 ✅ (Released Jun 7, 2026)
+**Advanced Gamma Exposure (GEX) Pro**
+- ✅ **On-Device GEX Calculations:** Built standard mathematical failover engine in Dart to run Black-Scholes gamma derivations locally during server-side limit thresholds.
+- ✅ **Interactive GEX Coordinate Charts:** Custom horizontal bar plots with vertical translate touch points, highlighting specified strike details and Call/Put wall margins.
+- ✅ **Top GEX Leaders Panel:** High-liquidity contract ranking board visualizing structural dealer volume bias.
+- ✅ **Responsive Strike Card Headers:** Corrected layout overflows on the strike tracking detail panels.
 
 ### v0.36.0 (Q2 2026 - May)
-**Quantitative Research Workbench**
+**Quantitative Research Workbench & Schwab API Integration Phase 2**
+- Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
 - Event study analyzer
 - Rolling statistics dashboard
 - Custom screener builder
@@ -210,7 +212,9 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Carry trade optimizer
 
 ### v0.38.0 (Q2 2026 - June)
-**Risk Management Suite 2.0**
+**Risk Management Suite 2.0 & Futures Expansion**
+- Futures trading UI & manual order placement
+- Futures charts & historical data
 - Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
 - Scenario analysis with custom economic conditions
 - Greeks aggregation across entire portfolio
@@ -234,6 +238,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.41.0 (Q3 2026 - Sept)
 **Real-Time Alerts & News Intelligence**
 - Custom price/volume/volatility alerts
+- Smart Alerts (multi-condition and indicator-correlated alerts)
 - Real-time news aggregation with AI summarization
 - Sentiment scoring from social media
 - Financial news impact predictor
@@ -444,6 +449,8 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Comprehensive in-app definitions
     - [x] UI polish and better tooltips
     - [x] **New:** Advanced filtering (Expiration Date, Premium, etc.)
+- [x] **Macro Risk Assessment**:
+    - [x] Institutional-grade 19-indicator weighted scoring system (MOVE, Credit Spreads, Market Breadth, Volatility indices) mapping dynamic Risk-On/Off regimes to automated sizes
 - [x] **Trade Signals Widget**:
     - [x] Dedicated home screen widget for viewing and filtering real-time signals
 
@@ -491,6 +498,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] Futures accounts handling and UI integration ([#39](https://github.com/CIInc/robinhood-options-mobile/issues/39))
 - [x] Live futures position enrichment with contract metadata
 - [x] Real-time quote integration and Open P/L calculation
+- [x] **Futures Auto-Trading**: Settings configuration, performance logging, custom activity timeline cards, and backend cron jobs
+- [x] **Futures Historical Metrics**: Realized P&L and Day P&L calculations matching real-time contract streams
 
 ### Data Persistence
 - [x] Firestore persisted portfolios, positions, and transactions ([#29](https://github.com/CIInc/robinhood-options-mobile/issues/29))
@@ -541,6 +550,12 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Investment Profile** ([#128](https://github.com/CIInc/robinhood-options-mobile/issues/128)):
     - [x] User settings for Investment Goals, Time Horizon, Risk Tolerance
     - [x] Integration with AI prompts for personalized advice
+- [x] **Market Sentiment Tracking**:
+    - [x] Real-time sentiment scoring (Bullish/Bearish/Neutral) visualized via a dedicated market dashboard and home screen card
+- [x] **AI Trading Coach**:
+    - [x] Behavioral modeling assigning a Discipline Score and Trader Archetype based on historical executions, featuring custom personas, streak tracking, and accountability challenges
+- [x] **Price Targets & Instrument Notes**:
+    - [x] Persistent trading journals with Markdown support and AI drafting alongside quantitative target estimations
 
 ### Infrastructure & Security
 - [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system
@@ -577,8 +592,8 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [x] **Tax Loss Harvesting**: Tax optimization suggestions - **Medium** (2-3 weeks)
 - [x] **Portfolio Rebalancing**: Rebalancing recommendations - **Medium** (2-3 weeks)
 - [x] **ESG Scoring**: Portfolio Environmental, Social, and Governance analysis - **Small** (1-2 weeks)
-- [ ] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
-- [ ] **Import/Export**: Import from other brokerages, export to Excel/CSV - **Small** (1-2 weeks)
+- [x] **Multi-Account Aggregation**: View all accounts together - **Medium** (2-3 weeks)
+- [x] **Import/Export**: Fidelity CSV import, CSV export for portfolio analytics - **Small** (1-2 weeks)
 - [ ] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
@@ -587,16 +602,16 @@ Q2-Q3 shift focus from execution to intelligence. Advanced analytics + AI Assist
 - [x] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Interest payment tracking - **Small** (1 week)
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
-- [ ] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
+- [x] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
     - [x] Add chat interface for market questions
     - [ ] Implement `generateInvestmentThesis`
     - [x] **Personalized AI Coach**: Analyze user's manual trading history to identify biases and suggest improvements (v0.28.0) - **Large** (5-7 weeks)
     - [ ] **Natural Language Interface**: "Chat with your Portfolio" feature to ask questions about performance and risk - **Large** (6-8 weeks)
 - [ ] **Sentiment Analysis 2.0**: Real-time video/audio sentiment analysis (e.g., Fed speeches) - **Large** (4-5 weeks)
-- [ ] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
+- [x] **Macro-Economic Indicators**: Incorporate interest rates, inflation, and economic calendar events into the "Market Direction" indicator - **Medium** (3-4 weeks)
 - [ ] **Specialized AI Agents**:
     - [ ] **Sentiment Agent**: Dedicated agent for analyzing news/social sentiment and adjusting trade confidence - **Medium** (3-4 weeks)
-    - [ ] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
+    - [x] **Macro Agent**: Agent that monitors economic calendar and adjusts global risk parameters - **Medium** (3-4 weeks)
 - [ ] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts - **Medium** (3-4 weeks)
 - [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)

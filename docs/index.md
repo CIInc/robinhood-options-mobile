@@ -47,6 +47,7 @@
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags (Whale, Sweep, etc.) and visual indicators. **New:** Option Flow alerts and a dedicated notifications feed.
+- **[Gamma Exposure (GEX) Analysis Pro](gamma-exposure-analysis.md):** Real-time monitoring of GEX, Call Wall, Put Wall, dealer gravity modeling, and on-device Black-Scholes mathematical calculation fallback engine.
 - **[Market Data Providers Research](market-data-providers-research.md):** Comparative analysis of equities, options, and futures data vendors.
 - **[Options/Futures API Endpoints](options-futures-api-endpoints.md):** Survey of broker and market data APIs for derivatives coverage.
 - **[Databento vs. Twelve Data](databento-vs-twelve-data-analysis.md):** Vendor comparison on latency, coverage, and pricing.

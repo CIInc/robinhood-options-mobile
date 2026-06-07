@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-06-07
+**Advanced Gamma Exposure (GEX) Calculations & Pro Analytics Integration**
+
+### Added
+- **On-Device Black-Scholes Mathematical Engine:** Implemented high-performance, real-time local mathematical evaluations in Dart using the Standard Normal PDF ($N'(x) = \frac{e^{-\frac{1}{2}x^2}}{\sqrt{2\pi}}$) and dynamic $d_1$ parameters ($\Gamma = \frac{N'(d_1)}{S \sigma \sqrt{T}}$) for ultimate GEX client-side calculation fallback.
+- **Client-Side Options Ingestion Failover:** Integrated parallel multi-expiration scraping pathways via `YahooService` to directly parse and build GEX profiles automatically when Cloud Functions encounter rate limits or external database gaps.
+- **Visual GEX Indicators & Controls:** Created a visual "Local Calc" status chip to proactively notify the user when the local mathematical failover engine is running in real time.
+- **Interactive Strike Detail Panels:** Created coordinate-tapped graphic bars translating tap boundaries into a specific strike row highlighting overlay with deep percent-spot, OI volume, and Call vs Put GEX breakdown cards.
+- **Top GEX Leaders Ranking Board:** Developed an institutional-grade Top GEX Leaders widget ranking high-liquidity stocks to track underlying dealer gravity and macro pinning biases.
+- **GEX Search History Tracker:** Embedded localized persistent caching to store and render a history row of previously analyzed tickers for rapid accessibility.
+- **Detailed GEX Documentation Guide:** Authored [docs/gamma-exposure-analysis.md](docs/gamma-exposure-analysis.md) outlining options theory, Black-Scholes gamma formulations, failover pathways, and UI controls.
+
+### Changed
+- **Dynamic Visible Strike Boundaries:** Expanded visual layout defaults inside `gamma_exposure_model.dart` via `getVisibleStrikes({int count = 20})` to guarantee critical out-of-the-money (OTM) Wall and Flip levels are always fully displayed rather than cropped.
+- **Markdown Documentation Hub:** Linked GEX Pro to the main markdown registry in [docs/index.md](docs/index.md).
+- **AI Agent Contextual Guidance:** Registered GEX files, services, and calculations inside [.github/copilot-instructions.md](.github/copilot-instructions.md) to keep AI models instantly aligned.
+
+### Fixed
+- **TypeScript Linter Conformity:** Rewrote backend cloud function endpoints in `functions/src/gamma-exposure.ts` to strictly adhere to formatting and length guidelines, correcting `max-len` warnings safely.
+- **Horizontal Strike Row Overflow:** Corrected horizontal layout constraints on the tapped strike detail head widgets, replacing packed columns with responsive `Wrap` and `Expanded` alignments.
+
 ## [0.34.3] - 2026-03-27
 **Advanced Macro Analysis & Strategy Precision**
 
