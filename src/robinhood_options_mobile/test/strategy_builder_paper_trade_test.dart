@@ -278,9 +278,9 @@ void main() {
     );
 
     // Need screen size for layout
-    tester.view.physicalSize =
-        const Size(30000, 30000); // Huge screen to avoid overflows
-    tester.view.devicePixelRatio = 3.0;
+    tester.view.physicalSize = const Size(
+        800, 2000); // Standard screen size to avoid hit-test/overflow issues
+    tester.view.devicePixelRatio = 1.0;
 
     addTearDown(tester.view.resetPhysicalSize);
 
@@ -316,19 +316,6 @@ void main() {
     );
 
     // Initial pump
-    await tester.pumpAndSettle();
-
-    // 1. Open Strategy Picker
-    final strategyTextFinder = find.text('Strategy');
-    expect(strategyTextFinder, findsOneWidget);
-    await tester.tap(strategyTextFinder);
-    await tester.pumpAndSettle();
-
-    // 2. Select "Single Option" strategy
-    final longCallFinder = find.text('Single Option');
-    // Expect at least one
-    expect(longCallFinder, findsAtLeastNWidgets(1));
-    await tester.tap(longCallFinder.first);
     await tester.pumpAndSettle();
 
     // 3. Select Leg

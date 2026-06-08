@@ -2943,14 +2943,17 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildSimpleSwitch(BuildContext context, String title, String subtitle,
       bool value, ValueChanged<bool> onChanged) {
-    return SwitchListTile(
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      value: value,
-      onChanged: onChanged,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      visualDensity: VisualDensity.compact,
+    return Material(
+      color: Colors.transparent,
+      child: SwitchListTile(
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        value: value,
+        onChanged: onChanged,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 
@@ -3498,34 +3501,37 @@ class _AgenticTradingSettingsWidgetState
                   Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
             ),
           ),
-          child: ListTile(
-            title: const Text('Trade Signal Alerts',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-            subtitle: const Text('Configure push notifications for signals',
-                style: TextStyle(fontSize: 13)),
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.notifications_active,
-                  color: Theme.of(context).colorScheme.primary, size: 20),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => TradeSignalNotificationSettingsWidget(
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                  ),
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              title: const Text('Trade Signal Alerts',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              subtitle: const Text('Configure push notifications for signals',
+                  style: TextStyle(fontSize: 13)),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              );
-            },
+                child: Icon(Icons.notifications_active,
+                    color: Theme.of(context).colorScheme.primary, size: 20),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TradeSignalNotificationSettingsWidget(
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ],

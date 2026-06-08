@@ -4,6 +4,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/main.dart' as app;
 import 'package:robinhood_options_mobile/widgets/instrument_chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -235,7 +236,7 @@ void main() {
       // Expect some content related to groups
       // If empty it might say "No investor groups found" or similar.
       // Let's verify we are NOT on previous pages.
-      expect(find.byType(TextField), findsNothing); // Not Search
+      expect(find.byType(InvestorGroupsWidget), findsOneWidget);
 
       // 8. Navigate to History (Index 1)
       final historyTab = find.descendant(

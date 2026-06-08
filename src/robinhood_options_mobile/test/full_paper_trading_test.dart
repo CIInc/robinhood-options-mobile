@@ -104,7 +104,7 @@ class MockAnalytics extends Fake implements FirebaseAnalytics {
 
 class MockObserver extends Fake implements FirebaseAnalyticsObserver {}
 
-class FakePaperTradingStore extends Fake
+class FakePaperTradingStore extends ChangeNotifier
     implements PaperTradingStore {
   bool executedStock = false;
   bool executedOption = false;

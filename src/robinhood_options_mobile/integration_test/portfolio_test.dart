@@ -61,37 +61,19 @@ void main() {
         await tester.pump(const Duration(milliseconds: 500));
       }
 
+      // Scroll down to build and show the cards
+      final verticalScrollable = find.byType(Scrollable).first;
+      await tester.drag(verticalScrollable, const Offset(0, -1000));
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+
       // Verify AI Trading Coach Card
       final aiCoach = find.text('AI Trading Coach');
-
-      // Scroll to it using specific vertical scrollable
-      final verticalScrollable = find
-          .byWidgetPredicate((widget) =>
-              widget is Scrollable &&
-              widget.axisDirection == AxisDirection.down)
-          .first;
-
-      try {
-        await tester.scrollUntilVisible(aiCoach, 500.0,
-            scrollable: verticalScrollable);
-      } catch (e) {
-        debugPrint("Could not scroll to AI Coach: $e");
-        // Try manual drag
-        await tester.drag(verticalScrollable, const Offset(0, -500));
-        for (int i = 0; i < 5; i++) {
-          await tester.pump(const Duration(milliseconds: 500));
-        }
-      }
       expect(aiCoach, findsOneWidget);
 
       // Verify Automated Trading Card
-      final autoTrade = find.text('Automated Trading');
-      try {
-        await tester.scrollUntilVisible(autoTrade, 500.0,
-            scrollable: verticalScrollable);
-      } catch (e) {
-        debugPrint("Could not scroll to Auto Trade: $e");
-      }
+      final autoTrade = find.text('Stocks Agentic Trading');
       expect(autoTrade, findsOneWidget);
     });
   });

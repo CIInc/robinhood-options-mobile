@@ -48,7 +48,7 @@ void main() {
       }
 
       // Navigate to Automated Trading
-      final configureBtn = find.text('Configure');
+      final agenticTradingCardFinder = find.text('Stocks Agentic Trading');
 
       final verticalScrollable = find
           .byWidgetPredicate((widget) =>
@@ -57,15 +57,23 @@ void main() {
           .first;
 
       try {
-        await tester.scrollUntilVisible(configureBtn, 500.0,
+        await tester.scrollUntilVisible(agenticTradingCardFinder, 500.0,
             scrollable: verticalScrollable);
         await pumpManual(tester);
-        await tester.ensureVisible(configureBtn);
+        await tester.ensureVisible(agenticTradingCardFinder);
       } catch (e) {
         await tester.drag(verticalScrollable, const Offset(0, -500));
         await pumpManual(tester);
       }
       await pumpManual(tester);
+
+      final configureBtn = find.descendant(
+        of: find.ancestor(
+          of: agenticTradingCardFinder,
+          matching: find.byType(Card),
+        ),
+        matching: find.byIcon(Icons.settings_outlined),
+      );
       expect(configureBtn, findsOneWidget);
 
       await tester.tap(configureBtn);
@@ -77,7 +85,7 @@ void main() {
         debugPrint(
             "Confirmed: 'RealizeAlpha' text found. Navigation prevented as expected in Demo mode.");
         expect(find.text('RealizeAlpha'), findsAtLeastNWidgets(1));
-        expect(find.text('Automated Trading'),
+        expect(find.text('Stocks Agentic Trading'),
             findsAtLeastNWidgets(1)); // Card title still visible
       } else {
         debugPrint(

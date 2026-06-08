@@ -1444,7 +1444,6 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  /*
                   SwitchListTile(
                     title: const Text("Paper Trade"),
                     subtitle:
@@ -1457,7 +1456,6 @@ class _StrategyBuilderWidgetState extends State<StrategyBuilderWidget> {
                     },
                     secondary: const Icon(Icons.school),
                   ),
-                  */
                   const SizedBox(height: 8),
                   Consumer<AccountStore>(
                     builder: (context, accountStore, child) {

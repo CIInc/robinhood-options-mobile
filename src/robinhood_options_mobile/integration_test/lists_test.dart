@@ -20,21 +20,7 @@ void main() {
   testWidgets('Lists Widget navigation and content test',
       (WidgetTester tester) async {
     // 1. Setup - Mock SharedPreferences
-    SharedPreferences.setMockInitialValues({
-      'demoMode': true
-    }); // Keys must match what app uses, assumed 'demoMode'.
-    // Actually, app checks SharedPreferences.getInstance() for 'demo' or similar.
-    // In app_test.dart we usually just run main() and let it load.
-    // If we need to force Demo mode, we might need to set it in the app or pre-set prefs.
-    // However, default might be non-demo or demo depending on main.dart.
-    // Let's assume default flow or check main.dart.
-    // In app_test.dart, it just pumps.
-    // In agentic_trading_test.dart we saw:
-    // await app.main();
-    // await tester.pumpAndSettle();
-    // Then we handled a potential "Verify" dialog or "Login".
-    // If it's fresh install in test, it likely starts in Login/Welcome screen.
-    // Tapping "Verify" goes to demo mode if configured or login.
+    SharedPreferences.setMockInitialValues({});
 
     app.main();
     await pumpManual(tester, 5, duration: const Duration(seconds: 1));
@@ -83,6 +69,20 @@ void main() {
 
     // 3. Verify 'All Lists' button is present
     final Finder allListsButton = find.text('All Lists');
+    final verticalScrollable = find
+        .byWidgetPredicate((widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down)
+        .first;
+
+    try {
+      await tester.scrollUntilVisible(allListsButton, 500.0,
+          scrollable: verticalScrollable);
+      await pumpManual(tester, 10);
+    } catch (e) {
+      await tester.drag(verticalScrollable, const Offset(0, -600));
+      await pumpManual(tester, 20);
+    }
+
     expect(allListsButton, findsOneWidget);
 
     // 4. Tap 'All Lists'
