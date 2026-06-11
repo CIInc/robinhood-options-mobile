@@ -12,7 +12,7 @@ Quick-start commands an agent can recommend or run (macOS / zsh):
 - Install and verify environment: `flutter doctor -v`.
 - Get packages: from repo root run `flutter pub get` (or cd into `src/robinhood_options_mobile` and run it there).
 - Run app on device/emulator: `flutter run` or use VS Code Flutter debug (F5).
-- Run tests: `flutter test`.
+- Run tests: Target only the impacted test file(s) (e.g., `flutter test test/path_to_test.dart`) rather than running the entire suite, as a full test run takes too long.
 - Build iOS: `flutter build ios` (may require `pod repo update` and `flutter clean` if pod errors).
 - Deploy Firebase functions: `cd src/robinhood_options_mobile/functions && npm install && firebase deploy --only functions`.
 
@@ -55,7 +55,7 @@ Patterns & conventions (concrete examples):
 
 Developer workflows (notes an agent should surface when changing code):
 - Pod / iOS problems: if `pod install` fails, the README instructs `rm -rf ./ios/Pods; rm ./ios/Podfile.lock; flutter clean; flutter pub get; flutter build ios` and/or `pod repo update`.
-- Linting & functions: JS/TS linting is mandatory for all Cloud Functions. The `build` and `deploy` commands in `src/robinhood_options_mobile/functions/package.json` are configured to automatically run `npm run lint`. Always verify that code compiles and passes linting by running `npm run build` in the `functions` directory before proposing changes. Use `-- --fix` to auto-apply fixable rules when necessary.
+- Linting & functions: JS/TS linting is mandatory for all Cloud Functions. Always check and fix lint errors when editing `.ts` functions using `npm run lint` or `npm run build` in the `src/robinhood_options_mobile/functions` directory before proposing changes. The `build` and `deploy` commands in `package.json` automatically run `npm run lint`. Use `-- --fix` to auto-apply fixable rules when necessary.
 - Secrets: do NOT add API keys to the repo. Use `firebase functions:secrets:set` or the `firebase` project secret manager as used in README.
 
 What to change vs what to avoid (safety/side-effects):
@@ -64,7 +64,7 @@ What to change vs what to avoid (safety/side-effects):
 - Avoid editing generated or build artifacts under `build/`.
 
 Where to look for tests and minimal verification:
-- Unit tests: `src/robinhood_options_mobile/test/` — run `flutter test` from `src/robinhood_options_mobile`.
+- Unit tests: `src/robinhood_options_mobile/test/` — target only the impacted test file(s) (e.g., `flutter test test/path_to_test.dart` from `src/robinhood_options_mobile`) rather than running the entire suite, as a full test run takes too long.
 
 Examples of specific file references an agent can use in patches:
 - App initialization: `src/robinhood_options_mobile/lib/main.dart` (providers, Firebase init, AdMob).

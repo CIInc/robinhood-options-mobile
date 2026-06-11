@@ -27,7 +27,11 @@ class OptionHistoricalsStore extends ChangeNotifier {
   }
 
   bool update(OptionHistoricals item) {
+    if (item.legs.isEmpty) {
+      return false;
+    }
     var index = _items.indexWhere((element) =>
+        element.legs.isNotEmpty &&
         element.legs.first.id == item.legs.first.id &&
         element.span == item.span &&
         element.bounds == item.bounds &&
@@ -35,18 +39,25 @@ class OptionHistoricalsStore extends ChangeNotifier {
     if (index == -1) {
       return false;
     }
-    if (_items[0]
-                .historicals
-                .first
-                .beginsAt!
-                .compareTo(item.historicals.first.beginsAt!) !=
-            0 ||
-        _items[0]
-                .historicals
-                .last
-                .beginsAt!
-                .compareTo(item.historicals.last.beginsAt!) !=
-            0) {
+    var current = _items[index];
+    bool isDifferent = false;
+    if (current.historicals.isEmpty || item.historicals.isEmpty) {
+      isDifferent = current.historicals.length != item.historicals.length;
+    } else {
+      final currentFirst = current.historicals.first.beginsAt;
+      final itemFirst = item.historicals.first.beginsAt;
+      final currentLast = current.historicals.last.beginsAt;
+      final itemLast = item.historicals.last.beginsAt;
+
+      isDifferent = (currentFirst == null ||
+              itemFirst == null ||
+              currentFirst.compareTo(itemFirst) != 0) ||
+          (currentLast == null ||
+              itemLast == null ||
+              currentLast.compareTo(itemLast) != 0);
+    }
+
+    if (isDifferent) {
       _items[index] = item;
       notifyListeners();
     } else {

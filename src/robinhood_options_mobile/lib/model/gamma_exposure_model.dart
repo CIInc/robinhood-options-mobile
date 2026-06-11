@@ -81,6 +81,38 @@ extension DealerPositioningX on DealerPositioning {
   }
 }
 
+class GexSensitivity {
+  final double spotMinus2Pct;
+  final double spotMinus1Pct;
+  final double spotCurrent;
+  final double spotPlus1Pct;
+  final double spotPlus2Pct;
+
+  const GexSensitivity({
+    required this.spotMinus2Pct,
+    required this.spotMinus1Pct,
+    required this.spotCurrent,
+    required this.spotPlus1Pct,
+    required this.spotPlus2Pct,
+  });
+
+  factory GexSensitivity.fromJson(Map<String, dynamic> json) => GexSensitivity(
+        spotMinus2Pct: (json['spotMinus2Pct'] as num?)?.toDouble() ?? 0.0,
+        spotMinus1Pct: (json['spotMinus1Pct'] as num?)?.toDouble() ?? 0.0,
+        spotCurrent: (json['spotCurrent'] as num?)?.toDouble() ?? 0.0,
+        spotPlus1Pct: (json['spotPlus1Pct'] as num?)?.toDouble() ?? 0.0,
+        spotPlus2Pct: (json['spotPlus2Pct'] as num?)?.toDouble() ?? 0.0,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'spotMinus2Pct': spotMinus2Pct,
+        'spotMinus1Pct': spotMinus1Pct,
+        'spotCurrent': spotCurrent,
+        'spotPlus1Pct': spotPlus1Pct,
+        'spotPlus2Pct': spotPlus2Pct,
+      };
+}
+
 class GammaExposureData {
   final String symbol;
   final double spotPrice;
@@ -97,6 +129,8 @@ class GammaExposureData {
   final double? callWall; // strike with highest callGEX
   final double? putWall; // strike with highest putGEX
   final double gexRatio; // call GEX relative ratio
+  final double riskFreeRate; // interest rate used
+  final GexSensitivity? gexSensitivity;
 
   const GammaExposureData({
     required this.symbol,
@@ -114,6 +148,8 @@ class GammaExposureData {
     this.callWall,
     this.putWall,
     this.gexRatio = 0.5,
+    this.riskFreeRate = 0.05,
+    this.gexSensitivity,
   });
 
   factory GammaExposureData.fromJson(Map<String, dynamic> json) {
@@ -149,6 +185,11 @@ class GammaExposureData {
       callWall: (json['callWall'] as num?)?.toDouble(),
       putWall: (json['putWall'] as num?)?.toDouble(),
       gexRatio: (json['gexRatio'] as num?)?.toDouble() ?? 0.5,
+      riskFreeRate: (json['riskFreeRate'] as num?)?.toDouble() ?? 0.05,
+      gexSensitivity: json['gexSensitivity'] != null
+          ? GexSensitivity.fromJson(
+              Map<String, dynamic>.from(json['gexSensitivity'] as Map))
+          : null,
     );
   }
 
@@ -172,6 +213,8 @@ class GammaExposureData {
         if (callWall != null) 'callWall': callWall,
         if (putWall != null) 'putWall': putWall,
         'gexRatio': gexRatio,
+        'riskFreeRate': riskFreeRate,
+        if (gexSensitivity != null) 'gexSensitivity': gexSensitivity!.toJson(),
       };
 
   /// Returns the strikes closest to spot price, useful for focused chart view.
@@ -187,17 +230,18 @@ class GammaExposureData {
   /// (Call Wall, Put Wall, Gamma Flip, Max Gamma Strike) are guaranteed to be included.
   List<GexStrikeLevel> getVisibleStrikes({int count = 20}) {
     if (gexByStrike.isEmpty) return gexByStrike;
-    
+
     // Take the closest ones to spot
     final sorted = [...gexByStrike]..sort((a, b) =>
         (a.strike - spotPrice).abs().compareTo((b.strike - spotPrice).abs()));
     final baseList = sorted.take(count).toList();
-    
+
     final includedStrikes = baseList.map((e) => e.strike).toSet();
-    
+
     void addKeyLevel(double? targetStrike) {
       if (targetStrike == null) return;
-      final matches = gexByStrike.where((e) => (e.strike - targetStrike).abs() < 0.01);
+      final matches =
+          gexByStrike.where((e) => (e.strike - targetStrike).abs() < 0.01);
       if (matches.isNotEmpty) {
         final match = matches.first;
         if (!includedStrikes.contains(match.strike)) {
@@ -206,12 +250,12 @@ class GammaExposureData {
         }
       }
     }
-    
+
     addKeyLevel(callWall);
     addKeyLevel(putWall);
     addKeyLevel(gammaFlip);
     addKeyLevel(maxGammaStrike);
-    
+
     baseList.sort((a, b) => a.strike.compareTo(b.strike));
     return baseList;
   }

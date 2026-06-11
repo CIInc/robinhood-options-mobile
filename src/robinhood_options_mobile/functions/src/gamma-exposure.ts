@@ -52,6 +52,14 @@ export interface GammaExposureData {
   callWall: number | null;
   putWall: number | null;
   gexRatio: number;
+  riskFreeRate: number; // The interest rate used for calculations
+  gexSensitivity?: {
+    spotMinus2Pct: number;
+    spotMinus1Pct: number;
+    spotCurrent: number;
+    spotPlus1Pct: number;
+    spotPlus2Pct: number;
+  };
 }
 
 /**
@@ -287,10 +295,43 @@ export function findMaxGammaStrike(
 }
 
 /**
+ * Helper to compute total Net GEX at a specific hypothetical spot price.
+ * @param {any} optionsChain - Options chain object.
+ * @param {number} spotPrice - Spot price to evaluate at.
+ * @param {number} riskFreeRate - Risk-free interest rate.
+ * @return {number} The computed GEX value.
+ */
+function computeTotalNetGexAtSpot(
+  optionsChain: any,
+  spotPrice: number,
+  riskFreeRate: number
+): number {
+  let totalCallGEX = 0;
+  let totalPutGEX = 0;
+  for (const expiration of optionsChain.options || []) {
+    const levels = computeGEXByStrike(
+      {
+        calls: expiration.calls || [],
+        puts: expiration.puts || [],
+        expirationDate: expiration.expirationDate,
+      },
+      spotPrice,
+      riskFreeRate
+    );
+    for (const level of levels) {
+      totalCallGEX += level.callGEX;
+      totalPutGEX += level.putGEX;
+    }
+  }
+  return totalCallGEX - totalPutGEX;
+}
+
+/**
  * Compute full GammaExposureData from options chain.
  * @param {string} symbol - Ticker symbol.
  * @param {number} spotPrice - Current price.
  * @param {object} optionsChain - Options chain information.
+ * @param {number} [riskFreeRate] - Risk-free rate (optional, defaults to 0.05).
  * @return {GammaExposureData} Gamma exposure summary.
  */
 export function computeGammaExposure(
@@ -312,7 +353,8 @@ export function computeGammaExposure(
       }>;
       expirationDate?: Date;
     }>;
-  }
+  },
+  riskFreeRate = 0.05
 ): GammaExposureData {
   const allExpirationGEX: GexStrikeLevel[][] = [];
 
@@ -323,7 +365,8 @@ export function computeGammaExposure(
         puts: expiration.puts || [],
         expirationDate: expiration.expirationDate,
       },
-      spotPrice
+      spotPrice,
+      riskFreeRate
     );
     if (gex.length > 0) {
       allExpirationGEX.push(gex);
@@ -379,6 +422,19 @@ export function computeGammaExposure(
   const gexMagnitude = Math.min(Math.abs(totalNetGEX) / 1e9, 1.0);
   const signalStrength = Math.round(gexMagnitude * 100);
 
+  // What-if Spot-Shifting Analysis (Stress Testing GEX Profile Curves)
+  const gexSensitivity = {
+    spotMinus2Pct: computeTotalNetGexAtSpot(
+      optionsChain, spotPrice * 0.98, riskFreeRate),
+    spotMinus1Pct: computeTotalNetGexAtSpot(
+      optionsChain, spotPrice * 0.99, riskFreeRate),
+    spotCurrent: totalNetGEX,
+    spotPlus1Pct: computeTotalNetGexAtSpot(
+      optionsChain, spotPrice * 1.01, riskFreeRate),
+    spotPlus2Pct: computeTotalNetGexAtSpot(
+      optionsChain, spotPrice * 1.02, riskFreeRate),
+  };
+
   return {
     symbol,
     spotPrice,
@@ -394,6 +450,8 @@ export function computeGammaExposure(
     callWall,
     putWall,
     gexRatio,
+    riskFreeRate,
+    gexSensitivity,
   };
 }
 
@@ -421,7 +479,7 @@ export function evaluateGammaExposure(
     return {
       value: totalNetGEX,
       signal: "HOLD",
-      reason: `GEX near zero ($${valueStr}M): neutral dealer positioning`,
+      reason: `GEX near zero($${ valueStr }M): neutral dealer positioning`,
       metadata: {
         dealerPositioning,
         gammaFlip,
@@ -442,38 +500,41 @@ export function evaluateGammaExposure(
   let reason: string;
 
   const gexMillions = (totalNetGEX / 1e6).toFixed(0);
-  const flipStr = gammaFlip ? `$${gammaFlip.toFixed(2)}` : "N/A";
-  const maxStr = maxGammaStrike ? `$${maxGammaStrike.toFixed(2)}` : "N/A";
+  const flipStr = gammaFlip ? `$${ gammaFlip.toFixed(2) }` : "N/A";
+  const maxStr = maxGammaStrike ? `$${ maxGammaStrike.toFixed(2) }` : "N/A";
 
   if (gammaFlip !== null) {
     if (spotPrice > gammaFlip && dealerPositioning === "long_gamma") {
       signal = "BUY";
-      reason = `GEX +$${gexMillions}M: dealers long gamma, price above flip ` +
-        `${flipStr} → pinning support. Max gamma @ ${maxStr}`;
+      reason = `GEX + $${ gexMillions }M: dealers long gamma, ` +
+        `price above flip ${ flipStr } → pinning support.` +
+        `Max gamma @${ maxStr }`;
     } else if (spotPrice < gammaFlip && dealerPositioning === "short_gamma") {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers short gamma, price below flip ` +
-        `${flipStr} → trend amplification risk. Max gamma @ ${maxStr}`;
+      reason = `GEX $${ gexMillions }M: dealers short gamma, ` +
+        `price below flip ${ flipStr } → trend amplification risk.` +
+        `Max gamma @${ maxStr }`;
     } else if (spotPrice > gammaFlip && dealerPositioning === "short_gamma") {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers short gamma above flip ` +
-        `${flipStr} → potential breakdown. Max gamma @ ${maxStr}`;
+      reason = `GEX $${ gexMillions }M: dealers short gamma above flip` +
+        ` ${ flipStr } → potential breakdown.Max gamma @${ maxStr }`;
     } else {
       // Below flip, long gamma → stabilizing below flip
       signal = "HOLD";
-      reason = `GEX +$${gexMillions}M: dealers long gamma, price below flip ` +
-        `${flipStr} → mixed signals. Max gamma @ ${maxStr}`;
+      reason = `GEX + $${ gexMillions }M: dealers long gamma, ` +
+        `price below flip ${ flipStr } → mixed signals.` +
+        `Max gamma @${ maxStr }`;
     }
   } else {
     // No gamma flip (all same sign)
     if (dealerPositioning === "long_gamma") {
       signal = "BUY";
-      reason = `GEX +$${gexMillions}M: dealers uniformly long gamma ` +
-        `→ strong pinning regime. Max gamma @ ${maxStr}`;
+      reason = `GEX + $${ gexMillions }M: dealers uniformly long gamma` +
+        `→ strong pinning regime.Max gamma @${ maxStr }`;
     } else {
       signal = "SELL";
-      reason = `GEX $${gexMillions}M: dealers uniformly short gamma ` +
-        `→ trending/volatile regime. Max gamma @ ${maxStr}`;
+      reason = `GEX $${ gexMillions }M: dealers uniformly short gamma` +
+        `→ trending / volatile regime.Max gamma @${ maxStr }`;
     }
   }
 
@@ -513,12 +574,12 @@ const getCachedGEX = async (
     const updatedAtMs = typeof updatedAt === "number" ? updatedAt : 0;
 
     if (!ignoreExpiration && Date.now() - updatedAtMs > GEX_CACHE_TTL) {
-      logger.info(`GEX cache expired for ${sym}`);
+      logger.info(`GEX cache expired for ${ sym }`);
       return null;
     }
     return { ...data, updatedAt: updatedAtMs } as GammaExposureData;
   } catch (e) {
-    logger.warn(`Error reading GEX cache for ${sym}`, e);
+    logger.warn(`Error reading GEX cache for ${ sym }`, e);
     return null;
   }
 };
@@ -530,7 +591,7 @@ const saveGEXCache = async (
   try {
     await db.collection(GEX_CACHE_COLLECTION).doc(cacheKey).set(data);
   } catch (e) {
-    logger.warn(`Error saving GEX cache for ${cacheKey}`, e);
+    logger.warn(`Error saving GEX cache for ${ cacheKey }`, e);
   }
 };
 
@@ -572,20 +633,55 @@ function filterOptionsByExpiration(
 }
 
 /**
+ * Try to retrieve a dynamic risk-free rate from the latest macro assessment.
+ * Falls back to 0.05 if unavailable.
+ */
+async function getDynamicRiskFreeRate(): Promise<number> {
+  try {
+    const snapshot = await db.collection("macro_assessments")
+      .orderBy("timestamp", "desc")
+      .limit(1)
+      .get();
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      const tnxValue = data.indicators?.tnx?.value;
+      if (typeof tnxValue === "number" && tnxValue > 0) {
+        // Normalize TNX if it's like 42.5 (index value) vs 4.25 (percentage)
+        const normTnx = tnxValue > 20 ? tnxValue / 10 : tnxValue;
+        const rate = normTnx / 100;
+        if (rate > 0 && rate < 0.15) { // sensible sanity checks
+          return rate;
+        }
+      }
+    }
+  } catch (e) {
+    logger.warn(
+      "Error fetching dynamic risk-free rate from macro_assessments",
+      e
+    );
+  }
+  return 0.05;
+}
+
+/**
  * Compute GEX for a symbol by fetching its options chain.
  * Uses existing Firestore-cached options data to avoid rate limits.
  * @param {string} symbol - Ticker symbol.
  * @param {number} [providedSpotPrice] - Optional spot price from client.
  * @param {string} [expirationFilter] - Optional expiration date filter.
+ * @param {number} [providedRiskFreeRate] - Optional interest/risk-free rate.
+ * @param {boolean} [onlyUseCache] - If true, do not perform live data fetches.
  * @return {Promise<GammaExposureData | null>} Gamma exposure data or null.
  */
 export async function fetchGammaExposure(
   symbol: string,
   providedSpotPrice?: number,
-  expirationFilter?: string
+  expirationFilter?: string,
+  providedRiskFreeRate?: number,
+  onlyUseCache = false
 ): Promise<GammaExposureData | null> {
   const filter = expirationFilter || "all";
-  const cacheKey = filter === "all" ? symbol : `${symbol}_${filter}`;
+  const cacheKey = filter === "all" ? symbol : `${ symbol }_${ filter } `;
 
   // Check GEX cache first
   const cached = await getCachedGEX(cacheKey);
@@ -603,8 +699,16 @@ export async function fetchGammaExposure(
 
     if (!optionsResult || !optionsResult.options ||
       optionsResult.options.length === 0) {
+      if (onlyUseCache) {
+        logger.info(
+          `onlyUseCache is active. Skipping live fetch for ${ symbol }`
+        );
+        return await getCachedGEX(cacheKey, true);
+      }
+
       logger.info(
-        `Options cache miss/empty for GEX: ${symbol}. Fetching live options.`
+        `Options cache miss / empty for GEX: ${ symbol }. ` +
+        "Fetching live options."
       );
       // Triggers live API fetch & caching to firestore under the hood
       await fetchOptionsFlowForSymbols([symbol], "all");
@@ -615,7 +719,7 @@ export async function fetchGammaExposure(
     if (!optionsResult || !optionsResult.options ||
       optionsResult.options.length === 0) {
       logger.warn(
-        `No options data available after live fetch for GEX: ${symbol}`
+        `No options data available after live fetch for GEX: ${ symbol } `
       );
       // Fallback to expired cache if available
       return await getCachedGEX(cacheKey, true);
@@ -628,7 +732,7 @@ export async function fetchGammaExposure(
     );
 
     if (!filteredResult.options || filteredResult.options.length === 0) {
-      logger.warn(`No options found after filter ${filter}: ${symbol}`);
+      logger.warn(`No options found after filter ${ filter }: ${ symbol } `);
       return await getCachedGEX(cacheKey, true);
     }
 
@@ -637,15 +741,18 @@ export async function fetchGammaExposure(
       optionsResult.quote?.regularMarketPrice || 0;
 
     if (spotPrice <= 0) {
-      logger.warn(`No spot price available for GEX: ${symbol}`);
+      logger.warn(`No spot price available for GEX: ${ symbol } `);
       return await getCachedGEX(cacheKey, true);
     }
+
+    const riskFreeRate = providedRiskFreeRate || await getDynamicRiskFreeRate();
 
     // Compute GEX using the filtered chain
     const gexData = computeGammaExposure(
       symbol,
       spotPrice,
-      filteredResult as any
+      filteredResult as any,
+      riskFreeRate
     );
 
     gexData.expirationFilter = filter;
@@ -655,7 +762,7 @@ export async function fetchGammaExposure(
 
     return gexData;
   } catch (e) {
-    logger.error(`Error computing GEX for ${symbol}`, e);
+    logger.error(`Error computing GEX for ${ symbol }`, e);
     return await getCachedGEX(cacheKey, true);
   }
 }
@@ -676,26 +783,29 @@ export const getGammaExposure = onCall({
   const symbol: string = req.data?.symbol;
   const spotPrice: number | undefined = req.data?.spotPrice;
   const expirationFilter: string | undefined = req.data?.expirationFilter;
+  const riskFreeRate: number | undefined = req.data?.riskFreeRate;
 
   if (!symbol || typeof symbol !== "string") {
     throw new HttpsError("invalid-argument", "symbol is required.");
   }
 
-  logger.info(`getGammaExposure called for ${symbol}`, {
+  logger.info(`getGammaExposure called for ${ symbol }`, {
     spotPrice,
     expirationFilter,
+    riskFreeRate,
   });
 
   const gexData = await fetchGammaExposure(
     symbol.toUpperCase(),
     spotPrice,
-    expirationFilter
+    expirationFilter,
+    riskFreeRate
   );
 
   if (!gexData) {
     return {
       status: "error",
-      message: `Unable to compute GEX for ${symbol}. Data unavailable.`,
+      message: `Unable to compute GEX for ${ symbol }.Data unavailable.`,
     };
   }
 
@@ -711,6 +821,8 @@ export const getGammaExposure = onCall({
  */
 export const getTopGammaExposure = onCall({
   secrets: ["TWELVE_DATA_API_KEY"],
+  memory: "512MiB",
+  timeoutSeconds: 300,
 }, async (req) => {
   if (!req.auth) {
     throw new HttpsError("unauthenticated", "Authentication required.");
@@ -721,24 +833,60 @@ export const getTopGammaExposure = onCall({
     "META", "GOOGL", "AMD", "NFLX", "COIN", "SMCI",
   ];
 
-  logger.info("getTopGammaExposure called");
+  // Merge with custom symbols provided by client
+  // (e.g. from watchlists or search history)
+  const additionalSymbols: string[] = req.data?.symbols || [];
+  let symbols = [...defaultSymbols];
+  if (Array.isArray(additionalSymbols)) {
+    const uniqueSymbols = new Set([
+      ...defaultSymbols,
+      ...additionalSymbols
+        .map((s) => typeof s === "string" ? s.trim().toUpperCase() : "")
+        .filter((s) => s.length > 0),
+    ]);
+    symbols = Array.from(uniqueSymbols);
+  }
+
+  // Limit pool size to prevent timeouts
+  if (symbols.length > 100) {
+    symbols = symbols.slice(0, 100);
+  }
+
+  logger.info(`getTopGammaExposure called with ${ symbols.length } symbols`);
 
   const results: GammaExposureData[] = [];
-  const promises = defaultSymbols.map(async (symbol) => {
-    try {
-      const gexData = await fetchGammaExposure(symbol, undefined, "all");
-      if (gexData) {
-        // Strip out huge gexByStrike to save network size transfer
-        const summary = { ...gexData };
-        delete (summary as any).gexByStrike;
-        results.push(summary);
-      }
-    } catch (e) {
-      logger.warn(`Error fetching GEX for top symbol ${symbol}`, e);
-    }
-  });
+  const CONCURRENT_LIMIT = 5;
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
-  await Promise.all(promises);
+  for (let i = 0; i < symbols.length; i += CONCURRENT_LIMIT) {
+    if (i > 0) {
+      await delay(200);
+    }
+    const chunk = symbols.slice(i, i + CONCURRENT_LIMIT);
+    await Promise.all(chunk.map(async (symbol) => {
+      try {
+        // Since getTopGammaExposure handles up to 100 symbols bulk-retrieval,
+        // we specify onlyUseCache=true to prevent heavy, blocking live queries
+        // that cause client DEADLINE_EXCEEDED timeouts.
+        const gexData = await fetchGammaExposure(
+          symbol,
+          undefined,
+          "all",
+          undefined,
+          true
+        );
+        if (gexData) {
+          // Strip out huge gexByStrike to save network size transfer
+          const summary = { ...gexData };
+          delete (summary as any).gexByStrike;
+          results.push(summary);
+        }
+      } catch (e) {
+        logger.warn(`Error fetching GEX for symbol ${ symbol }`, e);
+      }
+    }));
+  }
 
   // Sort by absolute Net GEX descending
   const sorted = [...results].sort(

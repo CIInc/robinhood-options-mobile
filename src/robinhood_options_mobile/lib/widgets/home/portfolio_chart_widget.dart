@@ -112,7 +112,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
       builder: (context, portfolioHistoricals, child) {
         var dataToShow = portfolioHistoricals ?? _previousPortfolioHistoricals;
 
-        if (dataToShow == null) {
+        if (dataToShow == null || dataToShow.equityHistoricals.isEmpty) {
           return SizedBox(
             height: 300,
             child: Center(

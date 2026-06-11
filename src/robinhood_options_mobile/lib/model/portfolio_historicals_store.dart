@@ -27,18 +27,33 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
       notifyListeners();
     } else {
       var current = _items[index];
-      if (current.equityHistoricals.first.beginsAt!
-                  .compareTo(item.equityHistoricals.first.beginsAt!) !=
-              0 ||
-          current.equityHistoricals.last.beginsAt!
-                  .compareTo(item.equityHistoricals.last.beginsAt!) !=
-              0) {
-        debugPrint(
-            '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt!}');
-        debugPrint(
-            '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt!}');
-        //_items.clear();
-        //_items.add(item);
+
+      bool isDifferent = false;
+      if (current.equityHistoricals.isEmpty || item.equityHistoricals.isEmpty) {
+        isDifferent =
+            current.equityHistoricals.length != item.equityHistoricals.length;
+      } else {
+        final currentFirst = current.equityHistoricals.first.beginsAt;
+        final itemFirst = item.equityHistoricals.first.beginsAt;
+        final currentLast = current.equityHistoricals.last.beginsAt;
+        final itemLast = item.equityHistoricals.last.beginsAt;
+
+        isDifferent = (currentFirst == null ||
+                itemFirst == null ||
+                currentFirst.compareTo(itemFirst) != 0) ||
+            (currentLast == null ||
+                itemLast == null ||
+                currentLast.compareTo(itemLast) != 0);
+      }
+
+      if (isDifferent) {
+        if (current.equityHistoricals.isNotEmpty &&
+            item.equityHistoricals.isNotEmpty) {
+          debugPrint(
+              '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt}');
+          debugPrint(
+              '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt}');
+        }
         _items[index] = item;
         notifyListeners();
       } else {

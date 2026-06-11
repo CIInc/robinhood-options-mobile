@@ -69,6 +69,63 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     return _normalPDF(d1) / (S * sigma * sqrtT);
   }
 
+  double _computeTotalNetGexAtSpot(
+      List<Map<String, dynamic>> chains, double spotPrice) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    double netGex = 0.0;
+    for (var chain in chains) {
+      final optionsList = chain['options'] as List?;
+      if (optionsList == null || optionsList.isEmpty) continue;
+
+      final firstOpt = optionsList.first as Map<String, dynamic>;
+      final calls = firstOpt['calls'] as List? ?? [];
+      final puts = firstOpt['puts'] as List? ?? [];
+
+      void processOption(Map<String, dynamic> opt, bool isCall) {
+        final strike = (opt['strike'] as num?)?.toDouble();
+        if (strike == null || strike <= 0) return;
+
+        final expRaw = opt['expiration'];
+        int? expMs;
+        if (expRaw is DateTime) {
+          expMs = expRaw.millisecondsSinceEpoch;
+        } else if (expRaw is num) {
+          expMs = expRaw.toInt() * 1000;
+        }
+
+        final t = expMs != null
+            ? max((expMs - nowMs) / (365 * 24 * 60 * 60 * 1000), 0.001)
+            : 0.05;
+
+        final iv = (opt['impliedVolatility'] as num?)?.toDouble() ?? 0.3;
+        final effectiveSigma = iv > 0 ? iv : 0.3;
+
+        final gamma = _computeBlackScholesGamma(
+          S: spotPrice,
+          K: strike,
+          T: t,
+          r: 0.05,
+          sigma: effectiveSigma,
+        );
+        final oi = (opt['openInterest'] as num?)?.toDouble() ?? 0.0;
+
+        if (isCall) {
+          netGex += (gamma * oi * 100 * spotPrice);
+        } else {
+          netGex -= (gamma * oi * 100 * spotPrice);
+        }
+      }
+
+      for (var c in calls) {
+        processOption(Map<String, dynamic>.from(c), true);
+      }
+      for (var p in puts) {
+        processOption(Map<String, dynamic>.from(p), false);
+      }
+    }
+    return netGex;
+  }
+
   GammaExposureData _computeGexFromChains(
       String symbol, double spotPrice, List<Map<String, dynamic>> chains) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -239,6 +296,14 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     final gexMagnitude = min(totalNetGEX.abs() / 1e9, 1.0);
     final signalStrength = (gexMagnitude * 100).round();
 
+    final gexSensitivity = GexSensitivity(
+      spotMinus2Pct: _computeTotalNetGexAtSpot(chains, spotPrice * 0.98),
+      spotMinus1Pct: _computeTotalNetGexAtSpot(chains, spotPrice * 0.99),
+      spotCurrent: totalNetGEX,
+      spotPlus1Pct: _computeTotalNetGexAtSpot(chains, spotPrice * 1.01),
+      spotPlus2Pct: _computeTotalNetGexAtSpot(chains, spotPrice * 1.02),
+    );
+
     return GammaExposureData(
       symbol: symbol,
       spotPrice: spotPrice,
@@ -255,6 +320,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       callWall: callWall,
       putWall: putWall,
       gexRatio: gexRatio,
+      riskFreeRate: 0.05,
+      gexSensitivity: gexSensitivity,
     );
   }
 
@@ -412,15 +479,19 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSummaryRow(context, gex),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _buildControlRow(context),
-        const SizedBox(height: 16),
+        _buildSelectedStrikeDetails(context, gex),
+        const SizedBox(height: 12),
         _showChart
             ? _buildBarChart(context, gex)
             : _buildStrikeTable(context, gex),
         const SizedBox(height: 8),
         if (_showChart) _buildLegend(context, gex),
-        _buildSelectedStrikeDetails(context, gex),
+        const SizedBox(height: 16),
+        _buildGexPinningGauge(context, gex),
+        const SizedBox(height: 12),
+        _buildGexSensitivityDashboard(context, gex),
         if (widget.generativeService != null) ...[
           const SizedBox(height: 16),
           _buildAICochCommentary(context, gex),
@@ -429,7 +500,298 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
     );
   }
 
-  Widget _buildSelectedStrikeDetails(BuildContext context, GammaExposureData gex) {
+  Widget _buildGexPinningGauge(BuildContext context, GammaExposureData gex) {
+    if (gex.callWall == null && gex.putWall == null) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    final double lowerBound = gex.putWall ?? (gex.spotPrice * 0.95);
+    final double upperBound = gex.callWall ?? (gex.spotPrice * 1.05);
+
+    double progress = 0.5;
+    if (upperBound > lowerBound) {
+      progress = (gex.spotPrice - lowerBound) / (upperBound - lowerBound);
+      progress = progress.clamp(0.0, 1.0);
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pin_drop, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Market Maker Pinning Gauge',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Timeline Slider/Bar
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Track
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              // Spot price indicator pin
+              Align(
+                alignment: Alignment(progress * 2 - 1, 0),
+                child: Container(
+                  height: 14,
+                  width: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+              // Gamma flip indicator pin if visible
+              if (gex.gammaFlip != null &&
+                  gex.gammaFlip! >= lowerBound &&
+                  gex.gammaFlip! <= upperBound)
+                Align(
+                  alignment: Alignment(
+                      ((gex.gammaFlip! - lowerBound) /
+                                  (upperBound - lowerBound)) *
+                              2 -
+                          1,
+                      0),
+                  child: Container(
+                    height: 10,
+                    width: 10,
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Floor (Put Wall)',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.outline, fontSize: 10)),
+                  Text('\$${lowerBound.toStringAsFixed(1)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold, color: Colors.red)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('Current Spot',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.outline, fontSize: 10)),
+                  Text('\$${gex.spotPrice.toStringAsFixed(1)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold, color: Colors.blue)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Ceiling (Call Wall)',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.outline, fontSize: 10)),
+                  Text('\$${upperBound.toStringAsFixed(1)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold, color: Colors.green)),
+                ],
+              ),
+            ],
+          ),
+          if (gex.gammaFlip != null) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Gamma Flip Threshold at \$${gex.gammaFlip!.toStringAsFixed(1)} (${((gex.spotPrice - gex.gammaFlip!) / gex.spotPrice * 100).toStringAsFixed(1)}% from spot)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGexSensitivityDashboard(
+      BuildContext context, GammaExposureData gex) {
+    if (gex.gexSensitivity == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final sens = gex.gexSensitivity!;
+
+    Widget sensitivityRow(String label, double value,
+        {bool isCurrent = false}) {
+      final sign = value >= 0 ? '+' : '';
+      final valueColor = value >= 0 ? Colors.green : Colors.red;
+      final valueStr = value.abs() >= 1e9
+          ? '$sign\$${(value / 1e9).toStringAsFixed(2)}B'
+          : value.abs() >= 1e6
+              ? '$sign\$${(value / 1e6).toStringAsFixed(0)}M'
+              : '$sign\$${value.toStringAsFixed(0)}';
+
+      return Container(
+        decoration: isCurrent
+            ? BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+              )
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                color: isCurrent
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              valueStr,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isCurrent ? theme.colorScheme.primary : valueColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_outlined,
+                  size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Spot-Shift GEX Sensitivity (Stress Test)',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Simulates options dealer positioning and hedging regimes if spot price shifts dynamically.',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 80,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _GexSensitivityCurvePainter(
+                values: [
+                  sens.spotMinus2Pct,
+                  sens.spotMinus1Pct,
+                  sens.spotCurrent,
+                  sens.spotPlus1Pct,
+                  sens.spotPlus2Pct,
+                ],
+                positiveColor: Colors.green,
+                negativeColor: Colors.red,
+                zeroLineColor: theme.colorScheme.outline,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Column(
+            children: [
+              sensitivityRow('-2.0% Price Shift', sens.spotMinus2Pct),
+              const Divider(height: 4, indent: 8, endIndent: 8),
+              sensitivityRow('-1.0% Price Shift', sens.spotMinus1Pct),
+              const Divider(height: 4, indent: 8, endIndent: 8),
+              sensitivityRow('Current Price (Spot)', sens.spotCurrent,
+                  isCurrent: true),
+              const Divider(height: 4, indent: 8, endIndent: 8),
+              sensitivityRow('+1.0% Price Shift', sens.spotPlus1Pct),
+              const Divider(height: 4, indent: 8, endIndent: 8),
+              sensitivityRow('+2.0% Price Shift', sens.spotPlus2Pct),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedStrikeDetails(
+      BuildContext context, GammaExposureData gex) {
     if (_selectedStrike == null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -476,13 +838,16 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: theme.colorScheme.primary),
+                    Icon(Icons.info_outline,
+                        size: 16, color: theme.colorScheme.primary),
                     Text(
                       'Strike \$${s.strike.toStringAsFixed(1)}',
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -521,7 +886,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Net GEX Volume',
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(color: theme.colorScheme.outline)),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.netGEX),
@@ -538,7 +904,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Call / Put Open Interest',
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(color: theme.colorScheme.outline)),
                     const SizedBox(height: 4),
                     Text(
                       '${_formatOI(s.callOI)} / ${_formatOI(s.putOI)}',
@@ -559,11 +926,13 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Call GEX Contribution',
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(color: theme.colorScheme.outline)),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.callGEX),
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green, fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.green, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -573,11 +942,13 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Put GEX Contribution',
-                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(color: theme.colorScheme.outline)),
                     const SizedBox(height: 4),
                     Text(
                       _formatGEX(s.putGEX),
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.red, fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.red, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -1177,7 +1548,25 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       height: chartHeight,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: GestureDetector(
-        onTapDown: (details) {
+        onTapUp: (details) {
+          final double y = details.localPosition.dy;
+          final double barHeight = chartHeight / strikes.length;
+          final int index =
+              (y / barHeight).floor().clamp(0, strikes.length - 1);
+          setState(() {
+            _selectedStrike = strikes[index];
+          });
+        },
+        onVerticalDragStart: (details) {
+          final double y = details.localPosition.dy;
+          final double barHeight = chartHeight / strikes.length;
+          final int index =
+              (y / barHeight).floor().clamp(0, strikes.length - 1);
+          setState(() {
+            _selectedStrike = strikes[index];
+          });
+        },
+        onVerticalDragUpdate: (details) {
           final double y = details.localPosition.dy;
           final double barHeight = chartHeight / strikes.length;
           final int index =
@@ -1363,7 +1752,8 @@ class _GexBarChartPainter extends CustomPainter {
       }
 
       // Highlight selected strike row over standard backgrounds
-      if (selectedStrike != null && (s.strike - selectedStrike!.strike).abs() < 0.01) {
+      if (selectedStrike != null &&
+          (s.strike - selectedStrike!.strike).abs() < 0.01) {
         canvas.drawRect(
           Rect.fromLTWH(barAreaStart, y + 1, barAreaWidth, barHeight - 2),
           Paint()
@@ -1457,7 +1847,8 @@ class _GexBarChartPainter extends CustomPainter {
   void _drawFlipLine(Canvas canvas, Size size, double barAreaStart,
       double barAreaWidth, double barHeight) {
     if (gammaFlip == null) return;
-    final flipIdx = strikes.indexWhere((s) => (s.strike - gammaFlip!).abs() < 0.02);
+    final flipIdx =
+        strikes.indexWhere((s) => (s.strike - gammaFlip!).abs() < 0.02);
     if (flipIdx < 0) return;
     final y = flipIdx * barHeight + barHeight / 2;
     final dashPaint = Paint()
@@ -1510,6 +1901,155 @@ class _GexBarChartPainter extends CustomPainter {
       oldDelegate.callWall != callWall ||
       oldDelegate.putWall != putWall ||
       oldDelegate.selectedStrike != selectedStrike;
+}
+
+/// Custom painter to draw a beautiful visual curve of spot-shifting GEX sensitivity stress test.
+class _GexSensitivityCurvePainter extends CustomPainter {
+  final List<double> values;
+  final Color positiveColor;
+  final Color negativeColor;
+  final Color zeroLineColor;
+
+  _GexSensitivityCurvePainter({
+    required this.values,
+    required this.positiveColor,
+    required this.negativeColor,
+    required this.zeroLineColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+
+    final double width = size.width;
+    final double height = size.height;
+
+    // Find absolute max value to scale appropriately, default to 1.0 if all zero
+    double maxAbs = values.map((v) => v.abs()).reduce(max);
+    if (maxAbs == 0) maxAbs = 1.0;
+
+    final double centerY = height / 2;
+
+    // Draw Zero line
+    final zeroLinePaint = Paint()
+      ..color = zeroLineColor.withValues(alpha: 0.2)
+      ..strokeWidth = 1.0;
+    _drawDashedLine(canvas, Offset(0, centerY), Offset(width, centerY), zeroLinePaint);
+
+    final double stepX = width / (values.length - 1);
+    final points = <Offset>[];
+
+    for (int i = 0; i < values.length; i++) {
+      final x = i * stepX;
+      // Map value on y-axis centering around centerY with 15% safety margin at top/bottom boundaries
+      final y = centerY - (values[i] / maxAbs) * (centerY * 0.75);
+      points.add(Offset(x, y));
+    }
+
+    // Draw gradient area fill under/over the zero line
+    for (int i = 0; i < points.length - 1; i++) {
+      final p1 = points[i];
+      final p2 = points[i + 1];
+      final v1 = values[i];
+      final v2 = values[i + 1];
+
+      final areaPath = Path()
+        ..moveTo(p1.dx, centerY)
+        ..lineTo(p1.dx, p1.dy)
+        ..lineTo(p2.dx, p2.dy)
+        ..lineTo(p2.dx, centerY)
+        ..close();
+
+      final isPositiveAvg = (v1 + v2) / 2 >= 0;
+      final fillPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = isPositiveAvg
+            ? positiveColor.withValues(alpha: 0.12)
+            : negativeColor.withValues(alpha: 0.12);
+      canvas.drawPath(areaPath, fillPaint);
+    }
+
+    // Draw the continuous trend line with smooth quadratic Bezier links
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (int i = 1; i < points.length; i++) {
+      final pPrev = points[i - 1];
+      final pCurr = points[i];
+      final xc = (pPrev.dx + pCurr.dx) / 2;
+      final yc = (pPrev.dy + pCurr.dy) / 2;
+      linePath.quadraticBezierTo(pPrev.dx, pPrev.dy, xc, yc);
+    }
+    linePath.lineTo(points.last.dx, points.last.dy);
+
+    final linePaint = Paint()
+      ..color = values[2] >= 0 ? positiveColor : negativeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(linePath, linePaint);
+
+    // Draw grid columns and tick marks
+    final tickTextPaint = TextPainter(textDirection: TextDirection.ltr);
+    final labels = ['-2%', '-1%', 'Spot', '+1%', '+2%'];
+
+    for (int i = 0; i < points.length; i++) {
+      final isCenter = i == 2;
+      final dotPaint = Paint()
+        ..color = isCenter ? Colors.blue : (values[i] >= 0 ? positiveColor : negativeColor)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(points[i], isCenter ? 4.5 : 3.0, dotPaint);
+
+      final outlinePaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0;
+      canvas.drawCircle(points[i], isCenter ? 4.5 : 3.0, outlinePaint);
+
+      // Draw thin helper alignment line for each interval
+      canvas.drawLine(
+        Offset(points[i].dx, centerY - 6),
+        Offset(points[i].dx, centerY + 6),
+        Paint()
+          ..color = zeroLineColor.withValues(alpha: 0.15)
+          ..strokeWidth = 1.0,
+      );
+
+      // Label below charts
+      tickTextPaint.text = TextSpan(
+        text: labels[i],
+        style: TextStyle(
+          fontSize: 8.5,
+          fontWeight: isCenter ? FontWeight.bold : FontWeight.normal,
+          color: isCenter ? Colors.blue : zeroLineColor.withValues(alpha: 0.6),
+        ),
+      );
+      tickTextPaint.layout();
+      tickTextPaint.paint(
+        canvas,
+        Offset(
+          points[i].dx - tickTextPaint.width / 2,
+          height - tickTextPaint.height,
+        ),
+      );
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset p1, Offset p2, Paint paint) {
+    const double dashWidth = 5.0;
+    const double dashSpace = 4.0;
+    double currentX = p1.dx;
+    while (currentX < p2.dx) {
+      canvas.drawLine(
+        Offset(currentX, p1.dy),
+        Offset(min(currentX + dashWidth, p2.dx), p2.dy),
+        paint,
+      );
+      currentX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GexSensitivityCurvePainter oldDelegate) =>
+      oldDelegate.values != values;
 }
 
 /// Full-page wrapper for GEX widget.
