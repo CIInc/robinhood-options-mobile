@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.35.3] - 2026-06-10
+**GEX Sensitivity Dashboard, Login Polling, and Compatibility Updates**
+
+### Added
+- **Spot-Shift GEX Sensitivity Dashboard:** Added multi-point spot sensitivity calculations, a visual sensitivity curve, and a stress-test summary for rapid dealer-regime inspection.
+- **Market Maker Pinning Gauge:** Added a dedicated pinning gauge that visualizes current spot relative to the Put Wall, Call Wall, and Gamma Flip threshold.
+- **Expanded GEX Dashboard Workflow:** Added instrument preview cards, direct navigation into instrument detail, expandable Top GEX Leaders, and better row-level exploration controls.
+- **Prompt Challenge Polling:** Added login polling support so prompt-based brokerage challenges can resolve inside the app without forcing a restart or manual retry loop.
+- **Gamma Exposure Validation Coverage:** Added Dart serialization coverage and backend test updates for GEX model and function validation.
+
+### Changed
+- **GEX Chart Interactions:** Upgraded strike inspection from tap-only behavior to smoother drag-and-scrub interactions with improved spacing and selection feedback.
+- **Integration Test Stability:** Refactored integration and paper-trading tests to reduce brittle widget interactions and improve maintainability.
+- **Android Compatibility Defaults:** Updated Android Gradle properties and app versioning metadata for improved build compatibility.
+
+### Fixed
+- **Portfolio Empty-State Handling:** Updated portfolio chart rendering to handle missing historical data more gracefully.
+- **GEX Leaders Layout:** Fixed overflow and density issues in the GEX leaders list, including top-N default display with controlled expansion.
+
 ## [0.35.0] - 2026-06-07
 **Advanced Gamma Exposure (GEX) Calculations & Pro Analytics Integration**
 

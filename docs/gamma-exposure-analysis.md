@@ -50,16 +50,37 @@ To provide extreme architectural resilience against server-side platform rate li
 *   **Call Wall (Upside Ceiling)**: Highlights the options strike level holding the absolute highest net Call GEX. Acts as a prominent resistance ceiling due to heavy market-maker buy-high/sell-low gamma pinning.
 *   **Put Wall (Downside Floor)**: Represents the options strike level containing the highest Put GEX. Acts as standard ultimate support due to structural delta hedging and volatility containment.
 
+### Market Maker Pinning Gauge:
+*   **Pinning Range Visualization**: Displays current spot price relative to the Put Wall floor and Call Wall ceiling with a dedicated spot marker.
+*   **Gamma Flip Context**: Overlays the Gamma Flip threshold on the same visual track when available so users can quickly judge whether spot is near a regime transition.
+*   **Intraday Readability**: Compresses the most actionable wall levels into a single glanceable widget for faster interpretation on mobile.
+
+### Spot-Shift GEX Sensitivity Dashboard:
+*   **Five-point Stress Test**: Simulates net GEX at `-2%`, `-1%`, `spot`, `+1%`, and `+2%` price shifts.
+*   **Sensitivity Curve**: Uses a custom painter to visualize whether dealer positioning becomes more stabilizing or more destabilizing as spot moves.
+*   **Regime Tracking**: Helps traders identify if the underlying is close to entering a more pinned or more volatile hedging state.
+
 ### Interactive Charts & Grid Highlight:
-*   **Tapping Handlers**: The custom horizontal bar chart includes vertical coordinate translation gesture detectors to determine which strike was tapped.
+*   **Tap and Drag Handlers**: The custom horizontal bar chart includes vertical coordinate translation gesture detectors for both tap selection and drag-based strike scrubbing.
 *   **Detail Panel overlays**: Renders dynamic metric analysis components mapping specific percent-distances from spot, raw Open Interest counts, and Call vs Put GEX volume contributions.
 *   **Spreadsheet grid bindings**: Supports direct highlighted rows inside the GEX table for simplified multi-dimensional indexing.
 *   **Weighted Exposure Leaders**: A dynamic ranks leaderboard tracks top active, liquid GEX tickers (e.g. `SPY`, `QQQ`, `TSLA`, `NVDA`) indicating dealer balances.
+*   **Top-N Expansion Controls**: The dashboard defaults to a condensed list of leaders and expands on demand to preserve mobile readability.
+*   **Instrument Preview Navigation**: The dashboard includes a live instrument preview card and direct navigation into the instrument detail workflow.
 
 ---
 
-## 4. File References & Setup
+## 4. Reliability, Validation, and Workflow Notes
+*   **Backend + Client Fallback**: The GEX stack continues to prefer Cloud Functions first and gracefully falls back to device-side computation when server-side requests fail or return incomplete data.
+*   **Validation Coverage**: Serialization/deserialization validation exists for the GEX data model, and backend tests cover the Cloud Function path.
+*   **Mobile-first Layout Tuning**: Leader cards, strike detail panels, and dashboard previews were adjusted to reduce overflow and improve scanning on narrow screens.
+
+---
+
+## 5. File References & Setup
 *   **Backend Mathematics**: [src/robinhood_options_mobile/functions/src/gamma-exposure.ts](src/robinhood_options_mobile/functions/src/gamma-exposure.ts)
 *   **Frontend Model Layer**: [src/robinhood_options_mobile/lib/model/gamma_exposure_model.dart](src/robinhood_options_mobile/lib/model/gamma_exposure_model.dart)
 *   **Dynamic Visual UI & On-Device Engine**: [src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart](src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart)
 *   **Leaders Board & Search Dashboard**: [src/robinhood_options_mobile/lib/widgets/gamma_exposure_dashboard_widget.dart](src/robinhood_options_mobile/lib/widgets/gamma_exposure_dashboard_widget.dart)
+*   **Dart Validation Test**: [src/robinhood_options_mobile/test/gamma_exposure_validation_test.dart](src/robinhood_options_mobile/test/gamma_exposure_validation_test.dart)
+*   **Backend Function Test**: [src/robinhood_options_mobile/functions/tests/gamma-exposure.test.ts](src/robinhood_options_mobile/functions/tests/gamma-exposure.test.ts)

@@ -4973,6 +4973,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             'key': 'fibonacciRetracements'
                           },
                           {'label': 'Pivot Points', 'key': 'pivotPoints'},
+                          {'label': 'Gamma Exposure (GEX)', 'key': 'gammaExposure'},
                         ];
 
                         final enabledList = <Widget>[];
@@ -5295,6 +5296,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     'laggingSpan': 'Chikou',
                                     'currentPrice': 'Price',
                                     'volume': 'Vol',
+                                    'gammaExposure': 'GEX',
                                   };
 
                                   if (labelMap.containsKey(label)) {

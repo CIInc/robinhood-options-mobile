@@ -190,6 +190,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Search Stability:** Fixed navigation issues in Search widget when filtering signals.
 - ✅ **Cron Efficiency:** Added weekend-aware skipping for macro refresh jobs.
 
+### v0.35.3 ✅ (Released Jun 10, 2026)
+**GEX Sensitivity Dashboard & Workflow Polish**
+- ✅ **GEX Sensitivity Dashboard:** Added spot-shift stress testing with a visual curve and summary breakdown for changing dealer exposure regimes.
+- ✅ **Pinning Gauge:** Added a market maker pinning gauge tied to Call Wall, Put Wall, Gamma Flip, and current spot.
+- ✅ **GEX Navigation Improvements:** Added instrument preview/navigation shortcuts and expandable top-N leader controls in the dashboard.
+- ✅ **Login Reliability:** Added prompt challenge polling to improve brokerage authentication flow recovery.
+- ✅ **Compatibility & Test Updates:** Updated Android compatibility/version metadata and improved GEX and integration test coverage.
+
 ### v0.35.0 ✅ (Released Jun 7, 2026)
 **Advanced Gamma Exposure (GEX) Pro**
 - ✅ **On-Device GEX Calculations:** Built standard mathematical failover engine in Dart to run Black-Scholes gamma derivations locally during server-side limit thresholds.

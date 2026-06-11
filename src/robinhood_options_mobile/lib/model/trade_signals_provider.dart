@@ -450,6 +450,24 @@ class TradeSignalsProvider with ChangeNotifier {
               '- **SELL**: Price rejects R1, R2, or R3 resistance levels.\n'
               '- **Trend Context**: Price above Pivot suggests bullish bias; price below suggest bearish bias.\n'
         };
+      case 'gammaExposure':
+        return {
+          'title': 'Gamma Exposure (GEX)',
+          'description':
+              'Measures dealer gamma positioning from the options market. Positive GEX often creates a pinning, mean-reverting environment, while negative GEX can amplify directional moves.',
+          'technicalDetails': '**Core Concepts**:\n'
+              '- **Total Net GEX**: Dealer gamma across calls and puts\n'
+              '- **Dealer Positioning**: Long gamma (pinning), short gamma (trending), or neutral\n'
+              '- **Gamma Flip**: Strike where net GEX crosses zero\n'
+              '- **Max Gamma Strike**: Strike with the largest absolute gamma impact\n'
+              '\n'
+              '**Signals**:\n'
+              '- **Long Gamma**: Mean reversion / price pinning bias\n'
+              '- **Short Gamma**: Trend acceleration / larger intraday swings\n'
+              '- **Neutral**: No strong options-market-maker bias\n'
+              '\n'
+              '_Useful as a regime filter for options-driven trading and intraday volatility._'
+        };
       default:
         return {
           'title': 'Technical Indicator',

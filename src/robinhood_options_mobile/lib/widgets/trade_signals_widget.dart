@@ -181,10 +181,12 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
         final statusWidget = _buildStatusWidget(
             context, tradeSignalsProvider, tradeSignals.isEmpty);
 
-        // Group signals by date
-        Map<String, List<dynamic>> groupedSignals = {};
+        // Group signals by date and keep an explicit sort key for the header order.
+        final Map<String, List<dynamic>> groupedSignals = {};
+        final Map<String, DateTime?> groupedSignalDates = {};
         for (var signal in tradeSignals) {
           var dateStr = 'Unknown Date';
+          DateTime? groupDate;
           if (signal['timestamp'] != null) {
             final timestamp = signal['timestamp'];
             DateTime date;
@@ -200,6 +202,7 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
             DateTime today = DateTime(now.year, now.month, now.day);
             DateTime yesterday = today.subtract(const Duration(days: 1));
             DateTime signalDate = DateTime(date.year, date.month, date.day);
+            groupDate = signalDate;
 
             if (signalDate == today) {
               dateStr = 'Today';
@@ -212,16 +215,33 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
           if (!groupedSignals.containsKey(dateStr)) {
             groupedSignals[dateStr] = [];
           }
+          groupedSignalDates.putIfAbsent(dateStr, () => groupDate);
           groupedSignals[dateStr]!.add(signal);
         }
 
         List<dynamic> listItems = [];
-        groupedSignals.forEach((key, value) {
-          listItems.add(key);
-          if (!_collapsedDates.contains(key)) {
-            listItems.addAll(value);
+        final sortedGroupedSignals = groupedSignals.entries.toList()
+          ..sort((a, b) {
+            final DateTime? dateA = groupedSignalDates[a.key];
+            final DateTime? dateB = groupedSignalDates[b.key];
+
+            if (dateA == null && dateB == null) {
+              return a.key.compareTo(b.key);
+            }
+            if (dateA == null) return 1;
+            if (dateB == null) return -1;
+
+            final dateCompare = dateB.compareTo(dateA);
+            if (dateCompare != 0) return dateCompare;
+            return a.key.compareTo(b.key);
+          });
+
+        for (final entry in sortedGroupedSignals) {
+          listItems.add(entry.key);
+          if (!_collapsedDates.contains(entry.key)) {
+            listItems.addAll(entry.value);
           }
-        });
+        }
 
         // Add Load More button if not searching locally and limit reached
         if (_searchQuery.isEmpty &&
@@ -829,6 +849,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
       );
     }
     if (isEmpty) {
+      final hasActiveFilters = selectedIndicators.isNotEmpty ||
+          signalStrengthCategory != null ||
+          _searchQuery.isNotEmpty;
+
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(
@@ -836,37 +860,56 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.filter_list_off,
-                  size: 48, color: Theme.of(context).colorScheme.outline),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _searchQuery.isNotEmpty
+                      ? Icons.search_off
+                      : hasActiveFilters
+                          ? Icons.filter_list_off
+                          : Icons.insights_outlined,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
               const SizedBox(height: 16),
               Text(
                 _searchQuery.isNotEmpty
-                    ? 'No signals starting with "$_searchQuery"'
-                    : selectedIndicators.isEmpty &&
-                            signalStrengthCategory == null
-                        ? 'No trade signals available'
-                        : 'No matching signals found',
+                    ? 'No matching symbols'
+                    : hasActiveFilters
+                        ? 'No matching signals'
+                        : 'No signals available',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16.0,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
-              if (_searchQuery.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Try checking the symbol spelling or try searching for major tickers like AAPL, SPY, or TSLA.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withValues(alpha: 0.7),
-                      ),
-                ),
-              ],
-              if (selectedIndicators.isNotEmpty ||
-                  signalStrengthCategory != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _searchQuery.isNotEmpty
+                    ? 'Try checking the symbol spelling or search for tickers like AAPL, SPY, NVDA'
+                    : hasActiveFilters
+                        ? 'Try adjusting your filters or clearing filters to see all signals'
+                        : 'Trade signals will appear here once they are generated by the market analysis engine',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.8),
+                      height: 1.4,
+                    ),
+              ),
+              if (hasActiveFilters) ...[
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: () {
@@ -989,10 +1032,57 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
   }
 
   Widget _buildTradeSignalFilterChips() {
+    // Calculate active filter count
+    int activeFilterCount = 0;
+    if (signalStrengthCategory != null) activeFilterCount++;
+    if (selectedIndicators.isNotEmpty)
+      activeFilterCount += selectedIndicators.length;
+    if (_searchQuery.isNotEmpty) activeFilterCount++;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
+          // Active Filter Badge
+          if (activeFilterCount > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.5),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.filter_list,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$activeFilterCount active',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           FilterChip(
             label: const Text('My Strategy'),
             selected: useTradingSettings,
@@ -1201,6 +1291,7 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
       'chaikinMoneyFlow',
       'fibonacciRetracements',
       'pivotPoints',
+      'gammaExposure',
     ];
 
     return indicatorOptions.map((indicator) {
@@ -1300,6 +1391,8 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
         return 'Fib';
       case 'pivotPoints':
         return 'Pivots';
+      case 'gammaExposure':
+        return 'GEX';
       default:
         return indicator.toUpperCase();
     }
@@ -1587,9 +1680,32 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
     final position = instrumentPositionStore.items
         .firstWhereOrNull((p) => p.instrumentObj?.symbol == symbol);
 
+    // Check if signal is fresh (within last 30 minutes) for NEW badge
+    final isFreshSignal = DateTime.now().difference(timestamp).inMinutes < 30;
+
+    // Calculate gradient based on signal type for improved visual hierarchy
+    final List<Color> gradientColors = isBuy
+        ? [
+            Colors.green.withValues(alpha: 0.06),
+            Colors.green.withValues(alpha: 0.02)
+          ]
+        : isSell
+            ? [
+                Colors.red.withValues(alpha: 0.06),
+                Colors.red.withValues(alpha: 0.02)
+              ]
+            : [
+                Colors.grey.withValues(alpha: 0.04),
+                Colors.grey.withValues(alpha: 0.01)
+              ];
+
     return Card(
-      elevation: 3,
-      shadowColor: Colors.black12,
+      elevation: isFreshSignal ? 5 : 3,
+      shadowColor: isBuy
+          ? Colors.green.withValues(alpha: 0.2)
+          : isSell
+              ? Colors.red.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -1626,6 +1742,11 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         },
         child: Container(
           decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradientColors,
+            ),
             border: Border(
               left: BorderSide(
                 color:
@@ -1696,13 +1817,46 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                                 Row(
                                   children: [
                                     Flexible(
-                                      child: Text(
-                                        symbol,
-                                        style: const TextStyle(
-                                          fontSize: 18.0,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                      child: Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              symbol,
+                                              style: const TextStyle(
+                                                fontSize: 18.0,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (isFreshSignal) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primaryContainer,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                'NEW',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimaryContainer,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ),
                                     if (position != null) ...[
@@ -1720,7 +1874,7 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
@@ -1952,40 +2106,69 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
 
   Widget _buildStrengthBadge(int strength) {
     final color = _getSignalStrengthColor(strength);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Confidence',
-          style: TextStyle(
-            fontSize: 11,
-            color: Theme.of(context).colorScheme.outline,
-          ),
+    final isStrong = strength >= Constants.signalStrengthStrongMin;
+    final isModerate = strength >= Constants.signalStrengthModerateMin;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1,
         ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 60,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(
+                isStrong
+                    ? Icons.flash_on
+                    : isModerate
+                        ? Icons.show_chart
+                        : Icons.trending_flat,
+                size: 14,
+                color: color,
+              ),
+              const SizedBox(width: 4),
               Text(
                 '$strength%',
                 style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: color),
-              ),
-              const SizedBox(height: 2),
-              LinearProgressIndicator(
-                value: strength / 100,
-                backgroundColor: color.withValues(alpha: 0.1),
-                color: color,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(2),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            'Confidence',
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 60,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: strength / 100,
+                backgroundColor: color.withValues(alpha: 0.1),
+                color: color,
+                minHeight: 5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2038,7 +2221,7 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: tagColor.withOpacity(0.9),
+              color: tagColor.withValues(alpha: 0.9),
             ),
           ),
         );
@@ -2086,6 +2269,8 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         return 'Fib';
       case 'pivotPoints':
         return 'Pivots';
+      case 'gammaExposure':
+        return 'GEX';
       default:
         // Simple manual capitalization to avoid import if strings extension not avail
         return "${indicatorName[0].toUpperCase()}${indicatorName.substring(1)}";
@@ -2180,7 +2365,7 @@ class _SparklinePainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
+        colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.0)],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
 
