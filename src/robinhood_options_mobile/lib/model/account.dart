@@ -11,6 +11,7 @@ class Account {
   final double? cashHeldForOptionsCollateral;
   final double? unsettledDebit;
   final double? settledAmountBorrowed;
+  final bool isAgentic;
 
   Account(
       // this.userId,
@@ -22,22 +23,24 @@ class Account {
       this.optionLevel,
       this.cashHeldForOptionsCollateral,
       this.unsettledDebit,
-      this.settledAmountBorrowed);
+      this.settledAmountBorrowed,
+      {this.isAgentic = false});
 
   Account.fromJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
-        url = json['url'],
+        url = json['url'] ?? '',
         portfolioCash = parseDouble(json['portfolio_cash']),
-        accountNumber = json['account_number'],
-        type = json['type'],
+        accountNumber = json['account_number'] ?? '',
+        type = json['type'] ?? '',
         buyingPower = parseDouble(json['buying_power']),
-        optionLevel = json['option_level'],
+        optionLevel = json['option_level'] ?? '',
         cashHeldForOptionsCollateral =
             parseDouble(json['cash_held_for_options_collateral']),
         unsettledDebit = parseDouble(json['unsettled_debit']),
         settledAmountBorrowed = json['margin_balances'] != null
             ? parseDouble(json['margin_balances']['settled_amount_borrowed'])
-            : parseDouble(json['settled_amount_borrowed']);
+            : parseDouble(json['settled_amount_borrowed']),
+        isAgentic = json['is_agentic'] ?? json['agentic_allowed'] ?? (json['type'] == 'agentic') ?? false;
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -56,7 +59,8 @@ class Account {
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,
         unsettledDebit = 0.0,
-        settledAmountBorrowed = 0.0; // TODO
+        settledAmountBorrowed = 0.0,
+        isAgentic = false; // TODO
 
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -69,7 +73,8 @@ class Account {
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0,
         unsettledDebit = 0.0,
-        settledAmountBorrowed = 0.0; // TODO
+        settledAmountBorrowed = 0.0,
+        isAgentic = false; // TODO
 
   Map<String, Object?> toJson() {
     return {
@@ -82,7 +87,8 @@ class Account {
       'option_level': optionLevel,
       'cash_held_for_options_collateral': cashHeldForOptionsCollateral,
       'unsettled_debit': unsettledDebit,
-      'settled_amount_borrowed': settledAmountBorrowed
+      'settled_amount_borrowed': settledAmountBorrowed,
+      'is_agentic': isAgentic
     };
   }
 

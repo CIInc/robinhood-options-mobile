@@ -245,9 +245,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Timer? refreshTriggerTime;
   AppLifecycleState? _notification;
   bool _lastAggregateMode = false;
+  String? _lastSelectedAccountNumber;
   List<_BrokerBreakdownRow> _brokerBreakdownRows = [];
 
   _HomePageState();
+
+  String _selectionStorageKey() {
+    final user = widget.brokerageUser;
+    return AccountStore.selectionStorageKey(
+      source: user?.source.toString() ?? 'unknown',
+      userName: user?.userName,
+    );
+  }
 
   bool _isAggregateMode() {
     final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
@@ -1115,12 +1124,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         widget.brokerageUser!.accounts = accounts;
         final userStore =
             Provider.of<BrokerageUserStore>(context, listen: false);
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+
+        await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
         await userStore.save();
 
         setState(() {
-          account = accounts[0];
+          final selectedNo = accountStore.selectedAccountNumber;
+          account = (selectedNo != null)
+              ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                  orElse: () => accounts[0])
+              : accounts[0];
           _loadPortfolioHistoricals();
         });
+
+        accountStore.setSelectedAccountNumber(account!.accountNumber);
+        await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
       }
     }).catchError((error) {
       debugPrint('Error loading accounts: $error');
@@ -1263,6 +1282,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void didUpdateWidget(HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.brokerageUser != oldWidget.brokerageUser) {
+      _lastSelectedAccountNumber = null;
       _loadData();
     }
   }
@@ -1275,6 +1295,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     if (_lastAggregateMode != aggregateMode) {
       _lastAggregateMode = aggregateMode;
       _loadData();
+    }
+
+    final selectedNo = Provider.of<AccountStore>(context).selectedAccountNumber;
+    if (_lastSelectedAccountNumber != selectedNo) {
+      _lastSelectedAccountNumber = selectedNo;
+
+      if (!_isAggregateMode() && mounted && futureAccounts != null) {
+        setState(() {
+          final accountStore =
+              Provider.of<AccountStore>(context, listen: false);
+          final selected = accountStore.selectedAccount;
+          if (selected != null) {
+            account = selected;
+            _loadPortfolioHistoricals();
+          }
+        });
+      }
     }
   }
 
@@ -1342,6 +1379,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
+    final accountStore = Provider.of<AccountStore>(context);
     bool isSessionExpired = false;
     if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
       isSessionExpired =
@@ -1366,7 +1404,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               firestoreService: FirestoreService(),
               automaticallyImplyLeading: true,
               onChange: () {
-                setState(() {});
+                setState(() {
+                  _loadData();
+                });
               },
               analytics: widget.analytics,
               observer: widget.observer,
@@ -1402,7 +1442,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           List<dynamic> data = dataSnapshot.data as List<dynamic>;
           List<Account> accts = data[0] as List<Account>;
           if (accts.isNotEmpty) {
-            account = accts[0];
+            final selectedNo = accountStore.selectedAccountNumber;
+            account = (selectedNo != null)
+                ? accts.firstWhere((a) => a.accountNumber == selectedNo,
+                    orElse: () => accts[0])
+                : accts[0];
           } else {
             account = null;
           }
@@ -1459,7 +1503,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               firestoreService: FirestoreService(),
               automaticallyImplyLeading: true,
               onChange: () {
-                setState(() {});
+                setState(() {
+                  _loadData();
+                });
               },
               analytics: widget.analytics,
               observer: widget.observer,

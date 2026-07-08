@@ -126,13 +126,16 @@ class InstrumentOrder {
       null,
       json['created_at'] is Timestamp
           ? (json['created_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+          : DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+              DateTime.now(),
       json['updated_at'] is Timestamp
           ? (json['updated_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['updated_at']?.toString() ?? '') ?? DateTime.now(),
+          : DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+              DateTime.now(),
       null,
     );
-    order.instrumentObj = Instrument.forSymbol(symbol, instrumentUrl: instrumentUrl);
+    order.instrumentObj =
+        Instrument.forSymbol(symbol, instrumentUrl: instrumentUrl);
     return order;
   }
 
@@ -260,7 +263,7 @@ class InstrumentOrder {
       rows.add(optionOrders[i].convertToDynamic());
     }
 
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = Csv().encode(rows);
 
     // storage permission ask
     var status = await Permission.storage.status;

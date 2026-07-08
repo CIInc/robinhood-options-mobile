@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
@@ -31,8 +32,21 @@ class UserInfoWidget extends StatelessWidget {
     required this.firestoreService,
   });
 
+  String _selectionStorageKey() {
+    return AccountStore.selectionStorageKey(
+      source: brokerageUser.source.toString(),
+      userName: brokerageUser.userName,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final accountStore = Provider.of<AccountStore>(context);
+    final activeAccountNum = accountStore.selectedAccountNumber ??
+        (brokerageUser.accounts.isNotEmpty
+            ? brokerageUser.accounts.first.accountNumber
+            : null);
+
     Duration tokenExpiration = Duration();
     if (brokerageUser.oauth2Client != null &&
         brokerageUser.oauth2Client!.credentials.expiration != null) {
@@ -108,18 +122,89 @@ class UserInfoWidget extends StatelessWidget {
         ),
       ] else ...[
         ...brokerageUser.accounts.map((account) {
+          final isSelected = account.accountNumber == activeAccountNum;
           return ListTile(
             minTileHeight: 10,
-            title: Text("Account ${account.accountNumber}",
-                style: const TextStyle(fontSize: 14)),
+            leading: Icon(
+              account.isAgentic
+                  ? Icons.auto_awesome
+                  : Icons.account_balance_wallet,
+              color: account.isAgentic
+                  ? Colors.amber
+                  : (isSelected ? Theme.of(context).colorScheme.primary : null),
+            ),
+            title: Wrap(
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Text("Account ${account.accountNumber}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    )),
+                if (account.isAgentic) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.5)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 10, color: Colors.amber),
+                        SizedBox(width: 2),
+                        Text(
+                          "Agentic",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
             subtitle: Text(
                 "${account.type}${account.portfolioCash != null ? " • Cash: ${formatCurrency.format(account.portfolioCash)}" : ""}",
                 style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            trailing: Text(
-              formatCurrency
-                  .format(account.buyingPower ?? account.portfolioCash ?? 0),
-              style: const TextStyle(fontSize: 16),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  formatCurrency.format(
+                      account.buyingPower ?? account.portfolioCash ?? 0),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary, size: 20),
+                ],
+              ],
             ),
+            onTap: () async {
+              accountStore.setSelectedAccountNumber(account.accountNumber);
+              await accountStore.saveSelectedAccountNumber(
+                _selectionStorageKey(),
+              );
+              if (context.mounted && Navigator.canPop(context)) {
+                Navigator.pop(context, 'account_switched');
+              }
+            },
           );
         }),
       ],

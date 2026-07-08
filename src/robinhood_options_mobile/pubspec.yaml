@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.android.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.35.3+107
+version: 0.36.0+108
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -25,25 +25,25 @@ dependencies:
     sdk: flutter
 
   # Used by all Firebase services
-  firebase_core: ^3.12.1
+  firebase_core: ^4.11.0
   # Analyze usage with Firebase/Google Analytics
-  firebase_analytics: ^11.4.1
+  firebase_analytics: ^12.4.3
   # Plaid functions
-  cloud_functions: ^5.3.1
+  cloud_functions: ^6.3.3
   # Database
-  cloud_firestore: ^5.6.2
+  cloud_firestore: ^6.6.0
   # Authentication with Federated Identity Provider (Google)
-  firebase_auth: ^5.4.2
-  flutter_facebook_auth: ^7.0.1
+  firebase_auth: ^6.5.4
+  # flutter_facebook_auth: ^7.0.1
   google_sign_in: ^7.2.0
   # Used by Firebase auth for TOTP code.
   barcode_widget: ^2.0.4
   # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications
-  firebase_messaging: ^15.2.2  
+  firebase_messaging: ^16.4.1  
   # Device Info, model, etc. 
-  device_info_plus: ^11.3.3
+  device_info_plus: ^13.2.0
   # App Version
-  package_info_plus: ^8.0.2
+  package_info_plus: ^10.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -55,7 +55,7 @@ dependencies:
   provider: ^6.1.2
   intl: ^0.20.2
   decimal: ^3.2.1
-  csv: ^6.0.0
+  csv: ^8.0.0
   permission_handler: ^12.0.0+1
   # TODO: Check if used
   #open_file: ^3.2.1
@@ -71,25 +71,25 @@ dependencies:
 #      path: charts_flutter
   url_launcher: ^6.3.1  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^11.0.0
+  share_plus: ^13.2.0
   uuid: ^4.5.1
   # material_color_utilities is managed by the Flutter SDK/dynamic_color.
   dynamic_color: ^1.7.0
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.19.0
   http: ^1.3.0
-  google_mobile_ads: ^8.0.0
+  google_mobile_ads: ^9.0.0
   # Schwab login integration.
-  flutter_web_auth_2: ^4.1.0
+  flutter_web_auth_2: ^5.0.3
   # uni_links: ^0.5.1
-  app_links: ^6.3.3  
-  plaid_flutter: ^4.2.0
+  app_links: ^7.2.0  
+  # plaid_flutter: ^5.1.1
   # Used for StreamGroup.merge of batched approach to deal with Firestore where(in) limit of 30.
   async: ^2.11.0
   # Used to cache user image in SliverAppBar 
   cached_network_image: ^3.4.1
   # Used for AI Assistant
-  firebase_ai: ^2.0.0
+  firebase_ai: ^3.13.1
   # Deprecated by firebase_ai
   # firebase_vertexai: ^1.4.0
   flutter_markdown: ^0.7.6+2
@@ -100,14 +100,17 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   # Used to set app icon badge count (resetting it on app open).
   app_badge_plus: ^1.2.6
-  candlesticks: ^2.1.0
+  candlesticks: ^3.0.1
   in_app_purchase: ^3.2.3
-  firebase_remote_config: ^5.5.0
+  firebase_remote_config: ^6.5.3
   local_auth: ^3.0.0
-  file_picker: ^10.3.10
-  flutter_local_notifications: ^20.0.0
+  file_picker: ^12.0.0-beta.7
+  flutter_local_notifications: ^22.0.1
   home_widget: ^0.9.0
   shimmer: ^3.0.0
+  crypto: ^3.0.3
+  mcp_dart: ^2.2.2
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   integration_test:
@@ -124,7 +127,7 @@ dev_dependencies:
 
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.4
-  fake_cloud_firestore: ^3.1.0
+  fake_cloud_firestore: ^4.1.1
   mockito: ^5.6.3
   # Was added by AI agent but seems unused.
   # firebase_core_platform_interface: ^6.0.2

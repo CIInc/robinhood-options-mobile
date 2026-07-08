@@ -1400,7 +1400,7 @@ class FidelityService implements IBrokerageService {
 
   Future<void> importFidelityCsv(BuildContext context) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
@@ -1414,7 +1414,7 @@ class FidelityService implements IBrokerageService {
         String content = await file.readAsString();
         // Normalize newlines to \n to ensure CsvToListConverter handles them correctly
         content = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-        final fields = const CsvToListConverter().convert(content, eol: '\n');
+        final fields = Csv(lineDelimiter: '\n').decode(content);
 
         if (fields.isEmpty) return;
 

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-07-07
+**Robinhood Model Context Protocol (MCP) Client, Interactive Conversational Trade Boards, and Selected Account Sync**
+
+### Added
+- **Native Robinhood Model Context Protocol (MCP) Client:** Integrated a high-performance local MCP Dart client utilizing `package:mcp_dart` in [src/robinhood_options_mobile/lib/services/generative_service.dart](src/robinhood_options_mobile/lib/services/generative_service.dart). This provides the conversational Gemini assistant with real-time, sandbox-authenticated local tools execution.
+- **MCP OAuth Secure Authentication Flow:** Designed a fully integrated OAuth flow using a custom web view in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the live agent trading server endpoints. This enables secure generation, persistence, and verification of access tokens across client devices.
+- **Interactive Tool Execution Visualboards:** Built a detailed [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](src/robinhood_options_mobile/lib/widgets/chat_widget.dart) component displaying inline `ToolExecutionCard` widgets. Users can easily view underlying tool schemas, toggle raw or pretty formatted JSON payloads, examine response structures, and verify direct assistant interactions.
+- **Conversational Trading Proposal Parsing & Native Checkout:** Added support for intercepted `TradeProposal` data streams that transform plain chatbot text into responsive trade cards (`AgenticTradeCard`). Tapping "Review Order" computes estimated cash impacts, verifies margin thresholds, and enables direct execution on Robinhood native APIs.
+- **Persistent Account Selection Store:** Implemented a persistent `AccountStore` choice in [src/robinhood_options_mobile/lib/model/account_store.dart](src/robinhood_options_mobile/lib/model/account_store.dart) that saves selected account configurations to SharedPreferences.
+- **Multi-Account User Dashboard Controls:** Enhanced [src/robinhood_options_mobile/lib/widgets/user_info_widget.dart](src/robinhood_options_mobile/lib/widgets/user_info_widget.dart) with interactive selection lists, "Agentic" status indicators, active markers, and tight layout styling. Swapping profiles instantly synchronizes cash values, rebalancing algorithms, and chatbot context across the app.
+
+### Changed
+- **Plaid Integration Deprecation:** Cleaned up legacy Plaid Link packages, event listeners, and dependencies in [src/robinhood_options_mobile/lib/widgets/login_widget.dart](src/robinhood_options_mobile/lib/widgets/login_widget.dart) to streamline the codebase and prioritize the secure native MCP broker pathways.
+- **Integration Test Durability:** Refactored unit and widget mock environments in [src/robinhood_options_mobile/test/agentic_trading_provider_test.dart](src/robinhood_options_mobile/test/agentic_trading_provider_test.dart) and [src/robinhood_options_mobile/test/strategy_builder_paper_trade_test.dart](src/robinhood_options_mobile/test/strategy_builder_paper_trade_test.dart) to guarantee mock data compatibility and lower execution fragility.
+- **App Store Requirements & Compatibility:** Added camera and location descriptions to iOS PLIST manifests for compliance. Upgraded platform package locks to ensure smooth Android Gradle compilations.
+
 ## [0.35.3] - 2026-06-10
 **GEX Sensitivity Dashboard, Login Polling, and Compatibility Updates**
 

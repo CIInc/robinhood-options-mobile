@@ -395,8 +395,25 @@ Response: {
       OptionPositionStore? optionPositionStore,
       {InstrumentPositionStore? instrumentPositionStore,
       DocumentReference? userDoc}) async {
-    var results =
-        await RobinhoodService.pagedGet(brokerageUser, "$endpoint/accounts/");
+    dynamic results;
+    try {
+      results = await RobinhoodService.pagedGet(brokerageUser,
+          "$endpoint/accounts/?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&is_default=false");
+    } catch (e) {
+      debugPrint("Failed to fetch with robust multi-accounts parameters, trying second-tier multi-accounts... Error: $e");
+      try {
+        results = await RobinhoodService.pagedGet(brokerageUser,
+            "$endpoint/accounts/?include_managed=true&include_multiple_individual=true");
+      } catch (e2) {
+        debugPrint("Failed to fetch next-tier accounts, trying simple accounts endpoint... Error: $e2");
+        try {
+          results = await RobinhoodService.pagedGet(brokerageUser, "$endpoint/accounts/");
+        } catch (e3) {
+          debugPrint("Failed all attempts to fetch accounts. Letting error propagate. Error: $e3");
+          rethrow;
+        }
+      }
+    }
     // TODO: For multiple accounts, use `?default_to_all_accounts=true&include_managed=true&include_multiple_individual=true&is_default=false`
     //debugPrint(results);
     // https://phoenix.robinhood.com/accounts/unified

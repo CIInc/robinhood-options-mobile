@@ -1967,7 +1967,7 @@ class _BacktestResultPageState extends State<_BacktestResultPage> {
       ]);
     }
 
-    final csvData = const ListToCsvConverter().convert(rows);
+    final csvData = Csv().encode(rows);
     final bytes = utf8.encode(csvData);
     final filename = widget.result.templateName != null
         ? 'backtest_${widget.result.templateName!.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.csv'

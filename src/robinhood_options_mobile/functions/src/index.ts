@@ -13,7 +13,7 @@ import { initializeApp } from "firebase-admin/app";
 
 initializeApp();
 
-import * as plaidfunc from "./plaid";
+// import * as plaidfunc from "./plaid";
 import * as authfunc from "./auth";
 import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
@@ -57,13 +57,13 @@ import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 
 export const discoverAlphaFactors = alphaFactorDiscovery.discoverAlphaFactors;
 
-export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
-export const exchangePublicTokenForAccessToken =
-  plaidfunc.exchangePublicTokenForAccessToken;
-export const getInvestmentsHoldings =
-  plaidfunc.getInvestmentsHoldings;
-export const getInvestmentsTransactions =
-  plaidfunc.getInvestmentsTransactions;
+// export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
+// export const exchangePublicTokenForAccessToken =
+//   plaidfunc.exchangePublicTokenForAccessToken;
+// export const getInvestmentsHoldings =
+//   plaidfunc.getInvestmentsHoldings;
+// export const getInvestmentsTransactions =
+//   plaidfunc.getInvestmentsTransactions;
 export const onGroupMessageCreated = chatNotifications.onGroupMessageCreated;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;

@@ -55,7 +55,8 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
   @override
   Future<void> logEvent({
     required String name,
-    Map<String, Object?>? parameters,
+    Map<String, Object>? parameters,
+    List<AnalyticsEventItem>? items,
     AnalyticsCallOptions? callOptions,
   }) async {}
 }

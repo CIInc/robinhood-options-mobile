@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:cloud_functions/cloud_functions.dart';
+// import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:oauth2/oauth2.dart' as oauth2;
-import 'package:plaid_flutter/plaid_flutter.dart';
+// import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/enums.dart';
@@ -70,11 +70,11 @@ class _LoginWidgetState extends State<LoginWidget> {
   late FocusNode myFocusNode;
 
   // Plaid integration
-  LinkTokenConfiguration? _configuration;
-  StreamSubscription<LinkEvent>? _streamEvent;
-  StreamSubscription<LinkExit>? _streamExit;
-  StreamSubscription<LinkSuccess>? _streamSuccess;
-  // LinkObject? _successObject;
+  // LinkTokenConfiguration? _configuration;
+  // StreamSubscription<LinkEvent>? _streamEvent;
+  // StreamSubscription<LinkExit>? _streamExit;
+  // StreamSubscription<LinkSuccess>? _streamSuccess;
+  // // LinkObject? _successObject;
 
   @override
   void initState() {
@@ -99,10 +99,11 @@ class _LoginWidgetState extends State<LoginWidget> {
       }
     });
 
-    // Plaid
-    _streamEvent = PlaidLink.onEvent.listen(_onEvent);
-    _streamExit = PlaidLink.onExit.listen(_onExit);
-    _streamSuccess = PlaidLink.onSuccess.listen(_onSuccess);
+    // // Plaid
+    // _streamEvent = PlaidLink.onEvent.listen(_onEvent);
+    // _streamExit = PlaidLink.onExit.listen(_onExit);
+    // _streamSuccess = PlaidLink.onSuccess.listen(_onSuccess);
+
     // Crashes on Android with the following error (https://play.google.com/console/u/1/developers/5732598047340940161/app/4973125863461919438/pre-launch-report/details?artifactId=4860025135667101215):
     // Exception java.lang.ClassCastException: java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType
     //   at retrofit2.HttpServiceMethod.parseAnnotations (HttpServiceMethod.java:46)
@@ -126,9 +127,9 @@ class _LoginWidgetState extends State<LoginWidget> {
     _stopMonitoringClipboard();
     _promptPollTimer?.cancel();
 
-    _streamEvent?.cancel();
-    _streamExit?.cancel();
-    _streamSuccess?.cancel();
+    // _streamEvent?.cancel();
+    // _streamExit?.cancel();
+    // _streamSuccess?.cancel();
 
     super.dispose();
   }
@@ -371,9 +372,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                                   ? BrokerageSource.robinhood
                                   : value == 3
                                       ? BrokerageSource.schwab
+                                      /*
                                       : value == 4
                                           ? BrokerageSource.plaid
-                                          : BrokerageSource.fidelity;
+                                      */
+                                      : BrokerageSource.fidelity;
                     });
                   },
                   children: [
@@ -471,6 +474,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         },
                       ),
                     ),
+                    /*
                     Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: ChoiceChip(
@@ -494,6 +498,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         },
                       ),
                     ),
+                    */
                     Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: ChoiceChip(
@@ -866,7 +871,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                           onPressed: _login,
                         ),
                       ),
-                    ] else if (source == BrokerageSource.plaid) ...[
+                    ] /* else if (source == BrokerageSource.plaid) ...[
                       Row(
                         children: [
                           Container(
@@ -918,7 +923,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                           onPressed: _login,
                         ),
                       ),
-                    ],
+                    ] */,
                   ],
                 ),
               ),
@@ -1048,13 +1053,13 @@ class _LoginWidgetState extends State<LoginWidget> {
       //       challengeType: challengeType,
       //       challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
       // });
-    } else if (source == BrokerageSource.plaid) {
-      // var service = PlaidService();
-      // service.login();
-      if (_configuration == null) {
-        _createLinkTokenConfiguration();
-      }
-      PlaidLink.open();
+      // } else if (source == BrokerageSource.plaid) {
+      //   // var service = PlaidService();
+      //   // service.login();
+      //   if (_configuration == null) {
+      //     _createLinkTokenConfiguration();
+      //   }
+      //   PlaidLink.open();
     }
   }
 
@@ -1180,105 +1185,105 @@ class _LoginWidgetState extends State<LoginWidget> {
     return s;
   }
 
-  void _createLinkTokenConfiguration() async {
-    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
-    HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('createPlaidLinkToken');
-    final HttpsCallableResult resp;
-    try {
-      resp = await callable.call();
-      // <String, dynamic>{
-      //   'uid': userDocumentReference!.id,
-      //   'role': selectedRole.getValue()
-      // });
-      debugPrint("result: ${resp.data}");
-      // setState(() {
-      _configuration = LinkTokenConfiguration(
-        token: resp.data[
-            'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
-      );
+  // void _createLinkTokenConfiguration() async {
+  //   // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+  //   HttpsCallable callable =
+  //       FirebaseFunctions.instance.httpsCallable('createPlaidLinkToken');
+  //   final HttpsCallableResult resp;
+  //   try {
+  //     resp = await callable.call();
+  //     // <String, dynamic>{
+  //     //   'uid': userDocumentReference!.id,
+  //     //   'role': selectedRole.getValue()
+  //     // });
+  //     debugPrint("result: ${resp.data}");
+  //     // setState(() {
+  //     _configuration = LinkTokenConfiguration(
+  //       token: resp.data[
+  //           'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
+  //     );
 
-      await PlaidLink.create(configuration: _configuration!);
-      // });
-    } on FirebaseFunctionsException catch (e) {
-      debugPrint(jsonEncode(e));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: Text("$e"),
-            behavior: SnackBarBehavior.floating,
-          )); // Login failed:
-        // Do other things that might be thrown that I have overlooked
-      }
-    }
-  }
+  //     await PlaidLink.create(configuration: _configuration!);
+  //     // });
+  //   } on FirebaseFunctionsException catch (e) {
+  //     debugPrint(jsonEncode(e));
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context)
+  //         ..removeCurrentSnackBar()
+  //         ..showSnackBar(SnackBar(
+  //           content: Text("$e"),
+  //           behavior: SnackBarBehavior.floating,
+  //         )); // Login failed:
+  //       // Do other things that might be thrown that I have overlooked
+  //     }
+  //   }
+  // }
 
-  void _onEvent(LinkEvent event) {
-    final name = event.name;
-    final metadata = event.metadata.description();
-    debugPrint("onEvent: $name, metadata: $metadata");
+  // void _onEvent(LinkEvent event) {
+  //   final name = event.name;
+  //   final metadata = event.metadata.description();
+  //   debugPrint("onEvent: $name, metadata: $metadata");
 
-    if (name == 'ERROR') {
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text("${event.metadata.errorMessage}"),
-          behavior: SnackBarBehavior.floating,
-        )); // Login failed:
-    }
-  }
+  //   if (name == 'ERROR') {
+  //     ScaffoldMessenger.of(context)
+  //       ..removeCurrentSnackBar()
+  //       ..showSnackBar(SnackBar(
+  //         content: Text("${event.metadata.errorMessage}"),
+  //         behavior: SnackBarBehavior.floating,
+  //       )); // Login failed:
+  //   }
+  // }
 
-  void _onSuccess(LinkSuccess event) async {
-    final token = event.publicToken;
-    final metadata = event.metadata.description();
-    debugPrint("onSuccess: $token, metadata: $metadata");
+  // void _onSuccess(LinkSuccess event) async {
+  //   final token = event.publicToken;
+  //   final metadata = event.metadata.description();
+  //   debugPrint("onSuccess: $token, metadata: $metadata");
 
-    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
-    HttpsCallable callable = FirebaseFunctions.instance
-        .httpsCallable('exchangePublicTokenForAccessToken');
-    final resp = await callable.call(<String, dynamic>{
-      'publicToken': token,
-    });
-    debugPrint("exchangePublicTokenForAccessToken: ${resp.data}");
-    // client = generateClient(response, tokenEndpoint, scopes, delimiter, identifier, secret, httpClient, onCredentialsRefreshed)
-    var user = BrokerageUser(
-        source,
-        '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
-        jsonEncode(<String, dynamic>{
-          'accessToken': resp.data['access_token'],
-          'scopes': []
-        }), // client!.credentials.toJson(),
-        null);
-    if (mounted) {
-      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-      userStore.addOrUpdate(user);
-      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      await userStore.save();
-    }
-    if (mounted) {
-      Navigator.pop(context, user);
-    }
+  //   // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+  //   HttpsCallable callable = FirebaseFunctions.instance
+  //       .httpsCallable('exchangePublicTokenForAccessToken');
+  //   final resp = await callable.call(<String, dynamic>{
+  //     'publicToken': token,
+  //   });
+  //   debugPrint("exchangePublicTokenForAccessToken: ${resp.data}");
+  //   // client = generateClient(response, tokenEndpoint, scopes, delimiter, identifier, secret, httpClient, onCredentialsRefreshed)
+  //   var user = BrokerageUser(
+  //       source,
+  //       '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
+  //       jsonEncode(<String, dynamic>{
+  //         'accessToken': resp.data['access_token'],
+  //         'scopes': []
+  //       }), // client!.credentials.toJson(),
+  //       null);
+  //   if (mounted) {
+  //     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+  //     userStore.addOrUpdate(user);
+  //     userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+  //     await userStore.save();
+  //   }
+  //   if (mounted) {
+  //     Navigator.pop(context, user);
+  //   }
 
-    // setState(() => _successObject = event);
-  }
+  //   // setState(() => _successObject = event);
+  // }
 
-  void _onExit(LinkExit event) {
-    final metadata = event.metadata.description();
-    final error = event.error?.description();
-    debugPrint("onExit metadata: $metadata, error: $error");
-    if (event.error != null) {
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(event.error!.displayMessage ?? event.error!.message),
-          behavior: SnackBarBehavior.floating,
-        )); // Login failed:
-    }
+  // void _onExit(LinkExit event) {
+  //   final metadata = event.metadata.description();
+  //   final error = event.error?.description();
+  //   debugPrint("onExit metadata: $metadata, error: $error");
+  //   if (event.error != null) {
+  //     ScaffoldMessenger.of(context)
+  //       ..removeCurrentSnackBar()
+  //       ..showSnackBar(SnackBar(
+  //         content: Text(event.error!.displayMessage ?? event.error!.message),
+  //         behavior: SnackBarBehavior.floating,
+  //       )); // Login failed:
+  //   }
 
-    // Call PlaidLink.create() again
-    // _createLinkTokenConfiguration();
-    PlaidLink.create(configuration: _configuration!);
-  }
+  //   // Call PlaidLink.create() again
+  //   // _createLinkTokenConfiguration();
+  //   PlaidLink.create(configuration: _configuration!);
+  // }
 }

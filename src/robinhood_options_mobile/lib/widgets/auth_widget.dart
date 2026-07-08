@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+// import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
@@ -847,27 +847,27 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  Future<void> _signInWithFacebook() async {
-    // Trigger the authentication flow.
-    // By default we request the email and public profile permissions.
-    final LoginResult result = await FacebookAuth.instance.login();
+  // Future<void> _signInWithFacebook() async {
+  //   // Trigger the authentication flow.
+  //   // By default we request the email and public profile permissions.
+  //   final LoginResult result = await FacebookAuth.instance.login();
 
-    if (result.status == LoginStatus.success) {
-      // Get access token.
-      final AccessToken accessToken = result.accessToken!;
+  //   if (result.status == LoginStatus.success) {
+  //     // Get access token.
+  //     final AccessToken accessToken = result.accessToken!;
 
-      // Login with token.
-      await auth.signInWithCredential(
-        FacebookAuthProvider.credential(accessToken.tokenString),
-      );
-    } else if (result.status == LoginStatus.cancelled) {
-      return;
-    } else {
-      debugPrint('Facebook login did not succeed');
-      debugPrint(result.status.toString());
-      debugPrint(result.message);
-    }
-  }
+  //     // Login with token.
+  //     await auth.signInWithCredential(
+  //       FacebookAuthProvider.credential(accessToken.tokenString),
+  //     );
+  //   } else if (result.status == LoginStatus.cancelled) {
+  //     return;
+  //   } else {
+  //     debugPrint('Facebook login did not succeed');
+  //     debugPrint(result.status.toString());
+  //     debugPrint(result.message);
+  //   }
+  // }
 }
 
 Future<void> _signInWithTwitter() async {

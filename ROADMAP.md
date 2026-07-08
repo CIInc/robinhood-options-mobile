@@ -205,21 +205,30 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Top GEX Leaders Panel:** High-liquidity contract ranking board visualizing structural dealer volume bias.
 - ✅ **Responsive Strike Card Headers:** Corrected layout overflows on the strike tracking detail panels.
 
-### v0.36.0 (Q2 2026 - May)
+### v0.36.0 ✅ (Released Jul 7, 2026)
+** Robinhood Model Context Protocol (MCP) Client, Interactive Conversational Trade Boards, & Selected Account Sync**
+- ✅ **Native Local MCP Client:** Integrated `package:mcp_dart` in the generative service for secure broker-actions tool calling.
+- ✅ **MCP OAuth Flow Webview:** Secure web-based authentication flow for brokerage-connected AI execution.
+- ✅ **Interactive Toolboard Trace Cards:** Built collapsible, detail-oriented inline tool execution components with Json pretty-formatting and paging controls.
+- ✅ **Conversational Trading Proposals:** Implemented automated proposal parsing (`[TRADE_PROPOSAL]`) into native order cards with reviewer controls and live API execution checks.
+- ✅ **Multi-Account Selector & Active Sync:** Created global account choice state synced to SharedPreferences and mapped to interactive checkable list controls under User Settings.
+- ✅ **Platform Compliance & Cleanup:** Registered hardware permission descriptions in plist files, upgraded native compilation dependencies, and removed legacy Plaid library remnants.
+
+### v0.37.0 (Q3 2026 - Late July)
 **Quantitative Research Workbench & Schwab API Integration Phase 2**
 - Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
 - Event study analyzer
 - Rolling statistics dashboard
 - Custom screener builder
 
-### v0.37.0 (Q2 2026 - Late May)
+### v0.38.0 (Q3 2026 - August)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Carry trade optimizer
 
-### v0.38.0 (Q2 2026 - June)
+### v0.39.0 (Q3 2026 - September)
 **Risk Management Suite 2.0 & Futures Expansion**
 - Futures trading UI & manual order placement
 - Futures charts & historical data
@@ -229,14 +238,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - Tail risk hedging recommendations
 - Liquidity risk assessment
 
-### v0.39.0 (Q3 2026 - July)
+### v0.40.0 (Q4 2026 - October)
 **AI Trading Coach & Behavioral Finance**
 - Personalized trading pattern analysis ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - Behavioral coaching (detect biases)
 - Emotion tracking & journaling
 - Trading psychology score
 
-### v0.40.0 (Q3 2026 - August)
+### v0.41.0 (Q4 2026 - November)
 **Investor Groups Enhancement & Chat**
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Performance leaderboards

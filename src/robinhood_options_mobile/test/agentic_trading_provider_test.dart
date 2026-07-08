@@ -8,7 +8,8 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
   @override
   Future<void> logEvent({
     required String name,
-    Map<String, Object?>? parameters,
+    Map<String, Object>? parameters,
+    List<AnalyticsEventItem>? items,
     AnalyticsCallOptions? callOptions,
   }) async {}
 }
@@ -107,8 +108,8 @@ void main() {
       final doc = TradeSignalsProvider.indicatorDocumentation('unknown');
 
       expect(doc['title'], equals('Technical Indicator'));
-      expect(doc['description'],
-          contains('Technical indicator used to analyze'));
+      expect(
+          doc['description'], contains('Technical indicator used to analyze'));
     });
 
     test('isMarketOpen should return boolean value', () {
@@ -187,7 +188,8 @@ void main() {
 
       expect(result['success'], equals(false));
       expect(result['tradesExecuted'], equals(0));
-      expect(result['message'], contains('No BUY signals matching enabled indicators'));
+      expect(result['message'],
+          contains('No BUY signals matching enabled indicators'));
     });
 
     test('Emergency stop should prevent auto-trading', () async {

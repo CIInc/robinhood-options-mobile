@@ -534,7 +534,7 @@ class OptionAggregatePosition {
       rows.add(optionPositions[i].convertToDynamic());
     }
 
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = Csv().encode(rows);
 
     // storage permission ask
     var status = await Permission.storage.status;

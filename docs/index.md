@@ -42,6 +42,7 @@
 - **[Custom Alerts](custom-alerts.md):** Configurable price and event-based alerts for instruments and portfolio events.
 - **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
 - **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
+- **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views. Read complete information in [docs/mcp-integration.md](docs/mcp-integration.md).
 - **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
@@ -236,6 +237,17 @@ Futures Auto-Trading extends the agentic system to futures contracts with config
 - **FuturesTradingPerformanceWidget:** Dedicated performance dashboard for futures trades, P&L, and win rate.
 - **Home Cards:** Agentic and Futures Auto-Trading cards surface daily trades, total P&L, and active symbols.
 - **Backend Pipeline:** `agentic-futures-trading.ts` + cron tasks to generate and execute futures signals.
+
+## [Model Context Protocol (MCP) & AI Assistant Chat](mcp-integration.md)
+
+The conversational AI coaching assistant has been upgraded with Model Context Protocol (MCP) support and automated proposal parsing for direct, secure mobile brokerage integration. Read more about technical capabilities in [docs/mcp-integration.md](docs/mcp-integration.md).
+
+### Key Capabilities
+- **Local MCP Client:** Implemented a secure, high-performance local MCP Dart client utilizing `package:mcp_dart` in [src/robinhood_options_mobile/lib/services/generative_service.dart](src/robinhood_options_mobile/lib/services/generative_service.dart). Gemini can dynamically discover, inspect, and execute real-time brokerage actions (details, accounts, positions, watchlists) as native tools.
+- **Secure OAuth Authentication Webview:** An in-app, secure OAuth2 login overlay in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the agent trading scopes directly.
+- **Interactive Tool Execution Visualcards:** Displays real-time API call traces (`ToolExecutionCard`) on the screen in [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](src/robinhood_options_mobile/lib/widgets/chat_widget.dart). Users can expand execution logs, pretty-print JSON arguments/responses, and control data pagination/truncation.
+- **Chat Trade Proposal Overlays:** Intercepts structured text payloads (`[TRADE_PROPOSAL]`) and renders beautifully designed Native Order checkout cards (`AgenticTradeCard`). Review margin, compute estimated cost, and execute orders natively straight from a chat block.
+- **Switchable Multi-Account Syncing:** Dynamically routes AI assistant inquiries and actions to the selected active portfolio configured under User Settings via [src/robinhood_options_mobile/lib/model/account_store.dart](src/robinhood_options_mobile/lib/model/account_store.dart).
 
 ## Investor Groups Feature
 

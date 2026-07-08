@@ -573,8 +573,7 @@ class FuturesAutoTradingProvider with ChangeNotifier {
         ));
 
         // Also prepopulate market index data for regime analysis
-        final marketIndexSymbol =
-            _config.strategyConfig.marketIndexSymbol ?? 'ES=F';
+        final marketIndexSymbol = _config.strategyConfig.marketIndexSymbol;
         unawaited(_marketDataService.getMarketData(
           symbol: marketIndexSymbol,
           smaPeriodFast: _config.strategyConfig.smaPeriodFast,

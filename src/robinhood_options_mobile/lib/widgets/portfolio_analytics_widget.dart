@@ -2205,7 +2205,7 @@ class _PortfolioAnalyticsWidgetState extends State<PortfolioAnalyticsWidget> {
         }
     });
 
-    String csvContent = const ListToCsvConverter().convert(rows);
+    String csvContent = Csv().encode(rows);
 
     final xFile = XFile.fromData(
       utf8.encode(csvContent),

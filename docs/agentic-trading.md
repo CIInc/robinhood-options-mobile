@@ -455,6 +455,28 @@ The `AgenticTradingPerformanceWidget` provides comprehensive trading insights ac
 - **Comparison**: Validate strategies in paper mode before going live
 - **Visual indicators**: PAPER badges on paper mode trades
 
+### Multi-Account Aggregation & Active Switching
+
+Users with multiple investment strategies can set up several different sub-accounts on Robinhood (e.g. Traditional IRA, Roth IRA, and a dedicated individual Margin account for AI-Execution). The mobile app bridges and maps all connected portfolios.
+
+**Selected Account Trackability (`AccountStore`)**:
+- **Persistent Choice**: Instead of defaulting to the first fetched account, users can manually select their active portfolio inside their User Settings page. This choice is stored globally in the `AccountStore` via `selectedAccountNumber`.
+- **Intelligent Fallbacks**: If no dedicated selection has been made, the app defaults to evaluating any connected **Agentic** account (since it is flagged for isolated automated executions), before falling back to the first available individual account.
+- **Home & Execution Sync**: Changing the active account instantly modifies displayed cash balances, updates chart indicators, feeds context into rebalancing recommendation algorithms, and shifts the target of conversational drafts or manual orders made under the Chat assistant widget.
+
+### Conversational Chat Assistant
+
+The app includes a fully contextualized conversational Gemini assistant with seamless portfolio integration.
+
+**Proposal Parsing & Flow**:
+- **Automatic Drafts**: When you ask the chat helper to place a trade, suggest rebalancing assets, or research ideas, it prepares a standard custom code sequence matching:
+  - Stock Trades: `[TRADE_PROPOSAL: Action Stock Symbol Qty Quantity Type market/limit Price LimitPrice]`
+  - Options Trades: `[TRADE_PROPOSAL_OPTION: Action Stock Symbol Call/Put Exp ExpiryDate Strike StrikePrice Qty Quantity Type limit Price LimitPrice]`
+- **Native Cards**: The application intercepts these codeblocks before compiling message bubbles, transforming the raw text into neat, interactive **Interactive Proposal Card overlays**.
+- **Secure Native Flow**:
+  - **Verify Limits**: Tapping "Review Order" on a card computes the total estimated cost, fetches real-time quotes, and warns if configured funds or buying power limits are violated.
+  - **Execute Natively**: Tapping "Execute Trade" dispatches an order request to the active account on the Robinhood API securely from client code, locking in the transaction instantenously.
+
 **Key Metrics Explained:**
 
 *Sharpe Ratio*
@@ -1308,6 +1330,12 @@ Navigator.push(
 ```
 
 ## Version History
+
+- **v1.7** (2026-06-11): Chat Integration & Selected Account Syncing
+  - **In-App Chat Integration**: Merged the conversational Vertex AI models with native execution support using parsed standard proposal syntax structures.
+  - **Responsive Layout Design**: Handled layout constraints inside the main overview sheets and the proposal tiles, incorporating text wrap dynamics to clear collision errors.
+  - **Multi-Account Selector Support**: Extended target API wrappers with fallback tries to handle nested multiple portfolios, adding selected account trackability inside the global `AccountStore` with reactive sync loops.
+  - **Conversational Assistant Guides**: Redesigned help menu pages inside the chat module to focus on assistant proposal cards, prompt triggers, account scopes, and native reviews.
 
 - **v1.6** (2026-01-24): Strategy & Signal Enhancements
   - **Trade Signals Widget**: Dedicated interface for filtering and viewing signals.

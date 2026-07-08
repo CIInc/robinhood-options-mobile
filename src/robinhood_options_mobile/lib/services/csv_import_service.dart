@@ -24,7 +24,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 class CsvImportService {
   static Future<void> importFidelityCsv(BuildContext context) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
@@ -36,9 +36,9 @@ class CsvImportService {
         File file = File(path);
         // Fidelity CSVs can be funky encoded, but let's try utf8 first
         final input = file.openRead();
-        final fields = await input
+        final List<List<dynamic>> fields = await input
             .transform(utf8.decoder)
-            .transform(const CsvToListConverter())
+            .transform(Csv().decoder)
             .toList();
 
         if (fields.isEmpty) return;
