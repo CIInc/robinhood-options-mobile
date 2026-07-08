@@ -68,6 +68,8 @@
 	<string>BioAuth is needed to login</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app uses your location to provide timezone-accurate market hours, localized news, and region-specific financial details.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app uses your location to provide timezone-accurate market hours, localized news, and region-specific financial details in real-time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to let you upload images for documents, screenshots, and portfolio documentation.</string>
 	<key>SKAdNetworkItems</key>
