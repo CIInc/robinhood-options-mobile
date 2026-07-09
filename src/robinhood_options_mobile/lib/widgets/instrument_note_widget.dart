@@ -54,12 +54,8 @@ class _InstrumentNoteWidgetState extends State<InstrumentNoteWidget> {
                       : () async {
                           setDialogState(() => isSaving = true);
                           try {
-                            final prompt = Prompt(
-                              key: 'draft-note',
-                              title: 'Draft Note',
-                              prompt:
-                                  'Draft a short, insightful trading note for ${widget.instrument.symbol}. Focus on recent price action, key levels, and potential catalysts (bullish/bearish). Use markdown formatting (bold keys, bullet points) and keep it concise.',
-                            );
+                            final prompt = GenerativeService.buildDraftNotePrompt(
+                                widget.instrument.symbol);
                             final result = await widget.generativeService
                                 .generateContentFromServer(
                                     prompt, null, null, null);

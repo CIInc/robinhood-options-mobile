@@ -116,13 +116,14 @@ class _ChatWidgetState extends State<ChatWidget> {
         provider.addMessage(
           ChatMessage(text: '', isUser: false, timestamp: DateTime.now()),
         );
+        _scrollToBottom();
       }
 
       await for (final chunk in widget.generativeService.streamChatMessage(
         text,
         history: provider.chatMessages.sublist(
           0,
-          provider.chatMessages.length - 1,
+          provider.chatMessages.length - 2,
         ), // Exclude the new placeholder
         stockPositionStore: stockPositionStore,
         optionPositionStore: optionPositionStore,
@@ -134,6 +135,7 @@ class _ChatWidgetState extends State<ChatWidget> {
         if (_stopGeneration) break;
         if (mounted) {
           provider.updateLastMessage(chunk);
+          _scrollToBottom();
         }
       }
     } catch (e) {
@@ -239,14 +241,10 @@ class _ChatWidgetState extends State<ChatWidget> {
                 : ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16.0),
-                    itemCount:
-                        provider.chatMessages.length + (_isTyping ? 1 : 0),
+                    itemCount: provider.chatMessages.length,
                     itemBuilder: (context, index) {
-                      if (index < provider.chatMessages.length) {
-                        final message = provider.chatMessages[index];
-                        return _buildMessageBubble(context, message);
-                      }
-                      return _buildTypingIndicator();
+                      final message = provider.chatMessages[index];
+                      return _buildMessageBubble(context, message);
                     },
                   ),
           ),
@@ -708,99 +706,42 @@ class _ChatWidgetState extends State<ChatWidget> {
     // --- Portfolio Section ---
 
     // 1. Portfolio Summary
-    final portfolioSummary = widget.generativeService.prompts.firstWhere(
-      (p) => p.key == 'portfolio-summary',
-      orElse: () => Prompt(
-        key: 'portfolio-summary',
-        title: 'Executive Summary',
-        prompt:
-            'Provide a comprehensive executive summary of my portfolio. Please analyze my asset allocation (stocks vs. options vs. cash), highlight my top holdings by market value, identify any sector concentrations, and summarize my performance metrics (including total equity, today\'s change, and overall gains/losses). Keep it clear, concise, and structured with bullet points.',
-        appendPortfolioToPrompt: true,
-        appendInvestmentProfile: true,
-      ),
-    );
+    final portfolioSummary =
+        widget.generativeService.getPrompt('portfolio-summary');
 
     // 2. Performance
-    final portfolioPerformance = Prompt(
-      key: 'portfolio-performance-manual',
-      title: 'Performance',
-      prompt:
-          'Analyze my portfolio\'s historical and current performance. Calculate and explain key performance statistics including total returns, unrealized vs. realized gains, and daily volatility metrics. Highlight my top best-performing and worst-performing positions, and outline the main drivers of these performance variations.',
-      appendPortfolioToPrompt: true,
-      appendInvestmentProfile: true,
-    );
+    final portfolioPerformance =
+        widget.generativeService.getPrompt('portfolio-performance-manual');
 
     // 3. Risk Analysis
-    final portfolioRisk = Prompt(
-      key: 'portfolio-risk-manual',
-      title: 'Risk Audit',
-      prompt:
-          'Conduct a rigorous risk audit of my investment portfolio. Assess single-stock concentration risk (e.g. any position exceeding 10% of total allocation), sector and industry exposure limits, overall portfolio beta, and interest-rate or macroeconomic sensitivity. Identify top vulnerabilities and outline 3 concrete strategies (like adding uncorrelated assets, sector hedging, or trailing stops) to safeguard capital.',
-      appendPortfolioToPrompt: true,
-      appendInvestmentProfile: true,
-    );
+    final portfolioRisk =
+        widget.generativeService.getPrompt('portfolio-risk-manual');
 
     // 4. Options Greeks
-    final optionsGreeks = Prompt(
-      key: 'options-greeks-manual',
-      title: 'Greeks Exposure',
-      prompt:
-          'Examine my options holdings to assess my aggregate portfolio Greeks. Provide a breakdown of Delta (directional bias), Gamma (sensitivity to price changes), Theta (expected daily time decay), and Vega (volatility exposure). Explain how my portfolio is positioned to perform under specific scenarios (e.g., a sudden 5% market drop, or a 10% crash in implied volatility/VIX), and suggest adjustments if these exposures are unbalanced.',
-      appendPortfolioToPrompt: true,
-      appendInvestmentProfile: true,
-    );
+    final optionsGreeks =
+        widget.generativeService.getPrompt('options-greeks-manual');
 
     // --- Market Section ---
 
     // 5. Market Status
-    final marketStatus = Prompt(
-      key: 'market-status-manual',
-      title: 'Market Pulse',
-      prompt:
-          'Deliver a real-time market report on today\'s trading session. Summarize intraday performance of the primary benchmark indices (S&P 500, Nasdaq, Dow Jones, Russell 2000), identify the strongest and weakest market sectors, list leading active movers (highest gainers/losers), and summarize the macroeconomic or sentiment drivers animating the market today.',
-    );
+    final marketStatus =
+        widget.generativeService.getPrompt('market-status-manual');
 
     // 6. Market Outlook
-    final marketOutlook = widget.generativeService.prompts.firstWhere(
-      (p) => p.key == 'market-predictions',
-      orElse: () => Prompt(
-        key: 'market-predictions',
-        title: 'Market Outlook',
-        prompt:
-            'Perform an expert technical and fundamental analysis of major financial indices (SPY, QQQ, IWM, VIX) and sector trends for today and the upcoming week. Identify critical support/resistance levels, pivot points, and potential trend changes. Highlight upcoming high-impact economic catalysts (such as CPI releases, Fed announcements, or key earnings reports) that could drive market volatility, and outline both bullish and bearish scenarios.',
-      ),
-    );
+    final marketOutlook =
+        widget.generativeService.getPrompt('market-predictions');
 
     // 7. Investment Ideas
-    final investmentIdeas = widget.generativeService.prompts.firstWhere(
-      (p) => p.key == 'portfolio-recommendations',
-      orElse: () => Prompt(
-        key: 'portfolio-recommendations',
-        title: 'Investment Ideas',
-        prompt:
-            'Recommend 3 tailored investment opportunities or strategic adjustments that complement my existing portfolio and align with my risk profile. For each recommendation, provide the ticker symbol, targeted percentage allocation, entry strategy, and a concise fundamental or technical rationale explaining why this is a strong addition. Highlight any potential hedges or diversification benefits.',
-        appendPortfolioToPrompt: true,
-      ),
-    );
+    final investmentIdeas =
+        widget.generativeService.getPrompt('portfolio-recommendations');
 
     // 8. Construct Portfolio
-    final constructPortfolio = widget.generativeService.prompts.firstWhere(
-      (p) => p.key == 'construct-portfolio',
-      orElse: () => Prompt(
-        key: 'construct-portfolio',
-        title: 'Portfolio Builder',
-        prompt:
-            'Construct a professionally diversified, theme-based portfolio tailored to my risk tolerance and investment profile (or design a balanced Growth & Income portfolio if my request is open-ended). Provide a clean Markdown table with Asset Class, Ticker, Target Allocation, and Sector. Follow with an investment thesis, rationale, and a risk management plan.',
-      ),
-    );
+    final constructPortfolio =
+        widget.generativeService.getPrompt('construct-portfolio');
 
     // 9. Stock Analysis (Example)
-    final stockAnalysis = Prompt(
-      key: 'apple-analysis-manual',
-      title: 'Analyze AAPL',
-      prompt:
-          'Perform a professional, multi-timeframe analysis of Apple Inc. (AAPL). Evaluate its technical structure (including moving averages, RSI divergence, support/resistance levels, and volume trends), assess its fundamental value (using forward P/E, growth projection, and cash-flow health), and identify upcoming product, earnings, or macro catalysts. Conclude with a clear Buy, Hold, or Sell trade plan including suggested entry, stop-loss, and target exit prices.',
-    );
+    final stockAnalysis =
+        widget.generativeService.getPrompt('apple-analysis-manual');
 
     return Center(
       child: SingleChildScrollView(
@@ -1304,52 +1245,6 @@ class _ChatWidgetState extends State<ChatWidget> {
     return Icons.lightbulb_outline;
   }
 
-  Widget _buildTypingIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Icon(
-              Icons.auto_awesome,
-              size: 16,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Thinking...',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
     final isUser = message.isUser;
     final theme = Theme.of(context);
@@ -1427,47 +1322,78 @@ class _ChatWidgetState extends State<ChatWidget> {
       );
     }
 
+    final provider = Provider.of<GenerativeProvider>(context, listen: false);
+    final isLast = provider.chatMessages.isNotEmpty &&
+        provider.chatMessages.last == message;
+
+    if (message.text.trim().isEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Thinking...',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      );
+    }
+
     final proposals = _parseTradeProposals(message.text);
-    final toolExecutions = _parseToolExecutions(message.text);
+    final parts = _parseMessageIntoParts(message.text);
     final cleanedText = _cleanMessageText(message.text);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (toolExecutions.isNotEmpty) ...[
-          ...toolExecutions.map((exec) => ToolExecutionCard(execution: exec)),
-          const SizedBox(height: 8),
-        ],
-        SelectionArea(
-          child: MarkdownBody(
-            data: cleanedText,
-            selectable: true,
-            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-              tableColumnWidth: const IntrinsicColumnWidth(),
-              p: theme.textTheme.bodyLarge,
-              code: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'monospace',
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              ),
-              codeblockDecoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              blockquote: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-              blockquoteDecoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(
-                    color: theme.colorScheme.primary,
-                    width: 4,
+        ...parts.map((part) {
+          if (part.executions != null && part.executions!.isNotEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: ToolExecutionsGroupCard(executions: part.executions!),
+            );
+          } else if (part.text != null && part.text!.trim().isNotEmpty) {
+            return SelectionArea(
+              child: MarkdownBody(
+                data: part.text!,
+                selectable: true,
+                styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                  tableColumnWidth: const IntrinsicColumnWidth(),
+                  p: theme.textTheme.bodyLarge,
+                  code: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  blockquote: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 4,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
         if (proposals.isNotEmpty) ...[
           const SizedBox(height: 12),
           const Divider(),
@@ -1477,27 +1403,52 @@ class _ChatWidgetState extends State<ChatWidget> {
                 child: AgenticTradeCard(proposal: proposal),
               )),
         ],
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.copy_outlined, size: 16),
-              tooltip: 'Copy',
-              constraints: const BoxConstraints(),
-              padding: const EdgeInsets.all(8),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: cleanedText));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+        if (isLast && _isTyping) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Thinking...',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (cleanedText.trim().isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.copy_outlined, size: 16),
+                tooltip: 'Copy',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(8),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: cleanedText));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Copied to clipboard'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -1557,76 +1508,6 @@ class _ChatWidgetState extends State<ChatWidget> {
     return proposals;
   }
 
-  List<ToolExecution> _parseToolExecutions(String text) {
-    final List<ToolExecution> executions = [];
-    final lines = text.split('\n');
-
-    String? currentTool;
-    String? currentArgs;
-    String? currentResponse;
-    String? currentError;
-    bool isInBlock = false;
-
-    for (var line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('> ⚙️ **Executing tool:**')) {
-        if (currentTool != null) {
-          executions.add(ToolExecution(
-            toolName: currentTool,
-            arguments: currentArgs,
-            response: currentResponse,
-            error: currentError,
-            isInProgress: currentResponse == null && currentError == null,
-          ));
-        }
-        final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
-        currentTool = match?.group(1) ?? 'Unknown Tool';
-        currentArgs = null;
-        currentResponse = null;
-        currentError = null;
-        isInBlock = true;
-      } else if (isInBlock && trimmed.startsWith('>')) {
-        if (trimmed.contains('*Arguments:*')) {
-          final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
-          currentArgs = match?.group(1);
-        } else if (trimmed.contains('📥 **Response:**')) {
-          final match = RegExp(r'`([\s\S]+?)`').firstMatch(trimmed);
-          currentResponse = match?.group(1);
-        } else if (trimmed.contains('❌ **Error:**')) {
-          final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
-          currentError = match?.group(1);
-        }
-      } else if (trimmed.isNotEmpty && !trimmed.startsWith('>')) {
-        if (currentTool != null) {
-          executions.add(ToolExecution(
-            toolName: currentTool,
-            arguments: currentArgs,
-            response: currentResponse,
-            error: currentError,
-            isInProgress: currentResponse == null && currentError == null,
-          ));
-          currentTool = null;
-          currentArgs = null;
-          currentResponse = null;
-          currentError = null;
-        }
-        isInBlock = false;
-      }
-    }
-
-    if (currentTool != null) {
-      executions.add(ToolExecution(
-        toolName: currentTool,
-        arguments: currentArgs,
-        response: currentResponse,
-        error: currentError,
-        isInProgress: currentResponse == null && currentError == null,
-      ));
-    }
-
-    return executions;
-  }
-
   String _cleanToolExecutions(String text) {
     final lines = text.split('\n');
     final cleanLines = <String>[];
@@ -1660,6 +1541,113 @@ class _ChatWidgetState extends State<ChatWidget> {
     cleaned = _cleanToolExecutions(cleaned);
     return cleaned.trim();
   }
+
+  List<_ChatMessageContentPart> _parseMessageIntoParts(String text) {
+    // First, strip trade proposals from the text because they are rendered at the bottom in the Column
+    var textWithStrips = text.replaceAll(
+        RegExp(r'\[TRADE_PROPOSAL:\s*[^\]]+\]', caseSensitive: false), '');
+    textWithStrips = textWithStrips.replaceAll(
+        RegExp(r'\[TRADE_PROPOSAL_OPTION:\s*[^\]]+\]', caseSensitive: false),
+        '');
+
+    final List<_ChatMessageContentPart> parts = [];
+    final lines = textWithStrips.split('\n');
+
+    List<String> currentTextLines = [];
+    List<ToolExecution> currentExecutionsGroup = [];
+
+    String? currentTool;
+    String? currentArgs;
+    String? currentResponse;
+    String? currentError;
+    bool isInBlock = false;
+
+    void flushText() {
+      if (currentTextLines.isNotEmpty) {
+        final textContent = currentTextLines.join('\n').trim();
+        if (textContent.isNotEmpty) {
+          parts.add(_ChatMessageContentPart(text: textContent));
+        }
+        currentTextLines.clear();
+      }
+    }
+
+    void flushToolGroup() {
+      if (currentExecutionsGroup.isNotEmpty) {
+        parts.add(_ChatMessageContentPart(
+          executions: List.from(currentExecutionsGroup),
+        ));
+        currentExecutionsGroup.clear();
+      }
+    }
+
+    void addPendingTool() {
+      if (currentTool != null) {
+        currentExecutionsGroup.add(ToolExecution(
+          toolName: currentTool!,
+          arguments: currentArgs,
+          response: currentResponse,
+          error: currentError,
+          isInProgress: currentResponse == null && currentError == null,
+        ));
+        currentTool = null;
+        currentArgs = null;
+        currentResponse = null;
+        currentError = null;
+      }
+    }
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('> ⚙️ **Executing tool:**')) {
+        if (isInBlock) {
+          addPendingTool();
+        } else {
+          flushText();
+        }
+        final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
+        currentTool = match?.group(1) ?? 'Unknown Tool';
+        currentArgs = null;
+        currentResponse = null;
+        currentError = null;
+        isInBlock = true;
+      } else if (isInBlock && trimmed.startsWith('>')) {
+        if (trimmed.contains('*Arguments:*')) {
+          final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
+          currentArgs = match?.group(1);
+        } else if (trimmed.contains('📥 **Response:**')) {
+          final match = RegExp(r'`([\s\S]+?)`').firstMatch(trimmed);
+          currentResponse = match?.group(1);
+        } else if (trimmed.contains('❌ **Error:**')) {
+          final match = RegExp(r'`([^`]+)`').firstMatch(trimmed);
+          currentError = match?.group(1);
+        }
+      } else if (isInBlock && trimmed.isNotEmpty && !trimmed.startsWith('>')) {
+        addPendingTool();
+        flushToolGroup();
+        isInBlock = false;
+        currentTextLines.add(line);
+      } else {
+        currentTextLines.add(line);
+      }
+    }
+
+    if (isInBlock) {
+      addPendingTool();
+      flushToolGroup();
+    } else {
+      flushText();
+      flushToolGroup();
+    }
+
+    return parts;
+  }
+}
+
+class _ChatMessageContentPart {
+  final String? text;
+  final List<ToolExecution>? executions;
+  _ChatMessageContentPart({this.text, this.executions});
 }
 
 class TradeProposal {
@@ -2283,10 +2271,27 @@ class ToolExecutionCard extends StatefulWidget {
 }
 
 class _ToolExecutionCardState extends State<ToolExecutionCard> {
+  @override
+  Widget build(BuildContext context) {
+    return ToolExecutionsGroupCard(executions: [widget.execution]);
+  }
+}
+
+class ToolExecutionsGroupCard extends StatefulWidget {
+  final List<ToolExecution> executions;
+  const ToolExecutionsGroupCard({super.key, required this.executions});
+
+  @override
+  State<ToolExecutionsGroupCard> createState() =>
+      _ToolExecutionsGroupCardState();
+}
+
+class _ToolExecutionsGroupCardState extends State<ToolExecutionsGroupCard> {
   bool _isExpanded = false;
-  bool _isArgsPretty = true;
-  bool _isResponsePretty = true;
-  bool _isResponseFull = false;
+  final Set<int> _expandedToolIndices = {};
+  final Map<int, bool> _isArgsPrettyMap = {};
+  final Map<int, bool> _isResponsePrettyMap = {};
+  final Map<int, bool> _isResponseFullMap = {};
 
   bool _isValidJson(String? text) {
     if (text == null) return false;
@@ -2325,22 +2330,22 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
   Widget _buildStatusChip(BuildContext context,
       {required String label, required Color color}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: color.withValues(alpha: 0.4),
+          color: color.withValues(alpha: 0.3),
           width: 0.5,
         ),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.bold,
           color: color,
-          letterSpacing: 0.3,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -2361,22 +2366,23 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 14, color: iconColor),
-        const SizedBox(width: 6),
+        Icon(icon, size: 12, color: iconColor),
+        const SizedBox(width: 4),
         Text(
           title,
           style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: iconColor,
+            fontSize: 11,
           ),
         ),
         if (sizeInfo != null) ...[
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Text(
             '($sizeInfo)',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 10,
+              fontSize: 9,
             ),
           ),
         ],
@@ -2385,21 +2391,21 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
           IconButton(
             icon: Icon(
               isJsonPretty ? Icons.data_object : Icons.text_snippet_outlined,
-              size: 14,
+              size: 12,
               color: theme.colorScheme.primary,
             ),
             tooltip: isJsonPretty ? 'Show Raw Text' : 'Format JSON',
             constraints: const BoxConstraints(),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             onPressed: onJsonTogglePressed,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
         ],
         IconButton(
-          icon: const Icon(Icons.copy_outlined, size: 14),
+          icon: const Icon(Icons.copy_outlined, size: 12),
           tooltip: 'Copy $copyLabel',
           constraints: const BoxConstraints(),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           onPressed: () => _copyToClipboard(context, textToCopy, copyLabel),
         ),
       ],
@@ -2416,17 +2422,18 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
     VoidCallback? onToggleTruncate,
   }) {
     final theme = Theme.of(context);
-    const maxLinesToTruncate = 15;
+    const maxLinesToTruncate = 8;
 
     final lineCount = '\n'.allMatches(text).length;
     final showCollapseToggle =
-        allowTruncate && (lineCount > maxLinesToTruncate || text.length > 500);
+        allowTruncate && (lineCount > maxLinesToTruncate || text.length > 300);
 
     Widget codeBody = Text(
       text,
       style: theme.textTheme.bodySmall?.copyWith(
         fontFamily: 'monospace',
         color: textColor,
+        fontSize: 10,
       ),
     );
 
@@ -2439,25 +2446,26 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
         style: theme.textTheme.bodySmall?.copyWith(
           fontFamily: 'monospace',
           color: textColor,
+          fontSize: 10,
         ),
       );
     }
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 4, bottom: 8),
+      margin: const EdgeInsets.only(top: 2, bottom: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             child: codeBody,
           ),
           if (showCollapseToggle) ...[
@@ -2465,11 +2473,11 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
             InkWell(
               onTap: onToggleTruncate,
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(8),
-                bottomRight: Radius.circular(8),
+                bottomLeft: Radius.circular(6),
+                bottomRight: Radius.circular(6),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -2477,7 +2485,7 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
                       isTruncated
                           ? Icons.keyboard_arrow_down
                           : Icons.keyboard_arrow_up,
-                      size: 16,
+                      size: 14,
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 4),
@@ -2486,6 +2494,7 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,
+                        fontSize: 9,
                       ),
                     ),
                   ],
@@ -2501,44 +2510,50 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final toolName = widget.execution.toolName;
-    final args = widget.execution.arguments;
-    final response = widget.execution.response;
-    final error = widget.execution.error;
-    final isInProgress = widget.execution.isInProgress;
+    final executions = widget.executions;
 
-    // Determine status badge details
-    Color statusColor;
-    String statusLabel;
-    IconData statusIcon;
+    if (executions.isEmpty) return const SizedBox.shrink();
 
-    if (isInProgress) {
-      statusColor = theme.colorScheme.primary;
-      statusLabel = 'Executing';
-      statusIcon = Icons.pending_outlined;
-    } else if (error != null && error.isNotEmpty) {
-      statusColor = theme.colorScheme.error;
-      statusLabel = 'Failed';
-      statusIcon = Icons.error_outline;
+    final hasInProgress = executions.any((e) => e.isInProgress);
+    final hasFailed =
+        executions.any((e) => e.error != null && e.error!.isNotEmpty);
+
+    Color groupColor;
+    String groupStatus;
+    IconData groupIconText;
+
+    if (hasInProgress) {
+      groupColor = theme.colorScheme.primary;
+      groupStatus = 'Executing';
+      groupIconText = Icons.pending_outlined;
+    } else if (hasFailed) {
+      groupColor = theme.colorScheme.error;
+      groupStatus = 'Failed';
+      groupIconText = Icons.error_outline;
     } else {
-      statusColor = Colors.green;
-      statusLabel = 'Success';
-      statusIcon = Icons.check_circle_outlined;
+      groupColor = Colors.green;
+      groupStatus = 'Success';
+      groupIconText = Icons.check_circle_outlined;
     }
 
+    final toolsCount = executions.length;
+    final distinctToolNames =
+        executions.map((e) => e.toolName).toSet().toList();
+    final toolsString = distinctToolNames.join(', ');
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-          width: _isExpanded ? 1.0 : 0.8,
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          width: 0.8,
         ),
       ),
       color: theme.colorScheme.surfaceContainerLow,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
             onTap: () {
@@ -2548,56 +2563,50 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
             },
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
                 children: [
-                  if (isInProgress) ...[
+                  if (hasInProgress) ...[
                     const SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: 14,
+                      height: 14,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.0,
+                        strokeWidth: 1.5,
                       ),
                     ),
                   ] else ...[
                     Icon(
-                      statusIcon,
-                      size: 18,
-                      color: statusColor,
+                      groupIconText,
+                      size: 16,
+                      color: groupColor,
                     ),
                   ],
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          toolName,
+                          toolsCount == 1
+                              ? 'Tool: ${executions.first.toolName}'
+                              : '$toolsCount tools: $toolsString',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Agentic Tool Call',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.6),
-                            fontSize: 10,
+                            fontSize: 12,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildStatusChip(context,
-                      label: statusLabel, color: statusColor),
                   const SizedBox(width: 6),
+                  _buildStatusChip(context,
+                      label: groupStatus, color: groupColor),
+                  const SizedBox(width: 4),
                   Icon(
                     _isExpanded ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
+                    size: 16,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
@@ -2606,131 +2615,227 @@ class _ToolExecutionCardState extends State<ToolExecutionCard> {
           ),
           if (_isExpanded) ...[
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Arguments Section
-                  if (args != null && args.isNotEmpty) ...[
-                    (() {
-                      final hasPrettyArgs = _isValidJson(args);
-                      final displayArgs = (hasPrettyArgs && _isArgsPretty)
-                          ? _formatJson(args)
-                          : args;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionHeader(
-                            context: context,
-                            title: 'Arguments',
-                            icon: Icons.input_outlined,
-                            iconColor: theme.colorScheme.primary,
-                            textToCopy: displayArgs,
-                            copyLabel: 'Arguments',
-                            showJsonToggle: hasPrettyArgs,
-                            isJsonPretty: _isArgsPretty,
-                            onJsonTogglePressed: () {
-                              setState(() {
-                                _isArgsPretty = !_isArgsPretty;
-                              });
-                            },
-                          ),
-                          _buildBlockContainer(
-                            context: context,
-                            text: displayArgs,
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHighest,
-                            textColor: theme.colorScheme.onSurface,
-                          ),
-                          const SizedBox(height: 6),
-                        ],
-                      );
-                    }()),
-                  ],
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: executions.length,
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, indent: 12, endIndent: 12),
+              itemBuilder: (context, index) {
+                final run = executions[index];
+                final isToolExpanded = _expandedToolIndices.contains(index);
+                final runInProgress = run.isInProgress;
+                final runFailed = run.error != null && run.error!.isNotEmpty;
 
-                  // Response Section
-                  if (response != null && response.isNotEmpty) ...[
-                    (() {
-                      final hasPrettyResponse = _isValidJson(response);
-                      final displayResponse =
-                          (hasPrettyResponse && _isResponsePretty)
-                              ? _formatJson(response)
-                              : response;
+                Color runColor;
+                IconData runIcon;
+                String runStatusLabel;
+                if (runInProgress) {
+                  runColor = theme.colorScheme.primary;
+                  runIcon = Icons.pending_outlined;
+                  runStatusLabel = 'Executing';
+                } else if (runFailed) {
+                  runColor = theme.colorScheme.error;
+                  runIcon = Icons.error_outline;
+                  runStatusLabel = 'Failed';
+                } else {
+                  runColor = Colors.green;
+                  runIcon = Icons.check_circle_outlined;
+                  runStatusLabel = 'Success';
+                }
 
-                      // Calculate size text
-                      final bytes = utf8.encode(response).length;
-                      String sizeText;
-                      if (bytes < 1024) {
-                        sizeText = '$bytes B';
-                      } else {
-                        sizeText = '${(bytes / 1024).toStringAsFixed(1)} KB';
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionHeader(
-                            context: context,
-                            title: 'Response',
-                            icon: Icons.output_outlined,
-                            iconColor: theme.colorScheme.secondary,
-                            textToCopy: displayResponse,
-                            copyLabel: 'Response',
-                            showJsonToggle: hasPrettyResponse,
-                            isJsonPretty: _isResponsePretty,
-                            onJsonTogglePressed: () {
-                              setState(() {
-                                _isResponsePretty = !_isResponsePretty;
-                              });
-                            },
-                            sizeInfo: sizeText,
-                          ),
-                          _buildBlockContainer(
-                            context: context,
-                            text: displayResponse,
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHighest,
-                            textColor: theme.colorScheme.onSurface,
-                            allowTruncate: true,
-                            isTruncated: !_isResponseFull,
-                            onToggleTruncate: () {
-                              setState(() {
-                                _isResponseFull = !_isResponseFull;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                        ],
-                      );
-                    }()),
-                  ],
-
-                  // Error Section
-                  if (error != null && error.isNotEmpty) ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildSectionHeader(
-                          context: context,
-                          title: 'Error',
-                          icon: Icons.error_outline,
-                          iconColor: theme.colorScheme.error,
-                          textToCopy: error,
-                          copyLabel: 'Error',
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          if (isToolExpanded) {
+                            _expandedToolIndices.remove(index);
+                          } else {
+                            _expandedToolIndices.add(index);
+                          }
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        child: Row(
+                          children: [
+                            if (runInProgress) ...[
+                              const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 1.2),
+                              ),
+                            ] else ...[
+                              Icon(runIcon, size: 14, color: runColor),
+                            ],
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                run.toolName,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            _buildStatusChip(context,
+                                label: runStatusLabel, color: runColor),
+                            const SizedBox(width: 4),
+                            Icon(
+                              isToolExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ],
                         ),
-                        _buildBlockContainer(
-                          context: context,
-                          text: error,
-                          backgroundColor: theme.colorScheme.errorContainer
-                              .withValues(alpha: 0.5),
-                          textColor: theme.colorScheme.onErrorContainer,
-                        ),
-                      ],
+                      ),
                     ),
+                    if (isToolExpanded) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left: 12, right: 12, bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (run.arguments != null &&
+                                run.arguments!.isNotEmpty) ...[
+                              (() {
+                                final isPretty =
+                                    _isArgsPrettyMap[index] ?? true;
+                                final hasPretty = _isValidJson(run.arguments);
+                                final displayArgs = (hasPretty && isPretty)
+                                    ? _formatJson(run.arguments!)
+                                    : run.arguments!;
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildSectionHeader(
+                                      context: context,
+                                      title: 'Arguments',
+                                      icon: Icons.input_outlined,
+                                      iconColor: theme.colorScheme.primary,
+                                      textToCopy: displayArgs,
+                                      copyLabel: 'Arguments',
+                                      showJsonToggle: hasPretty,
+                                      isJsonPretty: isPretty,
+                                      onJsonTogglePressed: () {
+                                        setState(() {
+                                          _isArgsPrettyMap[index] = !isPretty;
+                                        });
+                                      },
+                                    ),
+                                    _buildBlockContainer(
+                                      context: context,
+                                      text: displayArgs,
+                                      backgroundColor: theme
+                                          .colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                      textColor: theme.colorScheme.onSurface,
+                                    ),
+                                  ],
+                                );
+                              }()),
+                            ],
+                            if (run.response != null &&
+                                run.response!.isNotEmpty) ...[
+                              (() {
+                                final isPretty =
+                                    _isResponsePrettyMap[index] ?? true;
+                                final isFull =
+                                    _isResponseFullMap[index] ?? false;
+                                final hasPretty = _isValidJson(run.response);
+                                final displayResponse = (hasPretty && isPretty)
+                                    ? _formatJson(run.response!)
+                                    : run.response!;
+
+                                final bytes = utf8.encode(run.response!).length;
+                                final sizeText = bytes < 1024
+                                    ? '$bytes B'
+                                    : '${(bytes / 1024).toStringAsFixed(1)} KB';
+
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    _buildSectionHeader(
+                                      context: context,
+                                      title: 'Response',
+                                      icon: Icons.output_outlined,
+                                      iconColor: theme.colorScheme.secondary,
+                                      textToCopy: displayResponse,
+                                      copyLabel: 'Response',
+                                      showJsonToggle: hasPretty,
+                                      isJsonPretty: isPretty,
+                                      onJsonTogglePressed: () {
+                                        setState(() {
+                                          _isResponsePrettyMap[index] =
+                                              !isPretty;
+                                        });
+                                      },
+                                      sizeInfo: sizeText,
+                                    ),
+                                    _buildBlockContainer(
+                                      context: context,
+                                      text: displayResponse,
+                                      backgroundColor: theme
+                                          .colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                      textColor: theme.colorScheme.onSurface,
+                                      allowTruncate: true,
+                                      isTruncated: !isFull,
+                                      onToggleTruncate: () {
+                                        setState(() {
+                                          _isResponseFullMap[index] = !isFull;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                );
+                              }()),
+                            ],
+                            if (run.error != null && run.error!.isNotEmpty) ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  _buildSectionHeader(
+                                    context: context,
+                                    title: 'Error',
+                                    icon: Icons.error_outline,
+                                    iconColor: theme.colorScheme.error,
+                                    textToCopy: run.error!,
+                                    copyLabel: 'Error',
+                                  ),
+                                  _buildBlockContainer(
+                                    context: context,
+                                    text: run.error!,
+                                    backgroundColor: theme
+                                        .colorScheme.errorContainer
+                                        .withValues(alpha: 0.4),
+                                    textColor:
+                                        theme.colorScheme.onErrorContainer,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                );
+              },
             ),
           ],
         ],

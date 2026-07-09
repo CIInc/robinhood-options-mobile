@@ -21,6 +21,8 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/gamma_exposure_model.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 
 class Prompt {
@@ -48,11 +50,55 @@ class GenerativeService {
     if (mcpToolNames != null && mcpToolNames.isNotEmpty) {
       instruction +=
           '\n**ROBINHOOD MODEL CONTEXT PROTOCOL (MCP) IS ACTIVE & CONNECTED!**\n'
-          'You have direct, real-time access to the user\'s Robinhood account through the following active tools: ${mcpToolNames.join(", ")}.\n'
-          'CRITICAL GUIDELINES:\n'
-          '- Whenever the user asks about their portfolio, holdings, cash, buying power, positions, watchlists, or any specific stock/option details, **you must use the appropriate MCP tool(s)** to fetch the real-time data instead of relying on legacy assumptions, guessing, or claiming you lack access.\n'
-          '- Realize that you can invoke tools step-by-step (e.g., fetch account first, then portfolio holdings or a specific quote) as needed.\n'
-          '- Inform the user of the actions/tools you are executing so they know you are querying Robinhood on their behalf.\n\n';
+          'You have direct, real-time access to the user\'s Robinhood account through the following active tools: ${mcpToolNames.join(", ")}.\n\n'
+          '### 🌟 CRITICAL ASSISTANT PRINCIPLES:\n'
+          '1. **Dynamic Real-Time Access:** Whenever the user asks about their portfolio, holdings, cash, buying power, balances, positions, watchlists, market quotes, indicators, or specific stock/option details, **you must execute the appropriate MCP tool(s)** to fetch actual data. Do not make assumptions, guess, or state that you lack real-time account access.\n'
+          '2. **Chain-of-Thought Orchestration:** You can execute tools in sequence to fulfill a complex request (e.g., call `get_accounts` to retrieve the active account ID first, then call `get_portfolio` or `get_equity_positions` with that account ID, then retrieve real-time quotes using symbols from those positions).\n'
+          '3. **Progress Updates:** Inform the user briefly about which tools or queries you are running on their behalf so they understand the process.\n'
+          '4. **Zero-Hallucination Guard:** If a tool returns an error, empty list, or missing data, report the situation factually. If an option strike, expiration date, or symbol is unspecified, do not invent one; instead, query the underlying option chains first and ask the user for clarification if options are ambiguous.\n'
+          '5. **Multi-Account Aggregation & Summarization:** If `get_accounts` returns multiple accounts, and the user asks for a portfolio summary, overview, balance, or list of holdings/positions, **do not ask them to choose or limit your summary to just one account**. You must call the relevant tools (e.g., `get_portfolio`, `get_equity_positions`, `get_option_positions`) for **ALL** returned accounts. Summarize each account individually and then provide a combined/unified Grand Total or Aggregated View of all accounts in your response.\n'
+          '6. **Overall G/L & Performance Calculations:** If the user asks about the overall/total gain/loss (G/L), return, or performance of their portfolio or positions, **never state that overall G/L cannot be calculated**. You have all the underlying data and tool functions to calculate this directly:\n'
+          '   - Use `get_equity_positions` and `get_option_positions` to check holdings.\n'
+          '   - Use `get_equity_historicals` and `get_option_historicals` to fetch the historical pricing curves for those symbols over the desired period (e.g., day, week, month, year) to compute historical/overall returns, trends, and gain/loss performance directly from historical close markings.\n'
+          '   - Aggregate these returns: Sum up the individual position-level historical gains and losses across all stocks, ETFs, and options, and combine them with cash configurations to deliver a complete, highly precise overall Portfolio Gain/Loss summary and trend analysis.\n\n'
+          '### 🛠️ MCP TOOL MAPPING & EXECUTION DIRECTIVES:\n'
+          'Always map user requests, intents, or prompts to these exact MCP tools:\n\n'
+          '#### A. Account Balances, Cash, Buying Power & Holdings\n'
+          '- **Step 1:** Call `get_accounts` if the account number is not already provided. Validate that `agentic_allowed` is `true` before planning automated or assisted trades on that account number. **Important:** If multiple accounts are returned, proceed to fetch the portfolio and holdings data for **every** account to support a full unified/aggregated summary.\n'
+          '- **Step 2:** Call `get_portfolio` using the retrieved `account_number`(s) for **all** accounts to get exact liquid balances, margin requirements, option buying power, cash held for collateral, and overall portfolio values.\n'
+          '- **Step 3:** Call `get_equity_positions` to check current stock and ETF holdings, shares quantity, average purchase prices, and unrealized gains. Fetch this for **all** accounts if multiple exist.\n'
+          '- **Step 4:** Call `get_option_positions` (optionally passing `nonzero: true` to prioritize only open contracts) to look up active long or short equity/index options contracts, ticks, quantities, and cost basis. Fetch this for **all** accounts if multiple exist.\n'
+          '- **Step 5:** Collect symbols from holdings and execute `get_equity_quotes` in parallel to overlay current real-time prices over purchase bases.\n\n'
+          '#### B. Watchlists & Curated Lists\n'
+          '- To list lists: Use `get_watchlists` to fetch user-defined lists.\n'
+          '- To view items: Use `get_watchlist_items` with a target `list_id` UUID. If needed, parse listed symbols via `get_equity_quotes` to obtain prices.\n'
+          '- To check options watchlists specifically: Use `get_option_watchlist`.\n'
+          '- To modify lists: Use `create_watchlist`, `update_watchlist`, `add_to_watchlist`, or `remove_from_watchlist`. For watchlists, exactly one of `symbols`, `currency_pair_ids`, or `index_ids` must be supplied to change items.\n'
+          '- To follow curated lists: Use `get_popular_watchlists` to browse thematic lists, then follow them with `follow_watchlist` or stop tracking via `unfollow_watchlist`.\n\n'
+          '#### C. Standard Stock Research, Fundamentals & Historical Charting\n'
+          '- **Resolution:** If the user mentions a sector, crypto pair, or company name instead of a symbol (e.g. "Apple", "Bitcoin"), call `search` with the query and choose matching `asset_type` ("instrument", "currency_pair", or "market_index").\n'
+          '- **Quotes:** Use `get_equity_quotes` for real-time bid, ask, last sale, and prior-day closing benchmarks.\n'
+          '- **Fundamentals:** Call `get_equity_fundamentals` to assess P/E ratio, market cap, float, dividend yield, and corporate descriptions (max 10 symbols per call).\n'
+          '- **Schedules & Earnings:** Call `get_earnings_results` to review historical quarterly EPS performance surprises or call `get_earnings_calendar` to scan upcoming catalysts across the market.\n'
+          '- **Tradability Guidelines:** Call `get_equity_tradability` to evaluate 24-hour trading limits, fractional order suitability, or session constraints.\n'
+          '- **Histocial / Technical Charting:** Use `get_equity_historicals` to fetch OHLCV candle streams across an explicit time range. Map intervals properly: e.g., use `day` or `week` for long-term and `minute` or `5minute` for intraday patterns.\n\n'
+          '#### D. Options Chain Analysis, Pricing & Greeks\n'
+          '- **Chain Expirations:** Call `get_option_chains` with the underlying symbol/ticker (e.g., `AAPL`) to find the full array of valid expiration dates and chain properties (such as `settle_on_open`).\n'
+          '- **Instruments:** Call `get_option_instruments` using `chain_symbol` and specific `expiration_dates` (YYYY-MM-DD), `strike_price` (formatting strikes with four decimals e.g., `150.0000`), or `type` (`call`/`put`) to identify contract UUIDs.\n'
+          '- **Pricing & Greeks:** Pass option UUIDs to `get_option_quotes` to retrieve real-time bid/ask values, adjusted mark, Implied Volatility (IV), and Greeks (Delta, Gamma, Theta, Vega).\n\n'
+          '#### E. Execution, Simulations & Risk Guards\n'
+          '- **Equities Trade Flow:**\n'
+          '  - *Always* review trading plans by calling `review_equity_order` first. Deliver estimated costs, transaction fees, and PDT warning details to the user.\n'
+          '  - If the user explicitly confirms the order, execute `place_equity_order`. Ensure you generate and supply a fresh UUID as `ref_id` for idempotency safe guards.\n'
+          '  - Never use fractional shares unless `type` is `market` and `market_hours` corresponds to `regular_hours`.\n'
+          '- **Options Trade Flow:**\n'
+          '  - Verify account is `agentic_allowed` and has `option_level_2` or `option_level_3`.\n'
+          '  - *Always* run pre-trade validation by calling `review_option_order` first to verify collateral liabilities and transaction costs.\n'
+          '  - When explicitly cleared, call `place_option_order` using a fresh UUID `ref_id` and correct position effects (`open`/`close`).\n\n'
+          '### 📊 DATA REPRESENTATION & FORMATTING GUIDELINES:\n'
+          '- **Data Tables:** Present holdings, quotes, and option contracts in clean, beautifully structured Markdown tables (e.g. columns: Symbol, Name, Price, Change, Alloc %, Value).\n'
+          '- **Financial Notations:** Format currency figures professionally (e.g. \$1,234.56), express returns and changes with positive/negative percentages, and represent dates in readable forms.\n'
+          '- **Option Formatting:** Refer to options clearly (e.g., "AAPL 150 Call Exp 2026-06-19" or inline format `[AAPL \$150.00 Call 6/19/26]`).\n\n';
     }
 
     instruction +=
@@ -77,7 +123,7 @@ class GenerativeService {
       title: 'Portfolio Summary',
       // Previous prompt: 'Summarize my portfolio including key metrics and performance.'
       prompt:
-          'Provide a comprehensive executive summary of my portfolio. Please analyze my asset allocation (stocks vs. options vs. cash), highlight my top holdings by market value, identify any sector concentrations, and summarize my performance metrics (including total equity, today\'s change, and overall gains/losses). Keep it clear, concise, and structured with bullet points.',
+          'Provide a comprehensive executive summary of my portfolio. Please analyze my asset allocation (stocks vs. options vs. cash), highlight my top holdings by market value, identify any sector concentrations, and summarize my performance metrics (including total equity, today\'s change, and overall gains/losses). Note: if I have multiple accounts, retrieve and summarize the data for ALL of them and provide a combined aggregated overview in addition to the per-account details. Keep it clear, concise, and structured with bullet points.',
       appendInvestmentProfile: true,
       appendPortfolioToPrompt: true,
     ),
@@ -188,7 +234,164 @@ Follow the table with a strategic breakdown:
       prompt: '',
       appendPortfolioToPrompt: true,
     ),
+    Prompt(
+      key: 'portfolio-performance-manual',
+      title: 'Performance',
+      prompt:
+          'Analyze my portfolio\'s historical and current performance. Calculate and explain key performance statistics including total returns, unrealized vs. realized gains, and daily volatility metrics. Highlight my top best-performing and worst-performing positions, and outline the main drivers of these performance variations.',
+      appendPortfolioToPrompt: true,
+      appendInvestmentProfile: true,
+    ),
+    Prompt(
+      key: 'portfolio-risk-manual',
+      title: 'Risk Audit',
+      prompt:
+          'Conduct a rigorous risk audit of my investment portfolio. Assess single-stock concentration risk (e.g. any position exceeding 10% of total allocation), sector and industry exposure limits, overall portfolio beta, and interest-rate or macroeconomic sensitivity. Identify top vulnerabilities and outline 3 concrete strategies (like adding uncorrelated assets, sector hedging, or trailing stops) to safeguard capital.',
+      appendPortfolioToPrompt: true,
+      appendInvestmentProfile: true,
+    ),
+    Prompt(
+      key: 'options-greeks-manual',
+      title: 'Greeks Exposure',
+      prompt:
+          'Examine my options holdings to assess my aggregate portfolio Greeks. Provide a breakdown of Delta (directional bias), Gamma (sensitivity to price changes), Theta (expected daily time decay), and Vega (volatility exposure). Explain how my portfolio is positioned to perform under specific scenarios (e.g., a sudden 5% market drop, or a 10% crash in implied volatility/VIX), and suggest adjustments if these exposures are unbalanced.',
+      appendPortfolioToPrompt: true,
+      appendInvestmentProfile: true,
+    ),
+    Prompt(
+      key: 'market-status-manual',
+      title: 'Market Pulse',
+      prompt:
+          'Deliver a real-time market report on today\'s trading session. Summarize intraday performance of the primary benchmark indices (S&P 500, Nasdaq, Dow Jones, Russell 2000), identify the strongest and weakest market sectors, list leading active movers (highest gainers/losers), and summarize the macroeconomic or sentiment drivers animating the market today.',
+    ),
+    Prompt(
+      key: 'apple-analysis-manual',
+      title: 'Analyze AAPL',
+      prompt:
+          'Perform a professional, multi-timeframe analysis of Apple Inc. (AAPL). Evaluate its technical structure (including moving averages, RSI divergence, support/resistance levels, and volume trends), assess its fundamental value (using forward P/E, growth projection, and cash-flow health), and identify upcoming product, earnings, or macro catalysts. Conclude with a clear Buy, Hold, or Sell trade plan including suggested entry, stop-loss, and target exit prices.',
+    ),
   ];
+
+  Prompt getPrompt(String key) {
+    return prompts.firstWhere(
+      (p) => p.key == key,
+      orElse: () => throw ArgumentError(
+          'Prompt with key "$key" not found in GenerativeService.'),
+    );
+  }
+
+  static Prompt buildDraftNotePrompt(String symbol) {
+    return Prompt(
+      key: 'draft-note',
+      title: 'Draft Note',
+      prompt:
+          'Draft a short, insightful trading note for $symbol. Focus on recent price action, key levels, and potential catalysts (bullish/bearish). Use markdown formatting (bold keys, bullet points) and keep it concise.',
+    );
+  }
+
+  static Prompt buildGexCommentaryPrompt(GammaExposureData gex) {
+    final promptText =
+        'Analyze the options market-maker Gamma Exposure (GEX) data for ticker ${gex.symbol}.'
+        '\n- Current Spot Price: \$${gex.spotPrice.toStringAsFixed(2)}'
+        '\n- Net GEX: ${gex.formattedNetGEX}'
+        '\n- Dealer Positioning: ${gex.dealerPositioning.displayLabel}'
+        '\n- Gamma Flip Level: ${gex.gammaFlip != null ? '\$${gex.gammaFlip!.toStringAsFixed(2)}' : 'N/A'}'
+        '\n- Call Wall (Resistance): ${gex.callWall != null ? '\$${gex.callWall!.toStringAsFixed(2)}' : 'N/A'}'
+        '\n- Put Wall (Support): ${gex.putWall != null ? '\$${gex.putWall!.toStringAsFixed(2)}' : 'N/A'}'
+        '\n- Call vs Put GEX Ratio: ${(gex.gexRatio * 100).toStringAsFixed(0)}% Calls / ${((1 - gex.gexRatio) * 100).toStringAsFixed(0)}% Puts'
+        '\n- Signal Strength Indicator: ${gex.signalStrength}/100'
+        '\n\nProvide 2-3 concise paragraphs summarizing what this means for near-term price action, key resistance/support zones to watch, and overall trading volatility expectations. Keep your answer highly educational, concise, and professional.';
+    return Prompt(
+      key: 'gex-commentary-${gex.symbol}',
+      title: 'GEX Commentary',
+      prompt: promptText,
+    );
+  }
+
+  static List<Prompt> buildInstrumentPrompts(Instrument instrument) {
+    final symbol = instrument.symbol;
+    List<Prompt> prompts = [
+      Prompt(
+        key: 'overview-$symbol',
+        title: 'Tell me about $symbol',
+        prompt: 'Tell me about $symbol and its recent performance.',
+      ),
+      Prompt(
+        key: 'chart-$symbol',
+        title: 'Analyze Chart',
+        prompt: 'Analyze the technical chart for $symbol.',
+      ),
+      Prompt(
+        key: 'news-$symbol',
+        title: 'Why is it moving?',
+        prompt: 'Why is $symbol moving today? Summarize recent news.',
+      ),
+    ];
+
+    if (instrument.tradeableChainId != null) {
+      prompts.add(Prompt(
+          key: 'option-strategy-$symbol',
+          title: 'Option Strategy',
+          prompt:
+              'Suggest an option trading strategy for $symbol based on current market conditions.'));
+    }
+
+    prompts.add(Prompt(
+        key: 'sentiment-$symbol',
+        title: 'Sentiment Analysis',
+        prompt: 'What is the market sentiment for $symbol?'));
+
+    return prompts;
+  }
+
+  static Prompt buildInstrumentAnalysisPrompt({
+    required String symbol,
+    required String type, // summary, sentiment, keyLevels, strategy, news
+  }) {
+    switch (type) {
+      case 'summary':
+        return Prompt(
+          key: 'insight-$symbol-summary',
+          title: 'Summary',
+          prompt:
+              'Tell me about $symbol and its recent performance in markdown format. Keep it concise.',
+        );
+      case 'sentiment':
+        return Prompt(
+          key: 'insight-$symbol-sentiment',
+          title: 'Sentiment',
+          prompt:
+              'Analyze the market sentiment for $symbol. Include bullish and bearish factors.',
+        );
+      case 'keyLevels':
+        return Prompt(
+          key: 'insight-$symbol-key-levels',
+          title: 'Key Levels',
+          prompt:
+              'Identify key support and resistance levels for $symbol based on recent price action.',
+        );
+      case 'strategy':
+        return Prompt(
+          key: 'insight-$symbol-strategy',
+          title: 'Strategy',
+          prompt:
+              'Suggest an options trading strategy for $symbol given the current market conditions.',
+        );
+      case 'news':
+        return Prompt(
+          key: 'insight-$symbol-news',
+          title: 'News Analysis',
+          prompt:
+              'Analyze the latest news for $symbol and explain why it is moving. Be concise.',
+        );
+      default:
+        return Prompt(
+          key: 'analysis-$symbol',
+          title: 'Analysis',
+          prompt: 'Analyze $symbol.',
+        );
+    }
+  }
   // final String _apiKey;
   // final String _baseUrl;
 
@@ -358,17 +561,9 @@ Follow the table with a strategic breakdown:
         includeProfile: includeProfile,
       );
       context += "\n";
-    } else {
-      if (includeProfile && user != null) {
-        context += investmentProfilePrompt(user);
-        context += "\n";
-      }
-      if (mcpConnected) {
-        context += "\n[SYSTEM NOTICE: Robinhood MCP client is ACTIVE and CONNECTED with tools: ${mcpToolNames.join(', ')}. "
-            "To fulfill the user's request about their portfolio, holdings, or balances, you MUST call the appropriate dynamic tool(s). "
-            "Start by calling list_accounts (or equivalent) to retrieve the active account ID/number if needed, and proceed step-by-step. "
-            "Never claim you lack access, say you need access, or instruct the user to grant or authorize account access, as you are already authorized and connected.]\n";
-      }
+    } else if (!mcpConnected && includeProfile && user != null) {
+      context += investmentProfilePrompt(user);
+      context += "\n";
     }
 
     String promptString = "";
@@ -649,7 +844,7 @@ Follow the table with a strategic breakdown:
         includeProfile: includeProfile,
       );
       context += "\n";
-    } else if (includeProfile && user != null) {
+    } else if (!mcpConnected && includeProfile && user != null) {
       context += investmentProfilePrompt(user);
       context += "\n";
     }

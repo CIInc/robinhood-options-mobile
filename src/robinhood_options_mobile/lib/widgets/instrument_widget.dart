@@ -804,22 +804,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Future<void> _generateAIContent(
-      GenerativeProvider provider, String key, String promptText) async {
-    provider.startGenerating(key);
+      GenerativeProvider provider, Prompt prompt) async {
+    provider.startGenerating(prompt.key);
     try {
-      var prompt = Prompt(
-        key: key,
-        title: 'AI Insight',
-        prompt: promptText,
-      );
       // Using null for stores as we don't need portfolio context for symbol specific analysis usually,
       var response = await widget.generativeService.generateContentFromServer(
           prompt, null, null, null // Pass nulls for stores
           );
-      provider.setGenerativeResponse(key, response);
+      provider.setGenerativeResponse(prompt.key, response);
     } catch (e) {
       provider.setGenerativeResponse(
-          key, "Failed to generate insight. Please try again.");
+          prompt.key, "Failed to generate insight. Please try again.");
     }
   }
 
@@ -905,8 +900,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingSummary) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  summaryKey,
-                                  'Tell me about ${widget.instrument.symbol} and its recent performance in markdown format. Keep it concise.');
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                      symbol: widget.instrument.symbol,
+                                      type: 'summary'));
                             },
                           ),
                           ActionChip(
@@ -922,8 +918,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingSentiment) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  sentimentKey,
-                                  'Analyze the market sentiment for ${widget.instrument.symbol}. Include bullish and bearish factors.');
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                      symbol: widget.instrument.symbol,
+                                      type: 'sentiment'));
                             },
                           ),
                           ActionChip(
@@ -939,8 +936,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingKeyLevels) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  keyLevelsKey,
-                                  'Identify key support and resistance levels for ${widget.instrument.symbol} based on recent price action.');
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                      symbol: widget.instrument.symbol,
+                                      type: 'keyLevels'));
                             },
                           ),
                           ActionChip(
@@ -956,8 +954,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingStrategy) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  strategyKey,
-                                  'Suggest an options trading strategy for ${widget.instrument.symbol} given the current market conditions.');
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                      symbol: widget.instrument.symbol,
+                                      type: 'strategy'));
                             },
                           ),
                           ActionChip(
@@ -973,8 +972,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingNews) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  newsKey,
-                                  'Analyze the latest news for ${widget.instrument.symbol} and explain why it is moving. Be concise.');
+                                  GenerativeService.buildInstrumentAnalysisPrompt(
+                                      symbol: widget.instrument.symbol,
+                                      type: 'news'));
                             },
                           ),
                           ActionChip(
@@ -1058,38 +1058,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   void _openAIChat(BuildContext context, Instrument instrument) {
-    List<Prompt> prompts = [
-      Prompt(
-        key: 'overview-${instrument.symbol}',
-        title: 'Tell me about ${instrument.symbol}',
-        prompt:
-            'Tell me about ${instrument.symbol} and its recent performance.',
-      ),
-      Prompt(
-        key: 'chart-${instrument.symbol}',
-        title: 'Analyze Chart',
-        prompt: 'Analyze the technical chart for ${instrument.symbol}.',
-      ),
-      Prompt(
-        key: 'news-${instrument.symbol}',
-        title: 'Why is it moving?',
-        prompt:
-            'Why is ${instrument.symbol} moving today? Summarize recent news.',
-      ),
-    ];
-
-    if (instrument.tradeableChainId != null) {
-      prompts.add(Prompt(
-          key: 'option-strategy-${instrument.symbol}',
-          title: 'Option Strategy',
-          prompt:
-              'Suggest an option trading strategy for ${instrument.symbol} based on current market conditions.'));
-    }
-
-    prompts.add(Prompt(
-        key: 'sentiment-${instrument.symbol}',
-        title: 'Sentiment Analysis',
-        prompt: 'What is the market sentiment for ${instrument.symbol}?'));
+    List<Prompt> prompts = GenerativeService.buildInstrumentPrompts(instrument);
 
     Navigator.push(
       context,

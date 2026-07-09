@@ -1042,24 +1042,8 @@ class _GammaExposureWidgetState extends State<GammaExposureWidget> {
       _aiCommentary = null;
     });
 
-    final promptText =
-        'Analyze the options market-maker Gamma Exposure (GEX) data for ticker ${gex.symbol}.'
-        '\n- Current Spot Price: \$${gex.spotPrice.toStringAsFixed(2)}'
-        '\n- Net GEX: ${gex.formattedNetGEX}'
-        '\n- Dealer Positioning: ${gex.dealerPositioning.displayLabel}'
-        '\n- Gamma Flip Level: ${gex.gammaFlip != null ? '\$${gex.gammaFlip!.toStringAsFixed(2)}' : 'N/A'}'
-        '\n- Call Wall (Resistance): ${gex.callWall != null ? '\$${gex.callWall!.toStringAsFixed(2)}' : 'N/A'}'
-        '\n- Put Wall (Support): ${gex.putWall != null ? '\$${gex.putWall!.toStringAsFixed(2)}' : 'N/A'}'
-        '\n- Call vs Put GEX Ratio: ${(gex.gexRatio * 100).toStringAsFixed(0)}% Calls / ${((1 - gex.gexRatio) * 100).toStringAsFixed(0)}% Puts'
-        '\n- Signal Strength Indicator: ${gex.signalStrength}/100'
-        '\n\nProvide 2-3 concise paragraphs summarizing what this means for near-term price action, key resistance/support zones to watch, and overall trading volatility expectations. Keep your answer highly educational, concise, and professional.';
-
     try {
-      final promptObj = Prompt(
-        key: 'gex-commentary-${gex.symbol}',
-        title: 'GEX Commentary',
-        prompt: promptText,
-      );
+      final promptObj = GenerativeService.buildGexCommentaryPrompt(gex);
       final resp = await widget.generativeService!.generateContentFromServer(
         promptObj,
         null,
