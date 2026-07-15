@@ -1651,8 +1651,9 @@ Schema _parseJsonSchema(Map<String, dynamic> schemaMap) {
   if (typeObj is String) {
     type = typeObj;
   } else if (typeObj is List) {
-    final nonNullType =
-        typeObj.firstWhere((t) => t != 'null', orElse: () => null);
+    final nonNullType = typeObj
+        .cast<dynamic>()
+        .firstWhere((t) => t != 'null', orElse: () => null);
     if (nonNullType != null) {
       type = nonNullType.toString();
     } else if (typeObj.isNotEmpty) {
