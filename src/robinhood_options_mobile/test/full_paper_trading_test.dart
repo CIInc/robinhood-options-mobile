@@ -178,6 +178,12 @@ class FakePaperTradingStore extends ChangeNotifier
   void setUser(auth.User? user) {}
 
   @override
+  auth.User? get user => null;
+
+  @override
+  Future<void> ensureLoaded(auth.User user) async {}
+
+  @override
   double get initialCapital => 100000.0;
 
   @override

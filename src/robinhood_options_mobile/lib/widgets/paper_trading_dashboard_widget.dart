@@ -81,7 +81,7 @@ class _PaperTradingDashboardWidgetState
       sb.writeln("Cash: \$${store.cashBalance.toStringAsFixed(2)}");
       sb.writeln("Equity: \$${store.equity.toStringAsFixed(2)}");
       sb.writeln(
-          "P&L: \$${(store.equity - 100000).toStringAsFixed(2)} (${((store.equity - 100000) / 100000 * 100).toStringAsFixed(2)}%)");
+          "P&L: \$${(store.equity - store.initialCapital).toStringAsFixed(2)} (${((store.equity - store.initialCapital) / store.initialCapital * 100).toStringAsFixed(2)}%)");
       sb.writeln("Positions:");
       for (var p in store.positions) {
         sb.writeln(
@@ -130,7 +130,7 @@ class _PaperTradingDashboardWidgetState
         NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
     final totalEquity = store.equity;
-    final initialBalance = 100000.0;
+    final initialBalance = store.initialCapital;
     final totalPnL = totalEquity - initialBalance;
     final totalPnLPercent = totalPnL / initialBalance;
 
@@ -853,13 +853,14 @@ class _PaperTradingDashboardWidgetState
   Widget _buildHistoryItem(
       Map<String, dynamic> h, NumberFormat formatCurrency) {
     final type = h['type'].toString().toUpperCase();
-    final side = h['side'].toString().toUpperCase();
+    final side =
+        (h['side'] ?? h['action'] ?? '').toString().toUpperCase();
     final isBuy = side == 'BUY';
     final color = isBuy
         ? Colors.red
         : Colors.green; // Buy uses cash (red), Sell adds cash (green)
 
-    final dateStr = h['timestamp'] as String;
+    final dateStr = (h['timestamp'] ?? h['created_at'])?.toString() ?? '';
     final date = DateTime.tryParse(dateStr) ?? DateTime.now();
 
     return Card(
@@ -955,7 +956,8 @@ class _PaperTradingDashboardWidgetState
   }
 
   void _confirmReset(BuildContext context, PaperTradingStore store) {
-    final capitalController = TextEditingController(text: '100000.00');
+    final capitalController =
+        TextEditingController(text: store.initialCapital.toStringAsFixed(2));
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -102,6 +102,22 @@ class InstrumentOrder {
     final instrumentUrl = json['instrument']?.toString() ?? '';
     final parts = instrumentUrl.split('/').where((s) => s.isNotEmpty).toList();
     final instrumentId = parts.isNotEmpty ? parts.last : symbol;
+    // Unified entries carry the order type in 'order_type' and the asset
+    // class in 'type'; legacy PaperService entries used 'type' for the order
+    // type. 'side' may be missing on older store entries that only had
+    // 'action'.
+    final rawType = json['type']?.toString().toLowerCase();
+    final orderType = json['order_type']?.toString() ??
+        (rawType == 'stock' ? 'market' : rawType ?? 'limit');
+    final side =
+        (json['side'] ?? json['action'])?.toString().toLowerCase() ?? '';
+    DateTime parseDate(String key) {
+      final value = json[key] ?? json['timestamp'];
+      return value is Timestamp
+          ? value.toDate()
+          : DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+    }
+
     final order = InstrumentOrder(
       json['id']?.toString() ?? '',
       json['id']?.toString(),
@@ -116,22 +132,16 @@ class InstrumentOrder {
       null,
       json['state']?.toString() ?? 'filled',
       null,
-      json['type']?.toString() ?? 'limit',
-      json['side']?.toString() ?? '',
+      orderType,
+      side,
       json['time_in_force']?.toString() ?? 'gtc',
       json['trigger']?.toString() ?? 'immediate',
       parseDouble(json['price']),
       null,
       parseDouble(json['quantity']),
       null,
-      json['created_at'] is Timestamp
-          ? (json['created_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-              DateTime.now(),
-      json['updated_at'] is Timestamp
-          ? (json['updated_at'] as Timestamp).toDate()
-          : DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
-              DateTime.now(),
+      parseDate('created_at'),
+      parseDate('updated_at'),
       null,
     );
     order.instrumentObj =

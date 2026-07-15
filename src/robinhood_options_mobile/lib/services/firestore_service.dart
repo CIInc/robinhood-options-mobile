@@ -1545,37 +1545,10 @@ class FirestoreService {
         .snapshots();
   }
 
-  Future<void> updatePaperAccount(String userId, Map<String, dynamic> data) {
-    return _db
-        .collection(userCollectionName)
-        .doc(userId)
-        .collection('paper_account')
-        .doc('main')
-        .set(data, SetOptions(merge: true));
-  }
-
-  Future<void> createPaperOrder(String userId, Map<String, dynamic> order) {
-    return _db
-        .collection(userCollectionName)
-        .doc(userId)
-        .collection('paper_account')
-        .doc('main')
-        .set({
-      'history': FieldValue.arrayUnion([order])
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> createPaperPosition(
-      String userId, Map<String, dynamic> position) {
-    return _db
-        .collection(userCollectionName)
-        .doc(userId)
-        .collection('paper_account')
-        .doc('main')
-        .set({
-      'positions': FieldValue.arrayUnion([position])
-    }, SetOptions(merge: true));
-  }
+  // NOTE: Paper order/position writes go through PaperTradingStore (the
+  // single paper trading engine); do not add direct write helpers here.
+  // The old createPaperOrder/createPaperPosition helpers appended duplicate
+  // position entries via arrayUnion and were removed.
 
   Future<List<InstrumentPosition>> listPaperPositions(String userId) async {
     final snapshot = await getPaperAccountDoc(userId);

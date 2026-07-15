@@ -113,12 +113,32 @@ class PaperTradingStore extends ChangeNotifier {
     return total;
   }
 
+  Future<void>? _loadFuture;
+
+  /// The Firebase user this store is currently bound to, if any.
+  firebase_auth.User? get user => _user;
+
   void setUser(firebase_auth.User? user) {
     _user = user;
     if (_user != null) {
-      _load();
+      _loadFuture = _load();
     } else {
+      _loadFuture = null;
       _resetState();
+    }
+  }
+
+  /// Binds the store to [user] (if not already) and waits for its state to be
+  /// loaded from Firestore. Callers outside the widget tree (e.g.
+  /// PaperService) must await this before executing orders so they don't
+  /// mutate default state that a pending load would overwrite.
+  Future<void> ensureLoaded(firebase_auth.User user) async {
+    if (_user?.uid != user.uid) {
+      setUser(user);
+    }
+    final pendingLoad = _loadFuture;
+    if (pendingLoad != null) {
+      await pendingLoad;
     }
   }
 
@@ -441,6 +461,7 @@ class PaperTradingStore extends ChangeNotifier {
 
   Future<void> resetAccount({double initialCapital = 100000.0}) async {
     _cashBalance = initialCapital;
+    _initialCapital = initialCapital;
     _positions = [];
     _optionPositions = [];
     _futuresPositions = [];
@@ -468,7 +489,9 @@ class PaperTradingStore extends ChangeNotifier {
       _updateStockPosition(instrument, quantity, executionPrice, 1);
 
       _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
-          detail: orderType != null ? "Type: $orderType" : null);
+          detail: orderType != null ? "Type: $orderType" : null,
+          orderType: orderType,
+          instrumentUrl: instrument.url);
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice) - _commission;
@@ -488,6 +511,8 @@ class PaperTradingStore extends ChangeNotifier {
 
       _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
           detail: orderType != null ? "Type: $orderType" : null,
+          orderType: orderType,
+          instrumentUrl: instrument.url,
           profitLoss: profitLoss);
     }
     await _save();
@@ -592,7 +617,7 @@ class PaperTradingStore extends ChangeNotifier {
 
       _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
           executionPrice,
-          detail: detail);
+          detail: detail, orderType: orderType);
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice * multiplier) - _commission;
@@ -624,7 +649,7 @@ class PaperTradingStore extends ChangeNotifier {
 
       _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
           executionPrice,
-          detail: detail, profitLoss: profitLoss);
+          detail: detail, orderType: orderType, profitLoss: profitLoss);
     }
     await _save();
     notifyListeners();
@@ -787,18 +812,37 @@ class PaperTradingStore extends ChangeNotifier {
     }
   }
 
+  /// Records a filled paper trade in a single unified format.
+  ///
+  /// The entry serves two consumers:
+  /// - the dashboard order history ('type' asset class, 'action', 'timestamp')
+  /// - InstrumentOrder.fromPaperJson ('side', 'state', 'order_type',
+  ///   'instrument', 'created_at'/'updated_at')
   void _addToHistory(
       String type, String action, String symbol, double quantity, double price,
-      {String? detail, double? profitLoss, double? multiplier}) {
+      {String? detail,
+      double? profitLoss,
+      double? multiplier,
+      String? orderType,
+      String? instrumentUrl}) {
+    final now = DateTime.now();
+    final nowIso = now.toIso8601String();
     _history.insert(0, {
-      'timestamp': DateTime.now().toIso8601String(),
+      'id': 'paper_${now.millisecondsSinceEpoch}',
+      'timestamp': nowIso,
+      'created_at': nowIso,
+      'updated_at': nowIso,
       'type': type.toUpperCase(),
       'action': action.toUpperCase(),
+      'side': action.toLowerCase(),
+      'state': 'filled',
       'symbol': symbol,
       'quantity': quantity,
       'price': price,
       'detail': detail,
       'paperMode': true,
+      if (orderType != null) 'order_type': orderType.toLowerCase(),
+      if (instrumentUrl != null) 'instrument': instrumentUrl,
       if (profitLoss != null) 'profitLoss': profitLoss,
       if (multiplier != null) 'multiplier': multiplier,
     });

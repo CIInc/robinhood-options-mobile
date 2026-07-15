@@ -66,6 +66,14 @@ late final FirebaseAuth auth;
 late final AuthUtil authUtil;
 late UserRole userRole;
 
+/// Single app-wide paper trading engine. All paper order execution
+/// (UI widgets, PaperService, auto-trading providers) must go through this
+/// instance so positions, cash and history stay consistent.
+/// Created lazily so tests can pump [MyApp] without touching Firestore.
+PaperTradingStore get paperTradingStore =>
+    _paperTradingStore ??= PaperTradingStore();
+PaperTradingStore? _paperTradingStore;
+
 void main() async {
   // Needed for Firebase
   WidgetsFlutterBinding.ensureInitialized();
@@ -262,8 +270,10 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(
               create: (context) => FuturesAutoTradingProvider(),
             ),
-            ChangeNotifierProvider(
-              create: (context) => PaperTradingStore(),
+            ChangeNotifierProvider<PaperTradingStore>(
+              // Lazily binds the provider to the shared app-wide engine so
+              // PaperService and the widget tree use the same instance.
+              create: (context) => paperTradingStore,
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentStore(),

@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
+import 'package:http/http.dart' as http;
 import 'package:robinhood_options_mobile/enums.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -35,6 +38,7 @@ import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
@@ -1014,8 +1018,15 @@ class PaperService implements IBrokerageService {
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
-    return _firestoreService.streamPaperOrders(userId).map(
-        (list) => list.map((d) => InstrumentOrder.fromPaperJson(d)).toList());
+    // History holds all asset classes; only stock entries map to
+    // InstrumentOrder. Legacy PaperService entries used the order type
+    // ('limit'/'market') in 'type', so exclude known non-stock classes.
+    const nonStockTypes = {'option', 'futures', 'strategy', 'expiration'};
+    return _firestoreService.streamPaperOrders(userId).map((list) => list
+        .where((d) =>
+            !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
+        .map((d) => InstrumentOrder.fromPaperJson(d))
+        .toList());
   }
 
   @override
@@ -1034,6 +1045,27 @@ class PaperService implements IBrokerageService {
           InstrumentOrderStore store, List<String> instrumentUrls) async =>
       [];
 
+  /// Returns the single app-wide paper trading engine, bound to the signed-in
+  /// Firebase user and fully loaded from Firestore. All paper order execution
+  /// must go through [PaperTradingStore] so positions/cash/history stay
+  /// consistent with the rest of the app.
+  Future<PaperTradingStore> _engine() async {
+    final firebaseUser = auth.currentUser;
+    if (firebaseUser == null) {
+      throw Exception(
+          'Paper trading requires a signed-in session. Please sign in again.');
+    }
+    await paperTradingStore.ensureLoaded(firebaseUser);
+    return paperTradingStore;
+  }
+
+  /// Wraps an order body in an [http.Response] to match the return shape of
+  /// the real brokerage services (e.g. RobinhoodService).
+  http.Response _orderResponse(Map<String, dynamic> order) {
+    return http.Response(jsonEncode(order), 201,
+        headers: {'content-type': 'application/json'});
+  }
+
   @override
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
@@ -1048,66 +1080,49 @@ class PaperService implements IBrokerageService {
       double? stopPrice,
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg}) async {
-    final userId = auth.currentUser?.uid ??
-        user.userInfo?.id ??
-        user.userName ??
-        'default_paper_user';
-
-    final orderMap = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'symbol': symbol,
-      'side': side,
-      'type': type,
-      'quantity': quantity.toDouble(),
-      'price': price,
-      'state': 'filled', // Paper trades are immediately filled for now
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-      'instrument': instrument.url,
-      'account': account.url,
-      'trigger': trigger,
-      'time_in_force': timeInForce,
-    };
-
-    await _firestoreService.createPaperOrder(userId, orderMap);
-
-    if (side == 'buy') {
-      final posMap = {
-        'url': 'https://api.robinhood.com/positions/paper/$symbol/',
-        'instrument': instrument.url,
-        'account': account.url,
-        'account_number': account.accountNumber,
-        'quantity': quantity.toDouble(),
-        'average_buy_price': price,
-        'pending_average_buy_price': price,
-        'intraday_average_buy_price': price,
-        'intraday_quantity': quantity.toDouble(),
-        'updated_at': DateTime.now().toIso8601String(),
-        'created_at': DateTime.now().toIso8601String(),
-        'instrument_obj': instrument.toJson(),
-      };
-      await _firestoreService.createPaperPosition(userId, posMap);
-
-      final paperAccountDoc =
-          await _firestoreService.getPaperAccountDoc(userId);
-      final data = paperAccountDoc.data() ?? {};
-      final currentBalance =
-          (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
-      final cost = (price ?? 0) * quantity;
-      await _firestoreService
-          .updatePaperAccount(userId, {'cashBalance': currentBalance - cost});
-    } else if (side == 'sell') {
-      final paperAccountDoc =
-          await _firestoreService.getPaperAccountDoc(userId);
-      final data = paperAccountDoc.data() ?? {};
-      final currentBalance =
-          (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
-      final gain = (price ?? 0) * quantity;
-      await _firestoreService
-          .updatePaperAccount(userId, {'cashBalance': currentBalance + gain});
+    final store = await _engine();
+    final executionPrice = price ?? instrument.quoteObj?.lastTradePrice;
+    if (executionPrice == null || executionPrice <= 0) {
+      throw Exception('No market price available for $symbol.');
     }
 
-    return {'status': 'success', 'order_id': orderMap['id']};
+    // Paper orders fill immediately at the given price for now.
+    await store.executeStockOrder(
+      instrument: instrument,
+      quantity: quantity.toDouble(),
+      price: executionPrice,
+      side: side.toLowerCase(),
+      orderType: type,
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'url': '',
+      'account': account.url,
+      'position': '',
+      'cancel': null,
+      'instrument': instrument.url,
+      'instrument_id': instrument.id,
+      'cumulative_quantity': quantity.toString(),
+      'average_price': executionPrice.toString(),
+      'fees': '0.00',
+      'state': 'filled',
+      'pending_cancel_open_agent': null,
+      'type': type,
+      'side': side,
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'price': executionPrice.toString(),
+      'stop_price': stopPrice?.toString(),
+      'quantity': quantity.toString(),
+      'reject_reason': null,
+      'created_at': nowIso,
+      'updated_at': nowIso,
+      'trailing_peg': trailingPeg,
+    });
   }
 
   @override
@@ -1125,7 +1140,61 @@ class PaperService implements IBrokerageService {
       double? stopPrice,
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg}) async {
-    throw UnimplementedError();
+    if (side.toLowerCase() == 'sell' &&
+        positionEffect.toLowerCase() == 'open') {
+      throw Exception(
+          'Selling options to open (short) is not yet supported in paper trading.');
+    }
+    final store = await _engine();
+    await store.executeOptionOrder(
+      optionInstrument: optionInstrument,
+      quantity: quantity.toDouble(),
+      price: price,
+      side: side.toLowerCase(),
+      orderType: type,
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'chain_id': optionInstrument.chainId,
+      'chain_symbol': optionInstrument.chainSymbol,
+      'cancel_url': null,
+      'canceled_quantity': '0',
+      'direction': creditOrDebit,
+      'legs': [
+        {
+          'id': orderId,
+          'position_effect': positionEffect,
+          'side': side,
+          'ratio_quantity': 1,
+          'option': optionInstrument.url,
+          'expiration_date':
+              optionInstrument.expirationDate?.toIso8601String(),
+          'strike_price': optionInstrument.strikePrice,
+          'option_type': optionInstrument.type,
+          'executions': [],
+        }
+      ],
+      'pending_quantity': '0',
+      'premium': (price * 100).toString(),
+      'processed_premium': (price * 100 * quantity).toString(),
+      'price': price.toString(),
+      'processed_quantity': quantity.toString(),
+      'quantity': quantity.toString(),
+      'state': 'filled',
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'type': type,
+      'response_category': null,
+      'opening_strategy': null,
+      'closing_strategy': null,
+      'stop_price': stopPrice?.toString(),
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
   }
 
   @override
@@ -1139,7 +1208,58 @@ class PaperService implements IBrokerageService {
       {String type = 'limit',
       String trigger = 'immediate',
       String timeInForce = 'gtc'}) async {
-    throw UnimplementedError();
+    final store = await _engine();
+
+    // Resolve OptionInstrument objects from the leg option URLs.
+    final optionIds = legs
+        .map((leg) => (leg['option']?.toString() ?? '')
+            .split('/')
+            .where((s) => s.isNotEmpty)
+            .lastOrNull)
+        .whereType<String>()
+        .toList();
+    final instruments = await getOptionInstrumentByIds(user, optionIds);
+
+    final legsData = <Map<String, dynamic>>[];
+    for (var leg in legs) {
+      final optionUrl = leg['option']?.toString() ?? '';
+      final instrument =
+          instruments.firstWhereOrNull((i) => optionUrl.contains(i.id));
+      if (instrument == null) {
+        throw Exception(
+            'Could not resolve option instrument for leg: $optionUrl');
+      }
+      legsData.add({
+        'instrument': instrument,
+        'side': leg['side']?.toString() ?? 'buy',
+        'ratio': (leg['ratio_quantity'] as num?)?.toInt() ?? 1,
+      });
+    }
+
+    await store.executeComplexOptionStrategy(
+      price: price,
+      quantity: quantity.toDouble(),
+      strategyName: 'Custom Strategy',
+      direction: creditOrDebit,
+      legsData: legsData,
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'direction': creditOrDebit,
+      'legs': legs,
+      'price': price.toString(),
+      'quantity': quantity.toString(),
+      'state': 'filled',
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'type': type,
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
   }
 
   @override
