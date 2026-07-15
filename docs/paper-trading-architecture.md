@@ -196,7 +196,7 @@ sequenceDiagram
     User->>TW: Buy 10 AAPL @ $195 (Paper toggle ON)
     TW->>PTS: executeStockOrder(instrument, qty, price, side, orderType)
     activate PTS
-    PTS->>PTS: price += slippage; cost = qty*price + commission
+    PTS->>PTS: apply slippage, cost = qty × price + commission
     alt insufficient cash
         PTS-->>TW: throw "Insufficient buying power"
     else ok
