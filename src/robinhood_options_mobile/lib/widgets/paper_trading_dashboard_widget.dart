@@ -165,7 +165,7 @@ class _PaperTradingDashboardWidgetState
                 children: [
                   _buildPortfolioSummary(
                     totalEquity,
-                    store.cashBalance,
+                    store.availableBuyingPower,
                     totalPnL,
                     totalPnLPercent,
                     formatCurrency,
@@ -202,6 +202,13 @@ class _PaperTradingDashboardWidgetState
                         formatCurrency,
                         formatPercentage,
                       )),
+                  if (store.pendingOrders.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildSectionHeader('Working Orders'),
+                    ...store.pendingOrders.map((order) =>
+                        _buildWorkingOrder(context, store, order,
+                            formatCurrency)),
+                  ],
                   const SizedBox(height: 24),
                   _buildSectionHeader('Order History'),
                   if (store.history.isEmpty)
@@ -845,6 +852,44 @@ class _PaperTradingDashboardWidgetState
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkingOrder(BuildContext context, PaperTradingStore store,
+      PendingPaperOrder order, NumberFormat formatCurrency) {
+    final isBuy = order.side == 'buy';
+    final typeLabel = order.orderType.replaceAll('_', ' ').toUpperCase();
+    final prices = [
+      if (order.stopPrice != null)
+        'Stop ${formatCurrency.format(order.stopPrice)}',
+      if (order.limitPrice != null)
+        'Limit ${formatCurrency.format(order.limitPrice)}',
+    ].join(' · ');
+
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          Icons.hourglass_top,
+          color: isBuy ? Colors.green : Colors.red,
+        ),
+        title: Text(
+            "${order.side.toUpperCase()} ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)} ${order.symbol}"),
+        subtitle: Text(
+            "$typeLabel · $prices · ${order.timeInForce.toUpperCase()}"
+            "${order.triggered ? ' · TRIGGERED' : ''}"),
+        trailing: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Cancel Order',
+          onPressed: () async {
+            final cancelled = await store.cancelPendingOrder(order.id);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(cancelled
+                    ? 'Order cancelled.'
+                    : 'Order no longer working.')));
+          },
         ),
       ),
     );

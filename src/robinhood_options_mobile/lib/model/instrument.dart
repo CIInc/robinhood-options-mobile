@@ -300,12 +300,19 @@ class Instrument {
         isSpac: json['is_spac'],
         isTest: json['is_test'] ?? false,
         ipoAccessSupportsDsp: json['ipo_access_supports_dsp'],
-        dateCreated: json["date_created"] == null
-            ? DateTime.now()
-            : (json['date_created'] as Timestamp).toDate(),
-        dateUpdated: json['date_updated'] != null
+        // Dates may arrive as Timestamp (Firestore), DateTime (in-memory
+        // round trip), or ISO string.
+        dateCreated: json['date_created'] is Timestamp
+            ? (json['date_created'] as Timestamp).toDate()
+            : json['date_created'] is DateTime
+                ? json['date_created'] as DateTime
+                : DateTime.tryParse(json['date_created']?.toString() ?? '') ??
+                    DateTime.now(),
+        dateUpdated: json['date_updated'] is Timestamp
             ? (json['date_updated'] as Timestamp).toDate()
-            : null,
+            : json['date_updated'] is DateTime
+                ? json['date_updated'] as DateTime
+                : DateTime.tryParse(json['date_updated']?.toString() ?? ''),
         quoteObj:
             json['quoteObj'] != null ? Quote.fromJson(json['quoteObj']) : null,
         fundamentalsObj: json['fundamentalsObj'] != null

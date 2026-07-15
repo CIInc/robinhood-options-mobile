@@ -1022,11 +1022,36 @@ class PaperService implements IBrokerageService {
     // InstrumentOrder. Legacy PaperService entries used the order type
     // ('limit'/'market') in 'type', so exclude known non-stock classes.
     const nonStockTypes = {'option', 'futures', 'strategy', 'expiration'};
-    return _firestoreService.streamPaperOrders(userId).map((list) => list
-        .where((d) =>
-            !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
-        .map((d) => InstrumentOrder.fromPaperJson(d))
-        .toList());
+    return _firestoreService.getPaperAccountStream(userId).map((snapshot) {
+      final data = snapshot.data() ?? {};
+
+      // Working (resting) stock orders first, as 'confirmed'.
+      final working = (data['pendingOrders'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((o) => o['assetType']?.toString() == 'stock')
+          .map((o) => InstrumentOrder.fromPaperJson({
+                'id': o['id'],
+                'symbol': o['symbol'],
+                'side': o['side'],
+                'order_type': o['orderType'],
+                'state': 'confirmed',
+                'quantity': o['quantity'],
+                'price': o['limitPrice'] ?? o['stopPrice'],
+                'instrument': (o['instrumentJson'] as Map?)?['url'],
+                'created_at': o['createdAt'],
+                'updated_at': o['createdAt'],
+                'time_in_force': o['timeInForce'],
+                'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
+              }));
+
+      final fills = (data['history'] as List? ?? [])
+          .map((e) => Map<String, dynamic>.from(e))
+          .where((d) =>
+              !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
+          .map((d) => InstrumentOrder.fromPaperJson(d));
+
+      return [...working, ...fills];
+    });
   }
 
   @override
@@ -1081,41 +1106,48 @@ class PaperService implements IBrokerageService {
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg}) async {
     final store = await _engine();
-    final executionPrice = price ?? instrument.quoteObj?.lastTradePrice;
-    if (executionPrice == null || executionPrice <= 0) {
-      throw Exception('No market price available for $symbol.');
+
+    // Map Robinhood order semantics (type + trigger) to the engine's types.
+    String engineType = type.toLowerCase();
+    if (trigger.toLowerCase() == 'stop') {
+      engineType = engineType == 'limit' ? 'stop_limit' : 'stop';
     }
 
-    // Paper orders fill immediately at the given price for now.
-    await store.executeStockOrder(
+    final result = await store.submitStockOrder(
       instrument: instrument,
       quantity: quantity.toDouble(),
-      price: executionPrice,
       side: side.toLowerCase(),
-      orderType: type,
+      orderType: engineType,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
+      stopPrice: stopPrice,
+      marketPrice: instrument.quoteObj?.lastTradePrice ?? price,
+      timeInForce: timeInForce,
     );
 
+    final displayPrice = price ?? instrument.quoteObj?.lastTradePrice;
     final nowIso = DateTime.now().toIso8601String();
-    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
     return _orderResponse({
-      'id': orderId,
-      'ref_id': orderId,
+      'id': result.id,
+      'ref_id': result.id,
       'url': '',
       'account': account.url,
       'position': '',
-      'cancel': null,
+      'cancel': result.state == 'confirmed' ? result.id : null,
       'instrument': instrument.url,
       'instrument_id': instrument.id,
-      'cumulative_quantity': quantity.toString(),
-      'average_price': executionPrice.toString(),
+      'cumulative_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
+      'average_price':
+          result.state == 'filled' ? displayPrice?.toString() : null,
       'fees': '0.00',
-      'state': 'filled',
+      'state': result.state,
       'pending_cancel_open_agent': null,
       'type': type,
       'side': side,
       'time_in_force': timeInForce,
       'trigger': trigger,
-      'price': executionPrice.toString(),
+      'price': displayPrice?.toString(),
       'stop_price': stopPrice?.toString(),
       'quantity': quantity.toString(),
       'reject_reason': null,
@@ -1146,22 +1178,33 @@ class PaperService implements IBrokerageService {
           'Selling options to open (short) is not yet supported in paper trading.');
     }
     final store = await _engine();
-    await store.executeOptionOrder(
+
+    String engineType = type.toLowerCase();
+    if (trigger.toLowerCase() == 'stop') {
+      engineType = engineType == 'limit' ? 'stop_limit' : 'stop';
+    }
+
+    final result = await store.submitOptionOrder(
       optionInstrument: optionInstrument,
       quantity: quantity.toDouble(),
-      price: price,
       side: side.toLowerCase(),
-      orderType: type,
+      orderType: engineType,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
+      stopPrice: stopPrice,
+      marketPrice:
+          optionInstrument.optionMarketData?.adjustedMarkPrice ?? price,
+      timeInForce: timeInForce,
     );
 
     final nowIso = DateTime.now().toIso8601String();
-    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    final orderId = result.id;
     return _orderResponse({
       'id': orderId,
       'ref_id': orderId,
       'chain_id': optionInstrument.chainId,
       'chain_symbol': optionInstrument.chainSymbol,
-      'cancel_url': null,
+      'cancel_url': result.state == 'confirmed' ? result.id : null,
       'canceled_quantity': '0',
       'direction': creditOrDebit,
       'legs': [
@@ -1178,13 +1221,16 @@ class PaperService implements IBrokerageService {
           'executions': [],
         }
       ],
-      'pending_quantity': '0',
+      'pending_quantity': result.state == 'filled' ? '0' : quantity.toString(),
       'premium': (price * 100).toString(),
-      'processed_premium': (price * 100 * quantity).toString(),
+      'processed_premium': result.state == 'filled'
+          ? (price * 100 * quantity).toString()
+          : '0',
       'price': price.toString(),
-      'processed_quantity': quantity.toString(),
+      'processed_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
       'quantity': quantity.toString(),
-      'state': 'filled',
+      'state': result.state,
       'time_in_force': timeInForce,
       'trigger': trigger,
       'type': type,
@@ -1276,7 +1322,11 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
-    return {'status': 'success'};
+    final store = await _engine();
+    // Accept either a bare order id or a cancel URL ending with the id.
+    final id = cancel.split('/').where((s) => s.isNotEmpty).last;
+    final removed = await store.cancelPendingOrder(id);
+    return {'status': removed ? 'success' : 'not_found'};
   }
 
   @override

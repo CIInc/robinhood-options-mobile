@@ -175,6 +175,59 @@ class FakePaperTradingStore extends ChangeNotifier
   }
 
   @override
+  List<PendingPaperOrder> get pendingOrders => [];
+
+  @override
+  double get reservedCash => 0.0;
+
+  @override
+  double get availableBuyingPower => 100000.0;
+
+  @override
+  Future<PaperOrderResult> submitStockOrder({
+    required Instrument instrument,
+    required double quantity,
+    required String side,
+    String orderType = 'market',
+    double? limitPrice,
+    double? stopPrice,
+    double? marketPrice,
+    String timeInForce = 'gtc',
+  }) async {
+    print("SUBMITTED STOCK ORDER IN FAKE STORE - Side: $side, Qty: $quantity");
+    executedStock = true;
+    notifyListeners();
+    return PaperOrderResult('fake_order', 'filled');
+  }
+
+  @override
+  Future<PaperOrderResult> submitOptionOrder({
+    required OptionInstrument optionInstrument,
+    required double quantity,
+    required String side,
+    String orderType = 'limit',
+    double? limitPrice,
+    double? stopPrice,
+    double? marketPrice,
+    String timeInForce = 'gtc',
+  }) async {
+    print("SUBMITTED OPTION ORDER IN FAKE STORE");
+    executedOption = true;
+    notifyListeners();
+    return PaperOrderResult('fake_order', 'filled');
+  }
+
+  @override
+  Future<bool> cancelPendingOrder(String orderId) async => false;
+
+  @override
+  Future<void> evaluatePendingOrders({
+    required Map<String, double> stockPrices,
+    Map<String, double> optionMarks = const {},
+    DateTime? now,
+  }) async {}
+
+  @override
   void setUser(auth.User? user) {}
 
   @override
@@ -377,7 +430,7 @@ void main() {
       debugPrint("TEST FAILURE: Found Error SnackBar");
     }
 
-    expect(find.text("Paper Order placed successfully!"), findsOneWidget,
+    expect(find.text("Paper order filled!"), findsOneWidget,
         reason: "Success snackbar not found (Stock)");
 
     expect(fakePaperStore.executedStock, isTrue);
@@ -522,7 +575,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text("Paper Order placed successfully!"), findsOneWidget,
+    expect(find.text("Paper order filled!"), findsOneWidget,
         reason: "Success snackbar not found (Option)");
 
     expect(fakePaperStore.executedOption, isTrue);

@@ -854,39 +854,48 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
       }
 
       if (_isPaperTrade) {
-        try {
-          double price = double.tryParse(priceCtl.text) ??
-              widget.instrument?.quoteObj?.lastTradePrice ??
-              0.0;
-          await Provider.of<PaperTradingStore>(context, listen: false)
-              .executeStockOrder(
-            instrument: widget.instrument!,
-            quantity: double.parse(quantityCtl.text),
-            price: price,
-            side: positionType ?? "Buy",
-            orderType: orderType,
-          );
-          if (!mounted) return;
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Paper Order placed successfully!"),
-            backgroundColor: Colors.green,
-          ));
-        } catch (e) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Paper Trade Error: $e"),
-            backgroundColor: Colors.red,
-          ));
-        } finally {
-          if (mounted) {
-            setState(() {
-              placingOrder = false;
-            });
-          }
-        }
+        await _placePaperOrder();
         return;
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          placingOrder = false;
+        });
+      }
+    }
+  }
+
+  /// Routes a paper trade through the resting-order engine. Market orders
+  /// fill immediately; limit/stop orders rest until their trigger price.
+  Future<void> _placePaperOrder() async {
+    try {
+      final result =
+          await Provider.of<PaperTradingStore>(context, listen: false)
+              .submitStockOrder(
+        instrument: widget.instrument!,
+        quantity: double.parse(quantityCtl.text),
+        side: (positionType ?? "Buy").toLowerCase(),
+        orderType: orderType.toLowerCase().replaceAll(' ', '_'),
+        limitPrice: double.tryParse(priceCtl.text),
+        stopPrice: double.tryParse(stopPriceCtl.text),
+        marketPrice: widget.instrument?.quoteObj?.lastTradePrice,
+        timeInForce: timeInForce,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result.state == 'filled'
+            ? "Paper order filled!"
+            : "Paper order placed — working until it triggers."),
+        backgroundColor: Colors.green,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Paper Trade Error: $e"),
+        backgroundColor: Colors.red,
+      ));
     } finally {
       if (mounted) {
         setState(() {
@@ -902,37 +911,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     });
 
     if (_isPaperTrade) {
-      try {
-        double price = double.tryParse(priceCtl.text) ??
-            widget.instrument?.quoteObj?.lastTradePrice ??
-            0.0;
-        await Provider.of<PaperTradingStore>(context, listen: false)
-            .executeStockOrder(
-          instrument: widget.instrument!,
-          quantity: double.parse(quantityCtl.text),
-          price: price,
-          side: positionType ?? "Buy",
-          orderType: orderType,
-        );
-        if (!mounted) return;
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Paper Order placed successfully!"),
-          backgroundColor: Colors.green,
-        ));
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Paper Trade Error: $e"),
-          backgroundColor: Colors.red,
-        ));
-      } finally {
-        if (mounted) {
-          setState(() {
-            placingOrder = false;
-          });
-        }
-      }
+      await _placePaperOrder();
       return;
     }
 

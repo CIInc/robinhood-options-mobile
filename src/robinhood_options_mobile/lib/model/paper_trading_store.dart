@@ -54,6 +54,100 @@ class FuturesPaperPosition {
   }
 }
 
+/// Result of submitting a paper order: immediately 'filled', or resting as
+/// 'confirmed' until its trigger/limit price is reached.
+class PaperOrderResult {
+  final String id;
+  final String state; // 'filled' | 'confirmed'
+  PaperOrderResult(this.id, this.state);
+}
+
+/// A resting (working) paper order awaiting its trigger or limit price.
+class PendingPaperOrder {
+  final String id;
+  final String assetType; // 'stock' | 'option'
+  final String symbol; // stock symbol or option chain symbol (display)
+  final String side; // 'buy' | 'sell'
+  final String orderType; // 'limit' | 'stop' | 'stop_limit'
+  final double? limitPrice;
+  final double? stopPrice;
+  final double quantity;
+  final String timeInForce; // 'gtc' | 'gfd'
+  final DateTime createdAt;
+  bool triggered; // stop_limit only: stop leg fired, now resting as a limit
+  final Map<String, dynamic> instrumentJson; // Instrument or OptionInstrument
+
+  /// Transient references to the live objects for same-session fills; not
+  /// serialized. Orders restored from Firestore fall back to
+  /// [instrumentJson], whose dates Firestore has normalized to Timestamps.
+  Instrument? instrumentRef;
+  OptionInstrument? optionInstrumentRef;
+
+  PendingPaperOrder({
+    required this.id,
+    required this.assetType,
+    required this.symbol,
+    required this.side,
+    required this.orderType,
+    this.limitPrice,
+    this.stopPrice,
+    required this.quantity,
+    required this.timeInForce,
+    required this.createdAt,
+    this.triggered = false,
+    required this.instrumentJson,
+  });
+
+  double get contractMultiplier => assetType == 'option' ? 100.0 : 1.0;
+
+  /// Key used to look up the evaluation price: the stock symbol, or the
+  /// option instrument id for options.
+  String get priceKey => assetType == 'option'
+      ? (instrumentJson['id']?.toString() ?? symbol)
+      : symbol;
+
+  /// URL of the traded asset, used to match positions for share reservation.
+  String get assetUrl => instrumentJson['url']?.toString() ?? '';
+
+  /// Price used to reserve buying power while the order rests.
+  double get reservePrice => limitPrice ?? stopPrice ?? 0.0;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'assetType': assetType,
+        'symbol': symbol,
+        'side': side,
+        'orderType': orderType,
+        'limitPrice': limitPrice,
+        'stopPrice': stopPrice,
+        'quantity': quantity,
+        'timeInForce': timeInForce,
+        'createdAt': createdAt.toIso8601String(),
+        'triggered': triggered,
+        'instrumentJson': instrumentJson,
+      };
+
+  factory PendingPaperOrder.fromJson(Map<String, dynamic> json) {
+    return PendingPaperOrder(
+      id: json['id']?.toString() ?? '',
+      assetType: json['assetType']?.toString() ?? 'stock',
+      symbol: json['symbol']?.toString() ?? '',
+      side: json['side']?.toString() ?? 'buy',
+      orderType: json['orderType']?.toString() ?? 'limit',
+      limitPrice: (json['limitPrice'] as num?)?.toDouble(),
+      stopPrice: (json['stopPrice'] as num?)?.toDouble(),
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+      timeInForce: json['timeInForce']?.toString() ?? 'gtc',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      triggered: json['triggered'] == true,
+      instrumentJson: json['instrumentJson'] != null
+          ? Map<String, dynamic>.from(json['instrumentJson'])
+          : {},
+    );
+  }
+}
+
 class PaperTradingStore extends ChangeNotifier {
   final FirebaseFirestore _firestore;
   firebase_auth.User? _user;
@@ -69,6 +163,7 @@ class PaperTradingStore extends ChangeNotifier {
   List<InstrumentPosition> _positions = [];
   List<OptionAggregatePosition> _optionPositions = [];
   List<FuturesPaperPosition> _futuresPositions = [];
+  List<PendingPaperOrder> _pendingOrders = [];
   List<Map<String, dynamic>> _history = [];
   bool _isLoading = false;
 
@@ -82,8 +177,23 @@ class PaperTradingStore extends ChangeNotifier {
       List.unmodifiable(_optionPositions);
   List<FuturesPaperPosition> get futuresPositions =>
       List.unmodifiable(_futuresPositions);
+  List<PendingPaperOrder> get pendingOrders =>
+      List.unmodifiable(_pendingOrders);
   List<Map<String, dynamic>> get history => List.unmodifiable(_history);
   bool get isLoading => _isLoading;
+
+  /// Cash reserved by working buy orders (each also reserves its commission).
+  double get reservedCash => _pendingOrders
+      .where((o) => o.side == 'buy')
+      .fold(
+          0.0,
+          (total, o) =>
+              total +
+              o.quantity * o.reservePrice * o.contractMultiplier +
+              _commission);
+
+  /// Buying power net of working buy-order reservations.
+  double get availableBuyingPower => _cashBalance - reservedCash;
 
   double get equity {
     double posValue = _calculatePositionsValue();
@@ -148,6 +258,7 @@ class PaperTradingStore extends ChangeNotifier {
     _positions = [];
     _optionPositions = [];
     _futuresPositions = [];
+    _pendingOrders = [];
     _history = [];
     notifyListeners();
   }
@@ -201,6 +312,13 @@ class PaperTradingStore extends ChangeNotifier {
               .toList();
         }
 
+        if (data['pendingOrders'] != null) {
+          _pendingOrders = (data['pendingOrders'] as List)
+              .map((e) =>
+                  PendingPaperOrder.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+
         if (data['history'] != null) {
           _history = List<Map<String, dynamic>>.from(data['history']);
         }
@@ -233,6 +351,7 @@ class PaperTradingStore extends ChangeNotifier {
         'optionPositions':
             _optionPositions.map((p) => _optionAggregationToJson(p)).toList(),
         'futuresPositions': _futuresPositions.map((p) => p.toJson()).toList(),
+        'pendingOrders': _pendingOrders.map((o) => o.toJson()).toList(),
         'history': _history,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -333,7 +452,16 @@ class PaperTradingStore extends ChangeNotifier {
         .whereType<String>()
         .toList();
 
-    var allSymbols = {...stockSymbols, ...optionUnderlyingSymbols}.toList();
+    // Include symbols of working stock orders so triggers can evaluate.
+    var pendingStockSymbols = _pendingOrders
+        .where((o) => o.assetType == 'stock')
+        .map((o) => o.symbol);
+
+    var allSymbols = {
+      ...stockSymbols,
+      ...optionUnderlyingSymbols,
+      ...pendingStockSymbols
+    }.toList();
 
     Map<String, double> underlyingPrices = {};
 
@@ -384,17 +512,28 @@ class PaperTradingStore extends ChangeNotifier {
       }
     }
 
-    var optionIds = _optionPositions
-        .where((p) =>
-            !expiredPositions.contains(p) && p.optionInstrument?.id != null)
-        .map((p) => p.optionInstrument!.id)
-        .toList();
+    var optionIds = {
+      ..._optionPositions
+          .where((p) =>
+              !expiredPositions.contains(p) && p.optionInstrument?.id != null)
+          .map((p) => p.optionInstrument!.id),
+      // Working option orders need marks for trigger evaluation.
+      ..._pendingOrders
+          .where((o) => o.assetType == 'option')
+          .map((o) => o.priceKey),
+    }.toList();
 
+    Map<String, double> optionMarks = {};
     if (optionIds.isNotEmpty) {
       try {
         var marketDataList =
             await service.getOptionMarketDataByIds(user, optionIds);
         for (var marketData in marketDataList) {
+          final mark =
+              marketData.adjustedMarkPrice ?? marketData.markPrice;
+          if (mark != null) {
+            optionMarks[marketData.instrumentId] = mark;
+          }
           try {
             var pos = _optionPositions.firstWhere(
               (p) => p.optionInstrument?.url == marketData.instrument,
@@ -432,6 +571,10 @@ class PaperTradingStore extends ChangeNotifier {
       }
     }
 
+    // Evaluate working orders against the fresh prices.
+    await evaluatePendingOrders(
+        stockPrices: underlyingPrices, optionMarks: optionMarks);
+
     if (changed) {
       notifyListeners();
     }
@@ -465,9 +608,334 @@ class PaperTradingStore extends ChangeNotifier {
     _positions = [];
     _optionPositions = [];
     _futuresPositions = [];
+    _pendingOrders = [];
     _history = [];
     await _save();
     notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------
+  // Resting-order engine
+  //
+  // Market orders fill immediately. Limit/stop/stop-limit orders rest in
+  // [_pendingOrders] (reserving buying power or shares) until
+  // [evaluatePendingOrders] observes a price that satisfies them, at which
+  // point they fill through the same executeStockOrder/executeOptionOrder
+  // primitives (slippage, commission, averaging, history all apply).
+  // ---------------------------------------------------------------------
+
+  String _newOrderId() => 'paper_${DateTime.now().microsecondsSinceEpoch}';
+
+  /// Submits a stock order. Market orders (and immediately marketable
+  /// limit/stop orders) fill now; everything else rests as a working order.
+  Future<PaperOrderResult> submitStockOrder({
+    required Instrument instrument,
+    required double quantity,
+    required String side,
+    String orderType = 'market',
+    double? limitPrice,
+    double? stopPrice,
+    double? marketPrice,
+    String timeInForce = 'gtc',
+  }) async {
+    final price = marketPrice ?? instrument.quoteObj?.lastTradePrice;
+    return _submitOrder(
+      assetType: 'stock',
+      symbol: instrument.symbol,
+      instrumentJson: instrument.toJson(),
+      instrumentRef: instrument,
+      quantity: quantity,
+      side: side,
+      orderType: orderType,
+      limitPrice: limitPrice,
+      stopPrice: stopPrice,
+      marketPrice: price,
+      timeInForce: timeInForce,
+    );
+  }
+
+  /// Submits an option order (long-only). Same semantics as
+  /// [submitStockOrder]; prices are per contract with a 100x multiplier.
+  Future<PaperOrderResult> submitOptionOrder({
+    required OptionInstrument optionInstrument,
+    required double quantity,
+    required String side,
+    String orderType = 'limit',
+    double? limitPrice,
+    double? stopPrice,
+    double? marketPrice,
+    String timeInForce = 'gtc',
+  }) async {
+    final price = marketPrice ??
+        optionInstrument.optionMarketData?.adjustedMarkPrice ??
+        optionInstrument.optionMarketData?.markPrice;
+    return _submitOrder(
+      assetType: 'option',
+      symbol: optionInstrument.chainSymbol,
+      instrumentJson: optionInstrument.toJson(),
+      optionInstrumentRef: optionInstrument,
+      quantity: quantity,
+      side: side,
+      orderType: orderType,
+      limitPrice: limitPrice,
+      stopPrice: stopPrice,
+      marketPrice: price,
+      timeInForce: timeInForce,
+    );
+  }
+
+  Future<PaperOrderResult> _submitOrder({
+    required String assetType,
+    required String symbol,
+    required Map<String, dynamic> instrumentJson,
+    Instrument? instrumentRef,
+    OptionInstrument? optionInstrumentRef,
+    required double quantity,
+    required String side,
+    required String orderType,
+    double? limitPrice,
+    double? stopPrice,
+    double? marketPrice,
+    required String timeInForce,
+  }) async {
+    if (quantity <= 0) {
+      throw Exception('Quantity must be greater than zero.');
+    }
+    final normalizedSide = side.toLowerCase();
+    final normalizedType = orderType.toLowerCase().replaceAll(' ', '_');
+
+    switch (normalizedType) {
+      case 'market':
+        if (marketPrice == null || marketPrice <= 0) {
+          throw Exception('No market price available for $symbol.');
+        }
+        break;
+      case 'limit':
+        if (limitPrice == null || limitPrice <= 0) {
+          throw Exception('A limit price is required for limit orders.');
+        }
+        break;
+      case 'stop':
+        if (stopPrice == null || stopPrice <= 0) {
+          throw Exception('A stop price is required for stop orders.');
+        }
+        break;
+      case 'stop_limit':
+        if (stopPrice == null ||
+            stopPrice <= 0 ||
+            limitPrice == null ||
+            limitPrice <= 0) {
+          throw Exception(
+              'Stop and limit prices are required for stop-limit orders.');
+        }
+        break;
+      default:
+        throw Exception(
+            'Order type "$orderType" is not supported in paper trading yet.');
+    }
+
+    final order = PendingPaperOrder(
+      id: _newOrderId(),
+      assetType: assetType,
+      symbol: symbol,
+      side: normalizedSide,
+      orderType: normalizedType,
+      limitPrice: limitPrice,
+      stopPrice: stopPrice,
+      quantity: quantity,
+      timeInForce: timeInForce.toLowerCase(),
+      createdAt: DateTime.now(),
+      instrumentJson: instrumentJson,
+    )
+      ..instrumentRef = instrumentRef
+      ..optionInstrumentRef = optionInstrumentRef;
+
+    // Market orders and already-marketable limit/stop orders fill now.
+    if (normalizedType == 'market') {
+      await _fillOrder(order, marketPrice!);
+      return PaperOrderResult(order.id, 'filled');
+    }
+    if (await _tryFillPendingOrder(order, marketPrice)) {
+      return PaperOrderResult(order.id, 'filled');
+    }
+
+    _validateReservation(order);
+    _pendingOrders.add(order);
+    await _save();
+    notifyListeners();
+    return PaperOrderResult(order.id, 'confirmed');
+  }
+
+  /// Rejects a resting order that could over-commit cash (buys) or shares
+  /// (sells) already reserved by other working orders.
+  void _validateReservation(PendingPaperOrder order) {
+    if (order.side == 'buy') {
+      final cost =
+          order.quantity * order.reservePrice * order.contractMultiplier +
+              _commission;
+      if (availableBuyingPower < cost) {
+        throw Exception(
+            'Insufficient buying power (cash is reserved by working orders).');
+      }
+    } else {
+      double held = 0;
+      if (order.assetType == 'stock') {
+        final idx =
+            _positions.indexWhere((p) => p.instrument == order.assetUrl);
+        held = idx >= 0 ? (_positions[idx].quantity ?? 0) : 0;
+      } else {
+        final idx = _optionPositions.indexWhere((p) =>
+            p.legs.isNotEmpty && p.legs.first.option == order.assetUrl);
+        held = idx >= 0 ? (_optionPositions[idx].quantity ?? 0) : 0;
+      }
+      final reserved = _pendingOrders
+          .where((o) =>
+              o.side == 'sell' &&
+              o.assetType == order.assetType &&
+              o.assetUrl == order.assetUrl)
+          .fold(0.0, (total, o) => total + o.quantity);
+      if (held - reserved < order.quantity) {
+        throw Exception(
+            'Insufficient quantity available (shares are reserved by working orders).');
+      }
+    }
+  }
+
+  /// Fills [order] at [price] through the immediate-execution primitives.
+  Future<void> _fillOrder(PendingPaperOrder order, double price) async {
+    final label = switch (order.orderType) {
+      'stop_limit' => 'Stop Limit',
+      'stop' => 'Stop',
+      'limit' => 'Limit',
+      _ => 'Market',
+    };
+    if (order.assetType == 'stock') {
+      await executeStockOrder(
+        instrument:
+            order.instrumentRef ?? Instrument.fromJson(order.instrumentJson),
+        quantity: order.quantity,
+        price: price,
+        side: order.side,
+        orderType: label,
+      );
+    } else {
+      await executeOptionOrder(
+        optionInstrument: order.optionInstrumentRef ??
+            OptionInstrument.fromJson(order.instrumentJson),
+        quantity: order.quantity,
+        price: price,
+        side: order.side,
+        orderType: label,
+      );
+    }
+  }
+
+  /// Evaluates [order] against the current [price]. Fills and returns true
+  /// when the order's conditions are satisfied; may set [order.triggered]
+  /// (stop-limit) without filling.
+  Future<bool> _tryFillPendingOrder(
+      PendingPaperOrder order, double? price) async {
+    if (price == null || price <= 0) return false;
+    final isBuy = order.side == 'buy';
+    bool shouldFill = false;
+
+    switch (order.orderType) {
+      case 'limit':
+        final limit = order.limitPrice!;
+        shouldFill = isBuy ? price <= limit : price >= limit;
+        break;
+      case 'stop':
+        final stop = order.stopPrice!;
+        shouldFill = isBuy ? price >= stop : price <= stop;
+        break;
+      case 'stop_limit':
+        final stop = order.stopPrice!;
+        if (!order.triggered && (isBuy ? price >= stop : price <= stop)) {
+          order.triggered = true;
+        }
+        if (order.triggered) {
+          final limit = order.limitPrice!;
+          shouldFill = isBuy ? price <= limit : price >= limit;
+        }
+        break;
+    }
+
+    if (!shouldFill) return false;
+    await _fillOrder(order, price);
+    return true;
+  }
+
+  static bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Evaluates all working orders against fresh prices. [stockPrices] is
+  /// keyed by symbol; [optionMarks] by option instrument id. Called from
+  /// [refreshQuotes]; [now] is injectable for tests.
+  Future<void> evaluatePendingOrders({
+    required Map<String, double> stockPrices,
+    Map<String, double> optionMarks = const {},
+    DateTime? now,
+  }) async {
+    if (_pendingOrders.isEmpty) return;
+    final evalTime = now ?? DateTime.now();
+    bool changed = false;
+
+    for (final order in List.of(_pendingOrders)) {
+      // Good-for-day orders expire after their trading day.
+      if (order.timeInForce == 'gfd' &&
+          !_isSameDay(order.createdAt, evalTime)) {
+        _pendingOrders.remove(order);
+        _addToHistory(order.assetType, order.side, order.symbol,
+            order.quantity, order.reservePrice,
+            detail: 'GFD order expired unfilled',
+            orderType: order.orderType,
+            state: 'cancelled');
+        changed = true;
+        continue;
+      }
+
+      final price = order.assetType == 'stock'
+          ? stockPrices[order.priceKey]
+          : optionMarks[order.priceKey];
+      final wasTriggered = order.triggered;
+
+      // Remove before filling so this order's own reservation doesn't
+      // count against the fill.
+      _pendingOrders.remove(order);
+      bool filled = false;
+      try {
+        filled = await _tryFillPendingOrder(order, price);
+      } catch (e) {
+        // e.g. cash consumed by an earlier fill — reject rather than retry.
+        _addToHistory(order.assetType, order.side, order.symbol,
+            order.quantity, order.reservePrice,
+            detail: 'Order rejected on trigger: $e',
+            orderType: order.orderType,
+            state: 'rejected');
+        changed = true;
+        continue;
+      }
+      if (!filled) {
+        _pendingOrders.add(order);
+        if (order.triggered != wasTriggered) changed = true;
+      }
+    }
+
+    if (changed) {
+      await _save();
+      notifyListeners();
+    }
+  }
+
+  /// Cancels a working order and releases its reservation. Returns false if
+  /// no working order has [orderId].
+  Future<bool> cancelPendingOrder(String orderId) async {
+    final idx = _pendingOrders.indexWhere((o) => o.id == orderId);
+    if (idx < 0) return false;
+    _pendingOrders.removeAt(idx);
+    await _save();
+    notifyListeners();
+    return true;
   }
 
   Future<void> executeStockOrder({
@@ -824,7 +1292,8 @@ class PaperTradingStore extends ChangeNotifier {
       double? profitLoss,
       double? multiplier,
       String? orderType,
-      String? instrumentUrl}) {
+      String? instrumentUrl,
+      String state = 'filled'}) {
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
     _history.insert(0, {
@@ -835,7 +1304,7 @@ class PaperTradingStore extends ChangeNotifier {
       'type': type.toUpperCase(),
       'action': action.toUpperCase(),
       'side': action.toLowerCase(),
-      'state': 'filled',
+      'state': state,
       'symbol': symbol,
       'quantity': quantity,
       'price': price,

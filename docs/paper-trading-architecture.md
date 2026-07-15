@@ -69,11 +69,11 @@ straight to Firestore (cheap, stateless); **all mutations delegate to the shared
 
 | Component | File | Responsibility |
 |---|---|---|
-| `PaperTradingStore` | `lib/model/paper_trading_store.dart` | **The engine.** Owns cash/positions/history state, executes orders, applies slippage & commission, processes option expiration, persists to Firestore, notifies UI. |
+| `PaperTradingStore` | `lib/model/paper_trading_store.dart` | **The engine.** Owns cash/positions/working-orders/history state, executes orders (immediate + resting limit/stop with reservations and trigger evaluation), applies slippage & commission, processes option expiration, persists to Firestore, notifies UI. |
 | `PaperService` | `lib/services/paper_service.dart` | `IBrokerageService` implementation for `BrokerageSource.paper`. Serves reads (accounts, portfolios, positions, quotes, charts) and delegates order placement to the engine. Returns Robinhood-shaped `http.Response` bodies for caller compatibility. |
 | `paperTradingStore` global | `lib/main.dart` | Lazy app-wide singleton; the Provider tree and `PaperService` bind to the same instance. |
 | `FirestoreService` (paper helpers) | `lib/services/firestore_service.dart` | Read-only paper helpers: `getPaperAccountDoc`, `listPaperPositions`, `listPaperOptionPositions`, `streamPaperOrders`, `getPaperHistory`. Write helpers were deliberately removed — writes go through the engine. |
-| `PaperTradingDashboardWidget` | `lib/widgets/paper_trading_dashboard_widget.dart` | Portfolio summary, AI analysis, allocation chart, positions, order history, settings (slippage/commission), reset. |
+| `PaperTradingDashboardWidget` | `lib/widgets/paper_trading_dashboard_widget.dart` | Portfolio summary (buying power net of reservations), AI analysis, allocation chart, positions, working orders with cancel, order history, settings (slippage/commission), reset. |
 | Trade widgets | `lib/widgets/trade_instrument_widget.dart`, `trade_option_widget.dart`, `strategy_builder_widget.dart` | "Paper Trade" toggle (forced **on** for paper-source accounts); route execution to the engine when enabled. |
 | Auto-trading providers | `lib/model/agentic_trading_provider.dart`, `futures_auto_trading_provider.dart` | Call the engine directly when `paperTradingMode` is enabled. |
 | `updatePaperHistoricalsCron` | `functions/src/paper-trading-cron.ts` | Scheduled Cloud Function: values every paper account at market close and appends a daily equity snapshot. |
@@ -109,8 +109,13 @@ classDiagram
         -List~InstrumentPosition~ _positions
         -List~OptionAggregatePosition~ _optionPositions
         -List~FuturesPaperPosition~ _futuresPositions
+        -List~PendingPaperOrder~ _pendingOrders
         -List~Map~ _history
         +ensureLoaded(user)
+        +submitStockOrder() PaperOrderResult
+        +submitOptionOrder() PaperOrderResult
+        +evaluatePendingOrders()
+        +cancelPendingOrder(id)
         +executeStockOrder()
         +executeOptionOrder()
         +executeComplexOptionStrategy()
@@ -119,6 +124,17 @@ classDiagram
         +resetAccount()
         +updateSettings()
         +equity double
+        +availableBuyingPower double
+    }
+    class PendingPaperOrder {
+        +String assetType
+        +String side
+        +String orderType
+        +double limitPrice
+        +double stopPrice
+        +double quantity
+        +String timeInForce
+        +bool triggered
     }
     class FuturesPaperPosition {
         +String contractId
@@ -133,6 +149,7 @@ classDiagram
     IBrokerageService <|.. SchwabService
     PaperService --> PaperTradingStore : delegates writes
     PaperTradingStore *-- FuturesPaperPosition
+    PaperTradingStore *-- PendingPaperOrder
     PaperTradingStore --> Firestore : load / save
     PaperService --> Firestore : reads
     TradeWidgets --> PaperTradingStore : paper toggle path
@@ -152,6 +169,9 @@ user/{uid}/
 │       ├── positions: [ ... ]        (stock positions, snake_case + instrumentObj)
 │       ├── optionPositions: [ ... ]  (aggregate positions with legs[] + optionInstrument)
 │       ├── futuresPositions: [ ... ] (contractId, quantity, avgPrice, multiplier, lastPrice)
+│       ├── pendingOrders: [ ... ]    (working limit/stop orders: id, assetType, side,
+│       │                              orderType, limitPrice, stopPrice, quantity,
+│       │                              timeInForce, triggered, instrumentJson)
 │       ├── history: [ ... ]          (last 100 fills, unified entry format, newest first)
 │       └── updatedAt: serverTimestamp
 └── paper_equity_history/
@@ -172,7 +192,7 @@ Every fill appends one entry serving **two consumers**: the dashboard history li
 | `id` | `paper_1770000000000` | orders UI |
 | `type` | `STOCK` \| `OPTION` \| `STRATEGY` \| `FUTURES` \| `EXPIRATION` | dashboard (asset class), stream filter |
 | `action` / `side` | `BUY` / `buy` | dashboard / orders UI |
-| `state` | `filled` | orders UI |
+| `state` | `filled` (also `cancelled` for GFD expiry, `rejected` for unfundable triggers) | orders UI |
 | `order_type` | `limit`, `market` | orders UI |
 | `symbol`, `quantity`, `price` | `AAPL`, `10`, `195.30` | both |
 | `instrument` | instrument URL | orders UI |
@@ -193,24 +213,53 @@ sequenceDiagram
     participant PTS as PaperTradingStore
     participant FS as Firestore
 
-    User->>TW: Buy 10 AAPL @ $195 (Paper toggle ON)
-    TW->>PTS: executeStockOrder(instrument, qty, price, side, orderType)
+    User->>TW: Buy 10 AAPL, limit $180 (Paper toggle ON)
+    TW->>PTS: submitStockOrder(instrument, qty, side, orderType, limit/stop, marketPrice)
     activate PTS
-    PTS->>PTS: apply slippage, cost = qty × price + commission
-    alt insufficient cash
-        PTS-->>TW: throw "Insufficient buying power"
-    else ok
-        PTS->>PTS: cash -= cost
-        PTS->>PTS: _updateStockPosition() (average into position)
-        PTS->>PTS: _addToHistory() (unified entry)
-        PTS->>FS: save paper_account/main (whole doc)
-        PTS-->>TW: notifyListeners()
+    alt market order, or limit/stop already marketable
+        PTS->>PTS: fill now via executeStockOrder()
+        PTS->>PTS: apply slippage & commission, average into position
+        PTS->>PTS: _addToHistory() (state filled)
+        PTS->>FS: save paper_account/main
+        PTS-->>TW: PaperOrderResult(state filled)
+        TW-->>User: "Paper order filled!"
+    else resting order
+        PTS->>PTS: _validateReservation() (buying power / shares)
+        PTS->>PTS: add to pendingOrders
+        PTS->>FS: save paper_account/main
+        PTS-->>TW: PaperOrderResult(state confirmed)
+        TW-->>User: "Paper order placed, working until it triggers."
     end
     deactivate PTS
-    TW-->>User: "Paper Order placed successfully!"
 ```
 
-### 5.2 Order via the brokerage interface (`PaperService` path)
+### 5.2 Resting-order lifecycle
+
+Working orders are re-evaluated on every quote refresh (dashboard load and
+pull-to-refresh) with fresh stock quotes and option marks.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Working : submit (reserves buying power or shares)
+    Working --> Filled : limit — price crosses the limit
+    Working --> Filled : stop — price breaches the stop (fills at market)
+    Working --> Triggered : stop_limit — stop breached
+    Triggered --> Filled : price satisfies the limit leg
+    Working --> Cancelled : user cancel / GFD day ends
+    Triggered --> Cancelled : user cancel / GFD day ends
+    Working --> Rejected : trigger fires but cash no longer covers it
+    Triggered --> Rejected : trigger fires but cash no longer covers it
+    Filled --> [*] : history entry (state filled)
+    Cancelled --> [*] : reservation released
+    Rejected --> [*] : history entry (state rejected)
+```
+
+Fills execute at the **observed market price** (capped by the limit), then flow
+through the same `executeStockOrder`/`executeOptionOrder` primitives — slippage,
+commission, averaging, and history apply identically to immediate and triggered
+fills.
+
+### 5.3 Order via the brokerage interface (`PaperService` path)
 
 Used by callers that only know `IBrokerageService` (copy trading, agentic fallback,
 generic order UIs).
@@ -228,16 +277,17 @@ sequenceDiagram
         PTS->>FS: load paper_account/main
         FS-->>PTS: state (cash, positions, history)
     end
-    PS->>PTS: executeStockOrder(...)
+    PS->>PS: map type + trigger to engine order type<br/>(limit / stop / stop_limit / market)
+    PS->>PTS: submitStockOrder(...)
     PTS->>FS: save
-    PTS-->>PS: done
-    PS-->>C: http.Response 201 (Robinhood-shaped order JSON, state="filled")
+    PTS-->>PS: PaperOrderResult (filled | confirmed)
+    PS-->>C: http.Response 201 (Robinhood-shaped order JSON,<br/>state filled or confirmed)
 ```
 
 `ensureLoaded` prevents a race where an order executed against unloaded default state
 would be overwritten by a pending Firestore load.
 
-### 5.3 Quote refresh & option expiration
+### 5.4 Quote refresh & option expiration
 
 Triggered on dashboard load and pull-to-refresh.
 
@@ -255,10 +305,11 @@ flowchart TD
     H -- no --> J["Fetch option market data<br/>for live positions"]
     I --> J
     J --> K["Refresh futures lastPrice<br/>via getFuturesClosesByIds"]
-    K --> L["notifyListeners() → UI updates"]
+    K --> M["evaluatePendingOrders():<br/>fill / trigger / expire working orders<br/>against fresh prices"]
+    M --> L["notifyListeners() → UI updates"]
 ```
 
-### 5.4 Daily equity snapshot (Cloud Function)
+### 5.5 Daily equity snapshot (Cloud Function)
 
 ```mermaid
 sequenceDiagram
@@ -279,7 +330,7 @@ sequenceDiagram
 The client (`PaperService.getPortfolioHistoricals`) merges these snapshots with a
 live "now" point to render the portfolio chart.
 
-### 5.5 Automated paper trading
+### 5.6 Automated paper trading
 
 ```mermaid
 flowchart LR
@@ -298,11 +349,18 @@ manual paper trades compose safely — cash and positions stay consistent.
 
 ## 6. Execution Model
 
-Paper fills are **immediate and idealized** (no resting order book yet):
+Market orders fill immediately; limit/stop/stop-limit orders rest until triggered:
 
 | Aspect | Behavior |
 |---|---|
-| Fill timing | Instant, at the submitted price (limit) or last trade price (market) |
+| Market orders | Fill instantly at the current market price |
+| Limit orders | Fill at the market price when it crosses the limit (immediately if already marketable); otherwise rest |
+| Stop orders | Rest until the market price breaches the stop, then fill at market |
+| Stop-limit orders | Stop breach arms the limit leg (`triggered`), which then fills when marketable |
+| Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; client-side only — orders do not trigger while the app is closed |
+| Reservations | Working buys reserve `qty × (limit ?? stop) × multiplier + commission` of buying power; working sells reserve position quantity — over-committing is rejected at submit |
+| Time in force | `gtc` persists; `gfd` expires at the end of its trading day (history entry, state `cancelled`) |
+| Unfundable triggers | If cash was consumed before a trigger fired, the order is rejected (history entry, state `rejected`), not retried |
 | Slippage | Configurable `$/share` (or `$/contract`): buys fill at `price + slippage`, sells at `price − slippage` |
 | Commission | Configurable flat `$/trade`, added to cost on buys, subtracted from proceeds on sells |
 | Position averaging | Buys: `newAvg = (oldQty×oldAvg + qty×price) / newQty`; sells keep the average and reduce quantity |
@@ -354,10 +412,13 @@ stateDiagram-v2
 
 ## 8. Known Limitations & Roadmap
 
+~~No resting orders~~ — **done (2026-07):** limit/stop/stop-limit orders rest with
+reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
+
 | # | Gap | Notes |
 |---|---|---|
-| 1 | **No resting orders** — limit/stop/stop-limit/trailing all fill instantly at the submitted price | Next up: pending-order engine with trigger evaluation on quote refresh + cancel support |
-| 2 | **No short selling / option writing** — long-only stocks & options; no collateral model | Requires margin/buying-power model and assignment handling |
+| 1 | **No short selling / option writing** — long-only stocks & options; no collateral model | Requires margin/buying-power model and assignment handling |
+| 2 | **Client-side trigger evaluation only** — working orders don't trigger while the app is closed; no trailing-stop support | Server-side evaluation could ride the existing cron or a more frequent function |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
 | 5 | **Equity cron gaps** — futures excluded from daily snapshots; runs on non-trading days; reset doesn't clear `paper_equity_history` | |
@@ -368,6 +429,7 @@ stateDiagram-v2
 
 | Layer | Location | Approach |
 |---|---|---|
+| Resting-order engine | `test/paper_trading_pending_orders_test.dart` | Direct engine tests: immediate vs resting fills, limit/stop/stop-limit triggers, reservations, cancel, GFD/GTC, rejection on unfundable triggers, JSON round-trip |
 | Widget + engine wiring | `test/full_paper_trading_test.dart` | Fake store (`implements PaperTradingStore`) injected via Provider; verifies trade widgets route paper orders to the engine |
 | Strategy builder | `test/strategy_builder_paper_trade_test.dart` | Mock store (`extends PaperTradingStore`); paper toggle behavior |
 | Integration | `integration_test/guest_paper_trading_test.dart` | End-to-end guest paper trading flow |
