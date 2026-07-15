@@ -66,7 +66,7 @@
 - **[Sentiment Analysis](sentiment-analysis.md):** Visualize market mood (Bullish/Bearish/Neutral) with a dedicated dashboard and card widget.
 - **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
 - **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
-- **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts.
+- **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts. See also the [Architecture & Technical Design](paper-trading-architecture.md).
 - **[Macro Assessment](macro-assessment.md):** Real-time market risk evaluation (Risk On/Off) analyzing VIX, yields, and trend with a dedicated dashboard for deeper analysis.
 - **[Deep Linking & Referrals](deep-linking.md):** Seamless navigation into the app from external links with a built-in referral tracking system for user growth.
 ## Investment Profile Feature

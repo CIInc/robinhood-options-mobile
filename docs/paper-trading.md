@@ -38,8 +38,10 @@ Manage your simulated trades directly from the list:
 
 ## Technical Architecture
 
-The paper trading system uses a dedicated service layer to maintain consistency:
-- **PaperService:** Centralized management for user accounts, simulated portfolios, and virtual order placement.
+See the full [Paper Trading Architecture & Technical Design](paper-trading-architecture.md) for component diagrams, data model, and execution flows. In brief:
+
+- **PaperTradingStore:** The single execution engine — owns cash, positions, and history; applies slippage/commission; persists to Firestore.
+- **PaperService:** `IBrokerageService` adapter for paper accounts — serves reads (quotes, positions, charts) and delegates all order placement to the engine.
 - **Testing:** Extensively tested using `fake_cloud_firestore` to ensure data integrity and realistic state mutations.
 - **Model Integration:** Shares the same underlying models as live trading for a seamless transition between modes.
 
