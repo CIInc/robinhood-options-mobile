@@ -975,6 +975,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
         stopPrice: double.tryParse(stopPriceCtl.text),
         marketPrice: widget.optionInstrument?.optionMarketData?.markPrice,
         timeInForce: timeInForce,
+        trailType:
+            orderType == 'Trailing Stop' ? trailingType.toLowerCase() : null,
+        trailValue: orderType == 'Trailing Stop'
+            ? double.tryParse(trailingAmountCtl.text)
+            : null,
       );
 
       if (!mounted) return;

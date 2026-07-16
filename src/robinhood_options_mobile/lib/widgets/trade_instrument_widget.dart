@@ -881,6 +881,11 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         stopPrice: double.tryParse(stopPriceCtl.text),
         marketPrice: widget.instrument?.quoteObj?.lastTradePrice,
         timeInForce: timeInForce,
+        trailType:
+            orderType == 'Trailing Stop' ? trailingType.toLowerCase() : null,
+        trailValue: orderType == 'Trailing Stop'
+            ? double.tryParse(trailingAmountCtl.text)
+            : null,
       );
       if (!mounted) return;
       Navigator.pop(context);

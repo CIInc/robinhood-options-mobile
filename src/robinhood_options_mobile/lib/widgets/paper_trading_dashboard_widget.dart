@@ -876,8 +876,13 @@ class _PaperTradingDashboardWidgetState
       PendingPaperOrder order, NumberFormat formatCurrency) {
     final isBuy = order.side == 'buy';
     final typeLabel = order.orderType.replaceAll('_', ' ').toUpperCase();
+    final isTrailing = order.orderType == 'trailing_stop';
     final prices = [
-      if (order.stopPrice != null)
+      if (isTrailing && order.trailValue != null)
+        'Trail ${order.trailType == 'percentage' ? '${order.trailValue!.toStringAsFixed(1)}%' : formatCurrency.format(order.trailValue)}',
+      if (isTrailing && order.effectiveStopPrice != null)
+        'Stop ${formatCurrency.format(order.effectiveStopPrice)}',
+      if (!isTrailing && order.stopPrice != null)
         'Stop ${formatCurrency.format(order.stopPrice)}',
       if (order.limitPrice != null)
         'Limit ${formatCurrency.format(order.limitPrice)}',

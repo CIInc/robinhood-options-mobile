@@ -172,9 +172,9 @@ user/{uid}/
 │       │                              direction 'credit' = written/short)
 │       ├── futuresPositions: [ ... ] (contractId, quantity, avgPrice, multiplier, lastPrice)
 │       ├── pendingOrders: [ ... ]    (working limit/stop orders: id, assetType, side,
-│       │                              orderType, limitPrice, stopPrice, quantity,
-│       │                              timeInForce, positionEffect, triggered,
-│       │                              instrumentJson)
+│       │                              orderType, limitPrice, stopPrice, trailType,
+│       │                              trailValue, watermark, quantity, timeInForce,
+│       │                              positionEffect, triggered, instrumentJson)
 │       ├── history: [ ... ]          (last 100 fills, unified entry format, newest first)
 │       └── updatedAt: serverTimestamp
 └── paper_equity_history/
@@ -360,6 +360,7 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 | Limit orders | Fill at the market price when it crosses the limit (immediately if already marketable); otherwise rest |
 | Stop orders | Rest until the market price breaches the stop, then fill at market |
 | Stop-limit orders | Stop breach arms the limit leg (`triggered`), which then fills when marketable |
+| Trailing stop orders | Watermark (best observed price) ratchets in the favorable direction on each refresh; triggers when the price retraces by the trail (`$` amount or `%`), filling at market. Sells trail the high, buys trail the low |
 | Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; client-side only — orders do not trigger while the app is closed |
 | Reservations | Working buys reserve `qty × (limit ?? stop) × multiplier + commission` of buying power; working sells reserve position quantity — over-committing is rejected at submit |
 | Time in force | `gtc` persists; `gfd` expires at the end of its trading day (history entry, state `cancelled`) |
@@ -437,7 +438,7 @@ with the client engine), skips weekends, and account reset clears
 | # | Gap | Notes |
 |---|---|---|
 | 1 | **No naked options or true margin** — calls must be covered, puts fully cash-secured; short-stock margin is a static 150% of entry (no mark-to-market maintenance calls) | A maintenance-margin sweep could ride the quote refresh |
-| 2 | **Client-side trigger evaluation only** — working orders don't trigger while the app is closed; no trailing-stop support | Server-side evaluation could ride the existing cron or a more frequent function |
+| 2 | **Client-side trigger evaluation only** — working orders (incl. trailing stops) don't trigger while the app is closed | Server-side evaluation could ride the existing cron or a more frequent function |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
 | 5 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
@@ -449,6 +450,7 @@ with the client engine), skips weekends, and account reset clears
 |---|---|---|
 | Equity valuation (cron) | `functions/tests/paper-trading-utils.test.ts` | Jest tests for `computePaperAccountEquity` (shorts, written options, futures, fallbacks) and the trading-day guard |
 | Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
+| Trailing stops | `test/paper_trading_trailing_stop_test.dart` | Watermark ratchet, $/% trails, buy-side (cover) trails, moving reservations, validation, GFD, JSON round-trip |
 | Resting-order engine | `test/paper_trading_pending_orders_test.dart` | Direct engine tests: immediate vs resting fills, limit/stop/stop-limit triggers, reservations, cancel, GFD/GTC, rejection on unfundable triggers, JSON round-trip |
 | Widget + engine wiring | `test/full_paper_trading_test.dart` | Fake store (`implements PaperTradingStore`) injected via Provider; verifies trade widgets route paper orders to the engine |
 | Strategy builder | `test/strategy_builder_paper_trade_test.dart` | Mock store (`extends PaperTradingStore`); paper toggle behavior |

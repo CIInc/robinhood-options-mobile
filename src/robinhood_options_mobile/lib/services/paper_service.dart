@@ -1121,10 +1121,15 @@ class PaperService implements IBrokerageService {
       Map<String, dynamic>? trailingPeg}) async {
     final store = await _engine();
 
-    // Map Robinhood order semantics (type + trigger) to the engine's types.
+    // Map Robinhood order semantics (type + trigger + trailing peg) to the
+    // engine's types.
     String engineType = type.toLowerCase();
     if (trigger.toLowerCase() == 'stop') {
-      engineType = engineType == 'limit' ? 'stop_limit' : 'stop';
+      engineType = trailingPeg != null
+          ? 'trailing_stop'
+          : engineType == 'limit'
+              ? 'stop_limit'
+              : 'stop';
     }
 
     final result = await store.submitStockOrder(
@@ -1137,6 +1142,8 @@ class PaperService implements IBrokerageService {
       stopPrice: stopPrice,
       marketPrice: instrument.quoteObj?.lastTradePrice ?? price,
       timeInForce: timeInForce,
+      trailType: trailingPeg?['type']?.toString(),
+      trailValue: (trailingPeg?['value'] as num?)?.toDouble(),
     );
 
     final displayPrice = price ?? instrument.quoteObj?.lastTradePrice;
@@ -1190,7 +1197,11 @@ class PaperService implements IBrokerageService {
 
     String engineType = type.toLowerCase();
     if (trigger.toLowerCase() == 'stop') {
-      engineType = engineType == 'limit' ? 'stop_limit' : 'stop';
+      engineType = trailingPeg != null
+          ? 'trailing_stop'
+          : engineType == 'limit'
+              ? 'stop_limit'
+              : 'stop';
     }
 
     final result = await store.submitOptionOrder(
@@ -1205,6 +1216,8 @@ class PaperService implements IBrokerageService {
           optionInstrument.optionMarketData?.adjustedMarkPrice ?? price,
       timeInForce: timeInForce,
       positionEffect: positionEffect,
+      trailType: trailingPeg?['type']?.toString(),
+      trailValue: (trailingPeg?['value'] as num?)?.toDouble(),
     );
 
     final nowIso = DateTime.now().toIso8601String();

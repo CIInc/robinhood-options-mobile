@@ -68,9 +68,12 @@ class PendingPaperOrder {
   final String assetType; // 'stock' | 'option'
   final String symbol; // stock symbol or option chain symbol (display)
   final String side; // 'buy' | 'sell'
-  final String orderType; // 'limit' | 'stop' | 'stop_limit'
+  final String orderType; // 'limit' | 'stop' | 'stop_limit' | 'trailing_stop'
   final double? limitPrice;
   final double? stopPrice;
+  final String? trailType; // trailing_stop only: 'percentage' | 'amount'
+  final double? trailValue; // trailing_stop only: trail distance
+  double? watermark; // trailing_stop only: best observed price
   final double quantity;
   final String timeInForce; // 'gtc' | 'gfd'
   final String positionEffect; // 'auto' | 'open' | 'close' (options)
@@ -92,6 +95,9 @@ class PendingPaperOrder {
     required this.orderType,
     this.limitPrice,
     this.stopPrice,
+    this.trailType,
+    this.trailValue,
+    this.watermark,
     required this.quantity,
     required this.timeInForce,
     this.positionEffect = 'auto',
@@ -111,8 +117,28 @@ class PendingPaperOrder {
   /// URL of the traded asset, used to match positions for share reservation.
   String get assetUrl => instrumentJson['url']?.toString() ?? '';
 
+  /// Current trigger price of a trailing stop, derived from the watermark
+  /// (best observed price) and the trail distance. Falls back to the static
+  /// [stopPrice] for non-trailing orders.
+  double? get effectiveStopPrice {
+    if (orderType != 'trailing_stop' ||
+        watermark == null ||
+        trailValue == null) {
+      return stopPrice;
+    }
+    final base = watermark!;
+    final isBuy = side == 'buy';
+    if (trailType == 'percentage') {
+      return isBuy
+          ? base * (1 + trailValue! / 100)
+          : base * (1 - trailValue! / 100);
+    }
+    return isBuy ? base + trailValue! : base - trailValue!;
+  }
+
   /// Price used to reserve buying power while the order rests.
-  double get reservePrice => limitPrice ?? stopPrice ?? 0.0;
+  double get reservePrice =>
+      limitPrice ?? effectiveStopPrice ?? stopPrice ?? 0.0;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -122,6 +148,9 @@ class PendingPaperOrder {
         'orderType': orderType,
         'limitPrice': limitPrice,
         'stopPrice': stopPrice,
+        'trailType': trailType,
+        'trailValue': trailValue,
+        'watermark': watermark,
         'quantity': quantity,
         'timeInForce': timeInForce,
         'positionEffect': positionEffect,
@@ -139,6 +168,9 @@ class PendingPaperOrder {
       orderType: json['orderType']?.toString() ?? 'limit',
       limitPrice: (json['limitPrice'] as num?)?.toDouble(),
       stopPrice: (json['stopPrice'] as num?)?.toDouble(),
+      trailType: json['trailType']?.toString(),
+      trailValue: (json['trailValue'] as num?)?.toDouble(),
+      watermark: (json['watermark'] as num?)?.toDouble(),
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       timeInForce: json['timeInForce']?.toString() ?? 'gtc',
       positionEffect: json['positionEffect']?.toString() ?? 'auto',
@@ -692,6 +724,8 @@ class PaperTradingStore extends ChangeNotifier {
     double? stopPrice,
     double? marketPrice,
     String timeInForce = 'gtc',
+    String? trailType,
+    double? trailValue,
   }) async {
     final price = marketPrice ?? instrument.quoteObj?.lastTradePrice;
     return _submitOrder(
@@ -706,6 +740,8 @@ class PaperTradingStore extends ChangeNotifier {
       stopPrice: stopPrice,
       marketPrice: price,
       timeInForce: timeInForce,
+      trailType: trailType,
+      trailValue: trailValue,
     );
   }
 
@@ -721,6 +757,8 @@ class PaperTradingStore extends ChangeNotifier {
     double? marketPrice,
     String timeInForce = 'gtc',
     String positionEffect = 'auto',
+    String? trailType,
+    double? trailValue,
   }) async {
     final price = marketPrice ??
         optionInstrument.optionMarketData?.adjustedMarkPrice ??
@@ -738,6 +776,8 @@ class PaperTradingStore extends ChangeNotifier {
       marketPrice: price,
       timeInForce: timeInForce,
       positionEffect: positionEffect,
+      trailType: trailType,
+      trailValue: trailValue,
     );
   }
 
@@ -755,6 +795,8 @@ class PaperTradingStore extends ChangeNotifier {
     double? marketPrice,
     required String timeInForce,
     String positionEffect = 'auto',
+    String? trailType,
+    double? trailValue,
   }) async {
     if (quantity <= 0) {
       throw Exception('Quantity must be greater than zero.');
@@ -787,6 +829,19 @@ class PaperTradingStore extends ChangeNotifier {
               'Stop and limit prices are required for stop-limit orders.');
         }
         break;
+      case 'trailing_stop':
+        if (trailValue == null || trailValue <= 0) {
+          throw Exception(
+              'A trail amount is required for trailing stop orders.');
+        }
+        if (trailType == 'percentage' && trailValue >= 100) {
+          throw Exception('Trail percentage must be below 100.');
+        }
+        if (marketPrice == null || marketPrice <= 0) {
+          throw Exception(
+              'No market price available to anchor the trailing stop for $symbol.');
+        }
+        break;
       default:
         throw Exception(
             'Order type "$orderType" is not supported in paper trading yet.');
@@ -800,6 +855,10 @@ class PaperTradingStore extends ChangeNotifier {
       orderType: normalizedType,
       limitPrice: limitPrice,
       stopPrice: stopPrice,
+      trailType: trailType?.toLowerCase(),
+      trailValue: trailValue,
+      // The trailing watermark starts at the current price.
+      watermark: normalizedType == 'trailing_stop' ? marketPrice : null,
       quantity: quantity,
       timeInForce: timeInForce.toLowerCase(),
       positionEffect: positionEffect.toLowerCase(),
@@ -905,6 +964,7 @@ class PaperTradingStore extends ChangeNotifier {
   /// Fills [order] at [price] through the immediate-execution primitives.
   Future<void> _fillOrder(PendingPaperOrder order, double price) async {
     final label = switch (order.orderType) {
+      'trailing_stop' => 'Trailing Stop',
       'stop_limit' => 'Stop Limit',
       'stop' => 'Stop',
       'limit' => 'Limit',
@@ -960,6 +1020,20 @@ class PaperTradingStore extends ChangeNotifier {
           shouldFill = isBuy ? price <= limit : price >= limit;
         }
         break;
+      case 'trailing_stop':
+        // Ratchet the watermark in the favorable direction, then trigger
+        // when the price retraces by the trail distance.
+        final current = order.watermark;
+        if (isBuy) {
+          if (current == null || price < current) order.watermark = price;
+        } else {
+          if (current == null || price > current) order.watermark = price;
+        }
+        final trailStop = order.effectiveStopPrice;
+        if (trailStop != null) {
+          shouldFill = isBuy ? price >= trailStop : price <= trailStop;
+        }
+        break;
     }
 
     if (!shouldFill) return false;
@@ -1000,6 +1074,7 @@ class PaperTradingStore extends ChangeNotifier {
           ? stockPrices[order.priceKey]
           : optionMarks[order.priceKey];
       final wasTriggered = order.triggered;
+      final previousWatermark = order.watermark;
 
       // Remove before filling so this order's own reservation doesn't
       // count against the fill.
@@ -1019,7 +1094,10 @@ class PaperTradingStore extends ChangeNotifier {
       }
       if (!filled) {
         _pendingOrders.add(order);
-        if (order.triggered != wasTriggered) changed = true;
+        if (order.triggered != wasTriggered ||
+            order.watermark != previousWatermark) {
+          changed = true;
+        }
       }
     }
 

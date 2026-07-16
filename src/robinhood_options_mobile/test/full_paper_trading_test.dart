@@ -211,6 +211,8 @@ class FakePaperTradingStore extends ChangeNotifier
     double? stopPrice,
     double? marketPrice,
     String timeInForce = 'gtc',
+    String? trailType,
+    double? trailValue,
   }) async {
     print("SUBMITTED STOCK ORDER IN FAKE STORE - Side: $side, Qty: $quantity");
     executedStock = true;
@@ -229,6 +231,8 @@ class FakePaperTradingStore extends ChangeNotifier
     double? marketPrice,
     String timeInForce = 'gtc',
     String positionEffect = 'auto',
+    String? trailType,
+    double? trailValue,
   }) async {
     print("SUBMITTED OPTION ORDER IN FAKE STORE");
     executedOption = true;
