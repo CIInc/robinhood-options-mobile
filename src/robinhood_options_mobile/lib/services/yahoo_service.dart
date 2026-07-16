@@ -893,7 +893,31 @@ class YahooService {
     }
   }
 
+  /// Yahoo Finance doesn't send CORS headers, so browsers can't call it
+  /// directly. On web, requests go through this Cloud Function, which
+  /// forwards them server-side (including Yahoo's cookie/crumb session).
+  static const String _corsProxyBase =
+      'https://us-central1-realizealpha.cloudfunctions.net/yahooProxy';
+
+  Future<dynamic> _getJsonViaProxy(String url) async {
+    final proxied = '$_corsProxyBase?url=${Uri.encodeComponent(url)}';
+    Stopwatch stopwatch = Stopwatch()..start();
+    final response = await httpClient.get(Uri.parse(proxied));
+    debugPrint(
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms (proxy) $url");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    debugPrint(
+        "Yahoo proxy error: ${response.statusCode} ${response.body}");
+    throw Exception("Failed to load data: ${response.statusCode}");
+  }
+
   Future<dynamic> getJson(String url) async {
+    if (kIsWeb) {
+      return _getJsonViaProxy(url);
+    }
+
     String requestUrl = url;
     if (_crumb == null) {
       await _fetchCrumb();
@@ -974,6 +998,9 @@ class YahooService {
   }
 
   Future<void> _fetchCrumb() async {
+    // Browsers can't set the Cookie/User-Agent headers this flow needs and
+    // the endpoints are CORS-blocked; web requests use the proxy instead.
+    if (kIsWeb) return;
     try {
       // 1. Get Cookie from fc.yahoo.com
       final response1 = await httpClient.get(
@@ -1378,25 +1405,31 @@ class YahooService {
     try {
       final url =
           "https://query2.finance.yahoo.com/v1/finance/search?q=${Uri.encodeComponent(query)}";
-      final response = await httpClient.get(Uri.parse(url), headers: {
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      });
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List quotes = data['quotes'] ?? [];
-        return quotes.map((q) {
-          return {
-            "symbol": q['symbol'],
-            "name": q['longname'] ?? q['shortname'],
-            "simple_name": q['shortname'],
-            "description": q['longname'],
-            "assetType": q['typeDisp'],
-            "exchange": q['exchDisp'],
-            "type": q['quoteType'],
-          };
-        }).toList();
+      dynamic data;
+      if (kIsWeb) {
+        data = await _getJsonViaProxy(url);
+      } else {
+        final response = await httpClient.get(Uri.parse(url), headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
+        if (response.statusCode != 200) {
+          return [];
+        }
+        data = jsonDecode(response.body);
       }
+      final List quotes = data['quotes'] ?? [];
+      return quotes.map((q) {
+        return {
+          "symbol": q['symbol'],
+          "name": q['longname'] ?? q['shortname'],
+          "simple_name": q['shortname'],
+          "description": q['longname'],
+          "assetType": q['typeDisp'],
+          "exchange": q['exchDisp'],
+          "type": q['quoteType'],
+        };
+      }).toList();
     } catch (e) {
       debugPrint('Error searching Yahoo Finance: $e');
     }
