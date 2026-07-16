@@ -168,11 +168,29 @@ class FakePaperTradingStore extends ChangeNotifier
     required double price,
     required String side,
     String? orderType,
+    String positionEffect = 'auto',
   }) async {
     print("EXECUTED OPTION ORDER IN FAKE STORE");
     executedOption = true;
     notifyListeners();
   }
+
+  @override
+  double get shortStockCollateral => 0.0;
+
+  @override
+  double get shortPutCollateral => 0.0;
+
+  @override
+  double get collateralCash => 0.0;
+
+  @override
+  double coveredCallShares(String symbol) => 0.0;
+
+  @override
+  List<OptionAggregatePosition> processExpiredOptions(
+          {required Map<String, double> underlyingPrices, DateTime? now}) =>
+      [];
 
   @override
   List<PendingPaperOrder> get pendingOrders => [];
@@ -210,6 +228,7 @@ class FakePaperTradingStore extends ChangeNotifier
     double? stopPrice,
     double? marketPrice,
     String timeInForce = 'gtc',
+    String positionEffect = 'auto',
   }) async {
     print("SUBMITTED OPTION ORDER IN FAKE STORE");
     executedOption = true;

@@ -73,6 +73,7 @@ class PendingPaperOrder {
   final double? stopPrice;
   final double quantity;
   final String timeInForce; // 'gtc' | 'gfd'
+  final String positionEffect; // 'auto' | 'open' | 'close' (options)
   final DateTime createdAt;
   bool triggered; // stop_limit only: stop leg fired, now resting as a limit
   final Map<String, dynamic> instrumentJson; // Instrument or OptionInstrument
@@ -93,6 +94,7 @@ class PendingPaperOrder {
     this.stopPrice,
     required this.quantity,
     required this.timeInForce,
+    this.positionEffect = 'auto',
     required this.createdAt,
     this.triggered = false,
     required this.instrumentJson,
@@ -122,6 +124,7 @@ class PendingPaperOrder {
         'stopPrice': stopPrice,
         'quantity': quantity,
         'timeInForce': timeInForce,
+        'positionEffect': positionEffect,
         'createdAt': createdAt.toIso8601String(),
         'triggered': triggered,
         'instrumentJson': instrumentJson,
@@ -138,6 +141,7 @@ class PendingPaperOrder {
       stopPrice: (json['stopPrice'] as num?)?.toDouble(),
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       timeInForce: json['timeInForce']?.toString() ?? 'gtc',
+      positionEffect: json['positionEffect']?.toString() ?? 'auto',
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       triggered: json['triggered'] == true,
@@ -192,8 +196,51 @@ class PaperTradingStore extends ChangeNotifier {
               o.quantity * o.reservePrice * o.contractMultiplier +
               _commission);
 
-  /// Buying power net of working buy-order reservations.
-  double get availableBuyingPower => _cashBalance - reservedCash;
+  /// Initial margin held against short stock: 150% of the entry value
+  /// (Reg-T style: the 100% proceeds already credited to cash plus 50%).
+  static const double shortStockMarginMultiplier = 1.5;
+
+  /// Cash collateral held against short stock positions.
+  double get shortStockCollateral => _positions
+      .where((p) => (p.quantity ?? 0) < 0)
+      .fold(
+          0.0,
+          (total, p) =>
+              total +
+              (p.quantity ?? 0).abs() *
+                  (p.averageBuyPrice ?? 0) *
+                  shortStockMarginMultiplier);
+
+  /// Cash securing short puts: strike × 100 per contract.
+  double get shortPutCollateral =>
+      _optionPositions.where((p) => p.direction == 'credit').fold(0.0,
+          (total, p) {
+        final leg = p.legs.isNotEmpty ? p.legs.first : null;
+        final type =
+            (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
+        if (type != 'put') return total;
+        final strike =
+            leg?.strikePrice ?? p.optionInstrument?.strikePrice ?? 0.0;
+        return total + (p.quantity ?? 0) * strike * 100.0;
+      });
+
+  /// Total cash held as collateral for short positions.
+  double get collateralCash => shortStockCollateral + shortPutCollateral;
+
+  /// Shares of [symbol] pledged as covered-call collateral (100/contract).
+  double coveredCallShares(String symbol) =>
+      _optionPositions.where((p) => p.direction == 'credit').fold(0.0,
+          (total, p) {
+        final leg = p.legs.isNotEmpty ? p.legs.first : null;
+        final type =
+            (leg?.optionType ?? p.optionInstrument?.type ?? '').toLowerCase();
+        if (type != 'call' || p.symbol != symbol) return total;
+        return total + (p.quantity ?? 0) * 100.0;
+      });
+
+  /// Buying power net of working buy-order reservations and short collateral.
+  double get availableBuyingPower =>
+      _cashBalance - reservedCash - collateralCash;
 
   double get equity {
     double posValue = _calculatePositionsValue();
@@ -215,7 +262,9 @@ class PaperTradingStore extends ChangeNotifier {
           (pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
               pos.averageOpenPrice ??
               0);
-      total += (pos.quantity ?? 0) * price * 100;
+      // Short (credit) positions are a liability: they subtract from equity.
+      final sign = pos.direction == 'credit' ? -1.0 : 1.0;
+      total += sign * (pos.quantity ?? 0) * price * 100;
     }
     for (var pos in _futuresPositions) {
       total += (pos.lastPrice - pos.avgPrice) * pos.quantity * pos.multiplier;
@@ -490,26 +539,10 @@ class PaperTradingStore extends ChangeNotifier {
     }
 
     // 2. Options
-    List<OptionAggregatePosition> expiredPositions = [];
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    for (var pos in _optionPositions) {
-      if (pos.optionInstrument?.expirationDate != null &&
-          pos.optionInstrument!.expirationDate!.isBefore(today)) {
-        expiredPositions.add(pos);
-      }
-    }
-
-    for (var pos in expiredPositions) {
-      double underlyingPrice =
-          underlyingPrices[pos.optionInstrument?.chainSymbol] ?? 0.0;
-      // If underlying price is 0 (fetch failed), we might want to skip expiration processing
-      // or assume 0?. For now, if we have a price, we handle it.
-      if (underlyingPrice > 0) {
-        _processExpiration(pos, underlyingPrice);
-        changed = true;
-      }
+    final expiredPositions =
+        processExpiredOptions(underlyingPrices: underlyingPrices);
+    if (expiredPositions.isNotEmpty) {
+      changed = true;
     }
 
     var optionIds = {
@@ -665,6 +698,7 @@ class PaperTradingStore extends ChangeNotifier {
     double? stopPrice,
     double? marketPrice,
     String timeInForce = 'gtc',
+    String positionEffect = 'auto',
   }) async {
     final price = marketPrice ??
         optionInstrument.optionMarketData?.adjustedMarkPrice ??
@@ -681,6 +715,7 @@ class PaperTradingStore extends ChangeNotifier {
       stopPrice: stopPrice,
       marketPrice: price,
       timeInForce: timeInForce,
+      positionEffect: positionEffect,
     );
   }
 
@@ -697,6 +732,7 @@ class PaperTradingStore extends ChangeNotifier {
     double? stopPrice,
     double? marketPrice,
     required String timeInForce,
+    String positionEffect = 'auto',
   }) async {
     if (quantity <= 0) {
       throw Exception('Quantity must be greater than zero.');
@@ -744,6 +780,7 @@ class PaperTradingStore extends ChangeNotifier {
       stopPrice: stopPrice,
       quantity: quantity,
       timeInForce: timeInForce.toLowerCase(),
+      positionEffect: positionEffect.toLowerCase(),
       createdAt: DateTime.now(),
       instrumentJson: instrumentJson,
     )
@@ -767,7 +804,9 @@ class PaperTradingStore extends ChangeNotifier {
   }
 
   /// Rejects a resting order that could over-commit cash (buys) or shares
-  /// (sells) already reserved by other working orders.
+  /// (sells) already reserved by other working orders. Sells beyond the held
+  /// quantity are treated as short opens and validated against collateral
+  /// capacity instead; final enforcement happens again at fill time.
   void _validateReservation(PendingPaperOrder order) {
     if (order.side == 'buy') {
       final cost =
@@ -777,26 +816,66 @@ class PaperTradingStore extends ChangeNotifier {
         throw Exception(
             'Insufficient buying power (cash is reserved by working orders).');
       }
+      return;
+    }
+
+    double held = 0;
+    if (order.assetType == 'stock') {
+      final idx = _positions.indexWhere((p) => p.instrument == order.assetUrl);
+      held = idx >= 0 ? (_positions[idx].quantity ?? 0) : 0;
     } else {
-      double held = 0;
-      if (order.assetType == 'stock') {
-        final idx =
-            _positions.indexWhere((p) => p.instrument == order.assetUrl);
-        held = idx >= 0 ? (_positions[idx].quantity ?? 0) : 0;
-      } else {
-        final idx = _optionPositions.indexWhere((p) =>
-            p.legs.isNotEmpty && p.legs.first.option == order.assetUrl);
-        held = idx >= 0 ? (_optionPositions[idx].quantity ?? 0) : 0;
-      }
-      final reserved = _pendingOrders
-          .where((o) =>
-              o.side == 'sell' &&
-              o.assetType == order.assetType &&
-              o.assetUrl == order.assetUrl)
-          .fold(0.0, (total, o) => total + o.quantity);
-      if (held - reserved < order.quantity) {
+      final idx = _optionPositions.indexWhere((p) =>
+          p.legs.isNotEmpty &&
+          p.legs.first.option == order.assetUrl &&
+          p.direction != 'credit');
+      held = idx >= 0 ? (_optionPositions[idx].quantity ?? 0) : 0;
+    }
+    final reserved = _pendingOrders
+        .where((o) =>
+            o.side == 'sell' &&
+            o.assetType == order.assetType &&
+            o.assetUrl == order.assetUrl)
+        .fold(0.0, (total, o) => total + o.quantity);
+
+    if (held - reserved >= order.quantity) {
+      return; // plain sell-to-close, covered by the held quantity
+    }
+    if (held > 0) {
+      // Partially covered sells would mix closing and shorting.
+      throw Exception(
+          'Insufficient quantity available (shares are reserved by working orders).');
+    }
+
+    // Sell-to-open (short) resting order: check collateral capacity now.
+    if (order.assetType == 'stock') {
+      final extraMargin = order.quantity *
+          order.reservePrice *
+          (shortStockMarginMultiplier - 1);
+      if (availableBuyingPower < extraMargin) {
         throw Exception(
-            'Insufficient quantity available (shares are reserved by working orders).');
+            'Insufficient buying power to open a short (requires 150% collateral).');
+      }
+    } else {
+      final type = order.instrumentJson['type']?.toString().toLowerCase();
+      if (type == 'call') {
+        final stockIdx = _positions.indexWhere((p) =>
+            p.instrumentObj?.symbol == order.symbol && (p.quantity ?? 0) > 0);
+        final heldShares =
+            stockIdx >= 0 ? (_positions[stockIdx].quantity ?? 0) : 0.0;
+        final pledged = coveredCallShares(order.symbol);
+        if (heldShares - pledged < order.quantity * 100) {
+          throw Exception(
+              'Naked calls are not supported; writing calls requires 100 unpledged shares per contract.');
+        }
+      } else {
+        final strike = double.tryParse(
+                order.instrumentJson['strike_price']?.toString() ?? '') ??
+            0.0;
+        final premium = order.quantity * order.reservePrice * 100;
+        if (availableBuyingPower + premium < strike * 100 * order.quantity) {
+          throw Exception(
+              'Insufficient buying power to secure the put (requires strike × 100 in cash).');
+        }
       }
     }
   }
@@ -826,6 +905,7 @@ class PaperTradingStore extends ChangeNotifier {
         price: price,
         side: order.side,
         orderType: label,
+        positionEffect: order.positionEffect,
       );
     }
   }
@@ -947,46 +1027,95 @@ class PaperTradingStore extends ChangeNotifier {
   }) async {
     double executionPrice = price;
     double amount = 0;
+    final index = _positions.indexWhere((p) => p.instrument == instrument.url);
+    final heldQty = index >= 0 ? (_positions[index].quantity ?? 0) : 0.0;
+
     if (side.toLowerCase() == 'buy') {
       executionPrice += _slippage;
       amount = (quantity * executionPrice) + _commission;
       if (_cashBalance < amount) {
         throw Exception("Insufficient buying power.");
       }
-      _cashBalance -= amount;
-      _updateStockPosition(instrument, quantity, executionPrice, 1);
 
-      _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
-          detail: orderType != null ? "Type: $orderType" : null,
-          orderType: orderType,
-          instrumentUrl: instrument.url);
+      if (heldQty < 0) {
+        // Buy-to-cover an existing short.
+        if (quantity > heldQty.abs() + 0.000001) {
+          throw Exception(
+              "Buy exceeds the short position; cover it before going long.");
+        }
+        final avgShort = _positions[index].averageBuyPrice ?? 0;
+        final profitLoss = (avgShort - executionPrice) * quantity - _commission;
+        _cashBalance -= amount;
+        _updateStockPosition(instrument, quantity, executionPrice, 1);
+        _addToHistory(
+            "stock", side, instrument.symbol, quantity, executionPrice,
+            detail: "Buy to cover${orderType != null ? " | $orderType" : ""}",
+            orderType: orderType,
+            instrumentUrl: instrument.url,
+            profitLoss: profitLoss);
+      } else {
+        _cashBalance -= amount;
+        _updateStockPosition(instrument, quantity, executionPrice, 1);
+        _addToHistory(
+            "stock", side, instrument.symbol, quantity, executionPrice,
+            detail: orderType != null ? "Type: $orderType" : null,
+            orderType: orderType,
+            instrumentUrl: instrument.url);
+      }
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice) - _commission;
-      var existing = _positions.firstWhere(
-          (p) => p.instrument == instrument.url,
-          orElse: () => throw Exception("Position not found."));
-      if ((existing.quantity ?? 0) < quantity) {
-        throw Exception("Insufficient quantity to sell.");
+
+      if (heldQty > 0) {
+        // Sell-to-close a long position.
+        if (heldQty < quantity) {
+          throw Exception(
+              "Sell exceeds the long position; close it before going short.");
+        }
+        // Shares pledged as covered-call collateral can't be sold.
+        final pledged = coveredCallShares(instrument.symbol);
+        if (heldQty - pledged < quantity) {
+          throw Exception(
+              "Shares are pledged as covered-call collateral; close the call first.");
+        }
+
+        double costBasis =
+            (_positions[index].averageBuyPrice ?? 0) * quantity;
+        double profitLoss = amount - costBasis;
+
+        _cashBalance += amount;
+        _updateStockPosition(instrument, quantity, executionPrice, -1);
+
+        _addToHistory(
+            "stock", side, instrument.symbol, quantity, executionPrice,
+            detail: orderType != null ? "Type: $orderType" : null,
+            orderType: orderType,
+            instrumentUrl: instrument.url,
+            profitLoss: profitLoss);
+      } else {
+        // Sell-to-open (or extend) a short position, 150% collateralized:
+        // proceeds are credited but the position holds 1.5x entry value.
+        final addedCollateral =
+            quantity * executionPrice * shortStockMarginMultiplier;
+        if (availableBuyingPower + amount < addedCollateral) {
+          throw Exception(
+              "Insufficient buying power to open a short (requires 150% collateral).");
+        }
+        _cashBalance += amount;
+        _updateStockPosition(instrument, quantity, executionPrice, -1);
+        _addToHistory(
+            "stock", side, instrument.symbol, quantity, executionPrice,
+            detail: "Sell short${orderType != null ? " | $orderType" : ""}",
+            orderType: orderType,
+            instrumentUrl: instrument.url);
       }
-
-      // Calculate P&L for history
-      double costBasis = (existing.averageBuyPrice ?? 0) * quantity;
-      double profitLoss = amount - costBasis;
-
-      _cashBalance += amount;
-      _updateStockPosition(instrument, quantity, executionPrice, -1);
-
-      _addToHistory("stock", side, instrument.symbol, quantity, executionPrice,
-          detail: orderType != null ? "Type: $orderType" : null,
-          orderType: orderType,
-          instrumentUrl: instrument.url,
-          profitLoss: profitLoss);
     }
     await _save();
     notifyListeners();
   }
 
+  /// Applies a fill to the stock position book. Positive quantities are
+  /// long; negative are short. [sign] is +1 for buys, -1 for sells.
   void _updateStockPosition(
       Instrument instrument, double quantity, double price, int sign) {
     int index = _positions.indexWhere((p) => p.instrument == instrument.url);
@@ -996,14 +1125,17 @@ class PaperTradingStore extends ChangeNotifier {
       double currentQty = current.quantity ?? 0;
       double newQty = currentQty + (quantity * sign);
 
-      if (newQty <= 0.000001) {
+      if (newQty.abs() <= 0.000001) {
         _positions.removeAt(index);
       } else {
         double newAvgPrice = current.averageBuyPrice ?? 0;
-        if (sign > 0) {
-          newAvgPrice = ((currentQty * (current.averageBuyPrice ?? 0)) +
+        final extendsLong = sign > 0 && currentQty >= 0;
+        final extendsShort = sign < 0 && currentQty <= 0;
+        if (extendsLong || extendsShort) {
+          // Average into the position; reductions keep the entry average.
+          newAvgPrice = ((currentQty.abs() * (current.averageBuyPrice ?? 0)) +
                   (quantity * price)) /
-              newQty;
+              newQty.abs();
         }
 
         _positions[index] = InstrumentPosition(
@@ -1030,7 +1162,8 @@ class PaperTradingStore extends ChangeNotifier {
         )..instrumentObj = instrument;
       }
     } else {
-      if (sign < 0) return;
+      // New position: long for buys, short (negative quantity) for sells.
+      final signedQty = quantity * sign;
       var newPos = InstrumentPosition(
         "paper_pos_${DateTime.now().millisecondsSinceEpoch}",
         instrument.url,
@@ -1038,9 +1171,9 @@ class PaperTradingStore extends ChangeNotifier {
         "PAPER123",
         price,
         0,
-        quantity,
+        signedQty,
         price,
-        quantity,
+        signedQty,
         0,
         0,
         0,
@@ -1063,10 +1196,22 @@ class PaperTradingStore extends ChangeNotifier {
     required double price,
     required String side,
     String? orderType,
+    String positionEffect = 'auto',
   }) async {
     double multiplier = 100.0;
     double executionPrice = price;
     double amount = 0;
+
+    final index = _optionPositions.indexWhere((p) =>
+        p.legs.isNotEmpty && p.legs.first.option == optionInstrument.url);
+    final existing = index >= 0 ? _optionPositions[index] : null;
+    final effect = positionEffect.toLowerCase();
+
+    String detail =
+        "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
+    if (orderType != null) {
+      detail += " | $orderType";
+    }
 
     if (side.toLowerCase() == 'buy') {
       executionPrice += _slippage;
@@ -1074,50 +1219,94 @@ class PaperTradingStore extends ChangeNotifier {
       if (_cashBalance < amount) {
         throw Exception("Insufficient buying power.");
       }
-      _cashBalance -= amount;
-      _updateOptionPosition(optionInstrument, quantity, executionPrice, 1);
 
-      String detail =
-          "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
-      if (orderType != null) {
-        detail += " | $orderType";
+      if (existing?.direction == 'credit' && effect != 'open') {
+        // Buy-to-close a written option.
+        if ((existing!.quantity ?? 0) < quantity) {
+          throw Exception("Buy exceeds the short option position.");
+        }
+        final profitLoss =
+            ((existing.averageOpenPrice ?? 0) - executionPrice) *
+                    quantity *
+                    multiplier -
+                _commission;
+        _cashBalance -= amount;
+        _updateOptionPosition(optionInstrument, quantity, executionPrice, -1,
+            direction: 'credit');
+        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+            executionPrice,
+            detail: "Buy to close | $detail",
+            orderType: orderType,
+            profitLoss: profitLoss);
+      } else {
+        if (existing?.direction == 'credit') {
+          throw Exception(
+              "Close the short option position before opening a long.");
+        }
+        _cashBalance -= amount;
+        _updateOptionPosition(optionInstrument, quantity, executionPrice, 1);
+        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+            executionPrice,
+            detail: detail, orderType: orderType);
       }
-
-      _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-          executionPrice,
-          detail: detail, orderType: orderType);
     } else {
       executionPrice -= _slippage;
       amount = (quantity * executionPrice * multiplier) - _commission;
-      var existingList = _optionPositions.where((p) =>
-          p.legs.isNotEmpty && p.legs.first.option == optionInstrument.url);
 
-      if (existingList.isEmpty) {
-        throw Exception("Position not found.");
+      if (existing?.direction != 'credit' && existing != null &&
+          effect != 'open') {
+        // Sell-to-close a long position.
+        if ((existing.quantity ?? 0) < quantity) {
+          throw Exception("Insufficient quantity to sell.");
+        }
+
+        double costBasis =
+            (existing.averageOpenPrice ?? 0) * quantity * multiplier;
+        double profitLoss = amount - costBasis;
+
+        _cashBalance += amount;
+        _updateOptionPosition(optionInstrument, quantity, executionPrice, -1);
+
+        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+            executionPrice,
+            detail: detail, orderType: orderType, profitLoss: profitLoss);
+      } else {
+        if (existing != null && existing.direction != 'credit') {
+          throw Exception(
+              "Close the long option position before writing this contract.");
+        }
+        // Sell-to-open (write) a new short, or extend an existing one.
+        final type = optionInstrument.type.toLowerCase();
+        if (type == 'call') {
+          // Covered calls only: 100 unpledged long shares per contract.
+          final stockIdx = _positions.indexWhere((p) =>
+              p.instrumentObj?.symbol == optionInstrument.chainSymbol &&
+              (p.quantity ?? 0) > 0);
+          final heldShares =
+              stockIdx >= 0 ? (_positions[stockIdx].quantity ?? 0) : 0.0;
+          final pledged = coveredCallShares(optionInstrument.chainSymbol);
+          if (heldShares - pledged < quantity * multiplier) {
+            throw Exception(
+                "Naked calls are not supported; writing ${quantity.toStringAsFixed(0)} "
+                "call(s) requires ${(quantity * 100).toStringAsFixed(0)} unpledged "
+                "shares of ${optionInstrument.chainSymbol}.");
+          }
+        } else {
+          // Cash-secured put: hold strike x 100 per contract.
+          final strike = optionInstrument.strikePrice ?? 0.0;
+          final addedCollateral = strike * multiplier * quantity;
+          if (availableBuyingPower + amount < addedCollateral) {
+            throw Exception(
+                "Insufficient buying power to secure the put (requires strike × 100 in cash).");
+          }
+        }
+        _cashBalance += amount;
+        _updateOptionPosition(optionInstrument, quantity, executionPrice, 1,
+            direction: 'credit');
+        _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
+            executionPrice,
+            detail: "Sell to open | $detail", orderType: orderType);
       }
-      var existing = existingList.first;
-
-      if ((existing.quantity ?? 0) < quantity) {
-        throw Exception("Insufficient quantity to sell.");
-      }
-
-      // Calculate P&L for history
-      double costBasis =
-          (existing.averageOpenPrice ?? 0) * quantity * multiplier;
-      double profitLoss = amount - costBasis;
-
-      _cashBalance += amount;
-      _updateOptionPosition(optionInstrument, quantity, executionPrice, -1);
-
-      String detail =
-          "${optionInstrument.type} ${optionInstrument.strikePrice} ${optionInstrument.expirationDate}";
-      if (orderType != null) {
-        detail += " | $orderType";
-      }
-
-      _addToHistory("option", side, optionInstrument.chainSymbol, quantity,
-          executionPrice,
-          detail: detail, orderType: orderType, profitLoss: profitLoss);
     }
     await _save();
     notifyListeners();
@@ -1199,10 +1388,16 @@ class PaperTradingStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Applies a fill to the option position book. Quantity stays positive;
+  /// [direction] distinguishes long ('debit') from written ('credit')
+  /// positions, and [sign] is +1 to increase exposure, -1 to reduce it.
   void _updateOptionPosition(
-      OptionInstrument option, double quantity, double price, int sign) {
-    int index = _optionPositions.indexWhere(
-        (p) => p.legs.isNotEmpty && p.legs.first.option == option.url);
+      OptionInstrument option, double quantity, double price, int sign,
+      {String direction = 'debit'}) {
+    int index = _optionPositions.indexWhere((p) =>
+        p.legs.isNotEmpty &&
+        p.legs.first.option == option.url &&
+        p.direction == direction);
 
     if (index != -1) {
       var current = _optionPositions[index];
@@ -1242,15 +1437,16 @@ class PaperTradingStore extends ChangeNotifier {
       }
     } else {
       if (sign < 0) return;
+      final isCredit = direction == 'credit';
 
       var leg = OptionLeg(
         "leg_${DateTime.now().millisecondsSinceEpoch}",
         "paper_pos",
-        "long",
+        isCredit ? "short" : "long",
         option.url,
         "open",
         1,
-        "buy",
+        isCredit ? "sell" : "buy",
         option.expirationDate,
         option.strikePrice,
         option.type.toLowerCase(), // call/put
@@ -1268,12 +1464,12 @@ class PaperTradingStore extends ChangeNotifier {
         quantity,
         price,
         quantity,
-        'debit',
-        'debit',
+        direction,
+        direction,
         100.0,
         DateTime.now(),
         DateTime.now(),
-        'long_${option.type.toLowerCase()}',
+        '${isCredit ? "short" : "long"}_${option.type.toLowerCase()}',
       );
       newPos.optionInstrument = option;
       _optionPositions.add(newPos);
@@ -1320,44 +1516,119 @@ class PaperTradingStore extends ChangeNotifier {
     }
   }
 
-  void _processExpiration(OptionAggregatePosition pos, double underlyingPrice) {
-    if (pos.optionInstrument == null) return;
+  /// Settles option positions whose expiration has passed, using
+  /// [underlyingPrices] keyed by chain symbol. Long positions cash-settle
+  /// their intrinsic value; short positions are assigned (puts buy shares at
+  /// the strike, covered calls have shares called away). Positions whose
+  /// underlying price is unknown are left for the next refresh. Returns the
+  /// settled positions. [now] is injectable for tests.
+  List<OptionAggregatePosition> processExpiredOptions(
+      {required Map<String, double> underlyingPrices, DateTime? now}) {
+    final evalNow = now ?? DateTime.now();
+    final today = DateTime(evalNow.year, evalNow.month, evalNow.day);
 
-    double intrinsicValue = 0.0;
-    double strike = pos.optionInstrument!.strikePrice ?? 0.0;
-    String type = pos.optionInstrument!.type;
+    final expired = _optionPositions
+        .where((p) =>
+            p.optionInstrument?.expirationDate != null &&
+            p.optionInstrument!.expirationDate!.isBefore(today) &&
+            (underlyingPrices[p.optionInstrument?.chainSymbol] ?? 0) > 0)
+        .toList();
 
-    if (type.toLowerCase() == 'call') {
-      intrinsicValue =
-          (underlyingPrice > strike) ? (underlyingPrice - strike) : 0.0;
-    } else {
-      intrinsicValue =
-          (strike > underlyingPrice) ? (strike - underlyingPrice) : 0.0;
+    for (final pos in expired) {
+      final underlyingPrice =
+          underlyingPrices[pos.optionInstrument!.chainSymbol]!;
+      _settleExpiredPosition(pos, underlyingPrice);
     }
-
-    double quantity = pos.quantity ?? 0.0;
-    double totalPayout = 0;
-    List<String> details = [];
-
-    // Assuming we only hold Long positions for now (as established by _updateOptionPosition logic)
-    // If the paper trading store evolves to support shorts, this needs update.
-    totalPayout = intrinsicValue * 100 * quantity;
-    if (totalPayout > 0) {
-      details.add("Exercised: +${totalPayout.toStringAsFixed(2)}");
+    if (expired.isNotEmpty) {
+      _save();
     }
+    return expired;
+  }
 
-    _cashBalance += totalPayout;
+  void _settleExpiredPosition(
+      OptionAggregatePosition pos, double underlyingPrice) {
+    final option = pos.optionInstrument!;
+    final strike = option.strikePrice ?? 0.0;
+    final type = option.type.toLowerCase();
+    final quantity = pos.quantity ?? 0.0;
+    final isCall = type == 'call';
+    final intrinsicValue = isCall
+        ? (underlyingPrice > strike ? underlyingPrice - strike : 0.0)
+        : (strike > underlyingPrice ? strike - underlyingPrice : 0.0);
+    final shares = quantity * 100;
+
     _optionPositions.remove(pos);
 
-    if (totalPayout > 0) {
-      _addToHistory("expiration", "exercise", pos.symbol, quantity,
-          intrinsicValue, // usage of price field for intrinsic val
-          detail: "Expired ITM at $underlyingPrice. ${details.join(', ')}");
-    } else {
-      _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
-          detail: "Expired worthless at $underlyingPrice");
+    if (pos.direction != 'credit') {
+      // Long positions cash-settle intrinsic value.
+      final totalPayout = intrinsicValue * 100 * quantity;
+      _cashBalance += totalPayout;
+      if (totalPayout > 0) {
+        _addToHistory("expiration", "exercise", pos.symbol, quantity,
+            intrinsicValue, // price field carries the intrinsic value
+            detail: "Expired ITM at $underlyingPrice. "
+                "Exercised: +${totalPayout.toStringAsFixed(2)}");
+      } else {
+        _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
+            detail: "Expired worthless at $underlyingPrice");
+      }
+      return;
     }
-    _save();
+
+    // Short (written) positions: OTM keeps the premium; ITM is assigned.
+    if (intrinsicValue <= 0) {
+      _addToHistory("expiration", "expired", pos.symbol, quantity, 0,
+          detail:
+              "Short ${type == 'call' ? 'call' : 'put'} expired worthless at "
+              "$underlyingPrice — premium kept");
+      return;
+    }
+
+    if (isCall) {
+      // Covered call assigned: shares are called away at the strike.
+      final stockIdx = _positions.indexWhere((p) =>
+          p.instrumentObj?.symbol == pos.symbol && (p.quantity ?? 0) > 0);
+      if (stockIdx >= 0) {
+        final stockPos = _positions[stockIdx];
+        final callAway =
+            shares.clamp(0.0, stockPos.quantity ?? 0.0).toDouble();
+        final avgCost = stockPos.averageBuyPrice ?? 0;
+        _cashBalance += callAway * strike;
+        final profitLoss = (strike - avgCost) * callAway;
+        _updateStockPosition(
+            stockPos.instrumentObj ??
+                Instrument.forSymbol(pos.symbol,
+                    instrumentUrl: stockPos.instrument),
+            callAway,
+            strike,
+            -1);
+        _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
+            detail: "Short call assigned at $underlyingPrice: "
+                "${callAway.toStringAsFixed(0)} shares called away at $strike",
+            profitLoss: profitLoss);
+      } else {
+        // Shares are gone (shouldn't happen while pledged): cash-settle.
+        _cashBalance -= intrinsicValue * 100 * quantity;
+        _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
+            detail: "Short call cash-settled at $underlyingPrice "
+                "(-${(intrinsicValue * 100 * quantity).toStringAsFixed(2)})");
+      }
+    } else {
+      // Cash-secured put assigned: buy the shares at the strike, merging
+      // into an existing position for the symbol when there is one.
+      final stockIdx = _positions.indexWhere(
+          (p) => p.instrumentObj?.symbol == pos.symbol);
+      final instrument = stockIdx >= 0
+          ? (_positions[stockIdx].instrumentObj ??
+              Instrument.forSymbol(pos.symbol,
+                  instrumentUrl: _positions[stockIdx].instrument))
+          : Instrument.forSymbol(pos.symbol);
+      _cashBalance -= shares * strike;
+      _updateStockPosition(instrument, shares, strike, 1);
+      _addToHistory("expiration", "assignment", pos.symbol, quantity, strike,
+          detail: "Short put assigned at $underlyingPrice: bought "
+              "${shares.toStringAsFixed(0)} shares at $strike");
+    }
   }
 
   void updateFuturesPrice(String contractId, double lastPrice) {

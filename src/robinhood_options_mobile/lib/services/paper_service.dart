@@ -1172,11 +1172,6 @@ class PaperService implements IBrokerageService {
       double? stopPrice,
       String timeInForce = 'gtc',
       Map<String, dynamic>? trailingPeg}) async {
-    if (side.toLowerCase() == 'sell' &&
-        positionEffect.toLowerCase() == 'open') {
-      throw Exception(
-          'Selling options to open (short) is not yet supported in paper trading.');
-    }
     final store = await _engine();
 
     String engineType = type.toLowerCase();
@@ -1195,6 +1190,7 @@ class PaperService implements IBrokerageService {
       marketPrice:
           optionInstrument.optionMarketData?.adjustedMarkPrice ?? price,
       timeInForce: timeInForce,
+      positionEffect: positionEffect,
     );
 
     final nowIso = DateTime.now().toIso8601String();

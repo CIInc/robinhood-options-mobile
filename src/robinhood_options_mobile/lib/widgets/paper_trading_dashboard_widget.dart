@@ -411,12 +411,14 @@ class _PaperTradingDashboardWidgetState
   }
 
   List<PieChartData> _getPieData(PaperTradingStore store) {
+    // The pie shows gross exposure, so short positions contribute their
+    // absolute value.
     double stockValue = 0;
     for (var pos in store.positions) {
       final currentPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
           pos.averageBuyPrice ??
           0;
-      stockValue += (pos.quantity ?? 0) * currentPrice;
+      stockValue += ((pos.quantity ?? 0) * currentPrice).abs();
     }
 
     double optionValue = 0;
@@ -425,7 +427,7 @@ class _PaperTradingDashboardWidgetState
           pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
               pos.averageOpenPrice ??
               0;
-      optionValue += (pos.quantity ?? 0) * currentPrice * 100;
+      optionValue += ((pos.quantity ?? 0) * currentPrice * 100).abs();
     }
 
     double futuresValue = 0;
@@ -483,12 +485,15 @@ class _PaperTradingDashboardWidgetState
     NumberFormat formatPercentage,
   ) {
     final quantity = pos.quantity ?? 0.0;
+    final isShort = quantity < 0;
     final avgCost = pos.averageBuyPrice ?? 0.0;
     final currentPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ?? avgCost;
     final marketValue = quantity * currentPrice;
     final totalCost = quantity * avgCost;
+    // Works for shorts too: negative qty flips the sign, so a falling price
+    // yields a positive P&L.
     final pnl = marketValue - totalCost;
-    final pnlPercent = totalCost > 0 ? pnl / totalCost : 0.0;
+    final pnlPercent = totalCost != 0 ? pnl / totalCost.abs() : 0.0;
     final isPositive = pnl >= 0;
 
     return Card(
@@ -541,9 +546,14 @@ class _PaperTradingDashboardWidgetState
                           Text(pos.instrumentObj?.symbol ?? 'Unknown',
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text("${quantity.toStringAsFixed(2)} shares",
-                              style: const TextStyle(
-                                  color: Colors.grey, fontSize: 12)),
+                          Text(
+                              isShort
+                                  ? "${quantity.abs().toStringAsFixed(2)} shares (SHORT)"
+                                  : "${quantity.toStringAsFixed(2)} shares",
+                              style: TextStyle(
+                                  color:
+                                      isShort ? Colors.orange : Colors.grey,
+                                  fontSize: 12)),
                         ],
                       ),
                     ],
@@ -724,14 +734,16 @@ class _PaperTradingDashboardWidgetState
     NumberFormat formatPercentage,
   ) {
     final quantity = pos.quantity ?? 0.0;
+    final isShort = pos.direction == 'credit';
     final avgCost = pos.averageOpenPrice ?? 0.0;
     final currentPrice =
         pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ?? avgCost;
     final multiplier = 100.0;
     final marketValue = quantity * currentPrice * multiplier;
     final totalCost = quantity * avgCost * multiplier;
-    final pnl = marketValue - totalCost;
-    final pnlPercent = totalCost > 0 ? pnl / totalCost : 0.0;
+    // Written (credit) positions profit when the option loses value.
+    final pnl = isShort ? totalCost - marketValue : marketValue - totalCost;
+    final pnlPercent = totalCost != 0 ? pnl / totalCost.abs() : 0.0;
     final isPositive = pnl >= 0;
 
     return Card(
@@ -786,9 +798,12 @@ class _PaperTradingDashboardWidgetState
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 15)),
                           Text(
-                            "${quantity.toStringAsFixed(0)} contracts",
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 12),
+                            isShort
+                                ? "${quantity.toStringAsFixed(0)} contracts (SHORT)"
+                                : "${quantity.toStringAsFixed(0)} contracts",
+                            style: TextStyle(
+                                color: isShort ? Colors.orange : Colors.grey,
+                                fontSize: 12),
                           ),
                         ],
                       ),

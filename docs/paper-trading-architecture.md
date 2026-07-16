@@ -166,12 +166,15 @@ user/{uid}/
 │       ├── initialCapital: number
 │       ├── slippage: number          (per share/contract, $)
 │       ├── commission: number        (per trade, $)
-│       ├── positions: [ ... ]        (stock positions, snake_case + instrumentObj)
-│       ├── optionPositions: [ ... ]  (aggregate positions with legs[] + optionInstrument)
+│       ├── positions: [ ... ]        (stock positions, snake_case + instrumentObj;
+│       │                              negative quantity = short)
+│       ├── optionPositions: [ ... ]  (aggregate positions with legs[] + optionInstrument;
+│       │                              direction 'credit' = written/short)
 │       ├── futuresPositions: [ ... ] (contractId, quantity, avgPrice, multiplier, lastPrice)
 │       ├── pendingOrders: [ ... ]    (working limit/stop orders: id, assetType, side,
 │       │                              orderType, limitPrice, stopPrice, quantity,
-│       │                              timeInForce, triggered, instrumentJson)
+│       │                              timeInForce, positionEffect, triggered,
+│       │                              instrumentJson)
 │       ├── history: [ ... ]          (last 100 fills, unified entry format, newest first)
 │       └── updatedAt: serverTimestamp
 └── paper_equity_history/
@@ -363,26 +366,33 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 | Unfundable triggers | If cash was consumed before a trigger fired, the order is rejected (history entry, state `rejected`), not retried |
 | Slippage | Configurable `$/share` (or `$/contract`): buys fill at `price + slippage`, sells at `price − slippage` |
 | Commission | Configurable flat `$/trade`, added to cost on buys, subtracted from proceeds on sells |
-| Position averaging | Buys: `newAvg = (oldQty×oldAvg + qty×price) / newQty`; sells keep the average and reduce quantity |
-| Position close | Quantity ≤ ~0 removes the position; realized P&L recorded in the history entry |
-| Options | Multiplier 100; long-only (sell-to-open rejected with a clear error) |
-| Option expiration | Long positions auto-exercised for intrinsic value on the first refresh after expiry; worthless expiry removes the position |
+| Position averaging | Extending a position (long or short) re-averages the entry price; reductions keep it |
+| Position close | Quantity at ~0 removes the position; realized P&L recorded in the history entry |
+| **Short stock** | Sell with no position opens a short (negative quantity); proceeds credited, **150% of entry value held as collateral** (Reg-T style). Buy-to-cover realizes `(avg − price) × qty`. Long/short flips in one order are rejected |
+| **Cash-secured puts** | Sell-to-open holds `strike × 100` per contract as collateral; premium credited. Buy-to-close realizes the premium spread |
+| **Covered calls** | Sell-to-open requires 100 unpledged long shares of the underlying per contract (naked calls rejected); pledged shares can't be sold while the call is open |
+| Options | Multiplier 100; positions carry `direction` (`debit` long / `credit` written); written positions subtract from equity as a liability |
+| Option expiration | Longs cash-settle intrinsic value; expired-OTM shorts keep the premium; **ITM short puts are assigned** (buy 100/contract at the strike from collateral); **ITM covered calls are called away** (shares sold at the strike, P&L vs cost basis) |
 | Futures | Signed quantity supports long and short; realized P&L on close/reverse: `(price − avg) × qty × multiplier`; open P&L marked to `lastPrice` |
-| Validation | Buys require sufficient cash; sells require an existing position with sufficient quantity |
-| Shorting stocks | Not supported — sells without a position are rejected |
+| Validation | Buys require sufficient cash; sells require held quantity or collateral capacity for the short; final enforcement re-runs at trigger time for resting orders |
 
 ### Position lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Open : buy (cash ↓, avg price set)
-    Open --> Open : buy more (average up/down)
-    Open --> Open : partial sell (qty ↓, realized P&L)
-    Open --> Closed : full sell (cash ↑, realized P&L)
-    Open --> Exercised : option expires ITM (cash += intrinsic × 100 × qty)
-    Open --> Expired : option expires OTM (value → 0)
+    [*] --> Long : buy (cash ↓, avg price set)
+    [*] --> Short : sell-to-open (proceeds ↑, collateral held)
+    Long --> Long : buy more / partial sell (re-average or realize P&L)
+    Short --> Short : extend / partial cover
+    Long --> Closed : full sell (cash ↑, realized P&L)
+    Short --> Closed : buy-to-cover (realized P&L, collateral released)
+    Long --> Exercised : long option expires ITM (cash += intrinsic)
+    Long --> Expired : long option expires OTM (value → 0)
+    Short --> Assigned : short option expires ITM (put → buy shares at strike, call → shares called away)
+    Short --> Expired : short option expires OTM (premium kept)
     Closed --> [*]
     Exercised --> [*]
+    Assigned --> [*]
     Expired --> [*]
 ```
 
@@ -415,9 +425,13 @@ stateDiagram-v2
 ~~No resting orders~~ — **done (2026-07):** limit/stop/stop-limit orders rest with
 reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 
+~~No short selling / option writing~~ — **done (2026-07):** short stock (150%
+collateral), cash-secured puts, covered calls, buy-to-close, and
+expiration assignment (see §6).
+
 | # | Gap | Notes |
 |---|---|---|
-| 1 | **No short selling / option writing** — long-only stocks & options; no collateral model | Requires margin/buying-power model and assignment handling |
+| 1 | **No naked options or true margin** — calls must be covered, puts fully cash-secured; short-stock margin is a static 150% of entry (no mark-to-market maintenance calls) | A maintenance-margin sweep could ride the quote refresh |
 | 2 | **Client-side trigger evaluation only** — working orders don't trigger while the app is closed; no trailing-stop support | Server-side evaluation could ride the existing cron or a more frequent function |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
@@ -429,6 +443,7 @@ reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 
 | Layer | Location | Approach |
 |---|---|---|
+| Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
 | Resting-order engine | `test/paper_trading_pending_orders_test.dart` | Direct engine tests: immediate vs resting fills, limit/stop/stop-limit triggers, reservations, cancel, GFD/GTC, rejection on unfundable triggers, JSON round-trip |
 | Widget + engine wiring | `test/full_paper_trading_test.dart` | Fake store (`implements PaperTradingStore`) injected via Provider; verifies trade widgets route paper orders to the engine |
 | Strategy builder | `test/strategy_builder_paper_trade_test.dart` | Mock store (`extends PaperTradingStore`); paper toggle behavior |
