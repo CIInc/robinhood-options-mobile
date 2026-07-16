@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
@@ -66,6 +67,27 @@ class _PaperTradingDashboardWidgetState
       await store.refreshQuotes(widget.service, quoteStore,
           optionInstrumentStore, widget.brokerageUser!);
     }
+  }
+
+  /// Opens the symbol search so the user can pick an instrument to trade.
+  void _openSearch(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Find a Trade')),
+          body: SearchWidget(
+            widget.brokerageUser,
+            widget.service,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: _generativeService,
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _analyzePortfolio(PaperTradingStore store) async {
@@ -135,6 +157,11 @@ class _PaperTradingDashboardWidgetState
     final totalPnLPercent = totalPnL / initialBalance;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openSearch(context),
+        icon: const Icon(Icons.attach_money),
+        label: const Text('Trade'),
+      ),
       appBar: AppBar(
         title: const Text('Paper Trading'),
         elevation: 0,
@@ -183,7 +210,26 @@ class _PaperTradingDashboardWidgetState
                   if (store.positions.isEmpty &&
                       store.optionPositions.isEmpty &&
                       store.futuresPositions.isEmpty)
-                    _buildEmptyState('No active positions. Start trading!'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Text(
+                              'No active positions.',
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () => _openSearch(context),
+                              icon: const Icon(Icons.search),
+                              label: const Text('Find something to trade'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ...store.positions.map((pos) => _buildStockPosition(
                         context,
                         pos,

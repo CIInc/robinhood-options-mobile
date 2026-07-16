@@ -1902,7 +1902,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   */
 
   Widget buildOverview(Instrument instrument) {
-    if (instrument.quoteObj == null) {
+    // Keep the action row (and especially the Trade button) available even
+    // while the quote is still loading or failed to load — the trade sheet
+    // handles a missing market price with a clear error for market orders,
+    // and limit orders don't need one.
+    if (instrument.quoteObj == null && !instrument.tradeable) {
       return const SizedBox.shrink();
     }
     return Padding(
