@@ -88,8 +88,11 @@ void main() async {
 
   auth = FirebaseAuth.instanceFor(app: app);
 
-  // ignore: avoid_print
-  //print('🔑 Firebase UID: ${auth.currentUser?.uid}');
+  // Firebase Auth restores persisted sessions asynchronously (IndexedDB on
+  // web), so auth.currentUser is null on a cold start until the first auth
+  // state event fires. Wait for it so startup reads (user role, Firestore
+  // paper account) run with the restored session instead of being denied.
+  await auth.authStateChanges().first;
 
   authUtil = AuthUtil(auth);
   userRole = await authUtil.userRole();

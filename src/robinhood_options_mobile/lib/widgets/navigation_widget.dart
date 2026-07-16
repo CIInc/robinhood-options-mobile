@@ -147,7 +147,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                         : DemoService();
   }
 
-  Future<List<dynamic>> _loadData(BrokerageUserStore userStore) {
+  Future<List<dynamic>> _loadData(BrokerageUserStore userStore) async {
+    // Paper accounts store their data under the Firebase user; make sure a
+    // session exists before loading (e.g. an anonymous session that was
+    // cleared), otherwise the Firestore reads are denied.
+    if (auth.currentUser == null &&
+        userStore.currentUser?.source == BrokerageSource.paper) {
+      try {
+        await AuthUtil(auth).ensureFirebaseUserSession();
+      } catch (e) {
+        debugPrint('Could not ensure Firebase session for paper trading: $e');
+      }
+    }
+
     final packageInfoFuture = PackageInfo.fromPlatform();
     List<Future> futureArr = [packageInfoFuture];
 
