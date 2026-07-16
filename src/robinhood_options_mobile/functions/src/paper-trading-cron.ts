@@ -2,6 +2,10 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import { getMarketData } from "./market-data";
+import {
+  computePaperAccountEquity,
+  isTradingDay,
+} from "./paper-trading-utils";
 
 const db = getFirestore();
 
@@ -16,6 +20,11 @@ export const updatePaperHistoricalsCron = onSchedule({
   timeoutSeconds: 300,
 }, async () => {
   logger.info("Starting updatePaperHistoricalsCron...");
+
+  if (!isTradingDay(new Date())) {
+    logger.info("Not a trading day (weekend); skipping equity snapshot.");
+    return;
+  }
 
   const snapshot = await db.collectionGroup("paper_account").get();
 
@@ -65,29 +74,11 @@ export const updatePaperHistoricalsCron = onSchedule({
 
     try {
       const data = doc.data();
-      const cashBalance = data.cashBalance || 0;
       const initialCapital = data.initialCapital || 100000.0;
-      let positionsValue = 0;
 
-      if (data.positions) {
-        for (const pos of data.positions) {
-          const symbol = pos.instrumentObj?.symbol;
-          const price = symbolPrices[symbol] || pos.average_buy_price || 0;
-          positionsValue += (pos.quantity || 0) * price;
-        }
-      }
-
-      if (data.optionPositions) {
-        for (const pos of data.optionPositions) {
-          // Fallback chain for price: adjustedMarkPrice -> average_open_price
-          const mktData = pos.optionInstrument?.optionMarketData;
-          const price = mktData?.adjustedMarkPrice ||
-            pos.average_open_price || 0;
-          positionsValue += (pos.quantity || 0) * price * 100;
-        }
-      }
-
-      const totalEquity = cashBalance + positionsValue;
+      // Values stocks (shorts included), options (written positions
+      // subtract), and futures — mirroring the client engine.
+      const totalEquity = computePaperAccountEquity(data, symbolPrices);
 
       // Try to get previous snapshot to calculate net_return and open_equity
       const historyCol = db.collection("user").doc(userId)

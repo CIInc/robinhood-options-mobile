@@ -76,7 +76,7 @@ straight to Firestore (cheap, stateless); **all mutations delegate to the shared
 | `PaperTradingDashboardWidget` | `lib/widgets/paper_trading_dashboard_widget.dart` | Portfolio summary (buying power net of reservations), AI analysis, allocation chart, positions, working orders with cancel, order history, settings (slippage/commission), reset. |
 | Trade widgets | `lib/widgets/trade_instrument_widget.dart`, `trade_option_widget.dart`, `strategy_builder_widget.dart` | "Paper Trade" toggle (forced **on** for paper-source accounts); route execution to the engine when enabled. |
 | Auto-trading providers | `lib/model/agentic_trading_provider.dart`, `futures_auto_trading_provider.dart` | Call the engine directly when `paperTradingMode` is enabled. |
-| `updatePaperHistoricalsCron` | `functions/src/paper-trading-cron.ts` | Scheduled Cloud Function: values every paper account at market close and appends a daily equity snapshot. |
+| `updatePaperHistoricalsCron` | `functions/src/paper-trading-cron.ts` | Scheduled Cloud Function: values every paper account at market close (stocks incl. shorts, options incl. written, futures — via `paper-trading-utils.ts`) and appends a daily equity snapshot; skips weekends. |
 | `InstrumentOrder.fromPaperJson` | `lib/model/instrument_order.dart` | Parses unified history entries (and legacy formats) into the standard order model for the orders UI. |
 
 ### Class relationships
@@ -429,20 +429,25 @@ reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 collateral), cash-secured puts, covered calls, buy-to-close, and
 expiration assignment (see §6).
 
+~~Equity cron gaps~~ — **done (2026-07):** the daily snapshot now values
+futures and written options (via `computePaperAccountEquity`, shared rules
+with the client engine), skips weekends, and account reset clears
+`paper_equity_history` so the chart restarts from the new capital.
+
 | # | Gap | Notes |
 |---|---|---|
 | 1 | **No naked options or true margin** — calls must be covered, puts fully cash-secured; short-stock margin is a static 150% of entry (no mark-to-market maintenance calls) | A maintenance-margin sweep could ride the quote refresh |
 | 2 | **Client-side trigger evaluation only** — working orders don't trigger while the app is closed; no trailing-stop support | Server-side evaluation could ride the existing cron or a more frequent function |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
-| 5 | **Equity cron gaps** — futures excluded from daily snapshots; runs on non-trading days; reset doesn't clear `paper_equity_history` | |
-| 6 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
-| 7 | **Multi-leg via brokerage interface needs Firestore-resolvable option instruments** — the strategy builder's direct engine path is the reliable route | |
+| 5 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
+| 6 | **Multi-leg via brokerage interface needs Firestore-resolvable option instruments** — the strategy builder's direct engine path is the reliable route | |
 
 ## 9. Testing
 
 | Layer | Location | Approach |
 |---|---|---|
+| Equity valuation (cron) | `functions/tests/paper-trading-utils.test.ts` | Jest tests for `computePaperAccountEquity` (shorts, written options, futures, fallbacks) and the trading-day guard |
 | Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
 | Resting-order engine | `test/paper_trading_pending_orders_test.dart` | Direct engine tests: immediate vs resting fills, limit/stop/stop-limit triggers, reservations, cancel, GFD/GTC, rejection on unfundable triggers, JSON round-trip |
 | Widget + engine wiring | `test/full_paper_trading_test.dart` | Fake store (`implements PaperTradingStore`) injected via Provider; verifies trade widgets route paper orders to the engine |

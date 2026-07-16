@@ -657,13 +657,27 @@ class PaperService implements IBrokerageService {
       }
     }
 
-    // Option positions
+    // Option positions: 100x multiplier, written (credit) positions are
+    // liabilities; fall back to the open premium when no mark is available.
     if (data['optionPositions'] != null) {
       final optionPositions = (data['optionPositions'] as List)
           .map((e) => OptionAggregatePosition.fromJson(e))
           .toList();
       for (var op in optionPositions) {
-        positionsValue += op.marketValue;
+        final value = op.marketValue != 0
+            ? op.marketValue
+            : (op.averageOpenPrice ?? 0) * (op.quantity ?? 0) * 100;
+        positionsValue += op.direction == 'credit' ? -value : value;
+      }
+    }
+
+    // Futures positions: open P&L marked to the last saved price.
+    if (data['futuresPositions'] != null) {
+      final futuresPositions = (data['futuresPositions'] as List)
+          .map((e) => FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      for (var fp in futuresPositions) {
+        positionsValue += fp.openPnl;
       }
     }
 

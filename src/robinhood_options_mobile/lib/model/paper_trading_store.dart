@@ -644,7 +644,29 @@ class PaperTradingStore extends ChangeNotifier {
     _pendingOrders = [];
     _history = [];
     await _save();
+    await _clearEquityHistory();
     notifyListeners();
+  }
+
+  /// Deletes the daily equity snapshots so the portfolio chart restarts
+  /// from the new capital instead of showing the pre-reset curve.
+  Future<void> _clearEquityHistory() async {
+    if (_user == null) return;
+    try {
+      final snapshot = await _firestore
+          .collection('user')
+          .doc(_user!.uid)
+          .collection('paper_equity_history')
+          .get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint("Error clearing paper equity history: $e");
+    }
   }
 
   // ---------------------------------------------------------------------
