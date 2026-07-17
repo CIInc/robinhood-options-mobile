@@ -67,8 +67,9 @@ void main() {
       PaperTradingStore(firestore: _UnusedFirestore());
 
   group('short stock', () {
-    test('sell with no position opens a short with 150% collateral',
-        () async {
+    test(
+        'sell with no position opens a short (150% initial check, '
+        '130% maintenance held)', () async {
       final store = makeStore();
       await store.submitStockOrder(
         instrument: makeInstrument(),
@@ -82,8 +83,9 @@ void main() {
       expect(store.positions.first.quantity, -10);
       expect(store.positions.first.averageBuyPrice, 150.0);
       expect(store.cashBalance, 100000.0 + 1500.0); // proceeds credited
-      expect(store.shortStockCollateral, 1500.0 * 1.5);
-      expect(store.availableBuyingPower, 100000.0 + 1500.0 - 2250.0);
+      // Maintenance requirement is 130% of market value (entry fallback).
+      expect(store.shortStockCollateral, 1500.0 * 1.3);
+      expect(store.availableBuyingPower, 100000.0 + 1500.0 - 1950.0);
       expect(store.equity, 100000.0); // proceeds offset the liability
     });
 

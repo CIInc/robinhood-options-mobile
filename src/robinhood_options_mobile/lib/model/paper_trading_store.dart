@@ -228,11 +228,16 @@ class PaperTradingStore extends ChangeNotifier {
               o.quantity * o.reservePrice * o.contractMultiplier +
               _commission);
 
-  /// Initial margin held against short stock: 150% of the entry value
+  /// Initial margin required to open a short: 150% of the entry value
   /// (Reg-T style: the 100% proceeds already credited to cash plus 50%).
   static const double shortStockMarginMultiplier = 1.5;
 
-  /// Cash collateral held against short stock positions.
+  /// Ongoing maintenance requirement for short stock: 130% of the current
+  /// market value (NYSE-style), marked to market on every quote refresh.
+  static const double shortStockMaintenanceMultiplier = 1.3;
+
+  /// Cash held against short stock positions: 130% of current market value
+  /// (falls back to the entry price until a quote is available).
   double get shortStockCollateral => _positions
       .where((p) => (p.quantity ?? 0) < 0)
       .fold(
@@ -240,8 +245,10 @@ class PaperTradingStore extends ChangeNotifier {
           (total, p) =>
               total +
               (p.quantity ?? 0).abs() *
-                  (p.averageBuyPrice ?? 0) *
-                  shortStockMarginMultiplier);
+                  (p.instrumentObj?.quoteObj?.lastTradePrice ??
+                      p.averageBuyPrice ??
+                      0) *
+                  shortStockMaintenanceMultiplier);
 
   /// Cash securing short puts: strike × 100 per contract.
   double get shortPutCollateral =>
@@ -636,9 +643,11 @@ class PaperTradingStore extends ChangeNotifier {
       }
     }
 
-    // Evaluate working orders against the fresh prices.
+    // Evaluate working orders against the fresh prices, then sweep for
+    // maintenance-margin deficits the new marks may have created.
     await evaluatePendingOrders(
         stockPrices: underlyingPrices, optionMarks: optionMarks);
+    await processMarginCalls(stockPrices: underlyingPrices);
 
     if (changed) {
       notifyListeners();
@@ -1105,6 +1114,90 @@ class PaperTradingStore extends ChangeNotifier {
       await _save();
       notifyListeners();
     }
+  }
+
+  /// Marks short-stock maintenance to market and force-covers shorts while
+  /// the account is under-margined (cash cannot cover working-order
+  /// reservations plus maintenance collateral). Covers the largest exposures
+  /// first, buying back only as many shares as needed to restore margin.
+  /// [stockPrices] is keyed by symbol; positions without a price are skipped.
+  /// Returns true when any forced liquidation happened.
+  Future<bool> processMarginCalls(
+      {required Map<String, double> stockPrices}) async {
+    double priceFor(InstrumentPosition p) =>
+        stockPrices[p.instrumentObj?.symbol] ??
+        p.instrumentObj?.quoteObj?.lastTradePrice ??
+        p.averageBuyPrice ??
+        0;
+
+    double maintenance() => _positions
+        .where((p) => (p.quantity ?? 0) < 0)
+        .fold(
+            0.0,
+            (total, p) =>
+                total +
+                (p.quantity ?? 0).abs() *
+                    priceFor(p) *
+                    shortStockMaintenanceMultiplier);
+
+    double deficit() =>
+        reservedCash + maintenance() + shortPutCollateral - _cashBalance;
+
+    if (deficit() <= 0.01) return false;
+
+    bool liquidated = false;
+    final shorts = _positions.where((p) => (p.quantity ?? 0) < 0).toList()
+      ..sort((a, b) => ((b.quantity ?? 0).abs() * priceFor(b))
+          .compareTo((a.quantity ?? 0).abs() * priceFor(a)));
+
+    for (final pos in shorts) {
+      final currentDeficit = deficit();
+      if (currentDeficit <= 0.01) break;
+      final price = priceFor(pos);
+      if (price <= 0) continue;
+
+      // Covering one share spends its price but releases its maintenance
+      // requirement, freeing (multiplier - 1) x price of buying power.
+      final freedPerShare =
+          price * (shortStockMaintenanceMultiplier - 1);
+      final held = (pos.quantity ?? 0).abs();
+      final sharesToCover =
+          (currentDeficit / freedPerShare).ceilToDouble().clamp(0.0, held);
+      if (sharesToCover <= 0) continue;
+
+      final avgShort = pos.averageBuyPrice ?? 0;
+      final profitLoss = (avgShort - price) * sharesToCover;
+      final instrument = pos.instrumentObj ??
+          Instrument.forSymbol(
+              pos.instrument.split('/').where((s) => s.isNotEmpty).last,
+              instrumentUrl: pos.instrument);
+
+      // Direct fill: forced liquidations bypass buying-power checks (the
+      // account may legitimately go cash-negative on a blown-up short).
+      _cashBalance -= sharesToCover * price;
+      _updateStockPosition(instrument, sharesToCover, price, 1);
+      _addToHistory('stock', 'buy', instrument.symbol, sharesToCover, price,
+          detail:
+              'Margin call: bought to cover at ${price.toStringAsFixed(2)}',
+          orderType: 'market',
+          instrumentUrl: instrument.url,
+          profitLoss: profitLoss);
+      liquidated = true;
+    }
+
+    if (deficit() > 0.01) {
+      _addToHistory('margin', 'call', 'ACCOUNT', 0, 0,
+          detail: 'Maintenance deficit of '
+              '\$${deficit().toStringAsFixed(2)} remains after liquidation',
+          state: 'warning');
+      liquidated = true;
+    }
+
+    if (liquidated) {
+      await _save();
+      notifyListeners();
+    }
+    return liquidated;
   }
 
   /// Cancels a working order and releases its reservation. Returns false if

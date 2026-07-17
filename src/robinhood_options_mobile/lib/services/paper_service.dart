@@ -1035,7 +1035,13 @@ class PaperService implements IBrokerageService {
     // History holds all asset classes; only stock entries map to
     // InstrumentOrder. Legacy PaperService entries used the order type
     // ('limit'/'market') in 'type', so exclude known non-stock classes.
-    const nonStockTypes = {'option', 'futures', 'strategy', 'expiration'};
+    const nonStockTypes = {
+      'option',
+      'futures',
+      'strategy',
+      'expiration',
+      'margin'
+    };
     return _firestoreService.getPaperAccountStream(userId).map((snapshot) {
       final data = snapshot.data() ?? {};
 

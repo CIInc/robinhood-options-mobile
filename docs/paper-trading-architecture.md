@@ -369,7 +369,8 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 | Commission | Configurable flat `$/trade`, added to cost on buys, subtracted from proceeds on sells |
 | Position averaging | Extending a position (long or short) re-averages the entry price; reductions keep it |
 | Position close | Quantity at ~0 removes the position; realized P&L recorded in the history entry |
-| **Short stock** | Sell with no position opens a short (negative quantity); proceeds credited, **150% of entry value held as collateral** (Reg-T style). Buy-to-cover realizes `(avg − price) × qty`. Long/short flips in one order are rejected |
+| **Short stock** | Sell with no position opens a short (negative quantity); proceeds credited. **150% of entry value required to open (Reg-T); 130% of current market value held as maintenance**, marked to market on each refresh. Buy-to-cover realizes `(avg − price) × qty`. Long/short flips in one order are rejected |
+| **Margin calls** | After each quote refresh, `processMarginCalls` checks cash against reservations + maintenance. Deficits force partial buy-to-covers (largest exposure first, only as many shares as needed); an unresolvable deficit logs a `MARGIN` warning entry |
 | **Cash-secured puts** | Sell-to-open holds `strike × 100` per contract as collateral; premium credited. Buy-to-close realizes the premium spread |
 | **Covered calls** | Sell-to-open requires 100 unpledged long shares of the underlying per contract (naked calls rejected); pledged shares can't be sold while the call is open |
 | Options | Multiplier 100; positions carry `direction` (`debit` long / `credit` written); written positions subtract from equity as a liability |
@@ -430,6 +431,10 @@ reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 collateral), cash-secured puts, covered calls, buy-to-close, and
 expiration assignment (see §6).
 
+~~No true margin for shorts~~ — **done (2026-07):** short-stock maintenance is
+marked to market (130% of current value) with an automatic margin-call sweep
+on every quote refresh; naked options remain unsupported by design.
+
 ~~Equity cron gaps~~ — **done (2026-07):** the daily snapshot now values
 futures and written options (via `computePaperAccountEquity`, shared rules
 with the client engine), skips weekends, and account reset clears
@@ -437,7 +442,7 @@ with the client engine), skips weekends, and account reset clears
 
 | # | Gap | Notes |
 |---|---|---|
-| 1 | **No naked options or true margin** — calls must be covered, puts fully cash-secured; short-stock margin is a static 150% of entry (no mark-to-market maintenance calls) | A maintenance-margin sweep could ride the quote refresh |
+| 1 | **No naked options** — calls must be covered, puts fully cash-secured | Naked short options would need a full options-margin model |
 | 2 | **Client-side trigger evaluation only** — working orders (incl. trailing stops) don't trigger while the app is closed | Server-side evaluation could ride the existing cron or a more frequent function |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
@@ -449,6 +454,7 @@ with the client engine), skips weekends, and account reset clears
 | Layer | Location | Approach |
 |---|---|---|
 | Equity valuation (cron) | `functions/tests/paper-trading-utils.test.ts` | Jest tests for `computePaperAccountEquity` (shorts, written options, futures, fallbacks) and the trading-day guard |
+| Maintenance margin | `test/paper_trading_margin_test.dart` | Margin-call sweep: healthy/improved accounts untouched, partial covers with exact share math, blown-account full liquidation + warning, multi-short ordering, CSP immunity |
 | Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
 | Trailing stops | `test/paper_trading_trailing_stop_test.dart` | Watermark ratchet, $/% trails, buy-side (cover) trails, moving reservations, validation, GFD, JSON round-trip |
 | Resting-order engine | `test/paper_trading_pending_orders_test.dart` | Direct engine tests: immediate vs resting fills, limit/stop/stop-limit triggers, reservations, cancel, GFD/GTC, rejection on unfundable triggers, JSON round-trip |

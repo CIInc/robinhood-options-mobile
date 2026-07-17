@@ -193,6 +193,11 @@ class FakePaperTradingStore extends ChangeNotifier
       [];
 
   @override
+  Future<bool> processMarginCalls(
+          {required Map<String, double> stockPrices}) async =>
+      false;
+
+  @override
   List<PendingPaperOrder> get pendingOrders => [];
 
   @override
