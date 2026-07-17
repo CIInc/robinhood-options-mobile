@@ -4,8 +4,10 @@ import * as logger from "firebase-functions/logger";
 import { getMarketData } from "./market-data";
 import {
   computePaperAccountEquity,
+  isMarketOpen,
   isTradingDay,
 } from "./paper-trading-utils";
+import { evaluateStockPendingOrders } from "./paper-orders-engine";
 
 const db = getFirestore();
 
@@ -116,4 +118,92 @@ export const updatePaperHistoricalsCron = onSchedule({
   }
 
   logger.info(`Successfully processed ${processedCount} paper accounts.`);
+});
+
+/**
+ * Server-side trigger evaluation for resting paper STOCK orders.
+ * Runs every 10 minutes during regular market hours so limit/stop/
+ * trailing orders fill even while the app is closed. Option orders stay
+ * client-evaluated (the server has no option market data source).
+ *
+ * Note: the client saves the whole account document, so a concurrent
+ * client write can win over a server fill (last-write-wins) — an
+ * accepted tradeoff of the single-document model.
+ */
+export const evaluatePaperOrdersCron = onSchedule({
+  schedule: "*/10 9-16 * * 1-5",
+  timeZone: "America/New_York",
+  memory: "512MiB",
+  timeoutSeconds: 300,
+}, async () => {
+  if (!isMarketOpen(new Date())) {
+    logger.info("Market closed; skipping paper order evaluation.");
+    return;
+  }
+
+  const snapshot = await db.collectionGroup("paper_account").get();
+  const accounts = snapshot.docs.filter((doc) => {
+    if (doc.id !== "main") return false;
+    const pending = doc.data().pendingOrders;
+    return Array.isArray(pending) &&
+      pending.some((o) => o.assetType === "stock");
+  });
+
+  if (accounts.length === 0) {
+    logger.info("No accounts with resting stock orders.");
+    return;
+  }
+
+  // Fetch each unique symbol once across all accounts.
+  const uniqueSymbols = new Set<string>();
+  for (const doc of accounts) {
+    for (const order of doc.data().pendingOrders) {
+      if (order.assetType === "stock" && order.symbol) {
+        uniqueSymbols.add(order.symbol);
+      }
+    }
+    // Short positions are needed for maintenance checks during fills.
+    for (const pos of doc.data().positions ?? []) {
+      if (pos.instrumentObj?.symbol) {
+        uniqueSymbols.add(pos.instrumentObj.symbol);
+      }
+    }
+  }
+
+  const symbolPrices: Record<string, number> = {};
+  for (const symbol of uniqueSymbols) {
+    try {
+      const marketData = await getMarketData(symbol, 5, 10, "1d");
+      if (marketData.currentPrice) {
+        symbolPrices[symbol] = marketData.currentPrice;
+      }
+    } catch (err) {
+      logger.warn(`Failed to fetch price for ${symbol}`, err);
+    }
+  }
+
+  let evaluated = 0;
+  let totalFills = 0;
+  for (const doc of accounts) {
+    try {
+      const result = evaluateStockPendingOrders(doc.data(), symbolPrices);
+      if (result.changed) {
+        await doc.ref.set({
+          cashBalance: result.data.cashBalance,
+          positions: result.data.positions,
+          pendingOrders: result.data.pendingOrders,
+          history: result.data.history,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        totalFills += result.fills;
+      }
+      evaluated++;
+    } catch (err) {
+      logger.error(
+        `Error evaluating paper orders for ${doc.ref.path}`, err);
+    }
+  }
+
+  logger.info(
+    `Evaluated ${evaluated} accounts; ${totalFills} server-side fills.`);
 });

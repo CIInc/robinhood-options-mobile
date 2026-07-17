@@ -77,6 +77,7 @@ straight to Firestore (cheap, stateless); **all mutations delegate to the shared
 | Trade widgets | `lib/widgets/trade_instrument_widget.dart`, `trade_option_widget.dart`, `strategy_builder_widget.dart` | "Paper Trade" toggle (forced **on** for paper-source accounts); route execution to the engine when enabled. |
 | Auto-trading providers | `lib/model/agentic_trading_provider.dart`, `futures_auto_trading_provider.dart` | Call the engine directly when `paperTradingMode` is enabled. |
 | `updatePaperHistoricalsCron` | `functions/src/paper-trading-cron.ts` | Scheduled Cloud Function: values every paper account at market close (stocks incl. shorts, options incl. written, futures — via `paper-trading-utils.ts`) and appends a daily equity snapshot; skips weekends. |
+| `evaluatePaperOrdersCron` | `functions/src/paper-trading-cron.ts` + `paper-orders-engine.ts` | Scheduled Cloud Function (every 10 min, ET market hours): re-evaluates resting **stock** orders server-side via a pure TS port of the fill engine — same trigger, GFD, collateral, and history semantics. |
 | `InstrumentOrder.fromPaperJson` | `lib/model/instrument_order.dart` | Parses unified history entries (and legacy formats) into the standard order model for the orders UI. |
 
 ### Class relationships
@@ -361,7 +362,7 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 | Stop orders | Rest until the market price breaches the stop, then fill at market |
 | Stop-limit orders | Stop breach arms the limit leg (`triggered`), which then fills when marketable |
 | Trailing stop orders | Watermark (best observed price) ratchets in the favorable direction on each refresh; triggers when the price retraces by the trail (`$` amount or `%`), filling at market. Sells trail the high, buys trail the low |
-| Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; client-side only — orders do not trigger while the app is closed |
+| Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; **stock orders also evaluate server-side every 10 min during market hours** (`evaluatePaperOrdersCron`), so they fill while the app is closed. Option orders remain client-side |
 | Reservations | Working buys reserve `qty × (limit ?? stop) × multiplier + commission` of buying power; working sells reserve position quantity — over-committing is rejected at submit |
 | Time in force | `gtc` persists; `gfd` expires at the end of its trading day (history entry, state `cancelled`) |
 | Unfundable triggers | If cash was consumed before a trigger fired, the order is rejected (history entry, state `rejected`), not retried |
@@ -431,6 +432,14 @@ reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 collateral), cash-secured puts, covered calls, buy-to-close, and
 expiration assignment (see §6).
 
+~~Client-side-only trigger evaluation~~ — **done for stocks (2026-07):**
+`evaluatePaperOrdersCron` re-evaluates resting stock orders every 10 minutes
+during ET market hours via a TypeScript port of the fill engine
+(`paper-orders-engine.ts`), so limit/stop/stop-limit/trailing orders fill
+while the app is closed. Option orders remain client-evaluated (no
+server-side option marks). Client and server both whole-doc save
+(last-write-wins) — an accepted tradeoff of the single-document model.
+
 ~~No true margin for shorts~~ — **done (2026-07):** short-stock maintenance is
 marked to market (130% of current value) with an automatic margin-call sweep
 on every quote refresh; naked options remain unsupported by design.
@@ -443,7 +452,7 @@ with the client engine), skips weekends, and account reset clears
 | # | Gap | Notes |
 |---|---|---|
 | 1 | **No naked options** — calls must be covered, puts fully cash-secured | Naked short options would need a full options-margin model |
-| 2 | **Client-side trigger evaluation only** — working orders (incl. trailing stops) don't trigger while the app is closed | Server-side evaluation could ride the existing cron or a more frequent function |
+| 2 | **Option orders evaluate client-side only** — server-side fills cover stocks; option triggers still need the app open | Requires a server-side option market data source |
 | 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
 | 5 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
@@ -454,6 +463,7 @@ with the client engine), skips weekends, and account reset clears
 | Layer | Location | Approach |
 |---|---|---|
 | Equity valuation (cron) | `functions/tests/paper-trading-utils.test.ts` | Jest tests for `computePaperAccountEquity` (shorts, written options, futures, fallbacks) and the trading-day guard |
+| Server-side fills | `functions/tests/paper-orders-engine.test.ts` | Jest port-parity tests: limit/stop/stop-limit/trailing triggers, slippage+commission, GFD (ET), rejections, short opens, covered-call pledge blocks, market-hours guard |
 | Maintenance margin | `test/paper_trading_margin_test.dart` | Margin-call sweep: healthy/improved accounts untouched, partial covers with exact share math, blown-account full liquidation + warning, multi-short ordering, CSP immunity |
 | Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
 | Trailing stops | `test/paper_trading_trailing_stop_test.dart` | Watermark ratchet, $/% trails, buy-side (cover) trails, moving reservations, validation, GFD, JSON round-trip |

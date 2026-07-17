@@ -130,6 +130,8 @@ export const checkCustomAlerts = customAlertsCron.checkCustomAlerts;
 export const updatePaperHistoricalsCronJob =
   paperTradingCron.updatePaperHistoricalsCron;
 export const yahooProxy = yahooProxyFuncs.yahooProxy;
+export const evaluatePaperOrdersCronJob =
+  paperTradingCron.evaluatePaperOrdersCron;
 export const rebalancingCronJob = rebalancingCronFuncs.rebalancingCron;
 export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;
 export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;

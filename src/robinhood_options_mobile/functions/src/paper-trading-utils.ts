@@ -25,6 +25,49 @@ export function isTradingDay(
 }
 
 /**
+ * Returns true during regular US equity market hours: weekdays
+ * 9:30–16:00 in the given zone. (Exchange holidays are not modeled.)
+ * @param {Date} date Moment to test.
+ * @param {string} timeZone IANA zone the trading calendar runs in.
+ * @return {boolean} Whether the market is open at that moment.
+ */
+export function isMarketOpen(
+  date: Date,
+  timeZone = "America/New_York",
+): boolean {
+  if (!isTradingDay(date, timeZone)) return false;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  const minutes = hour * 60 + minute;
+  return minutes >= 9 * 60 + 30 && minutes < 16 * 60;
+}
+
+/**
+ * Formats a date as YYYY-MM-DD in the given zone, for trading-day
+ * comparisons (e.g. good-for-day order expiry).
+ * @param {Date} date Moment to format.
+ * @param {string} timeZone IANA zone.
+ * @return {string} Zone-local calendar date.
+ */
+export function tradingDateString(
+  date: Date,
+  timeZone = "America/New_York",
+): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/**
  * Values a paper account document, mirroring the client engine
  * (PaperTradingStore) rules:
  * - stocks: signed quantity (shorts are negative) x current price, falling
