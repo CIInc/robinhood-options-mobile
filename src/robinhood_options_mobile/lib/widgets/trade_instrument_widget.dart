@@ -202,15 +202,21 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
           // Paper Trading Toggle
           SwitchListTile(
             title: const Text("Paper Trade"),
-            subtitle: const Text("Simulate this trade with virtual money"),
+            subtitle: Text(
+                widget.brokerageUser.source == BrokerageSource.paper
+                    ? "Paper account — trades are always simulated"
+                    : "Simulate this trade with virtual money"),
             value: _isPaperTrade,
+            // Locked on for paper accounts: a no-op handler keeps the
+            // enabled (amber) styling so it doesn't read as unavailable.
             onChanged: widget.brokerageUser.source == BrokerageSource.paper
-                ? null
+                ? (_) {}
                 : (val) {
                     setState(() {
                       _isPaperTrade = val;
                     });
                   },
+            activeThumbColor: Colors.amber,
             secondary:
                 Icon(Icons.school, color: _isPaperTrade ? Colors.amber : null),
           ),
