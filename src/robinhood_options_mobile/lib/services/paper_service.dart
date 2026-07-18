@@ -56,6 +56,31 @@ import 'package:robinhood_options_mobile/main.dart';
 
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
+/// Point-in-time valuation of the paper account, shared by the account,
+/// portfolio, and historicals endpoints so every surface reports the same
+/// numbers.
+class PaperEquitySnapshot {
+  final double cashBalance;
+  final double positionsValue;
+  final double initialCapital;
+
+  /// Close of the last daily equity snapshot from a prior day, if any.
+  final double? previousClose;
+
+  /// Saved daily snapshots, ascending, without the live point.
+  final List<EquityHistorical> equityHistoricals;
+
+  PaperEquitySnapshot({
+    required this.cashBalance,
+    required this.positionsValue,
+    required this.initialCapital,
+    required this.previousClose,
+    required this.equityHistoricals,
+  });
+
+  double get equity => cashBalance + positionsValue;
+}
+
 class PaperService implements IBrokerageService {
   final YahooService yahooService = YahooService();
   final FidelityService fidelityService = FidelityService();
@@ -91,17 +116,14 @@ class PaperService implements IBrokerageService {
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
-    final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
-    final data = paperAccountDoc.data() ?? {};
-
-    final balance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
+    final snapshot = await _equitySnapshot(user, userId);
 
     final account = Account(
       'paper_account_url', // url
-      balance, // portfolioCash
+      snapshot.cashBalance, // portfolioCash
       'paper_account', // accountNumber
       'Paper Account', // type
-      balance, // buyingPower
+      snapshot.cashBalance, // buyingPower
       'Level 3', // optionLevel
       0.0, // cashHeldForOptionsCollateral
       0.0, // unsettledDebit
@@ -112,33 +134,8 @@ class PaperService implements IBrokerageService {
     store.add(account);
 
     if (portfolioStore != null) {
-      final portfolio = Portfolio(
-        'paper_portfolio',
-        'paper_account',
-        DateTime.now(),
-        balance, // marketValue
-        balance, // equity
-        balance, // extendedHoursMarketValue
-        balance, // extendedHoursEquity
-        balance, // extendedHoursPortfolioEquity
-        balance, // lastCoreMarketValue
-        balance, // lastCoreEquity
-        balance, // lastCorePortfolioEquity
-        balance, // excessMargin
-        balance, // excessMaintenance
-        balance, // excessMarginWithUnclearedDeposits
-        balance, // excessMaintenanceWithUnclearedDeposits
-        balance, // equityPreviousClose
-        balance, // portfolioEquityPreviousClose
-        balance, // adjustedEquityPreviousClose
-        balance, // adjustedPortfolioEquityPreviousClose
-        balance, // withdrawableAmount
-        0.0, // unwithdrawableDeposits
-        0.0, // unwithdrawableGrants
-        DateTime.now(), // updatedAt
-      );
       portfolioStore.removeAll();
-      portfolioStore.add(portfolio);
+      portfolioStore.add(_buildPortfolio(snapshot));
     }
 
     if (instrumentPositionStore != null) {
@@ -157,38 +154,44 @@ class PaperService implements IBrokerageService {
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
-    final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
-    final data = paperAccountDoc.data() ?? {};
-    final balance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
-
-    final portfolio = Portfolio(
-      'paper_portfolio',
-      'paper_account',
-      DateTime.now(),
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      balance,
-      0.0,
-      0.0,
-      DateTime.now(),
-    );
+    final snapshot = await _equitySnapshot(user, userId);
+    final portfolio = _buildPortfolio(snapshot);
     store.removeAll();
     store.add(portfolio);
     return [portfolio];
+  }
+
+  /// Builds the Portfolio surfaced to the home cards: equity marks positions
+  /// to market (not just cash), and previous-close fields come from the last
+  /// daily equity snapshot so day-change math is meaningful.
+  Portfolio _buildPortfolio(PaperEquitySnapshot snapshot) {
+    final equity = snapshot.equity;
+    final previousClose = snapshot.previousClose ?? equity;
+    return Portfolio(
+      'paper_portfolio',
+      'paper_account',
+      DateTime.now(),
+      equity, // marketValue
+      equity, // equity
+      equity, // extendedHoursMarketValue
+      equity, // extendedHoursEquity
+      equity, // extendedHoursPortfolioEquity
+      equity, // lastCoreMarketValue
+      equity, // lastCoreEquity
+      equity, // lastCorePortfolioEquity
+      equity, // excessMargin
+      equity, // excessMaintenance
+      equity, // excessMarginWithUnclearedDeposits
+      equity, // excessMaintenanceWithUnclearedDeposits
+      previousClose, // equityPreviousClose
+      previousClose, // portfolioEquityPreviousClose
+      previousClose, // adjustedEquityPreviousClose
+      previousClose, // adjustedPortfolioEquityPreviousClose
+      snapshot.cashBalance, // withdrawableAmount
+      0.0, // unwithdrawableDeposits
+      0.0, // unwithdrawableGrants
+      DateTime.now(), // updatedAt
+    );
   }
 
   @override
@@ -582,26 +585,20 @@ class PaperService implements IBrokerageService {
   }
 
   @override
-  Future<PortfolioHistoricals> getPortfolioHistoricals(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      Bounds chartBoundsFilter,
-      ChartDateSpan chartDateSpanFilter) async {
-    final userId = auth.currentUser?.uid ??
-        user.userInfo?.id ??
-        user.userName ??
-        'default_paper_user';
+  /// Values the paper account (cash + positions marked to market, previous
+  /// daily close, saved history) so every surface — account, portfolio,
+  /// historicals — reports the same numbers.
+  Future<PaperEquitySnapshot> _equitySnapshot(
+      BrokerageUser user, String userId) async {
     final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
     final data = paperAccountDoc.data() ?? {};
     final cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
     final initialCapital =
         (data['initialCapital'] as num?)?.toDouble() ?? 100000.0;
 
-    // Include position market values in total balance
     double positionsValue = 0.0;
 
-    // Stock positions
+    // Stock positions (shorts carry negative quantities).
     final positions = await _firestoreService.listPaperPositions(userId);
     if (positions.isNotEmpty) {
       var symbols = positions
@@ -674,19 +671,18 @@ class PaperService implements IBrokerageService {
     // Futures positions: open P&L marked to the last saved price.
     if (data['futuresPositions'] != null) {
       final futuresPositions = (data['futuresPositions'] as List)
-          .map((e) => FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+          .map((e) =>
+              FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
           .toList();
       for (var fp in futuresPositions) {
         positionsValue += fp.openPnl;
       }
     }
 
-    final balance = cashBalance + positionsValue;
-
-    // Fetch historical snapshots from Firestore
+    // Saved daily snapshots (ascending); the last one from a prior day is
+    // the previous close.
     final historyData = await _firestoreService.getPaperHistory(userId);
-    List<EquityHistorical> equityHistoricals = historyData.map((e) {
-      // Handle Firestore Timestamp to String conversion for EquityHistorical.fromJson
+    final equityHistoricals = historyData.map((e) {
       if (e['begins_at'] is Timestamp) {
         e['begins_at'] =
             (e['begins_at'] as Timestamp).toDate().toIso8601String();
@@ -694,29 +690,71 @@ class PaperService implements IBrokerageService {
       return EquityHistorical.fromJson(e);
     }).toList();
 
-    // Add current balance as the latest point
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    double? previousClose;
+    for (final point in equityHistoricals) {
+      if (point.beginsAt != null && point.beginsAt!.isBefore(startOfToday)) {
+        previousClose =
+            point.closeEquity ?? point.adjustedCloseEquity ?? previousClose;
+      }
+    }
+
+    return PaperEquitySnapshot(
+      cashBalance: cashBalance,
+      positionsValue: positionsValue,
+      initialCapital: initialCapital,
+      previousClose: previousClose,
+      equityHistoricals: equityHistoricals,
+    );
+  }
+
+  @override
+  Future<PortfolioHistoricals> getPortfolioHistoricals(
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) async {
+    final userId = auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    final snapshot = await _equitySnapshot(user, userId);
+    final balance = snapshot.equity;
+    final previousClose = snapshot.previousClose ?? balance;
+
+    // Append the live valuation as the latest point.
+    final equityHistoricals =
+        List<EquityHistorical>.from(snapshot.equityHistoricals);
     equityHistoricals.add(EquityHistorical(
-      balance,
-      balance,
-      balance,
-      balance,
+      balance, // adjustedOpenEquity
+      balance, // adjustedCloseEquity
+      previousClose, // openEquity
+      balance, // closeEquity
       balance,
       balance,
       DateTime.now(),
-      0.0,
+      balance - previousClose, // netReturn vs previous close
       'regular',
     ));
 
+    // The period open is the first point in the series; the change the UI
+    // derives (close - open) is now meaningful instead of always zero.
+    final firstPoint = equityHistoricals.first;
+    final openEquity =
+        firstPoint.adjustedOpenEquity ?? firstPoint.openEquity ?? balance;
+
     final historicals = PortfolioHistoricals(
-      balance,
-      balance,
-      balance,
-      balance,
+      openEquity, // adjustedOpenEquity
+      previousClose, // adjustedPreviousCloseEquity
+      openEquity, // openEquity
+      previousClose, // previousCloseEquity
       DateTime.now().toIso8601String(),
       '1day',
       convertChartSpanFilter(chartDateSpanFilter),
       convertChartBoundsFilter(chartBoundsFilter),
-      balance - initialCapital,
+      balance - snapshot.initialCapital,
       equityHistoricals,
       false,
     );
