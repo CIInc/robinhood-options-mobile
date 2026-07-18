@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -78,6 +80,10 @@ class _SearchWidgetState extends State<SearchWidget>
   String? query;
   TextEditingController? searchCtl;
   Future<dynamic>? futureSearch;
+
+  /// Debounces search-as-you-type so a request fires only after the user
+  /// pauses, instead of once per keystroke.
+  Timer? _searchDebounce;
   Future<List<MidlandMoversItem>>? futureMovers;
   Future<List<MidlandMoversItem>>? futureLosers;
   Future<List<Instrument>>? futureListMovers;
@@ -130,8 +136,76 @@ class _SearchWidgetState extends State<SearchWidget>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     searchCtl?.dispose();
     super.dispose();
+  }
+
+  /// Executes the (debounced) symbol search. Comma-separated input searches
+  /// each term and combines the results.
+  void _performSearch(String text) {
+    setState(() {
+      if (text.contains(',')) {
+        var queries = text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        if (queries.isNotEmpty) {
+          if (widget.service != null) {
+            futureSearch = Future.wait(queries
+                    .map((q) => widget.service!.search(widget.brokerageUser!, q)))
+                .then((results) {
+              var combined = [];
+              for (var result in results) {
+                if (result is List) {
+                  combined.addAll(result);
+                } else if (result is Map) {
+                  // Assume Robinhood structure
+                  try {
+                    var resList = result['results'] as List?;
+                    if (resList != null) {
+                      for (var res in resList) {
+                        var content = res['content'];
+                        if (content != null) {
+                          var data = content['data'] as List?;
+                          if (data != null) {
+                            for (var d in data) {
+                              if (d['item'] != null) {
+                                combined.add(d['item']);
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    debugPrint('Error parsing search result: $e');
+                  }
+                }
+              }
+              return combined;
+            });
+          } else {
+            futureSearch =
+                Future.wait(queries.map((q) => _yahooService.search(q)))
+                    .then((results) {
+              var combined = [];
+              for (var result in results) {
+                combined.addAll(result);
+              }
+              return combined;
+            });
+          }
+          return;
+        }
+      }
+      if (widget.service != null) {
+        futureSearch = widget.service!.search(widget.brokerageUser!, text);
+      } else {
+        futureSearch = _yahooService.search(text);
+      }
+    });
   } // WidgetsBinding.instance.addPostFrameCallback((_) {
 
   //   _fetchTradeSignalsWithFilters();
@@ -369,77 +443,18 @@ class _SearchWidgetState extends State<SearchWidget>
                             widget.analytics.logSearch(searchTerm: text);
                             debugPrint(
                                 "SearchWidget: onChanged '$text'. Service: ${widget.service}");
-                            setState(() {
-                              if (text.contains(',')) {
-                                var queries = text
-                                    .split(',')
-                                    .map((e) => e.trim())
-                                    .where((e) => e.isNotEmpty)
-                                    .toList();
-                                if (queries.isNotEmpty) {
-                                  if (widget.service != null) {
-                                    futureSearch = Future.wait(queries.map(
-                                            (q) => widget.service!.search(
-                                                widget.brokerageUser!, q)))
-                                        .then((results) {
-                                      var combined = [];
-                                      for (var result in results) {
-                                        if (result is List) {
-                                          combined.addAll(result);
-                                        } else if (result is Map) {
-                                          // Assume Robinhood structure
-                                          try {
-                                            var resList =
-                                                result['results'] as List?;
-                                            if (resList != null) {
-                                              for (var res in resList) {
-                                                var content = res['content'];
-                                                if (content != null) {
-                                                  var data =
-                                                      content['data'] as List?;
-                                                  if (data != null) {
-                                                    for (var d in data) {
-                                                      if (d['item'] != null) {
-                                                        combined.add(d['item']);
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          } catch (e) {
-                                            debugPrint(
-                                                'Error parsing search result: $e');
-                                          }
-                                        }
-                                      }
-                                      return combined;
-                                    });
-                                  } else {
-                                    futureSearch = Future.wait(queries.map(
-                                            (q) => _yahooService.search(q)))
-                                        .then((results) {
-                                      var combined = [];
-                                      for (var result in results) {
-                                        combined.addAll(result);
-                                      }
-                                      return combined;
-                                    });
-                                  }
-                                  return;
-                                }
-                              }
-                              if (text.isEmpty) {
+                            _searchDebounce?.cancel();
+                            if (text.isEmpty) {
+                              setState(() {
                                 futureSearch = Future.value(null);
-                              } else if (widget.service != null) {
-                                futureSearch = widget.service!
-                                    .search(widget.brokerageUser!, text);
-                              } else {
-                                futureSearch = _yahooService.search(text);
-                              }
+                              });
+                              return;
+                            }
+                            _searchDebounce = Timer(
+                                const Duration(milliseconds: 400), () {
+                              if (mounted) _performSearch(text);
                             });
                           },
-                          textInputAction: TextInputAction.search,
                           onSubmitted: (value) {
                             FocusScope.of(context).unfocus();
                           },
