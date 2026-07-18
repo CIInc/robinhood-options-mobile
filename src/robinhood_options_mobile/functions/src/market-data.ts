@@ -3,7 +3,11 @@ import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import { fetchWithRetry } from "./utils";
 
-const db = getFirestore();
+// Lazy so importing this module (e.g. from unit tests) doesn't require
+// an initialized Firebase app.
+let dbInstance: FirebaseFirestore.Firestore | null = null;
+const db = (): FirebaseFirestore.Firestore =>
+  (dbInstance ??= getFirestore());
 
 /**
  * Maps common index symbols to Twelve Data format.
@@ -92,7 +96,7 @@ async function fetchQuotesFromTwelveData(symbols: string[]): Promise<any> {
  * @param {string} range The time range (1y, 5d, etc.)
  * @return {Promise<any>} A Yahoo-compatible chart result object.
  */
-async function fetchFromTwelveData(
+export async function fetchFromTwelveData(
   symbol: string, interval: string, range: string
 ): Promise<any> {
   const apiKey = process.env.TWELVE_DATA_API_KEY;
@@ -289,7 +293,7 @@ export async function getMarketData(symbol: string,
     `charts/${decodedSymbol}` :
     `charts/${decodedSymbol}_${interval}`;
   try {
-    const doc = await db.doc(cacheKey).get();
+    const doc = await db().doc(cacheKey).get();
     if (doc.exists) {
       const cacheData = doc.data();
       const chart = cacheData?.chart;
@@ -366,7 +370,7 @@ export async function getMarketData(symbol: string,
           "from CBOE");
         // Cache CBOE result to prevent frequent refetches
         try {
-          await db.doc(cacheKey).set({ chart: cboeRes, updated: Date.now() });
+          await db().doc(cacheKey).set({ chart: cboeRes, updated: Date.now() });
         } catch (err) {
           logger.warn(`Failed to update cached ${interval} ` +
             `from CBOE for ${symbol}`, err);
@@ -401,7 +405,7 @@ export async function getMarketData(symbol: string,
           `${interval} prices for ${symbol} from Twelve Data`);
         // Cache result
         try {
-          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+          await db().doc(cacheKey).set({ chart: result, updated: Date.now() });
         } catch (err) {
           logger.warn(`Failed to update cached ${interval} ` +
             `from Twelve Data for ${symbol}`, err);
@@ -458,7 +462,7 @@ export async function getMarketData(symbol: string,
       // Cache Fidelity data too for resilience
       if (result) {
         try {
-          await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+          await db().doc(cacheKey).set({ chart: result, updated: Date.now() });
         } catch (err) {
           logger.warn(`Failed to update cached ${interval} ` +
             `from Fidelity for ${symbol}`, err);
@@ -541,7 +545,7 @@ export async function getMarketData(symbol: string,
       // Cache prices and volumes in Firestore if result is valid
       if (result) {
         try {
-          await db.doc(cacheKey)
+          await db().doc(cacheKey)
             .set({ chart: result, updated: Date.now() });
         } catch (err) {
           logger.warn(`Failed to update cached ${interval} data for ${symbol}`,

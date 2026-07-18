@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
 import { createHash } from "crypto";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { fetchFromTwelveData, getQuotes } from "./market-data";
 
 /**
  * CORS proxy for Yahoo Finance.
@@ -83,6 +84,104 @@ const MAX_CACHED_BODY_BYTES = 900_000;
 
 const isFresh = (entry: CachedResponse, ttlSeconds: number): boolean =>
   Date.now() - entry.fetchedAtMs < ttlSeconds * 1000;
+
+/**
+ * Serves translatable endpoints from Twelve Data (the app's contracted
+ * provider) instead of Yahoo, whose datacenter-IP throttling makes direct
+ * fetches from Cloud Functions unreliable. The response is translated into
+ * the Yahoo shape the client already parses. Returns null for endpoints
+ * without a Twelve Data equivalent (screeners, quoteSummary, options) so
+ * the caller falls back to the cached Yahoo path.
+ * @param {string} target The Yahoo URL being proxied.
+ * @return {Promise<CachedResponse | null>} Translated response or null.
+ */
+async function fetchViaTwelveData(
+  target: string,
+): Promise<CachedResponse | null> {
+  const apiKey = process.env.TWELVE_DATA_API_KEY;
+  if (!apiKey) return null;
+  const url = new URL(target);
+  const path = url.pathname;
+
+  // Symbol search -> /symbol_search
+  if (path.includes("/finance/search")) {
+    const q = url.searchParams.get("q");
+    if (!q) return null;
+    const resp = await fetch(
+      "https://api.twelvedata.com/symbol_search?symbol=" +
+      `${encodeURIComponent(q)}&outputsize=10&apikey=${apiKey}`);
+    if (!resp.ok) return null;
+    const data: any = await resp.json();
+    if (!Array.isArray(data?.data)) return null;
+    const quotes = data.data.map((item: any) => ({
+      symbol: item.symbol,
+      longname: item.instrument_name,
+      shortname: item.instrument_name,
+      typeDisp: item.instrument_type,
+      exchDisp: item.exchange,
+      quoteType: item.instrument_type === "ETF" ? "ETF" : "EQUITY",
+    }));
+    return {
+      body: JSON.stringify({ quotes }),
+      status: 200,
+      fetchedAtMs: Date.now(),
+    };
+  }
+
+  // Quotes -> /quote (via getQuotes: Twelve Data first, Fidelity fallback)
+  if (path.includes("/finance/quote") &&
+    !path.includes("/finance/quoteSummary")) {
+    const symbolsParam = url.searchParams.get("symbols");
+    if (!symbolsParam) return null;
+    const symbols = symbolsParam.split(",").filter((s) => s.length > 0);
+    const quoteMap = await getQuotes(symbols);
+    const result = symbols
+      .map((symbol) => {
+        const q = quoteMap?.[symbol];
+        if (!q) return null;
+        const last = Number(q.last ?? q.LAST_PRICE);
+        if (!isFinite(last) || last === 0) return null;
+        const change = Number(q.change ?? q.TODAYS_CHANGE) || 0;
+        return {
+          symbol,
+          shortName: q.name,
+          regularMarketPrice: last,
+          regularMarketPreviousClose:
+            Number(q.PREVIOUS_CLOSE) || last - change,
+          regularMarketVolume: Number(q.volume ?? q.VOLUME) || 0,
+          ask: 0,
+          bid: 0,
+          askSize: 0,
+          bidSize: 0,
+        };
+      })
+      .filter((q) => q != null);
+    if (result.length === 0) return null;
+    return {
+      body: JSON.stringify({ quoteResponse: { result } }),
+      status: 200,
+      fetchedAtMs: Date.now(),
+    };
+  }
+
+  // Charts -> /time_series (already translated to the Yahoo result shape)
+  if (path.includes("/finance/chart/")) {
+    const symbol = decodeURIComponent(
+      path.split("/finance/chart/")[1]?.split("/")[0] ?? "");
+    if (!symbol) return null;
+    const interval = url.searchParams.get("interval") ?? "1d";
+    const range = url.searchParams.get("range") ?? "1y";
+    const result = await fetchFromTwelveData(symbol, interval, range);
+    if (!result) return null;
+    return {
+      body: JSON.stringify({ chart: { result: [result], error: null } }),
+      status: 200,
+      fetchedAtMs: Date.now(),
+    };
+  }
+
+  return null;
+}
 
 /**
  * Reads the shared Firestore cache entry for [target], if any.
@@ -205,7 +304,12 @@ async function fetchFromYahoo(
 }
 
 export const yahooProxy = onRequest(
-  { cors: true, memory: "256MiB", timeoutSeconds: 30 },
+  {
+    cors: true,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    secrets: ["TWELVE_DATA_API_KEY"],
+  },
   async (req, res) => {
     const target = req.query.url;
     if (typeof target !== "string" || !isAllowedYahooUrl(target)) {
@@ -241,6 +345,20 @@ export const yahooProxy = onRequest(
     }
 
     const stale = memoryHit ?? firestoreHit;
+
+    // Prefer Twelve Data for endpoints it can serve — Yahoo throttles
+    // datacenter IPs, so direct fetches from Cloud Functions 429 easily.
+    try {
+      const translated = await fetchViaTwelveData(target);
+      if (translated) {
+        await writeCaches(target, translated);
+        send(translated, "miss-twelvedata");
+        return;
+      }
+    } catch (e) {
+      logger.warn(`Twelve Data translation failed for ${target}`, e);
+    }
+
     try {
       let result = await fetchFromYahoo(target);
 
