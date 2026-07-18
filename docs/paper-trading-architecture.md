@@ -357,12 +357,12 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 
 | Aspect | Behavior |
 |---|---|
-| Market orders | Fill instantly at the current market price |
+| Market orders | Fill instantly at the current market price **during regular hours**; submitted while closed they queue as working orders and fill at the first price of the next session |
 | Limit orders | Fill at the market price when it crosses the limit (immediately if already marketable); otherwise rest |
 | Stop orders | Rest until the market price breaches the stop, then fill at market |
 | Stop-limit orders | Stop breach arms the limit leg (`triggered`), which then fills when marketable |
 | Trailing stop orders | Watermark (best observed price) ratchets in the favorable direction on each refresh; triggers when the price retraces by the trail (`$` amount or `%`), filling at market. Sells trail the high, buys trail the low |
-| Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; **stock orders also evaluate server-side every 10 min during market hours** (`evaluatePaperOrdersCron`), so they fill while the app is closed. Option orders remain client-side |
+| Trigger evaluation | On every quote refresh (dashboard load / pull-to-refresh) via `evaluatePendingOrders`; **stock orders also evaluate server-side every 10 min during market hours** (`evaluatePaperOrdersCron`), so they fill while the app is closed. Option orders remain client-side. **All fills and margin sweeps are gated to regular ET market hours** (DST-aware `MarketHours`, injectable for tests); GFD expiry runs regardless |
 | Reservations | Working buys reserve `qty × (limit ?? stop) × multiplier + commission` of buying power; working sells reserve position quantity — over-committing is rejected at submit |
 | Time in force | `gtc` persists; `gfd` expires at the end of its trading day (history entry, state `cancelled`) |
 | Unfundable triggers | If cash was consumed before a trigger fired, the order is rejected (history entry, state `rejected`), not retried |
@@ -432,6 +432,10 @@ reservations, trigger on quote refresh, and support cancel (see §5.2/§6).
 collateral), cash-secured puts, covered calls, buy-to-close, and
 expiration assignment (see §6).
 
+~~No market-hours rules~~ — **partially done (2026-07):** fills only occur
+during regular ET hours; market orders placed after hours queue for the open
+(client + server engines). Settlement (T+2) and PDT remain unmodeled.
+
 ~~Client-side-only trigger evaluation~~ — **done for stocks (2026-07):**
 `evaluatePaperOrdersCron` re-evaluates resting stock orders every 10 minutes
 during ET market hours via a TypeScript port of the fill engine
@@ -453,7 +457,7 @@ with the client engine), skips weekends, and account reset clears
 |---|---|---|
 | 1 | **No naked options** — calls must be covered, puts fully cash-secured | Naked short options would need a full options-margin model |
 | 2 | **Option orders evaluate client-side only** — server-side fills cover stocks; option triggers still need the app open | Requires a server-side option market data source |
-| 3 | **No market-hours or settlement rules** — fills 24/7, no T+2, no PDT | |
+| 3 | **No settlement rules** — no T+2, no PDT | |
 | 4 | **Corporate actions ignored** — no dividends, splits, or interest on paper positions | |
 | 5 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
 | 6 | **Multi-leg via brokerage interface needs Firestore-resolvable option instruments** — the strategy builder's direct engine path is the reliable route | |

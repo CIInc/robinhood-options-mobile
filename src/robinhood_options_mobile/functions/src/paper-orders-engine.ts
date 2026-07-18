@@ -386,6 +386,12 @@ export function evaluateStockPendingOrders(
     let shouldFill = false;
 
     switch (order.orderType) {
+    case "market": {
+      // Queued while the market was closed; the cron only runs during
+      // market hours, so fill at the first observed price.
+      shouldFill = true;
+      break;
+    }
     case "limit": {
       const limit = num(order.limitPrice);
       shouldFill = isBuy ? price <= limit : price >= limit;

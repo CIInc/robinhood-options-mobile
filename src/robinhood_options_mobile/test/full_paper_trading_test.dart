@@ -194,7 +194,8 @@ class FakePaperTradingStore extends ChangeNotifier
 
   @override
   Future<bool> processMarginCalls(
-          {required Map<String, double> stockPrices}) async =>
+          {required Map<String, double> stockPrices,
+          bool? marketOpen}) async =>
       false;
 
   @override
@@ -253,6 +254,7 @@ class FakePaperTradingStore extends ChangeNotifier
     required Map<String, double> stockPrices,
     Map<String, double> optionMarks = const {},
     DateTime? now,
+    bool? marketOpen,
   }) async {}
 
   @override

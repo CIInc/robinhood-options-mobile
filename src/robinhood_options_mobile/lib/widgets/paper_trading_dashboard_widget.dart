@@ -923,7 +923,8 @@ class _PaperTradingDashboardWidgetState
     final isBuy = order.side == 'buy';
     final typeLabel = order.orderType.replaceAll('_', ' ').toUpperCase();
     final isTrailing = order.orderType == 'trailing_stop';
-    final prices = [
+    final priceParts = [
+      if (order.orderType == 'market') 'Queued for market open',
       if (isTrailing && order.trailValue != null)
         'Trail ${order.trailType == 'percentage' ? '${order.trailValue!.toStringAsFixed(1)}%' : formatCurrency.format(order.trailValue)}',
       if (isTrailing && order.effectiveStopPrice != null)
@@ -932,7 +933,8 @@ class _PaperTradingDashboardWidgetState
         'Stop ${formatCurrency.format(order.stopPrice)}',
       if (order.limitPrice != null)
         'Limit ${formatCurrency.format(order.limitPrice)}',
-    ].join(' · ');
+    ];
+    final prices = priceParts.join(' · ');
 
     return Card(
       child: ListTile(

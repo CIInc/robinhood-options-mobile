@@ -37,7 +37,8 @@ void main() {
   }
 
   PaperTradingStore makeStore() =>
-      PaperTradingStore(firestore: _UnusedFirestore());
+      PaperTradingStore(
+      firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   /// 10,000 cash account with a 100-share short at $100
   /// (cash 20,000 after proceeds; maintenance 13,000 at entry).

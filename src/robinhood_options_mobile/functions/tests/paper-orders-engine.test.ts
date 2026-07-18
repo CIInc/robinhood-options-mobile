@@ -260,6 +260,19 @@ describe("evaluateStockPendingOrders", () => {
     expect(result.data.positions[0].quantity).toBe(100);
   });
 
+  it("fills queued market orders at the observed price", () => {
+    const data = account({
+      pendingOrders: [
+        order({ side: "buy", orderType: "market", quantity: 10 }),
+      ],
+    });
+    const result = evaluateStockPendingOrders(data, { AAPL: 152 });
+    expect(result.fills).toBe(1);
+    expect(result.data.positions[0].quantity).toBe(10);
+    expect(result.data.positions[0].average_buy_price).toBe(152);
+    expect(result.data.cashBalance).toBe(100000 - 1520);
+  });
+
   it("leaves option orders untouched", () => {
     const data = account({
       pendingOrders: [

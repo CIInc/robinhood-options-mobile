@@ -36,7 +36,8 @@ void main() {
   }
 
   PaperTradingStore makeStore() =>
-      PaperTradingStore(firestore: _UnusedFirestore());
+      PaperTradingStore(
+      firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   Future<PaperTradingStore> storeWithLong(
       {double quantity = 10, double price = 150.0}) async {

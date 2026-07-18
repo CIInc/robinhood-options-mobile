@@ -64,7 +64,8 @@ void main() {
   }
 
   PaperTradingStore makeStore() =>
-      PaperTradingStore(firestore: _UnusedFirestore());
+      PaperTradingStore(
+      firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   group('short stock', () {
     test(

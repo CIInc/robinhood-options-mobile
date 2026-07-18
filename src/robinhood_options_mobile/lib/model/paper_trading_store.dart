@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
 
 class FuturesPaperPosition {
   final String contractId;
@@ -136,9 +137,11 @@ class PendingPaperOrder {
     return isBuy ? base + trailValue! : base - trailValue!;
   }
 
-  /// Price used to reserve buying power while the order rests.
+  /// Price used to reserve buying power while the order rests. Market
+  /// orders queued for the open anchor on the price at submit time (kept
+  /// in [watermark]).
   double get reservePrice =>
-      limitPrice ?? effectiveStopPrice ?? stopPrice ?? 0.0;
+      limitPrice ?? effectiveStopPrice ?? stopPrice ?? watermark ?? 0.0;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -188,8 +191,13 @@ class PaperTradingStore extends ChangeNotifier {
   final FirebaseFirestore _firestore;
   firebase_auth.User? _user;
 
-  PaperTradingStore({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  /// Whether the market is currently open for fills; injectable so tests
+  /// aren't dependent on the wall clock.
+  final bool Function() _isMarketOpen;
+
+  PaperTradingStore({FirebaseFirestore? firestore, bool Function()? isMarketOpen})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _isMarketOpen = isMarketOpen ?? (() => MarketHours.isMarketOpen());
 
   // State
   double _cashBalance = 100000.0;
@@ -877,12 +885,21 @@ class PaperTradingStore extends ChangeNotifier {
       ..instrumentRef = instrumentRef
       ..optionInstrumentRef = optionInstrumentRef;
 
-    // Market orders and already-marketable limit/stop orders fill now.
+    // Fills only happen while the market is open; anything submitted after
+    // hours rests as a working order until the next session.
+    final marketOpen = _isMarketOpen();
+
     if (normalizedType == 'market') {
-      await _fillOrder(order, marketPrice!);
-      return PaperOrderResult(order.id, 'filled');
-    }
-    if (await _tryFillPendingOrder(order, marketPrice)) {
+      if (marketOpen) {
+        await _fillOrder(order, marketPrice!);
+        return PaperOrderResult(order.id, 'filled');
+      }
+      // Queued for the open: anchor the buying-power reservation to the
+      // last seen price.
+      order.watermark = marketPrice;
+    } else if (marketOpen &&
+        await _tryFillPendingOrder(order, marketPrice)) {
+      // Already-marketable limit/stop orders fill immediately.
       return PaperOrderResult(order.id, 'filled');
     }
 
@@ -1011,6 +1028,11 @@ class PaperTradingStore extends ChangeNotifier {
     bool shouldFill = false;
 
     switch (order.orderType) {
+      case 'market':
+        // Queued while the market was closed; fills at the first price
+        // observed during an open session.
+        shouldFill = true;
+        break;
       case 'limit':
         final limit = order.limitPrice!;
         shouldFill = isBuy ? price <= limit : price >= limit;
@@ -1055,14 +1077,18 @@ class PaperTradingStore extends ChangeNotifier {
 
   /// Evaluates all working orders against fresh prices. [stockPrices] is
   /// keyed by symbol; [optionMarks] by option instrument id. Called from
-  /// [refreshQuotes]; [now] is injectable for tests.
+  /// [refreshQuotes]; [now] and [marketOpen] are injectable for tests.
+  /// Fills only happen during regular market hours; GFD expiry runs
+  /// regardless.
   Future<void> evaluatePendingOrders({
     required Map<String, double> stockPrices,
     Map<String, double> optionMarks = const {},
     DateTime? now,
+    bool? marketOpen,
   }) async {
     if (_pendingOrders.isEmpty) return;
     final evalTime = now ?? DateTime.now();
+    final open = marketOpen ?? _isMarketOpen();
     bool changed = false;
 
     for (final order in List.of(_pendingOrders)) {
@@ -1078,6 +1104,9 @@ class PaperTradingStore extends ChangeNotifier {
         changed = true;
         continue;
       }
+
+      // Triggers and fills only fire during regular market hours.
+      if (!open) continue;
 
       final price = order.assetType == 'stock'
           ? stockPrices[order.priceKey]
@@ -1123,7 +1152,11 @@ class PaperTradingStore extends ChangeNotifier {
   /// [stockPrices] is keyed by symbol; positions without a price are skipped.
   /// Returns true when any forced liquidation happened.
   Future<bool> processMarginCalls(
-      {required Map<String, double> stockPrices}) async {
+      {required Map<String, double> stockPrices, bool? marketOpen}) async {
+    // Forced liquidations execute at market prices, so they only run
+    // while the market is open (prices are static after hours anyway).
+    if (!(marketOpen ?? _isMarketOpen())) return false;
+
     double priceFor(InstrumentPosition p) =>
         stockPrices[p.instrumentObj?.symbol] ??
         p.instrumentObj?.quoteObj?.lastTradePrice ??

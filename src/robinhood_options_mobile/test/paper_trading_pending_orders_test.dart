@@ -60,7 +60,8 @@ void main() {
   }
 
   PaperTradingStore makeStore() =>
-      PaperTradingStore(firestore: _UnusedFirestore());
+      PaperTradingStore(
+      firestore: _UnusedFirestore(), isMarketOpen: () => true);
 
   group('immediate fills', () {
     test('market buy fills immediately at market price', () async {
@@ -447,6 +448,114 @@ void main() {
       expect(store.optionPositions, hasLength(1));
       expect(store.optionPositions.first.quantity, 2);
       expect(store.cashBalance, 100000.0 - (4.5 * 100 * 2));
+    });
+  });
+
+  group('market hours', () {
+    PaperTradingStore makeClosedStore() => PaperTradingStore(
+        firestore: _UnusedFirestore(), isMarketOpen: () => false);
+
+    test('market order while closed queues for the open', () async {
+      final store = makeClosedStore();
+      final result = await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: 150.0,
+      );
+
+      expect(result.state, 'confirmed');
+      expect(store.positions, isEmpty);
+      expect(store.pendingOrders.single.orderType, 'market');
+      // Buying power reserved at the last seen price.
+      expect(store.reservedCash, 10 * 150.0);
+      expect(store.cashBalance, 100000.0); // nothing spent yet
+    });
+
+    test('marketable limit rests instead of filling while closed', () async {
+      final store = makeClosedStore();
+      final result = await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'buy',
+        orderType: 'limit',
+        limitPrice: 155.0, // above market: would fill instantly when open
+        marketPrice: 150.0,
+      );
+      expect(result.state, 'confirmed');
+      expect(store.positions, isEmpty);
+    });
+
+    test('closed-market evaluation fills nothing, but GFD still expires',
+        () async {
+      final store = makeClosedStore();
+      await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'buy',
+        orderType: 'limit',
+        limitPrice: 140.0,
+        marketPrice: 150.0,
+        timeInForce: 'gfd',
+      );
+
+      // Price crosses the limit, but the market is closed: no fill.
+      await store.evaluatePendingOrders(stockPrices: {'AAPL': 139.0});
+      expect(store.pendingOrders, hasLength(1));
+      expect(store.positions, isEmpty);
+
+      // The next day the GFD order expires even while closed.
+      await store.evaluatePendingOrders(
+          stockPrices: {'AAPL': 139.0},
+          now: DateTime.now().add(const Duration(days: 1)));
+      expect(store.pendingOrders, isEmpty);
+      expect(store.history.first['state'], 'cancelled');
+    });
+
+    test('queued market order fills at the first open-session price',
+        () async {
+      final store = makeClosedStore();
+      await store.submitStockOrder(
+        instrument: makeInstrument(),
+        quantity: 10,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: 150.0,
+      );
+
+      // Market opens with a gap up: fills at the observed price, not the
+      // stale anchor.
+      await store.evaluatePendingOrders(
+          stockPrices: {'AAPL': 152.0}, marketOpen: true);
+      expect(store.pendingOrders, isEmpty);
+      expect(store.positions.single.quantity, 10);
+      expect(store.positions.single.averageBuyPrice, 152.0);
+      expect(store.cashBalance, 100000.0 - 1520.0);
+    });
+
+    test('margin sweep is skipped while the market is closed', () async {
+      final store = PaperTradingStore(
+          firestore: _UnusedFirestore(), isMarketOpen: () => true);
+      await store.resetAccount(initialCapital: 10000.0);
+      await store.submitStockOrder(
+          instrument: makeInstrument(),
+          quantity: 100,
+          side: 'sell',
+          orderType: 'market',
+          marketPrice: 100.0);
+
+      // Deficit exists at 180, but the market is closed: no liquidation.
+      final closed = await store.processMarginCalls(
+          stockPrices: {'AAPL': 180.0}, marketOpen: false);
+      expect(closed, isFalse);
+      expect(store.positions.single.quantity, -100);
+
+      // Open: the sweep runs.
+      final open = await store.processMarginCalls(
+          stockPrices: {'AAPL': 180.0}, marketOpen: true);
+      expect(open, isTrue);
+      expect(store.positions.single.quantity, greaterThan(-100));
     });
   });
 
