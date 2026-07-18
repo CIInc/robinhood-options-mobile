@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
 import { createHash } from "crypto";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { fetchFromTwelveData, getQuotes } from "./market-data";
 
@@ -66,6 +67,37 @@ export function cacheTtlSeconds(raw: string): number {
  */
 export function cacheKey(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
+}
+
+/**
+ * Extracts the token from an Authorization: Bearer header. Exported for
+ * unit testing.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The bearer token, or null.
+ */
+export function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Verifies the caller's Firebase ID token (anonymous sessions included) so
+ * the proxy — and the Twelve Data credits behind it — can't be used by
+ * arbitrary third parties.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} Whether the request is from a signed-in user.
+ */
+async function isAuthorized(header: string | undefined): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    await getAuth().verifyIdToken(token);
+    return true;
+  } catch (e) {
+    logger.warn("Yahoo proxy rejected an invalid ID token", e);
+    return false;
+  }
 }
 
 interface CachedResponse {
@@ -311,6 +343,14 @@ export const yahooProxy = onRequest(
     secrets: ["TWELVE_DATA_API_KEY"],
   },
   async (req, res) => {
+    if (!(await isAuthorized(req.headers.authorization))) {
+      res.status(401).json({
+        error: "A Firebase ID token is required " +
+          "(Authorization: Bearer <token>).",
+      });
+      return;
+    }
+
     const target = req.query.url;
     if (typeof target !== "string" || !isAllowedYahooUrl(target)) {
       res.status(400).json({

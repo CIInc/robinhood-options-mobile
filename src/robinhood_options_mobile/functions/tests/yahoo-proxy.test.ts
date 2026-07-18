@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import {
+  bearerToken,
   cacheKey,
   cacheTtlSeconds,
   isAllowedYahooUrl,
@@ -80,5 +81,20 @@ describe("cacheKey", () => {
     );
     expect(a).not.toBe(b);
     expect(a).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("bearerToken", () => {
+  it("extracts the token from a Bearer header", () => {
+    expect(bearerToken("Bearer abc.def.ghi")).toBe("abc.def.ghi");
+    expect(bearerToken("bearer abc")).toBe("abc"); // case-insensitive
+  });
+
+  it("rejects missing or malformed headers", () => {
+    expect(bearerToken(undefined)).toBeNull();
+    expect(bearerToken("")).toBeNull();
+    expect(bearerToken("Basic abc")).toBeNull();
+    expect(bearerToken("Bearer")).toBeNull();
+    expect(bearerToken("Bearer two tokens")).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:robinhood_options_mobile/main.dart' show auth;
 import 'package:robinhood_options_mobile/model/insider_transaction.dart';
 import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
@@ -902,7 +903,21 @@ class YahooService {
   Future<dynamic> _getJsonViaProxy(String url) async {
     final proxied = '$_corsProxyBase?url=${Uri.encodeComponent(url)}';
     Stopwatch stopwatch = Stopwatch()..start();
-    final response = await httpClient.get(Uri.parse(proxied));
+
+    // The proxy requires a signed-in Firebase user (anonymous is fine) so
+    // third parties can't burn the market-data API credits behind it.
+    if (auth.currentUser == null) {
+      try {
+        await auth.signInAnonymously();
+      } catch (e) {
+        debugPrint('Could not establish a session for the proxy: $e');
+      }
+    }
+    final idToken = await auth.currentUser?.getIdToken();
+
+    final response = await httpClient.get(Uri.parse(proxied), headers: {
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
+    });
     debugPrint(
         "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms (proxy) $url");
     if (response.statusCode == 200) {
