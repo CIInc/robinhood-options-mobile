@@ -1632,6 +1632,20 @@ class FirestoreService {
     });
   }
 
+  /// Streams the durable paper fills (append-only paper_orders
+  /// subcollection), newest first.
+  Stream<List<Map<String, dynamic>>> streamPaperFills(String userId,
+      {int limit = 500}) {
+    return _db
+        .collection(userCollectionName)
+        .doc(userId)
+        .collection('paper_orders')
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((d) => d.data()).toList());
+  }
+
   Stream<List<ForexHolding>> streamPaperForexHoldings(String userId) {
     return getPaperAccountStream(userId).map((snapshot) {
       if (snapshot.exists && snapshot.data()?['forexHoldings'] != null) {

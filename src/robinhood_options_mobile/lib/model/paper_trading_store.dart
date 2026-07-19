@@ -418,6 +418,11 @@ class PaperTradingStore extends ChangeNotifier {
         if (data['history'] != null) {
           _history = List<Map<String, dynamic>>.from(data['history']);
         }
+
+        // One-time migration of the embedded (capped) history into the
+        // durable paper_orders subcollection, then prefer the subcollection.
+        await _migrateHistoryToSubcollection(data);
+        await _loadHistoryFromSubcollection();
       } else {
         _save();
       }
@@ -426,6 +431,58 @@ class PaperTradingStore extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Copies embedded history entries into the paper_orders subcollection
+  /// exactly once (guarded by the historyMigrated flag). Legacy entries
+  /// without an id get a deterministic one so re-runs stay idempotent.
+  Future<void> _migrateHistoryToSubcollection(
+      Map<String, dynamic> data) async {
+    if (_user == null || data['historyMigrated'] == true) return;
+    try {
+      final userDoc = _firestore.collection('user').doc(_user!.uid);
+      final batch = _firestore.batch();
+      for (final entry in _history) {
+        final id = entry['id']?.toString() ??
+            'legacy_${entry['timestamp'] ?? entry['created_at'] ?? ''}'
+                '_${entry['symbol'] ?? ''}'
+                '_${entry['quantity'] ?? ''}';
+        // The subcollection is ordered by created_at; make sure legacy
+        // entries have one or they'd drop out of the query.
+        final normalized = Map<String, dynamic>.from(entry);
+        normalized['created_at'] ??=
+            normalized['timestamp'] ?? normalized['updated_at'] ?? '';
+        batch.set(userDoc.collection('paper_orders').doc(id), normalized);
+      }
+      batch.set(userDoc.collection('paper_account').doc('main'),
+          {'historyMigrated': true}, SetOptions(merge: true));
+      await batch.commit();
+      debugPrint(
+          'Migrated ${_history.length} paper fills to paper_orders.');
+    } catch (e) {
+      debugPrint('Error migrating paper history: $e');
+    }
+  }
+
+  /// Loads the most recent fills from the durable subcollection into the
+  /// in-memory history (newest first). Falls back to the embedded array
+  /// already loaded when the query fails.
+  Future<void> _loadHistoryFromSubcollection() async {
+    if (_user == null) return;
+    try {
+      final snapshot = await _firestore
+          .collection('user')
+          .doc(_user!.uid)
+          .collection('paper_orders')
+          .orderBy('created_at', descending: true)
+          .limit(100)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        _history = snapshot.docs.map((d) => d.data()).toList();
+      }
+    } catch (e) {
+      debugPrint('Error loading paper fills; using embedded history: $e');
     }
   }
 
@@ -694,7 +751,30 @@ class PaperTradingStore extends ChangeNotifier {
     _history = [];
     await _save();
     await _clearEquityHistory();
+    await _clearFillsSubcollection();
     notifyListeners();
+  }
+
+  /// Deletes the durable fills so a reset genuinely starts fresh.
+  Future<void> _clearFillsSubcollection() async {
+    if (_user == null) return;
+    try {
+      final snapshot = await _firestore
+          .collection('user')
+          .doc(_user!.uid)
+          .collection('paper_orders')
+          .get();
+      // Firestore batches cap at 500 operations; the fills are uncapped.
+      for (var i = 0; i < snapshot.docs.length; i += 400) {
+        final batch = _firestore.batch();
+        for (final doc in snapshot.docs.skip(i).take(400)) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      debugPrint('Error clearing paper fills: $e');
+    }
   }
 
   /// Deletes the daily equity snapshots so the portfolio chart restarts
@@ -1737,9 +1817,30 @@ class PaperTradingStore extends ChangeNotifier {
       if (profitLoss != null) 'profitLoss': profitLoss,
       if (multiplier != null) 'multiplier': multiplier,
     });
+    // The embedded array is a bounded cache for quick dashboard loads; the
+    // durable, uncapped record lives in the paper_orders subcollection.
     if (_history.length > 100) {
       _history = _history.sublist(0, 100);
     }
+    _appendFillToSubcollection(_history.first);
+  }
+
+  /// Appends a history entry to the append-only `paper_orders`
+  /// subcollection — the durable transaction record, immune to the
+  /// whole-document overwrites the embedded array is subject to.
+  void _appendFillToSubcollection(Map<String, dynamic> entry) {
+    if (_user == null) return;
+    final id = entry['id']?.toString() ??
+        'paper_${DateTime.now().microsecondsSinceEpoch}';
+    _firestore
+        .collection('user')
+        .doc(_user!.uid)
+        .collection('paper_orders')
+        .doc(id)
+        .set(entry)
+        .catchError((e) {
+      debugPrint('Error appending paper fill $id: $e');
+    });
   }
 
   /// Settles option positions whose expiration has passed, using

@@ -30,6 +30,8 @@ export interface EvaluationResult {
     pendingOrders: any[];
     history: any[];
   };
+  /** Entries added this pass, for the durable paper_orders subcollection. */
+  newHistory: any[];
 }
 
 const num = (v: any): number => Number(v) || 0;
@@ -220,8 +222,11 @@ export function evaluateStockPendingOrders(
   let changed = false;
   let fills = 0;
 
+  const newHistory: any[] = [];
   const addHistory = (fields: Record<string, any>) => {
-    history.unshift(historyEntry(fields));
+    const entry = historyEntry(fields);
+    history.unshift(entry);
+    newHistory.push(entry);
     if (history.length > 100) history.length = 100;
   };
 
@@ -468,5 +473,6 @@ export function evaluateStockPendingOrders(
     changed,
     fills,
     data: { cashBalance: cash, positions, pendingOrders, history },
+    newHistory,
   };
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -584,7 +585,6 @@ class PaperService implements IBrokerageService {
     throw Exception('Fundamentals not found for ${instrumentObj.symbol}');
   }
 
-  @override
   /// Values the paper account (cash + positions marked to market, previous
   /// daily close, saved history) so every surface — account, portfolio,
   /// historicals — reports the same numbers.
@@ -1080,36 +1080,61 @@ class PaperService implements IBrokerageService {
       'expiration',
       'margin'
     };
-    return _firestoreService.getPaperAccountStream(userId).map((snapshot) {
-      final data = snapshot.data() ?? {};
 
-      // Working (resting) stock orders first, as 'confirmed'.
-      final working = (data['pendingOrders'] as List? ?? [])
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((o) => o['assetType']?.toString() == 'stock')
-          .map((o) => InstrumentOrder.fromPaperJson({
-                'id': o['id'],
-                'symbol': o['symbol'],
-                'side': o['side'],
-                'order_type': o['orderType'],
-                'state': 'confirmed',
-                'quantity': o['quantity'],
-                'price': o['limitPrice'] ?? o['stopPrice'],
-                'instrument': (o['instrumentJson'] as Map?)?['url'],
-                'created_at': o['createdAt'],
-                'updated_at': o['createdAt'],
-                'time_in_force': o['timeInForce'],
-                'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
-              }));
+    // Two live sources: working orders from the account document, and the
+    // durable fills from the paper_orders subcollection.
+    late StreamController<List<InstrumentOrder>> controller;
+    StreamSubscription? accountSub;
+    StreamSubscription? fillsSub;
+    List<InstrumentOrder> working = [];
+    List<InstrumentOrder> fills = [];
 
-      final fills = (data['history'] as List? ?? [])
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((d) =>
-              !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
-          .map((d) => InstrumentOrder.fromPaperJson(d));
+    void emit() {
+      if (!controller.isClosed) {
+        controller.add([...working, ...fills]);
+      }
+    }
 
-      return [...working, ...fills];
-    });
+    controller = StreamController<List<InstrumentOrder>>(
+      onListen: () {
+        accountSub =
+            _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
+          final data = snapshot.data() ?? {};
+          working = (data['pendingOrders'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e))
+              .where((o) => o['assetType']?.toString() == 'stock')
+              .map((o) => InstrumentOrder.fromPaperJson({
+                    'id': o['id'],
+                    'symbol': o['symbol'],
+                    'side': o['side'],
+                    'order_type': o['orderType'],
+                    'state': 'confirmed',
+                    'quantity': o['quantity'],
+                    'price': o['limitPrice'] ?? o['stopPrice'],
+                    'instrument': (o['instrumentJson'] as Map?)?['url'],
+                    'created_at': o['createdAt'],
+                    'updated_at': o['createdAt'],
+                    'time_in_force': o['timeInForce'],
+                    'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
+                  }))
+              .toList();
+          emit();
+        });
+        fillsSub = _firestoreService.streamPaperFills(userId).listen((list) {
+          fills = list
+              .where((d) =>
+                  !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
+              .map((d) => InstrumentOrder.fromPaperJson(d))
+              .toList();
+          emit();
+        });
+      },
+      onCancel: () {
+        accountSub?.cancel();
+        fillsSub?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   @override

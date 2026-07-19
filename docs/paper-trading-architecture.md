@@ -176,8 +176,14 @@ user/{uid}/
 │       │                              orderType, limitPrice, stopPrice, trailType,
 │       │                              trailValue, watermark, quantity, timeInForce,
 │       │                              positionEffect, triggered, instrumentJson)
-│       ├── history: [ ... ]          (last 100 fills, unified entry format, newest first)
+│       ├── history: [ ... ]          (last 100 fills — bounded cache; the durable
+│       │                              record is the paper_orders subcollection)
 │       └── updatedAt: serverTimestamp
+├── paper_orders/                     ← append-only durable fills (uncapped);
+│   └── {fillId}                        one doc per fill, unified entry format.
+│                                       Immune to whole-doc overwrites; migrated
+│                                       once from the embedded array
+│                                       (historyMigrated flag)
 └── paper_equity_history/
     └── {YYYY-MM-DD}                  ← one doc per trading day (written by cron)
         ├── open_equity / close_equity
@@ -203,8 +209,10 @@ Every fill appends one entry serving **two consumers**: the dashboard history li
 | `timestamp`, `created_at`, `updated_at` | ISO-8601 | both |
 | `detail`, `profitLoss`, `multiplier` | free text / numbers | dashboard |
 
-`streamPositionOrders` filters out non-stock classes (`option`, `futures`, `strategy`,
-`expiration`) so option/futures fills don't masquerade as stock orders.
+`streamPositionOrders` combines working orders (account doc) with the durable
+fills stream (`paper_orders`, newest-first, limit 500) and filters out non-stock
+classes (`option`, `futures`, `strategy`, `expiration`, `margin`). Every fill —
+client or server-cron — is appended to `paper_orders`; account reset clears it.
 
 ## 5. Key Flows
 

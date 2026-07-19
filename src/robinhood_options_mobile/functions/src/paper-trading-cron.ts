@@ -195,6 +195,14 @@ export const evaluatePaperOrdersCron = onSchedule({
           history: result.data.history,
           updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
+        // Mirror new entries into the durable paper_orders subcollection.
+        const userDoc = doc.ref.parent.parent;
+        if (userDoc) {
+          for (const entry of result.newHistory) {
+            await userDoc.collection("paper_orders")
+              .doc(String(entry.id)).set(entry);
+          }
+        }
         totalFills += result.fills;
       }
       evaluated++;
