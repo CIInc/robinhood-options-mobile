@@ -56,6 +56,7 @@ class _PaperTradingDashboardWidgetState
   final GenerativeService _generativeService = GenerativeService();
   String? _aiAnalysis;
   bool _isAnalyzing = false;
+  bool _insightsExpanded = true;
 
   Future<PortfolioHistoricals>? _futureHistoricals;
   String _chartRange = '1M'; // 1W · 1M · 3M · All
@@ -110,6 +111,7 @@ class _PaperTradingDashboardWidgetState
             generativeService: _generativeService,
             user: widget.user,
             userDocRef: widget.userDocRef,
+            embedded: true,
           ),
         ),
       ),
@@ -121,6 +123,7 @@ class _PaperTradingDashboardWidgetState
     setState(() {
       _isAnalyzing = true;
       _aiAnalysis = null;
+      _insightsExpanded = true;
     });
 
     try {
@@ -279,9 +282,8 @@ class _PaperTradingDashboardWidgetState
                   if (store.pendingOrders.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _buildSectionHeader('Working Orders'),
-                    ...store.pendingOrders.map((order) =>
-                        _buildWorkingOrder(context, store, order,
-                            formatCurrency)),
+                    ...store.pendingOrders.map((order) => _buildWorkingOrder(
+                        context, store, order, formatCurrency)),
                   ],
                   const SizedBox(height: 24),
                   _buildSectionHeader('Order History'),
@@ -364,6 +366,15 @@ class _PaperTradingDashboardWidgetState
                     formatPercentage.format(pnlPercent)), // Simplification
               ],
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _openSearch(context),
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Buy / Sell'),
+              ),
+            ),
           ],
         ),
       ),
@@ -396,42 +407,52 @@ class _PaperTradingDashboardWidgetState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: Colors.purple),
-                const SizedBox(width: 8),
-                const Text(
-                  'AI Insights',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                if (_isAnalyzing)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  IconButton(
-                    icon: const Icon(Icons.refresh, size: 20),
-                    onPressed: () => _analyzePortfolio(store),
+            InkWell(
+              onTap: () =>
+                  setState(() => _insightsExpanded = !_insightsExpanded),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: Colors.purple),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'AI Insights',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-              ],
-            ),
-            const Divider(),
-            if (_isAnalyzing && _aiAnalysis == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20.0),
-                child:
-                    Center(child: Text("Analyzing portfolio performance...")),
-              )
-            else if (_aiAnalysis != null)
-              MarkdownBody(
-                data: _aiAnalysis!,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(fontSize: 14),
-                ),
+                  const Spacer(),
+                  if (_isAnalyzing)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 20),
+                      onPressed: () => _analyzePortfolio(store),
+                    ),
+                  Icon(
+                    _insightsExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey,
+                  ),
+                ],
               ),
+            ),
+            if (_insightsExpanded) ...[
+              const Divider(),
+              if (_isAnalyzing && _aiAnalysis == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child:
+                      Center(child: Text("Analyzing portfolio performance...")),
+                )
+              else if (_aiAnalysis != null)
+                MarkdownBody(
+                  data: _aiAnalysis!,
+                  styleSheet: MarkdownStyleSheet(
+                    p: const TextStyle(fontSize: 14),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
@@ -816,8 +837,7 @@ class _PaperTradingDashboardWidgetState
                                   ? "${quantity.abs().toStringAsFixed(2)} shares (SHORT)"
                                   : "${quantity.toStringAsFixed(2)} shares",
                               style: TextStyle(
-                                  color:
-                                      isShort ? Colors.orange : Colors.grey,
+                                  color: isShort ? Colors.orange : Colors.grey,
                                   fontSize: 12)),
                         ],
                       ),
@@ -1163,9 +1183,9 @@ class _PaperTradingDashboardWidgetState
         ),
         title: Text(
             "${order.side.toUpperCase()} ${order.quantity.toStringAsFixed(order.quantity % 1 == 0 ? 0 : 2)} ${order.symbol}"),
-        subtitle: Text(
-            "$typeLabel · $prices · ${order.timeInForce.toUpperCase()}"
-            "${order.triggered ? ' · TRIGGERED' : ''}"),
+        subtitle:
+            Text("$typeLabel · $prices · ${order.timeInForce.toUpperCase()}"
+                "${order.triggered ? ' · TRIGGERED' : ''}"),
         trailing: IconButton(
           icon: const Icon(Icons.close),
           tooltip: 'Cancel Order',
@@ -1185,8 +1205,7 @@ class _PaperTradingDashboardWidgetState
   Widget _buildHistoryItem(
       Map<String, dynamic> h, NumberFormat formatCurrency) {
     final type = h['type'].toString().toUpperCase();
-    final side =
-        (h['side'] ?? h['action'] ?? '').toString().toUpperCase();
+    final side = (h['side'] ?? h['action'] ?? '').toString().toUpperCase();
     final isBuy = side == 'BUY';
     final color = isBuy
         ? Colors.red

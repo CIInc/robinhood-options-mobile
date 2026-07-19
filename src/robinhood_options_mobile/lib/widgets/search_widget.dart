@@ -52,6 +52,11 @@ class SearchWidget extends StatefulWidget {
   final GenerativeService generativeService;
   final DocumentReference<User>? userDocRef;
 
+  /// When true, the widget is hosted inside another screen that provides
+  /// its own app bar and owns navigation: the internal app bar is hidden
+  /// and back gestures/buttons are allowed to pop the enclosing route.
+  final bool embedded;
+
   const SearchWidget(
     this.brokerageUser,
     this.service, {
@@ -62,6 +67,7 @@ class SearchWidget extends StatefulWidget {
     this.navigatorKey,
     required this.user,
     required this.userDocRef,
+    this.embedded = false,
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -153,8 +159,8 @@ class _SearchWidgetState extends State<SearchWidget>
             .toList();
         if (queries.isNotEmpty) {
           if (widget.service != null) {
-            futureSearch = Future.wait(queries
-                    .map((q) => widget.service!.search(widget.brokerageUser!, q)))
+            futureSearch = Future.wait(queries.map(
+                    (q) => widget.service!.search(widget.brokerageUser!, q)))
                 .then((results) {
               var combined = [];
               for (var result in results) {
@@ -215,7 +221,8 @@ class _SearchWidgetState extends State<SearchWidget>
     super.build(context);
 
     return PopScope(
-        canPop: false, //When false, blocks the current route from being popped.
+        canPop: widget
+            .embedded, //When false, blocks the current route from being popped.
         onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
@@ -334,55 +341,57 @@ class _SearchWidgetState extends State<SearchWidget>
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
-                  SliverAppBar(
-                      floating: false,
-                      snap: false,
-                      pinned: true,
-                      centerTitle: false,
-                      title: const Text(Constants.appTitle), // Search
-                      actions: [
-                        if (auth.currentUser != null)
-                          AutoTradeStatusBadgeWidget(
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
-                            service: widget.service,
-                          ),
-                        // IconButton(
-                        //   icon: const Icon(Icons.sentiment_satisfied_alt),
-                        //   tooltip: 'Sentiment Analysis',
-                        //   onPressed: () {
-                        //     Navigator.push(
-                        //         context,
-                        //         MaterialPageRoute(
-                        //             builder: (context) =>
-                        //                 const SentimentAnalysisDashboardWidget()));
-                        //   },
-                        // ),
-                        IconButton(
-                            icon: auth.currentUser != null
-                                ? (auth.currentUser!.photoURL == null
-                                    ? const Icon(Icons.account_circle)
-                                    : CircleAvatar(
-                                        maxRadius: 12,
-                                        backgroundImage: CachedNetworkImageProvider(
-                                            auth.currentUser!.photoURL!
-                                            //  ?? Constants .placeholderImage, // No longer used
-                                            )))
-                                : const Icon(Icons.account_circle_outlined),
-                            onPressed: () async {
-                              var response = await showProfile(
-                                  context,
-                                  auth,
-                                  _firestoreService,
-                                  widget.analytics,
-                                  widget.observer,
-                                  widget.brokerageUser,
-                                  widget.service);
-                              if (response != null) {
-                                setState(() {});
-                              }
-                            })
-                      ]),
+                  if (!widget.embedded)
+                    SliverAppBar(
+                        floating: false,
+                        snap: false,
+                        pinned: true,
+                        centerTitle: false,
+                        title: const Text(Constants.appTitle), // Search
+                        actions: [
+                          if (auth.currentUser != null)
+                            AutoTradeStatusBadgeWidget(
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              service: widget.service,
+                            ),
+                          // IconButton(
+                          //   icon: const Icon(Icons.sentiment_satisfied_alt),
+                          //   tooltip: 'Sentiment Analysis',
+                          //   onPressed: () {
+                          //     Navigator.push(
+                          //         context,
+                          //         MaterialPageRoute(
+                          //             builder: (context) =>
+                          //                 const SentimentAnalysisDashboardWidget()));
+                          //   },
+                          // ),
+                          IconButton(
+                              icon: auth.currentUser != null
+                                  ? (auth.currentUser!.photoURL == null
+                                      ? const Icon(Icons.account_circle)
+                                      : CircleAvatar(
+                                          maxRadius: 12,
+                                          backgroundImage:
+                                              CachedNetworkImageProvider(
+                                                  auth.currentUser!.photoURL!
+                                                  //  ?? Constants .placeholderImage, // No longer used
+                                                  )))
+                                  : const Icon(Icons.account_circle_outlined),
+                              onPressed: () async {
+                                var response = await showProfile(
+                                    context,
+                                    auth,
+                                    _firestoreService,
+                                    widget.analytics,
+                                    widget.observer,
+                                    widget.brokerageUser,
+                                    widget.service);
+                                if (response != null) {
+                                  setState(() {});
+                                }
+                              })
+                        ]),
                   /*
                   if (done == false) ...[
                     const SliverToBoxAdapter(
@@ -450,8 +459,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               });
                               return;
                             }
-                            _searchDebounce = Timer(
-                                const Duration(milliseconds: 400), () {
+                            _searchDebounce =
+                                Timer(const Duration(milliseconds: 400), () {
                               if (mounted) _performSearch(text);
                             });
                           },
