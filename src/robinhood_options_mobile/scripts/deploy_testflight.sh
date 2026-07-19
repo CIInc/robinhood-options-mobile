@@ -148,7 +148,7 @@ find test -name '*_test.dart' \
 # Bump the version only after the checks pass, so a failed run doesn't
 # leave pubspec.yaml modified.
 perl -0pi -e \
-  "s/^version:\\s*\\Q${version_line}\\E\\s*$/version: ${next_version}+${next_build}/m" \
+  "s/^version:[ \\t]*\\Q${version_line}\\E[ \\t]*$/version: ${next_version}+${next_build}/m" \
   "$PUBSPEC"
 
 printf '\nBuilding signed App Store IPA...\n'
