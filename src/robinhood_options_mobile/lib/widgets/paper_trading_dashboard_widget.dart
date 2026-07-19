@@ -12,7 +12,15 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/equity_historical.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -49,12 +57,27 @@ class _PaperTradingDashboardWidgetState
   String? _aiAnalysis;
   bool _isAnalyzing = false;
 
+  Future<PortfolioHistoricals>? _futureHistoricals;
+  String _chartRange = '1M'; // 1W · 1M · 3M · All
+
   @override
   void initState() {
     super.initState();
+    _loadHistoricals();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshQuotes();
     });
+  }
+
+  void _loadHistoricals() {
+    if (widget.brokerageUser == null) return;
+    _futureHistoricals = widget.service.getPortfolioHistoricals(
+      widget.brokerageUser!,
+      PortfolioHistoricalsStore(),
+      'paper_account',
+      Bounds.t24_7,
+      ChartDateSpan.all,
+    );
   }
 
   Future<void> _refreshQuotes() async {
@@ -66,6 +89,9 @@ class _PaperTradingDashboardWidgetState
     if (widget.brokerageUser != null) {
       await store.refreshQuotes(widget.service, quoteStore,
           optionInstrumentStore, widget.brokerageUser!);
+      if (mounted) {
+        setState(_loadHistoricals);
+      }
     }
   }
 
@@ -199,6 +225,8 @@ class _PaperTradingDashboardWidgetState
                     formatPercentage,
                   ),
                   const SizedBox(height: 16),
+                  _buildEquityChart(),
+                  const SizedBox(height: 16),
                   _buildAiAnalysisCard(store),
                   const SizedBox(height: 16),
                   if (store.positions.isNotEmpty ||
@@ -261,7 +289,10 @@ class _PaperTradingDashboardWidgetState
                     _buildEmptyState('No order history.'),
                   ...store.history
                       .map((h) => _buildHistoryItem(h, formatCurrency)),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Tools'),
+                  _buildToolsSection(context),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -404,6 +435,194 @@ class _PaperTradingDashboardWidgetState
           ],
         ),
       ),
+    );
+  }
+
+  /// Compact single-series equity chart: paper accounts have one daily
+  /// equity value, so the multi-series legend and intraday chrome of the
+  /// full portfolio chart add nothing here.
+  Widget _buildEquityChart() {
+    if (_futureHistoricals == null) return const SizedBox.shrink();
+    final formatCurrency = NumberFormat.simpleCurrency();
+    final formatPercentage =
+        NumberFormat.decimalPercentPattern(decimalDigits: 2);
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: FutureBuilder<PortfolioHistoricals>(
+          future: _futureHistoricals,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const SizedBox(
+                  height: 120,
+                  child: Center(child: Text('Could not load equity history')));
+            }
+            if (!snapshot.hasData) {
+              return const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator()));
+            }
+
+            final now = DateTime.now();
+            final days = switch (_chartRange) {
+              '1W' => 7,
+              '1M' => 30,
+              '3M' => 90,
+              _ => null,
+            };
+            final points = snapshot.data!.equityHistoricals
+                .where((e) =>
+                    e.beginsAt != null &&
+                    (days == null ||
+                        e.beginsAt!
+                            .isAfter(now.subtract(Duration(days: days)))))
+                .toList();
+
+            Widget body;
+            if (points.length < 2) {
+              body = const SizedBox(
+                  height: 120,
+                  child: Center(
+                      child: Text('Not enough history for this range yet.')));
+            } else {
+              final open = points.first.adjustedOpenEquity ??
+                  points.first.closeEquity ??
+                  0;
+              final close = points.last.adjustedCloseEquity ??
+                  points.last.closeEquity ??
+                  0;
+              final change = close - open;
+              final changePercent = open != 0 ? change / open : 0.0;
+              final color = change >= 0 ? Colors.green : Colors.red;
+
+              body = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                          change >= 0
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: color,
+                          size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        "${formatCurrency.format(change)} (${formatPercentage.format(changePercent)})",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: color),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(_chartRange == 'All' ? 'all time' : _chartRange,
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 160,
+                    child: charts.TimeSeriesChart(
+                      [
+                        charts.Series<EquityHistorical, DateTime>(
+                          id: 'Equity',
+                          domainFn: (e, _) => e.beginsAt!,
+                          measureFn: (e, _) =>
+                              e.adjustedCloseEquity ?? e.closeEquity,
+                          data: points,
+                        ),
+                      ],
+                      animate: false,
+                      primaryMeasureAxis: const charts.NumericAxisSpec(
+                        tickProviderSpec: charts.BasicNumericTickProviderSpec(
+                            zeroBound: false),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                body,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ['1W', '1M', '3M', 'All']
+                      .map((range) => ChoiceChip(
+                            label: Text(range),
+                            selected: _chartRange == range,
+                            onSelected: (_) =>
+                                setState(() => _chartRange = range),
+                          ))
+                      .toList(),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// One labeled section for the analysis/automation tools that used to be
+  /// stacked full-width across the paper home screen.
+  Widget _buildToolsSection(BuildContext context) {
+    return Column(
+      children: [
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.psychology, color: Colors.purple),
+            title: const Text('AI Trading Coach'),
+            subtitle: const Text('Habits, biases & personalized coaching'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              if (widget.brokerageUser == null) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PersonalizedCoachingWidget(
+                    service: widget.service,
+                    user: widget.brokerageUser!,
+                    userDoc: widget.userDocRef,
+                    firebaseUser: widget.user,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    generativeService: _generativeService,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        AgenticTradingCardWidget(
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
+          analytics: widget.analytics,
+        ),
+        FuturesAutoTradingCardWidget(
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+          service: widget.service,
+          analytics: widget.analytics,
+        ),
+        OptionsFlowCardWidget(
+          brokerageUser: widget.brokerageUser,
+          service: widget.service,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: _generativeService,
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+          includePortfolioSymbols: true,
+        ),
+      ],
     );
   }
 

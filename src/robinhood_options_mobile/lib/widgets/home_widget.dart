@@ -1361,6 +1361,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     //super.build(context);
 
+    // Paper accounts get the focused simulator dashboard as their Portfolio
+    // tab instead of the dense multi-tool home. Data loading in initState
+    // still runs, so shared stores stay populated. Live accounts are
+    // untouched.
+    if (widget.brokerageUser?.source == BrokerageSource.paper &&
+        widget.service != null) {
+      return PaperTradingDashboardWidget(
+        analytics: widget.analytics,
+        observer: widget.observer,
+        brokerageUser: widget.brokerageUser,
+        service: widget.service!,
+        user: widget.user,
+        userDocRef: widget.userDoc,
+      );
+    }
+
     /*
     return Navigator(
         key: widget.navigatorKey,
