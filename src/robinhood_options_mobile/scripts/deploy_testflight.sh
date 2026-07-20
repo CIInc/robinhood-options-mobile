@@ -151,6 +151,13 @@ perl -0pi -e \
   "s/^version:[ \\t]*\\Q${version_line}\\E[ \\t]*$/version: ${next_version}+${next_build}/m" \
   "$PUBSPEC"
 
+# flutter test/analyze leave debug-flavored ephemeral SwiftPM state that the
+# release build then rewrites while xcodebuild is already resolving packages,
+# failing with "Package.swift was modified during the build" or "the package
+# at .../.packages/<plugin> cannot be accessed". Removing the ephemeral
+# directory makes the build regenerate it once, before resolution starts.
+rm -rf "$PROJECT_DIR/ios/Flutter/ephemeral"
+
 printf '\nBuilding signed App Store IPA...\n'
 flutter build ipa \
   --release \
