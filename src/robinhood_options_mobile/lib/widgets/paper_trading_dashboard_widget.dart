@@ -61,6 +61,11 @@ class _PaperTradingDashboardWidgetState
   Future<PortfolioHistoricals>? _futureHistoricals;
   String _chartRange = '1M'; // 1W · 1M · 3M · All
 
+  // Swipeable carousel holding the equity chart (page 0) and the asset
+  // allocation pie (page 1).
+  final PageController _chartPageController = PageController();
+  int _chartPage = 0;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +73,12 @@ class _PaperTradingDashboardWidgetState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshQuotes();
     });
+  }
+
+  @override
+  void dispose() {
+    _chartPageController.dispose();
+    super.dispose();
   }
 
   void _loadHistoricals() {
@@ -228,14 +239,9 @@ class _PaperTradingDashboardWidgetState
                     formatPercentage,
                   ),
                   const SizedBox(height: 16),
-                  _buildEquityChart(),
+                  _buildChartCarousel(store, formatCurrency),
                   const SizedBox(height: 16),
                   _buildAiAnalysisCard(store),
-                  const SizedBox(height: 16),
-                  if (store.positions.isNotEmpty ||
-                      store.optionPositions.isNotEmpty ||
-                      store.futuresPositions.isNotEmpty)
-                    _buildAllocationChart(store, formatCurrency),
                   const SizedBox(height: 24),
                   _buildSectionHeader('Positions'),
                   if (store.positions.isEmpty &&
@@ -456,6 +462,58 @@ class _PaperTradingDashboardWidgetState
           ],
         ),
       ),
+    );
+  }
+
+  /// Horizontally swipeable carousel: the equity chart on page 0, the asset
+  /// allocation pie on page 1. Allocation only exists when there are open
+  /// positions, so with none the carousel collapses to just the chart.
+  Widget _buildChartCarousel(
+      PaperTradingStore store, NumberFormat formatCurrency) {
+    final hasPositions = store.positions.isNotEmpty ||
+        store.optionPositions.isNotEmpty ||
+        store.futuresPositions.isNotEmpty;
+
+    final pages = <Widget>[
+      _buildEquityChart(),
+      if (hasPositions) _buildAllocationChart(store, formatCurrency),
+    ];
+
+    if (pages.length < 2) return pages.first;
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 330,
+          child: PageView(
+            controller: _chartPageController,
+            onPageChanged: (i) => setState(() => _chartPage = i),
+            children: pages
+                .map((page) =>
+                    Align(alignment: Alignment.topCenter, child: page))
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(pages.length, (i) {
+            final selected = i == _chartPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: selected ? 20 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
