@@ -31,6 +31,49 @@ class TradeSignalsProvider with ChangeNotifier {
               '**Parameters**: 30-60 bar lookback with `MA5`, `MA10`, `MA20`.\n'
               '**Trigger**: Pattern confidence ≥60%'
         };
+      case 'sma':
+        return {
+          'title': 'Simple Moving Average (SMA)',
+          'description':
+              'A Simple Moving Average is the average closing price over a selected number of bars. '
+                  'It smooths short-term price noise to make the underlying trend easier to see. '
+                  'Price above the SMA is treated as bullish here, while price below it is treated as bearish.',
+          'technicalDetails':
+              '**Formula**: `SMA = Sum of closing prices / Number of bars`\n'
+                  '\n'
+                  '**Periods shown**:\n'
+                  '- `10` and `20`: Short-term trend\n'
+                  '- `50`: Intermediate trend\n'
+                  '- `200`: Long-term trend\n'
+                  '\n'
+                  '**Interpretation**:\n'
+                  '- **Bullish**: Current price is above the SMA\n'
+                  '- **Bearish**: Current price is below the SMA\n'
+                  '\n'
+                  '_Moving averages lag price and should be used with other indicators for confirmation._'
+        };
+      case 'ema':
+        return {
+          'title': 'Exponential Moving Average (EMA)',
+          'description':
+              'An Exponential Moving Average tracks the average price while giving more weight to recent bars. '
+                  'It reacts faster to price changes than an SMA. Price above the EMA is treated as bullish here, '
+                  'while price below it is treated as bearish.',
+          'technicalDetails':
+              '**Formula**: `EMA today = (Close × multiplier) + (EMA yesterday × (1 - multiplier))`\n'
+                  '\n'
+                  '`Multiplier = 2 / (Period + 1)`\n'
+                  '\n'
+                  '**Periods shown**:\n'
+                  '- `12`: Faster, short-term trend\n'
+                  '- `26`: Slower trend baseline\n'
+                  '\n'
+                  '**Interpretation**:\n'
+                  '- **Bullish**: Current price is above the EMA\n'
+                  '- **Bearish**: Current price is below the EMA\n'
+                  '\n'
+                  '_Because it emphasizes recent prices, EMA can respond quickly but may produce more false signals._'
+        };
       case 'momentum':
         return {
           'title': 'Momentum (RSI)',
@@ -413,6 +456,24 @@ class TradeSignalsProvider with ChangeNotifier {
               '- **HOLD**: -0.05 ≤ CMF ≤ 0.05 (Neutral)\n'
               '\n'
               '_Confirms trend strength with volume flow._'
+        };
+      case 'ttmSqueeze':
+        return {
+          'title': 'TTM Squeeze',
+          'description':
+              'TTM Squeeze identifies periods when volatility contracts and price may be preparing for a larger move. '
+                  'An active squeeze means Bollinger Bands have moved inside Keltner Channels. It signals compression, '
+                  'but does not predict whether the eventual move will be up or down.',
+          'technicalDetails': '**Components**:\n'
+              '- Bollinger Bands: Price volatility based on standard deviation\n'
+              '- Keltner Channels: Volatility envelope based on Average True Range\n'
+              '\n'
+              '**Interpretation**:\n'
+              '- **Squeeze ON**: Bollinger Bands are inside Keltner Channels; volatility is compressed\n'
+              '- **No Squeeze**: Volatility is not currently compressed\n'
+              '- **Release**: Bands move back outside the channels; a larger move may be beginning\n'
+              '\n'
+              '_Use momentum and trend indicators to assess the likely direction of a squeeze release._'
         };
       case 'fibonacciRetracements':
         return {

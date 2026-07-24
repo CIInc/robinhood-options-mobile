@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PUBSPEC="$PROJECT_DIR/pubspec.yaml"
 EXPORT_OPTIONS="$PROJECT_DIR/ios/ExportOptions.plist"
+IOS_WORKSPACE="$PROJECT_DIR/ios/Runner.xcworkspace"
 ENV_FILE="$PROJECT_DIR/.testflight.env"
 
 requested_version=""
@@ -73,6 +74,7 @@ done
 [[ "$(uname -s)" == "Darwin" ]] || die "TestFlight deployment requires macOS"
 [[ -f "$PUBSPEC" ]] || die "pubspec.yaml not found at $PUBSPEC"
 [[ -f "$EXPORT_OPTIONS" ]] || die "Export options not found at $EXPORT_OPTIONS"
+[[ -d "$IOS_WORKSPACE" ]] || die "Xcode workspace not found at $IOS_WORKSPACE"
 
 version_line="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' "$PUBSPEC")"
 [[ -n "$version_line" ]] || die "could not read version from pubspec.yaml"
@@ -101,7 +103,7 @@ if "$dry_run"; then
   exit 0
 fi
 
-for command_name in flutter xcrun plutil; do
+for command_name in flutter xcodebuild xcrun plutil; do
   command -v "$command_name" >/dev/null || die "required command not found: $command_name"
 done
 
@@ -157,6 +159,45 @@ perl -0pi -e \
 # at .../.packages/<plugin> cannot be accessed". Removing the ephemeral
 # directory makes the build regenerate it once, before resolution starts.
 rm -rf "$PROJECT_DIR/ios/Flutter/ephemeral"
+
+# Generate the release-flavored plugin package before xcodebuild begins. This
+# avoids resolving a partially generated package graph and prevents misleading
+# SwiftPM errors such as "target '<plugin>' ... is empty".
+printf '\nGenerating iOS release configuration...\n'
+flutter build ios \
+  --config-only \
+  --release \
+  --build-name "$next_version" \
+  --build-number "$next_build"
+
+generated_package="$PROJECT_DIR/ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift"
+[[ -s "$generated_package" ]] || \
+  die "Flutter did not generate the iOS plugin Swift package"
+
+# Resolve packages as a separate, completed operation before the archive. This
+# refreshes stale Xcode SwiftPM metadata and keeps dependency failures out of
+# the more expensive signed IPA build. Xcode can retain a stale directory view
+# after Flutter atomically replaces the local package links, causing a first
+# resolution pass to report every target as empty even though its sources are
+# present. A subsequent pass refreshes that metadata, so retry a bounded number
+# of times before treating resolution as a real failure.
+printf '\nResolving Xcode Swift package dependencies...\n'
+swiftpm_resolved=false
+for resolve_attempt in 1 2 3; do
+  if xcodebuild -resolvePackageDependencies \
+    -workspace "$IOS_WORKSPACE" \
+    -scheme Runner; then
+    swiftpm_resolved=true
+    break
+  fi
+
+  if ((resolve_attempt < 3)); then
+    printf 'SwiftPM resolution attempt %s failed; retrying after Xcode refreshes local package metadata...\n' \
+      "$resolve_attempt" >&2
+    sleep "$resolve_attempt"
+  fi
+done
+"$swiftpm_resolved" || die "Xcode could not resolve Swift package dependencies after 3 attempts"
 
 printf '\nBuilding signed App Store IPA...\n'
 flutter build ipa \

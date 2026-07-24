@@ -19,8 +19,8 @@ import 'package:robinhood_options_mobile/model/instrument_historicals_selection_
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/full_screen_instrument_chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 import 'package:robinhood_options_mobile/utils/technical_indicators.dart';
-import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 
 const String _indicatorRendererId = 'indicatorLine';
 
@@ -2278,22 +2278,22 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                             _buildSectionHeader(context, "Moving Averages"),
                             _buildIndicatorWithSignal("SMA 10", sma10,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'sma'),
                             _buildIndicatorWithSignal("SMA 20", sma20,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'sma'),
                             _buildIndicatorWithSignal("SMA 50", sma50,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'sma'),
                             _buildIndicatorWithSignal("SMA 200", sma200,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'sma'),
                             _buildIndicatorWithSignal("EMA 12", ema12,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'ema'),
                             _buildIndicatorWithSignal("EMA 26", ema26,
                                 (v) => _comparePrice(currentPrice, v),
-                                indicatorKey: 'priceMovement'),
+                                indicatorKey: 'ema'),
                             _buildIndicatorWithSignal("VWAP", vwap,
                                 (v) => _comparePrice(currentPrice, v),
                                 indicatorKey: 'vwap'),
@@ -2341,7 +2341,8 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                                   text: "No Squeeze", color: Colors.grey);
                             },
                                 valueText:
-                                    isSqueezeIndepth ? "Active" : "Inactive"),
+                                    isSqueezeIndepth ? "Active" : "Inactive",
+                                indicatorKey: 'ttmSqueeze'),
                           ])));
             },
           );
@@ -2376,22 +2377,32 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
       signal = getSignal(value);
     }
 
-    String tooltipMessage = signal.text;
-    if (indicatorKey != null) {
-      final doc = TradeSignalsProvider.indicatorDocumentation(indicatorKey);
-      if (doc.containsKey('description')) {
-        tooltipMessage = "${signal.text}\n\n${doc['description']}";
-      }
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.w500)),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(label,
+                      style: const TextStyle(fontWeight: FontWeight.w500)),
+                ),
+                if (indicatorKey != null) ...[
+                  const SizedBox(width: 2),
+                  IconButton(
+                    onPressed: () => _showIndicatorDefinition(indicatorKey),
+                    icon: const Icon(Icons.info_outline, size: 18),
+                    tooltip: 'About $label',
+                    visualDensity: VisualDensity.compact,
+                    constraints:
+                        const BoxConstraints(minWidth: 36, minHeight: 36),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(width: 8),
           Flexible(
@@ -2405,9 +2416,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Tooltip(
-                    message: tooltipMessage,
-                    // triggerMode: TooltipTriggerMode.tap,
-                    showDuration: const Duration(seconds: 30),
+                    message: signal.text,
                     child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
@@ -2427,6 +2436,28 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
               ],
             ),
           )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showIndicatorDefinition(String indicatorKey) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            child: IndicatorDocumentationWidget(
+              indicatorKey: indicatorKey,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );

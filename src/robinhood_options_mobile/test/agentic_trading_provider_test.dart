@@ -90,6 +90,9 @@ void main() {
         'stochastic',
         'atr',
         'obv',
+        'sma',
+        'ema',
+        'ttmSqueeze',
       ];
 
       for (final indicator in indicators) {
