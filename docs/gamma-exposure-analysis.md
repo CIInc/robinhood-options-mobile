@@ -70,7 +70,26 @@ To provide extreme architectural resilience against server-side platform rate li
 
 ---
 
-## 4. Reliability, Validation, and Workflow Notes
+## 4. GEX-Based Trading Strategies & Automated Exits
+RealizeAlpha integrates GEX data directly into its **Auto-Trading** engine, allowing for regime-aware execution and risk management.
+
+### Automated Technical Exits
+Traders can now configure automated sell orders based on dealer gamma thresholds:
+*   **GEX Exit Threshold**: Set a specific dollar-weighted threshold (e.g., \$0M) that triggers an automatic position exit. 
+*   **Regime Shift Protection**: Automatically close positions when the market transitions from a "Long Gamma" (pinning/stable) state into a "Short Gamma" (accelerating/volatile) state to protect capital from expanding volatility.
+
+### Pre-Built GEX Strategies
+The platform includes professional strategy templates optimized for gamma regimes:
+1.  **GEX Mean Reversion**: Targets "Pinning" environments. Enters when GEX is strongly positive and price is at Bollinger Band extremes, expecting price to be "magnetized" back toward the highest GEX strike levels.
+2.  **GEX Trend Accelerator**: Capitalizes on "Short Gamma" acceleration. Enters when GEX is negative and momentum indicators (MACD, ADX) confirm a breakout, expecting market-maker hedging to amplify the directional move.
+3.  **GEX Intraday Scalp**: Optimized for 15-minute charts using GEX magnitude and VWAP to identify high-probability intraday turning points or continuation zones.
+
+### Historical Validation
+The **Backtesting Engine** has been upgraded to support GEX exit simulation, enabling users to verify the historical performance of gamma-based regime filtering across multi-year data sets.
+
+---
+
+## 5. Reliability, Validation, and Workflow Notes
 *   **Backend + Client Fallback**: The GEX stack continues to prefer Cloud Functions first and gracefully falls back to device-side computation when server-side requests fail or return incomplete data.
 *   **Validation Coverage**: Serialization/deserialization validation exists for the GEX data model, and backend tests cover the Cloud Function path.
 *   **Mobile-first Layout Tuning**: Leader cards, strike detail panels, and dashboard previews were adjusted to reduce overflow and improve scanning on narrow screens.

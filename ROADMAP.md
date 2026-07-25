@@ -214,6 +214,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Multi-Account Selector & Active Sync:** Created global account choice state synced to SharedPreferences and mapped to interactive checkable list controls under User Settings.
 - ✅ **Platform Compliance & Cleanup:** Registered hardware permission descriptions in plist files, upgraded native compilation dependencies, and removed legacy Plaid library remnants.
 
+### v0.36.1 ✅ (Released July 24, 2026)
+**GEX Strategy Suite & Technical Exits**
+- ✅ **GEX Strategy Suite**: Professional templates for Mean Reversion, Trend Acceleration, and Intraday Scalping using dealer gamma.
+- ✅ **Technical Exit Engine**: Automated closing of positions based on RSI overbought, Signal Strength decay, or GEX regime shifts.
+- ✅ **Backtesting Simulation Upgrades**: Historical validation for technical exit triggers.
+- ✅ **GEX Documentation**: Detailed theory integration for pinning, walls, and flips in app help sections.
+- ✅ **UX Polishing**: Login carousel indicators and terminology alignment ("Auto-Trading").
+
 ### v0.37.0 (Q3 2026 - Late July)
 **Quantitative Research Workbench & Schwab API Integration Phase 2**
 - Options order placement on Schwab ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))

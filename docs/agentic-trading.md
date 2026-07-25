@@ -127,7 +127,7 @@ The Search tab provides powerful tools to discover and filter trade signals gene
   - **Weak (0-49):** Low-confidence or conflicting signals (often used for contrarian analysis).
 - **Strategy Template Filtering:** Filter signals to only show those that align with specific pre-defined strategies (e.g., "Momentum Master", "Mean Reversion").
   - This allows you to focus on signals that match your preferred trading style.
-- **Indicator-Specific Filtering:** Granular control over all 15 indicators. Each indicator chip supports a 4-way toggle:
+- **Indicator-Specific Filtering:** Granular control over all 19 indicators. Each indicator chip supports a 4-way toggle:
   - **Off:** No filter applied.
   - **BUY:** Show only signals where this indicator is bullish.
   - **SELL:** Show only signals where this indicator is bearish.
@@ -198,6 +198,9 @@ The system comes with a library of professionally designed templates to get you 
 3.  **Trend Follower** (Swing): Rides established trends using Moving Averages, Ichimoku Cloud, ADX trend strength, and OBV flow.
 4.  **Volatility Breakout (1h)** (Intraday): Exploits explosive moves from squeeze conditions using Bollinger Bands, CCI, ATR, and VWAP.
 5.  **Intraday Scalper (15m)** (Scalping): Short-term scalping via CCI/Stochastic with strict risk management (partial exits, tight stops).
+6.  **GEX Mean Reversion** (Regime): Exploits "Pinning" regimes when dealer gamma is positive, using Bollinger Bands and Stochastic for entry in a low-volatility environment.
+7.  **GEX Trend Accelerator** (Momentum): Rides high-volatility "Trend" regimes when GEX is negative, using MACD and ADX to confirm directional acceleration.
+8.  **GEX Intraday Scalp** (15m): Rapid scalping leveraging GEX magnitude and VWAP value levels for quick intraday turns.
 6.  **Custom EMA Trend** (Custom): Automatically engages when Price crosses above the 21-period EMA.
 7.  **Crypto Proxy Momentum** (Crypto): High-volatility momentum strategy (CCI, RSI) designed for crypto-correlated stocks.
 8.  **Golden Cross & RSI Filter** (Classic): Classic 50/200 SMA Cross combined with RSI < 70 to avoid buying tops.

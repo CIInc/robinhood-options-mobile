@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-07-24
+**GEX Strategy Suite, Technical Exits, and Backtesting Simulation Upgrades**
+
+### Added
+- **GEX Trading Strategy Templates:** Introduced three new professional-grade strategies leveraging options dealer positioning:
+  - **GEX Mean Reversion:** Exploits "Pinning" regimes when GEX is strongly positive.
+  - **GEX Trend Accelerator:** Capitalizes on "gamma-short" acceleration regimes.
+  - **GEX Intraday Scalp:** Fast-paced 15-minute scalping using GEX magnitude and VWAP.
+- **Automated GEX Technical Exits:** Implemented real-time monitoring of dealer gamma levels during the auto-trading cycle. Users can now set a custom GEX threshold (e.g., \$0M) to automatically exit positions when the market regime shifts.
+- **Enhanced Backtesting Simulation:** Upgraded the historical simulation engine to support technical exits for RSI, Signal Strength, and GEX. Users can now validate the effectiveness of their exit thresholds on historical data.
+- **Indicator Documentation Integration:** Added "Gamma Exposure (GEX)" to the technical documentation suite. Interactive help buttons in the Dashboard and Instrument views now provide detailed theory on pinning, walls, and gamma flips.
+- **Login Carousel Indicators:** Added animated page indicators to the brokerage selection screen in the Login view for improved discoverability of connection options.
+
+### Changed
+- **Branding Update:** Renamed "Stocks Agentic Trading" to **"Stocks Auto-Trading"** to align with "Futures Auto-Trading" terminology across the platform.
+- **Signal Discovery Enhancements:** Updated the `TradingStrategiesPage` search mapping to support "GEX" keywords for rapid strategy filtering.
+
+### Fixed
+- **Firestore GEX Indexing:** Resolved a "query requires index" error by adding a composite index for GEX-based signal filtering in `firestore.indexes.json`.
+- **Backtesting Type Safety:** Fixed TypeScript property access errors and added null-safety guards for technical indicators in the `runBacktest` cloud function.
+- **UI Consistency:** Removed unused private methods and variables in the `AgenticTradingSettingsWidget` to clean up compile warnings.
+
 ## [0.36.0] - 2026-07-07
 **Robinhood Model Context Protocol (MCP) Client, Interactive Conversational Trade Boards, and Selected Account Sync**
 

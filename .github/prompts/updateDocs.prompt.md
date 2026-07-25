@@ -1,7 +1,7 @@
 ---
 name: updateDocs
 description: Update markdown documentation based on recent changes.
-argument-hint: Provide a version number to base the updates on recent commits since the previous version (e.g., 0.31.6).
+argument-hint: Provide the next version number to base the updates on recent commits since the previous version (e.g., 0.31.6).
 ---
 
 Update all markdown documentation based on recent commits since the previous version.
