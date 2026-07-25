@@ -50,6 +50,13 @@ interface BacktestParams {
   riskPerTrade: number;
   atrMultiplier: number;
   customIndicators: CustomIndicatorConfig[];
+  // Technical Exits
+  rsiExitEnabled: boolean;
+  rsiExitThreshold: number;
+  signalStrengthExitEnabled: boolean;
+  signalStrengthExitThreshold: number;
+  gexExitEnabled: boolean;
+  gexExitThreshold: number;
 }
 
 interface Trade {
@@ -205,6 +212,14 @@ export const runBacktest = onCall({
         riskPerTrade: request.data.riskPerTrade || 0.01,
         atrMultiplier: request.data.atrMultiplier || 2.0,
         customIndicators: request.data.customIndicators || [],
+        rsiExitEnabled: request.data.rsiExitEnabled || false,
+        rsiExitThreshold: request.data.rsiExitThreshold || 80,
+        signalStrengthExitEnabled:
+          request.data.signalStrengthExitEnabled || false,
+        signalStrengthExitThreshold:
+          request.data.signalStrengthExitThreshold || 40,
+        gexExitEnabled: request.data.gexExitEnabled || false,
+        gexExitThreshold: request.data.gexExitThreshold || 0,
       });
     }));
 
@@ -463,6 +478,12 @@ async function runBacktestSimulation(params: BacktestParams) {
     riskPerTrade,
     atrMultiplier,
     customIndicators,
+    rsiExitEnabled,
+    rsiExitThreshold,
+    signalStrengthExitEnabled,
+    signalStrengthExitThreshold,
+    gexExitEnabled,
+    gexExitThreshold,
   } = params;
 
   const trades: Trade[] = [];
@@ -657,6 +678,29 @@ async function runBacktestSimulation(params: BacktestParams) {
 
         if (hour === closeHour && minute >= (60 - marketCloseExitMinutes)) {
           exitReason = "Market Close Exit";
+        }
+      }
+
+      // Technical Exits
+      if (!exitReason && rsiExitEnabled) {
+        const rsi = multiIndicatorResult.indicators.momentum?.value;
+        if (rsi !== undefined && rsi !== null && rsi >= rsiExitThreshold) {
+          exitReason = `RSI Exit (${rsi.toFixed(1)})`;
+        }
+      }
+
+      if (!exitReason && signalStrengthExitEnabled) {
+        const strength = multiIndicatorResult.signalStrength;
+        if (strength !== undefined && strength !== null &&
+          strength < signalStrengthExitThreshold) {
+          exitReason = `Weak Signal Exit (${strength.toFixed(1)}%)`;
+        }
+      }
+
+      if (!exitReason && gexExitEnabled) {
+        const gex = multiIndicatorResult.indicators.gammaExposure?.value;
+        if (gex !== undefined && gex !== null && gex < gexExitThreshold) {
+          exitReason = `GEX Exit ($${(gex / 1e6).toFixed(1)}M)`;
         }
       }
 

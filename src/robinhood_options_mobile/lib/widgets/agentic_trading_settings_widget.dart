@@ -63,6 +63,7 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _minSignalStrengthController;
   late TextEditingController _rsiExitThresholdController;
   late TextEditingController _signalStrengthExitThresholdController;
+  late TextEditingController _gexExitThresholdController;
   late TextEditingController _timeBasedExitMinutesController;
   late TextEditingController _marketCloseExitMinutesController;
   late TextEditingController _riskPerTradeController;
@@ -200,6 +201,8 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.rsiExitThreshold.toString() ?? '80.0');
     _signalStrengthExitThresholdController = TextEditingController(
         text: strategy?.signalStrengthExitThreshold.toString() ?? '40.0');
+    _gexExitThresholdController = TextEditingController(
+        text: ((strategy?.gexExitThreshold ?? 0.0) / 1e6).toString());
 
     double riskOffSizeReduction = strategy?.riskOffSizeReduction ?? 0.5;
     double riskOffSizeReductionPercent = riskOffSizeReduction * 100;
@@ -251,6 +254,7 @@ class _AgenticTradingSettingsWidgetState
     _minSignalStrengthController.dispose();
     _rsiExitThresholdController.dispose();
     _signalStrengthExitThresholdController.dispose();
+    _gexExitThresholdController.dispose();
     _riskPerTradeController.dispose();
     _rocPeriodController.dispose();
     _atrMultiplierController.dispose();
@@ -513,6 +517,9 @@ class _AgenticTradingSettingsWidgetState
       signalStrengthExitEnabled: strategySource.signalStrengthExitEnabled,
       signalStrengthExitThreshold:
           double.tryParse(_signalStrengthExitThresholdController.text) ?? 40.0,
+      gexExitEnabled: strategySource.gexExitEnabled,
+      gexExitThreshold:
+          (double.tryParse(_gexExitThresholdController.text) ?? 0.0) * 1e6,
     );
 
     return AgenticTradingConfig(
@@ -1025,6 +1032,9 @@ class _AgenticTradingSettingsWidgetState
       signalStrengthExitEnabled: strategySource.signalStrengthExitEnabled,
       signalStrengthExitThreshold:
           double.tryParse(_signalStrengthExitThresholdController.text) ?? 40.0,
+      gexExitEnabled: strategySource.gexExitEnabled,
+      gexExitThreshold:
+          (double.tryParse(_gexExitThresholdController.text) ?? 0.0) * 1e6,
     );
   }
 
@@ -1125,14 +1135,6 @@ class _AgenticTradingSettingsWidgetState
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildVerticalDivider(ColorScheme colorScheme) {
-    return Container(
-      height: 24,
-      width: 1,
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
     );
   }
 
@@ -1734,7 +1736,6 @@ class _AgenticTradingSettingsWidgetState
     }
 
     // Pre-calculate Last Trade
-    String lastTradeLabel = 'Last';
     String lastTradeValue = '--:--';
     Color? lastTradeColor;
     if (agenticTradingProvider.autoTradeHistory.isNotEmpty) {
@@ -1747,18 +1748,10 @@ class _AgenticTradingSettingsWidgetState
       } else if (action.contains('SELL')) {
         lastTradeColor = Colors.orange;
       }
-
-      if (last['timestamp'] != null) {
-        final dt = DateTime.tryParse(last['timestamp'] ?? '');
-        if (dt != null) {
-          lastTradeLabel = _formatTime(dt); // e.g. "5m ago"
-        }
-      }
     }
 
     // Pre-calculate Perf
     String perfValue = 'View >';
-    Color? perfColor;
     double totalPnL = 0;
     int closedTrades = 0;
     for (var t in agenticTradingProvider.autoTradeHistory) {
@@ -1773,9 +1766,6 @@ class _AgenticTradingSettingsWidgetState
       perfValue = currency.format(totalPnL);
       if (totalPnL > 0) {
         perfValue = '+$perfValue';
-        perfColor = Colors.green;
-      } else if (totalPnL < 0) {
-        perfColor = Colors.red;
       }
     } else if (agenticTradingProvider.dailyTradeCount > 0) {
       perfValue = '${agenticTradingProvider.dailyTradeCount} Runs';
@@ -3243,6 +3233,7 @@ class _AgenticTradingSettingsWidgetState
           rsiExitThresholdController: _rsiExitThresholdController,
           signalStrengthExitThresholdController:
               _signalStrengthExitThresholdController,
+          gexExitThresholdController: _gexExitThresholdController,
           trailingStopEnabled:
               agenticTradingProvider.config.strategyConfig.trailingStopEnabled,
           timeBasedExitEnabled:
@@ -3255,6 +3246,8 @@ class _AgenticTradingSettingsWidgetState
               agenticTradingProvider.config.strategyConfig.rsiExitEnabled,
           signalStrengthExitEnabled: agenticTradingProvider
               .config.strategyConfig.signalStrengthExitEnabled,
+          gexExitEnabled:
+              agenticTradingProvider.config.strategyConfig.gexExitEnabled,
           exitStages: agenticTradingProvider.config.strategyConfig.exitStages,
           onTrailingStopChanged: (val) {
             final newConfig = _createFullConfigFromSettings(
@@ -3302,6 +3295,14 @@ class _AgenticTradingSettingsWidgetState
                 baseConfig: agenticTradingProvider.config.copyWith(
                     strategyConfig: agenticTradingProvider.config.strategyConfig
                         .copyWith(signalStrengthExitEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onGexExitChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(gexExitEnabled: val)));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onExitStagesChanged: (stages) {
@@ -3706,69 +3707,6 @@ class _AgenticTradingSettingsWidgetState
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
           children: children,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon, {
-    VoidCallback? onTap,
-    Color? valueColor,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      color: colorScheme.surface,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 14, color: colorScheme.primary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: valueColor ?? colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
         ),
       ),
     );

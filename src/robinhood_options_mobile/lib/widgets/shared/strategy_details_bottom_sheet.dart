@@ -47,6 +47,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
       'ichimoku': 'Ichimoku',
       'cci': 'CCI',
       'parabolicSar': 'Parabolic SAR',
+      'gammaExposure': 'GEX',
     };
     return names[key] ?? key;
   }
@@ -741,6 +742,7 @@ class StrategyDetailsBottomSheet extends StatelessWidget {
       'ichimoku': 'Ichimoku',
       'cci': 'CCI',
       'parabolicSar': 'Parabolic SAR',
+      'gammaExposure': 'GEX',
     };
     return names[key] ?? key;
   }

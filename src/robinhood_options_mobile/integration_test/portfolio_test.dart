@@ -73,7 +73,7 @@ void main() {
       expect(aiCoach, findsOneWidget);
 
       // Verify Automated Trading Card
-      final autoTrade = find.text('Stocks Agentic Trading');
+      final autoTrade = find.text('Stocks Auto-Trading');
       expect(autoTrade, findsOneWidget);
     });
   });

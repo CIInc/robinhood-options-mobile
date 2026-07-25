@@ -67,6 +67,7 @@ class _TradingStrategiesPageState extends State<TradingStrategiesPage>
     'chaikinMoneyFlow': 'Chaikin Money Flow',
     'fibonacciRetracements': 'Fibonacci Retracements',
     'pivotPoints': 'Pivot Points',
+    'gammaExposure': 'Gamma Exposure (GEX)',
   };
 
   @override

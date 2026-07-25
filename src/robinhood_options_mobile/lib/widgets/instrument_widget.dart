@@ -900,9 +900,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingSummary) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService.buildInstrumentAnalysisPrompt(
-                                      symbol: widget.instrument.symbol,
-                                      type: 'summary'));
+                                  GenerativeService
+                                      .buildInstrumentAnalysisPrompt(
+                                          symbol: widget.instrument.symbol,
+                                          type: 'summary'));
                             },
                           ),
                           ActionChip(
@@ -918,9 +919,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingSentiment) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService.buildInstrumentAnalysisPrompt(
-                                      symbol: widget.instrument.symbol,
-                                      type: 'sentiment'));
+                                  GenerativeService
+                                      .buildInstrumentAnalysisPrompt(
+                                          symbol: widget.instrument.symbol,
+                                          type: 'sentiment'));
                             },
                           ),
                           ActionChip(
@@ -936,9 +938,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingKeyLevels) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService.buildInstrumentAnalysisPrompt(
-                                      symbol: widget.instrument.symbol,
-                                      type: 'keyLevels'));
+                                  GenerativeService
+                                      .buildInstrumentAnalysisPrompt(
+                                          symbol: widget.instrument.symbol,
+                                          type: 'keyLevels'));
                             },
                           ),
                           ActionChip(
@@ -954,9 +957,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingStrategy) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService.buildInstrumentAnalysisPrompt(
-                                      symbol: widget.instrument.symbol,
-                                      type: 'strategy'));
+                                  GenerativeService
+                                      .buildInstrumentAnalysisPrompt(
+                                          symbol: widget.instrument.symbol,
+                                          type: 'strategy'));
                             },
                           ),
                           ActionChip(
@@ -972,9 +976,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               if (isGeneratingNews) return;
                               await _generateAIContent(
                                   generativeProvider,
-                                  GenerativeService.buildInstrumentAnalysisPrompt(
-                                      symbol: widget.instrument.symbol,
-                                      type: 'news'));
+                                  GenerativeService
+                                      .buildInstrumentAnalysisPrompt(
+                                          symbol: widget.instrument.symbol,
+                                          type: 'news'));
                             },
                           ),
                           ActionChip(
@@ -4777,6 +4782,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           _buildDocSection(
                                               'fibonacciRetracements'),
                                           _buildDocSection('pivotPoints'),
+                                          _buildDocSection('gammaExposure'),
                                         ],
                                       ),
                                     ),
@@ -4946,7 +4952,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             'key': 'fibonacciRetracements'
                           },
                           {'label': 'Pivot Points', 'key': 'pivotPoints'},
-                          {'label': 'Gamma Exposure (GEX)', 'key': 'gammaExposure'},
+                          {
+                            'label': 'Gamma Exposure (GEX)',
+                            'key': 'gammaExposure'
+                          },
                         ];
 
                         final enabledList = <Widget>[];

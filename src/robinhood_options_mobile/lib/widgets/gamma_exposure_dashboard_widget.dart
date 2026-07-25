@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/indicator_documentation_widget.dart';
 
 class GammaExposureDashboardWidget extends StatefulWidget {
   final User? user;
@@ -901,6 +902,32 @@ class _GammaExposureDashboardWidgetState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gamma Exposure Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('GEX Documentation'),
+                  content: const SingleChildScrollView(
+                    child: IndicatorDocumentationWidget(
+                      indicatorKey: 'gammaExposure',
+                      showContainer: true,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'GEX Documentation',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

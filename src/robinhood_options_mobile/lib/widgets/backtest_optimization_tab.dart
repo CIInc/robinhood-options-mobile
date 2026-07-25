@@ -714,6 +714,12 @@ class _BacktestOptimizationTabState extends State<BacktestOptimizationTab>
         atrMultiplier: baseConfig.atrMultiplier,
         exitStages: baseConfig.exitStages,
         customIndicators: baseConfig.customIndicators,
+        rsiExitEnabled: baseConfig.rsiExitEnabled,
+        rsiExitThreshold: baseConfig.rsiExitThreshold,
+        signalStrengthExitEnabled: baseConfig.signalStrengthExitEnabled,
+        signalStrengthExitThreshold: baseConfig.signalStrengthExitThreshold,
+        gexExitEnabled: baseConfig.gexExitEnabled,
+        gexExitThreshold: baseConfig.gexExitThreshold,
       );
 
       final callable = FirebaseFunctions.instance.httpsCallable(

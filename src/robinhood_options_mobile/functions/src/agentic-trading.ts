@@ -41,6 +41,7 @@ export async function performTradeProposal(request: any) {
     riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
     skipRiskGuard: request.data.skipRiskGuard || false,
+    enabledIndicators: request.data.enabledIndicators,
   };
 
   logger.info("Initiated Trade Proposal for symbol " +

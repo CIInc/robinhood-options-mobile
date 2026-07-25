@@ -48,7 +48,7 @@ void main() {
       }
 
       // Navigate to Automated Trading
-      final agenticTradingCardFinder = find.text('Stocks Agentic Trading');
+      final agenticTradingCardFinder = find.text('Stocks Auto-Trading');
 
       final verticalScrollable = find
           .byWidgetPredicate((widget) =>
@@ -85,7 +85,7 @@ void main() {
         debugPrint(
             "Confirmed: 'RealizeAlpha' text found. Navigation prevented as expected in Demo mode.");
         expect(find.text('RealizeAlpha'), findsAtLeastNWidgets(1));
-        expect(find.text('Stocks Agentic Trading'),
+        expect(find.text('Stocks Auto-Trading'),
             findsAtLeastNWidgets(1)); // Card title still visible
       } else {
         debugPrint(

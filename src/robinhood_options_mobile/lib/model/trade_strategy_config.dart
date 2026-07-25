@@ -55,6 +55,8 @@ class TradeStrategyConfig {
   final double rsiExitThreshold;
   final bool signalStrengthExitEnabled;
   final double signalStrengthExitThreshold;
+  final bool gexExitEnabled;
+  final double gexExitThreshold;
 
   // Added copyWith method to support usage in AgenticTradingConfig
   TradeStrategyConfig copyWith({
@@ -105,6 +107,8 @@ class TradeStrategyConfig {
     double? rsiExitThreshold,
     bool? signalStrengthExitEnabled,
     double? signalStrengthExitThreshold,
+    bool? gexExitEnabled,
+    double? gexExitThreshold,
   }) {
     return TradeStrategyConfig(
       startDate: startDate ?? this.startDate,
@@ -167,6 +171,8 @@ class TradeStrategyConfig {
           signalStrengthExitEnabled ?? this.signalStrengthExitEnabled,
       signalStrengthExitThreshold:
           signalStrengthExitThreshold ?? this.signalStrengthExitThreshold,
+      gexExitEnabled: gexExitEnabled ?? this.gexExitEnabled,
+      gexExitThreshold: gexExitThreshold ?? this.gexExitThreshold,
     );
   }
 
@@ -218,6 +224,8 @@ class TradeStrategyConfig {
     this.rsiExitThreshold = 80.0,
     this.signalStrengthExitEnabled = false,
     this.signalStrengthExitThreshold = 40.0,
+    this.gexExitEnabled = false,
+    this.gexExitThreshold = 0.0,
   })  : enabledIndicators = {
           // Default indicator settings need to be off for safety,
           //some strategies don't explicitly enable indicators
@@ -292,6 +300,8 @@ class TradeStrategyConfig {
         'rsiExitThreshold': rsiExitThreshold,
         'signalStrengthExitEnabled': signalStrengthExitEnabled,
         'signalStrengthExitThreshold': signalStrengthExitThreshold,
+        'gexExitEnabled': gexExitEnabled,
+        'gexExitThreshold': gexExitThreshold,
       };
 
   factory TradeStrategyConfig.fromJson(Map<String, dynamic> json) =>
@@ -375,6 +385,9 @@ class TradeStrategyConfig {
             json['signalStrengthExitEnabled'] as bool? ?? false,
         signalStrengthExitThreshold:
             (json['signalStrengthExitThreshold'] as num?)?.toDouble() ?? 40.0,
+        gexExitEnabled: json['gexExitEnabled'] as bool? ?? false,
+        gexExitThreshold:
+            (json['gexExitThreshold'] as num?)?.toDouble() ?? 0.0,
       );
 
   Map<String, String> getDifferences(TradeStrategyConfig other) {
@@ -423,6 +436,16 @@ class TradeStrategyConfig {
     check('Max Concentration', other.maxPortfolioConcentration,
         maxPortfolioConcentration);
     check('Daily Trade Limit', other.dailyTradeLimit, dailyTradeLimit);
+
+    // Technical Exits
+    check('RSI Exit', other.rsiExitEnabled, rsiExitEnabled);
+    check('RSI Threshold', other.rsiExitThreshold, rsiExitThreshold);
+    check('Strength Exit', other.signalStrengthExitEnabled,
+        signalStrengthExitEnabled);
+    check('Strength Threshold', other.signalStrengthExitThreshold,
+        signalStrengthExitThreshold);
+    check('GEX Exit', other.gexExitEnabled, gexExitEnabled);
+    check('GEX Threshold', other.gexExitThreshold, gexExitThreshold);
 
     // Advanced Logic
     check('Dynamic Sizing', other.enableDynamicPositionSizing,

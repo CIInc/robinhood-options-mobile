@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../model/gamma_exposure_model.dart';
 import '../services/generative_service.dart';
 import '../services/yahoo_service.dart';
+import 'indicator_documentation_widget.dart';
 
 /// Displays Gamma Exposure (GEX) analysis for a given symbol.
 ///
@@ -1918,7 +1919,8 @@ class _GexSensitivityCurvePainter extends CustomPainter {
     final zeroLinePaint = Paint()
       ..color = zeroLineColor.withValues(alpha: 0.2)
       ..strokeWidth = 1.0;
-    _drawDashedLine(canvas, Offset(0, centerY), Offset(width, centerY), zeroLinePaint);
+    _drawDashedLine(
+        canvas, Offset(0, centerY), Offset(width, centerY), zeroLinePaint);
 
     final double stepX = width / (values.length - 1);
     final points = <Offset>[];
@@ -1978,7 +1980,9 @@ class _GexSensitivityCurvePainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       final isCenter = i == 2;
       final dotPaint = Paint()
-        ..color = isCenter ? Colors.blue : (values[i] >= 0 ? positiveColor : negativeColor)
+        ..color = isCenter
+            ? Colors.blue
+            : (values[i] >= 0 ? positiveColor : negativeColor)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(points[i], isCenter ? 4.5 : 3.0, dotPaint);
 
@@ -2055,14 +2059,29 @@ class GammaExposurePage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Gamma Exposure — $symbol'),
         actions: [
-          Tooltip(
-            message: 'GEX = net gamma held by market makers.\n'
-                'Positive GEX → dealers buy dips / sell rips (price pinning).\n'
-                'Negative GEX → dealers amplify moves (trending).',
-            child: const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.help_outline, size: 20),
-            ),
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('GEX Documentation'),
+                  content: const SingleChildScrollView(
+                    child: IndicatorDocumentationWidget(
+                      indicatorKey: 'gammaExposure',
+                      showContainer: true,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            tooltip: 'GEX Documentation',
           ),
         ],
       ),

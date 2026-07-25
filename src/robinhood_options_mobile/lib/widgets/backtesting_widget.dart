@@ -176,6 +176,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   final _rsiExitThresholdController = TextEditingController(text: '70');
   final _signalStrengthExitThresholdController =
       TextEditingController(text: '30');
+  final _gexExitThresholdController = TextEditingController(text: '0');
 
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 365));
   DateTime _endDate = DateTime.now();
@@ -192,6 +193,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
   bool _enableDynamicPositionSizing = true;
   bool _rsiExitEnabled = false;
   bool _signalStrengthExitEnabled = false;
+  bool _gexExitEnabled = false;
   List<ExitStage> _exitStages = [];
   List<CustomIndicatorConfig> _customIndicators = [];
 
@@ -276,6 +278,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
           config.strategyConfig.signalStrengthExitEnabled;
       _signalStrengthExitThresholdController.text =
           config.strategyConfig.signalStrengthExitThreshold.toString();
+      _gexExitEnabled = config.strategyConfig.gexExitEnabled;
+      _gexExitThresholdController.text =
+          (config.strategyConfig.gexExitThreshold / 1e6).toString();
     }
 
     if (widget.prefilledStrategyConfig != null) {
@@ -342,6 +347,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     _atrMultiplierController.dispose();
     _rsiExitThresholdController.dispose();
     _signalStrengthExitThresholdController.dispose();
+    _gexExitThresholdController.dispose();
     super.dispose();
   }
 
@@ -366,6 +372,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _atrMultiplierController.text = '2.0';
       _rsiExitThresholdController.text = '70';
       _signalStrengthExitThresholdController.text = '30';
+      _gexExitThresholdController.text = '0';
 
       _startDate = DateTime.now().subtract(const Duration(days: 365));
       _endDate = DateTime.now();
@@ -378,6 +385,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _enableDynamicPositionSizing = false;
       _rsiExitEnabled = false;
       _signalStrengthExitEnabled = false;
+      _gexExitEnabled = false;
       _exitStages.clear();
 
       // Reset indicators
@@ -438,6 +446,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       signalStrengthExitEnabled: _signalStrengthExitEnabled,
       signalStrengthExitThreshold:
           double.tryParse(_signalStrengthExitThresholdController.text) ?? 30.0,
+      gexExitEnabled: _gexExitEnabled,
+      gexExitThreshold:
+          (double.tryParse(_gexExitThresholdController.text) ?? 0.0) * 1e6,
       exitStages: List.from(_exitStages),
       customIndicators: List.from(_customIndicators),
     );
@@ -483,6 +494,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _signalStrengthExitEnabled = config.signalStrengthExitEnabled;
       _signalStrengthExitThresholdController.text =
           config.signalStrengthExitThreshold.toString();
+      _gexExitEnabled = config.gexExitEnabled;
+      _gexExitThresholdController.text = (config.gexExitThreshold / 1e6).toString();
     });
 
     // Switch to Run tab
@@ -548,6 +561,9 @@ class BacktestRunTabState extends State<BacktestRunTab> {
       _signalStrengthExitEnabled = template.config.signalStrengthExitEnabled;
       _signalStrengthExitThresholdController.text =
           template.config.signalStrengthExitThreshold.toString();
+      _gexExitEnabled = template.config.gexExitEnabled;
+      _gexExitThresholdController.text =
+          (template.config.gexExitThreshold / 1e6).toString();
     });
   }
 
@@ -1184,12 +1200,14 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                         rsiExitThresholdController: _rsiExitThresholdController,
                         signalStrengthExitThresholdController:
                             _signalStrengthExitThresholdController,
+                        gexExitThresholdController: _gexExitThresholdController,
                         trailingStopEnabled: _trailingStopEnabled,
                         timeBasedExitEnabled: _timeBasedExitEnabled,
                         marketCloseExitEnabled: _marketCloseExitEnabled,
                         partialExitsEnabled: _enablePartialExits,
                         rsiExitEnabled: _rsiExitEnabled,
                         signalStrengthExitEnabled: _signalStrengthExitEnabled,
+                        gexExitEnabled: _gexExitEnabled,
                         exitStages: _exitStages,
                         onTrailingStopChanged: (val) =>
                             setState(() => _trailingStopEnabled = val),
@@ -1203,6 +1221,8 @@ class BacktestRunTabState extends State<BacktestRunTab> {
                             setState(() => _rsiExitEnabled = val),
                         onSignalStrengthExitChanged: (val) =>
                             setState(() => _signalStrengthExitEnabled = val),
+                        onGexExitChanged: (val) =>
+                            setState(() => _gexExitEnabled = val),
                         onExitStagesChanged: (stages) =>
                             setState(() => _exitStages = stages),
                       ),
@@ -3448,6 +3468,7 @@ Generated by RealizeAlpha
       'smaCrossover': 'SMA Crossover',
       'parabolicSar': 'Parabolic SAR',
       'ichimoku': 'Ichimoku Cloud',
+      'gammaExposure': 'Gamma Exposure (GEX)',
     };
     return labels[key] ?? key;
   }

@@ -9,6 +9,7 @@ class ExitStrategiesWidget extends StatefulWidget {
   final TextEditingController marketCloseExitController;
   final TextEditingController rsiExitThresholdController;
   final TextEditingController signalStrengthExitThresholdController;
+  final TextEditingController gexExitThresholdController;
 
   final bool trailingStopEnabled;
   final bool timeBasedExitEnabled;
@@ -16,6 +17,7 @@ class ExitStrategiesWidget extends StatefulWidget {
   final bool partialExitsEnabled;
   final bool rsiExitEnabled;
   final bool signalStrengthExitEnabled;
+  final bool gexExitEnabled;
   final List<ExitStage> exitStages;
 
   final ValueChanged<bool> onTrailingStopChanged;
@@ -24,6 +26,7 @@ class ExitStrategiesWidget extends StatefulWidget {
   final ValueChanged<bool> onPartialExitsChanged;
   final ValueChanged<bool> onRsiExitChanged;
   final ValueChanged<bool> onSignalStrengthExitChanged;
+  final ValueChanged<bool> onGexExitChanged;
   final ValueChanged<List<ExitStage>> onExitStagesChanged;
   final VoidCallback? onSettingsChanged;
 
@@ -36,12 +39,14 @@ class ExitStrategiesWidget extends StatefulWidget {
     required this.marketCloseExitController,
     required this.rsiExitThresholdController,
     required this.signalStrengthExitThresholdController,
+    required this.gexExitThresholdController,
     required this.trailingStopEnabled,
     required this.timeBasedExitEnabled,
     required this.marketCloseExitEnabled,
     required this.partialExitsEnabled,
     required this.rsiExitEnabled,
     required this.signalStrengthExitEnabled,
+    required this.gexExitEnabled,
     required this.exitStages,
     required this.onTrailingStopChanged,
     required this.onTimeBasedExitChanged,
@@ -49,6 +54,7 @@ class ExitStrategiesWidget extends StatefulWidget {
     required this.onPartialExitsChanged,
     required this.onRsiExitChanged,
     required this.onSignalStrengthExitChanged,
+    required this.onGexExitChanged,
     required this.onExitStagesChanged,
     this.onSettingsChanged,
   });
@@ -228,6 +234,25 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             'Min Signal Score',
             helperText: 'Exit if score drops below this',
             prefixIcon: Icons.low_priority_rounded,
+            onChanged: (_) => _notifySettingsChanged(),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
+          context,
+          'GEX Exit',
+          'Exit when Gamma Exposure turns negative',
+          widget.gexExitEnabled,
+          widget.onGexExitChanged,
+          icon: Icons.adjust_rounded,
+          extraContent: _buildTextField(
+            context,
+            widget.gexExitThresholdController,
+            'GEX Threshold',
+            suffixText: 'M',
+            helperText: 'Exit if Net GEX drops below this (\$M)',
+            prefixIcon: Icons.money_off_rounded,
             onChanged: (_) => _notifySettingsChanged(),
           ),
         ),

@@ -1798,7 +1798,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // Pre-fetch signals for all relevant symbols in parallel to avoid sequential waits
       final technicalExitEnabled = _config.strategyConfig.rsiExitEnabled ||
-          _config.strategyConfig.signalStrengthExitEnabled;
+          _config.strategyConfig.signalStrengthExitEnabled ||
+          _config.strategyConfig.gexExitEnabled;
       final Map<String, Map<String, dynamic>> fetchedSignals = {};
 
       if (technicalExitEnabled && _automatedBuyTrades.isNotEmpty) {
@@ -2047,6 +2048,26 @@ class AgenticTradingProvider with ChangeNotifier {
                       quantityToSell = buyQuantity;
                       _log(
                           '📉 $symbol Signal Strength exit triggered: $exitReason');
+                    }
+                  }
+                }
+
+                // Check GEX Exit
+                if (!shouldExit && _config.strategyConfig.gexExitEnabled) {
+                  final gexThreshold = _config.strategyConfig.gexExitThreshold;
+                  if (multiIndicatorResult != null) {
+                    final indicators = multiIndicatorResult['indicators']
+                        as Map<String, dynamic>?;
+                    final gexIndicator =
+                        indicators?['gammaExposure'] as Map<String, dynamic>?;
+                    final gexValue = (gexIndicator?['value'] as num?)?.toDouble();
+
+                    if (gexValue != null && gexValue < gexThreshold) {
+                      shouldExit = true;
+                      exitReason =
+                          'Negative GEX (GEX \$${(gexValue / 1e6).toStringAsFixed(1)}M < \$${(gexThreshold / 1e6).toStringAsFixed(1)}M)';
+                      quantityToSell = buyQuantity;
+                      _log('📉 $symbol GEX exit triggered: $exitReason');
                     }
                   }
                 }

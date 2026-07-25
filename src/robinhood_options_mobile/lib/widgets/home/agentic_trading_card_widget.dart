@@ -114,7 +114,7 @@ class AgenticTradingCardWidget extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Stocks Agentic Trading', //Agentic Trading
+                                    'Stocks Auto-Trading', //Agentic Trading
                                     style:
                                         theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
