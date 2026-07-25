@@ -585,6 +585,33 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "multiIndicatorResult.indicators.gammaExposure.signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "signals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "multiIndicatorResult.signalStrength",
           "order": "DESCENDING"
         },

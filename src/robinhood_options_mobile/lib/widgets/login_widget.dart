@@ -69,6 +69,9 @@ class _LoginWidgetState extends State<LoginWidget> {
   // the initState method, and clean it up in the dispose method.
   late FocusNode myFocusNode;
 
+  late final CarouselController _carouselController;
+  final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
+
   // Plaid integration
   // LinkTokenConfiguration? _configuration;
   // StreamSubscription<LinkEvent>? _streamEvent;
@@ -84,6 +87,9 @@ class _LoginWidgetState extends State<LoginWidget> {
     requestId = const Uuid().v4(); // generateDeviceToken();
 
     myFocusNode = FocusNode();
+
+    _carouselController = CarouselController();
+    _carouselController.addListener(_onCarouselScroll);
 
     clipboardContentStream.stream.listen((value) {
       if (clipboardInitialValue == null) {
@@ -124,6 +130,10 @@ class _LoginWidgetState extends State<LoginWidget> {
     // Clean up the focus node when the Form is disposed.
     myFocusNode.dispose();
 
+    _carouselController.removeListener(_onCarouselScroll);
+    _carouselController.dispose();
+    _currentCarouselPageNotifier.dispose();
+
     _stopMonitoringClipboard();
     _promptPollTimer?.cancel();
 
@@ -132,6 +142,15 @@ class _LoginWidgetState extends State<LoginWidget> {
     // _streamSuccess?.cancel();
 
     super.dispose();
+  }
+
+  void _onCarouselScroll() {
+    if (!_carouselController.hasClients) return;
+    // Calculate the current item index based on the offset and itemExtent (185)
+    final page = (_carouselController.offset / 185).round();
+    if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 5) {
+      _currentCarouselPageNotifier.value = page;
+    }
   }
 
   @override
@@ -357,6 +376,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 80),
                 child: CarouselView(
+                  controller: _carouselController,
                   scrollDirection: Axis.horizontal,
                   enableSplash: false,
                   itemSnapping: true,
@@ -524,6 +544,34 @@ class _LoginWidgetState extends State<LoginWidget> {
                     ),
                   ],
                 )),
+            ValueListenableBuilder<int>(
+              valueListenable: _currentCarouselPageNotifier,
+              builder: (context, currentPage, child) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: currentPage == index ? 20.0 : 6.0,
+                        height: 6.0,
+                        margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: currentPage == index
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.2),
+                        ),
+                      );
+                    }),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 24),
             Card(
               elevation: 6,
@@ -923,7 +971,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                           onPressed: _login,
                         ),
                       ),
-                    ] */,
+                    ] */
+                    ,
                   ],
                 ),
               ),
