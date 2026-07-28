@@ -35,6 +35,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
   final app_user.User? firestoreUser;
   final DocumentReference<app_user.User>? userDocRef;
   final IBrokerageService? service;
+  final ScrollController? scrollController;
 
   const ExpandedSliverAppBar({
     super.key,
@@ -49,6 +50,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
     this.firestoreUser,
     this.userDocRef,
     this.service,
+    this.scrollController,
   });
 
   Future<void> showAccountSwitcher(
@@ -167,112 +169,128 @@ class ExpandedSliverAppBar extends StatelessWidget {
         stream: auth.authStateChanges(),
         builder: (context, snapshot) {
           return SliverAppBar(
-              pinned: true,
-              centerTitle: false,
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: title,
-                  ),
-                  if (user?.source == BrokerageSource.paper) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.amber,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'PAPER',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+            pinned: true,
+            centerTitle: false,
+            flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              scrollController: scrollController,
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+            title: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              scrollController: scrollController,
+              child: Container(
+                width: double.infinity,
+                color: Colors.transparent,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: title,
+                    ),
+                    if (user?.source == BrokerageSource.paper) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'PAPER',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
-              automaticallyImplyLeading: automaticallyImplyLeading,
-              actions: [
-                if (auth.currentUser != null)
-                  AutoTradeStatusBadgeWidget(
-                    user: firestoreUser,
-                    userDocRef: userDocRef,
-                    service: service,
-                  ),
-                if (hasMultipleAccounts)
-                  IconButton(
-                      icon: const Icon(Icons.account_balance),
-                      tooltip: 'Switch Account',
-                      onPressed: () {
-                        showAccountSwitcher(context, brokerageUserStore);
-                      }),
+            ),
+            automaticallyImplyLeading: automaticallyImplyLeading,
+            actions: [
+              if (auth.currentUser != null)
+                AutoTradeStatusBadgeWidget(
+                  user: firestoreUser,
+                  userDocRef: userDocRef,
+                  service: service,
+                ),
+              if (hasMultipleAccounts)
                 IconButton(
-                    icon: auth.currentUser != null
-                        ? (auth.currentUser!.photoURL == null
-                            ? const Icon(Icons.account_circle)
-                            : CircleAvatar(
-                                maxRadius: 12,
-                                backgroundImage: CachedNetworkImageProvider(
-                                    auth.currentUser!.photoURL!
-                                    //  ?? Constants .placeholderImage, // No longer used
-                                    )))
-                        : const Icon(Icons.account_circle_outlined),
-                    onPressed: () async {
-                      var response = await showProfile(context, auth,
-                          firestoreService, analytics, observer, user, service);
-                      if (response != null && onChange != null) {
-                        onChange!();
-                      }
+                    icon: const Icon(Icons.account_balance),
+                    tooltip: 'Switch Account',
+                    onPressed: () {
+                      showAccountSwitcher(context, brokerageUserStore);
                     }),
-                // if (auth.currentUser == null)
-                //   IconButton(
-                //       icon: Icon(Icons.more_vert),
-                //       onPressed: () async {
-                //         await showModalBottomSheet<void>(
-                //             context: context,
-                //             showDragHandle: true,
-                //             isScrollControlled: true,
-                //             useSafeArea: true,
-                //             //useRootNavigator: true,
-                //             //constraints: const BoxConstraints(maxHeight: 200),
-                //             builder: (_) {
-                //               return DraggableScrollableSheet(
-                //                   expand: false,
-                //                   snap: true,
-                //                   // minChildSize: 0.5,
-                //                   builder: (context, scrollController) {
-                //                     return MoreMenuBottomSheet(
-                //                       user,
-                //                       analytics: analytics,
-                //                       observer: observer,
-                //                       showMarketSettings: true,
-                //                       chainSymbols: null,
-                //                       positionSymbols: null,
-                //                       cryptoSymbols: null,
-                //                       optionSymbolFilters: null,
-                //                       stockSymbolFilters: null,
-                //                       cryptoFilters: null,
-                //                       onSettingsChanged: (value) {
-                //                         // debugPrint(
-                //                         //     "Settings changed ${jsonEncode(value)}");
-                //                         debugPrint(
-                //                             "showPositionDetails: ${user.showPositionDetails.toString()}");
-                //                         debugPrint(
-                //                             "displayValue: ${user.displayValue.toString()}");
-                //                         // setState(() {});
-                //                       },
-                //                       scrollController: scrollController,
-                //                     );
-                //                   });
-                //             });
-                //         // Navigator.pop(context);
-                //       })
-              ]);
+              IconButton(
+                  icon: auth.currentUser != null
+                      ? (auth.currentUser!.photoURL == null
+                          ? const Icon(Icons.account_circle)
+                          : CircleAvatar(
+                              maxRadius: 12,
+                              backgroundImage: CachedNetworkImageProvider(
+                                  auth.currentUser!.photoURL!
+                                  //  ?? Constants .placeholderImage, // No longer used
+                                  )))
+                      : const Icon(Icons.account_circle_outlined),
+                  onPressed: () async {
+                    var response = await showProfile(context, auth,
+                        firestoreService, analytics, observer, user, service);
+                    if (response != null && onChange != null) {
+                      onChange!();
+                    }
+                  }),
+              // if (auth.currentUser == null)
+              //   IconButton(
+              //       icon: Icon(Icons.more_vert),
+              //       onPressed: () async {
+              //         await showModalBottomSheet<void>(
+              //             context: context,
+              //             showDragHandle: true,
+              //             isScrollControlled: true,
+              //             useSafeArea: true,
+              //             //useRootNavigator: true,
+              //             //constraints: const BoxConstraints(maxHeight: 200),
+              //             builder: (_) {
+              //               return DraggableScrollableSheet(
+              //                   expand: false,
+              //                   snap: true,
+              //                   // minChildSize: 0.5,
+              //                   builder: (context, scrollController) {
+              //                     return MoreMenuBottomSheet(
+              //                       user,
+              //                       analytics: analytics,
+              //                       observer: observer,
+              //                       showMarketSettings: true,
+              //                       chainSymbols: null,
+              //                       positionSymbols: null,
+              //                       cryptoSymbols: null,
+              //                       optionSymbolFilters: null,
+              //                       stockSymbolFilters: null,
+              //                       cryptoFilters: null,
+              //                       onSettingsChanged: (value) {
+              //                         // debugPrint(
+              //                         //     "Settings changed ${jsonEncode(value)}");
+              //                         debugPrint(
+              //                             "showPositionDetails: ${user.showPositionDetails.toString()}");
+              //                         debugPrint(
+              //                             "displayValue: ${user.displayValue.toString()}");
+              //                         // setState(() {});
+              //                       },
+              //                       scrollController: scrollController,
+              //                     );
+              //                   });
+              //             });
+              //         // Navigator.pop(context);
+              //       })
+            ],
+          );
         });
   }
 }
@@ -441,4 +459,31 @@ Future<String?> showLogin(BuildContext context, FirebaseAuth auth,
           },
         );
       });
+}
+
+class AppBarUtils {
+  static void scrollToTop(BuildContext context,
+      {ScrollController? scrollController}) {
+    final controller =
+        scrollController ?? PrimaryScrollController.maybeOf(context);
+    if (controller != null && controller.hasClients) {
+      controller.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  static Widget buildScrollToTopGestureDetector({
+    required BuildContext context,
+    required Widget child,
+    ScrollController? scrollController,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => scrollToTop(context, scrollController: scrollController),
+      child: child,
+    );
+  }
 }

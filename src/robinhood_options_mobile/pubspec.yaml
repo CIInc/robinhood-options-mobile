@@ -1,5 +1,5 @@
 name: robinhood_options_mobile
-description: RealizeAlpha App
+description: Professional-grade Flutter mobile app for multi-account brokerage management, featuring AI-powered trade signals, automated agentic trading, and institutional-grade options analytics.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.

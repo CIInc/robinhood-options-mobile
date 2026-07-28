@@ -23,6 +23,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
@@ -33,7 +34,6 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
@@ -328,71 +328,77 @@ class _SearchWidgetState extends State<SearchWidget>
       List<Instrument>? listMostPopular,
       bool done = false}) {
     return RefreshIndicator(
-        onRefresh: _pullRefresh,
-        child: GestureDetector(
-            onTap: () {
-              FocusScopeNode currentFocus = FocusScope.of(context);
+      onRefresh: _pullRefresh,
+      child: GestureDetector(
+        onTap: () {
+          FocusScopeNode currentFocus = FocusScope.of(context);
 
-              if (!currentFocus.hasPrimaryFocus) {
-                currentFocus.unfocus();
-              }
-            },
-            child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                slivers: [
-                  if (!widget.embedded)
-                    SliverAppBar(
-                        floating: false,
-                        snap: false,
-                        pinned: true,
-                        centerTitle: false,
-                        title: const Text(Constants.appTitle), // Search
-                        actions: [
-                          if (auth.currentUser != null)
-                            AutoTradeStatusBadgeWidget(
-                              user: widget.user,
-                              userDocRef: widget.userDocRef,
-                              service: widget.service,
-                            ),
-                          // IconButton(
-                          //   icon: const Icon(Icons.sentiment_satisfied_alt),
-                          //   tooltip: 'Sentiment Analysis',
-                          //   onPressed: () {
-                          //     Navigator.push(
-                          //         context,
-                          //         MaterialPageRoute(
-                          //             builder: (context) =>
-                          //                 const SentimentAnalysisDashboardWidget()));
-                          //   },
-                          // ),
-                          IconButton(
-                              icon: auth.currentUser != null
-                                  ? (auth.currentUser!.photoURL == null
-                                      ? const Icon(Icons.account_circle)
-                                      : CircleAvatar(
-                                          maxRadius: 12,
-                                          backgroundImage:
-                                              CachedNetworkImageProvider(
-                                                  auth.currentUser!.photoURL!
-                                                  //  ?? Constants .placeholderImage, // No longer used
-                                                  )))
-                                  : const Icon(Icons.account_circle_outlined),
-                              onPressed: () async {
-                                var response = await showProfile(
-                                    context,
-                                    auth,
-                                    _firestoreService,
-                                    widget.analytics,
-                                    widget.observer,
-                                    widget.brokerageUser,
-                                    widget.service);
-                                if (response != null) {
-                                  setState(() {});
-                                }
-                              })
-                        ]),
-                  /*
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+          }
+        },
+        child: CustomScrollView(
+          primary: true,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            if (!widget.embedded)
+              SliverAppBar(
+                  floating: false,
+                  snap: false,
+                  pinned: true,
+                  centerTitle: false,
+                  flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+                    context: context,
+                    child: Container(color: Colors.transparent),
+                  ),
+                  title: AppBarUtils.buildScrollToTopGestureDetector(
+                    context: context,
+                    child: const Text(Constants.appTitle),
+                  ), // Search
+                  actions: [
+                    if (auth.currentUser != null)
+                      AutoTradeStatusBadgeWidget(
+                        user: widget.user,
+                        userDocRef: widget.userDocRef,
+                        service: widget.service,
+                      ),
+                    // IconButton(
+                    //   icon: const Icon(Icons.sentiment_satisfied_alt),
+                    //   tooltip: 'Sentiment Analysis',
+                    //   onPressed: () {
+                    //     Navigator.push(
+                    //         context,
+                    //         MaterialPageRoute(
+                    //             builder: (context) =>
+                    //                 const SentimentAnalysisDashboardWidget()));
+                    //   },
+                    // ),
+                    IconButton(
+                        icon: auth.currentUser != null
+                            ? (auth.currentUser!.photoURL == null
+                                ? const Icon(Icons.account_circle)
+                                : CircleAvatar(
+                                    maxRadius: 12,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        auth.currentUser!.photoURL!
+                                        //  ?? Constants .placeholderImage, // No longer used
+                                        )))
+                            : const Icon(Icons.account_circle_outlined),
+                        onPressed: () async {
+                          var response = await showProfile(
+                              context,
+                              auth,
+                              _firestoreService,
+                              widget.analytics,
+                              widget.observer,
+                              widget.brokerageUser,
+                              widget.service);
+                          if (response != null) {
+                            setState(() {});
+                          }
+                        })
+                  ]),
+            /*
                   if (done == false) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -408,787 +414,757 @@ class _SearchWidgetState extends State<SearchWidget>
                     ))
                   ],
                   */
-                  SliverStickyHeader(
-                    header: Material(
-                      elevation: 1,
+            SliverStickyHeader(
+              header: Material(
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: searchCtl,
+                    decoration: InputDecoration(
+                      hintText: 'Search stocks by name or symbol',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchCtl!.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                searchCtl!.clear();
+                                setState(() {
+                                  futureSearch = Future.value(null);
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide:
+                            const BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      filled: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16.0),
+                    ),
+                    onChanged: (text) {
+                      widget.analytics.logSearch(searchTerm: text);
+                      debugPrint(
+                          "SearchWidget: onChanged '$text'. Service: ${widget.service}");
+                      _searchDebounce?.cancel();
+                      if (text.isEmpty) {
+                        setState(() {
+                          futureSearch = Future.value(null);
+                        });
+                        return;
+                      }
+                      _searchDebounce =
+                          Timer(const Duration(milliseconds: 400), () {
+                        if (mounted) _performSearch(text);
+                      });
+                    },
+                    onSubmitted: (value) {
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                ),
+              ),
+              sliver: search == null
+                  ? null
+                  : SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 150.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 0.925,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildSearchGridItem(search, index);
+                          },
+                          childCount: search != null
+                              ? (search is List
+                                  ? search.length
+                                  : (search["results"] != null &&
+                                          search["results"].isNotEmpty &&
+                                          search["results"][0]["content"] !=
+                                              null &&
+                                          search["results"][0]["content"]
+                                                  ["data"] !=
+                                              null
+                                      ? search["results"][0]["content"]["data"]
+                                          .length
+                                      : 0))
+                              : 0,
+                        ),
+                      )),
+            ),
+            if (welcomeWidget != null) ...[
+              SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 80.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child:
+                      Align(alignment: Alignment.center, child: welcomeWidget),
+                ),
+              ))
+            ],
+            // if (search != null) ...[
+            //   SliverStickyHeader(
+            //       header: Material(
+            //           //elevation: 2,
+            //           child: Container(
+            //               alignment: Alignment.centerLeft,
+            //               child: const ListTile(
+            //                 title: Text(
+            //                   "Search Results",
+            //                   style: TextStyle(fontSize: 19.0),
+            //                 ),
+            //                 //subtitle: Text(
+            //                 //    "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+            //               ))),
+            //       sliver: SliverPadding(
+            //           padding: const EdgeInsets.symmetric(horizontal: 2),
+            //           sliver: SliverGrid(
+            //             gridDelegate:
+            //                 const SliverGridDelegateWithMaxCrossAxisExtent(
+            //               maxCrossAxisExtent: 125.0,
+            //               mainAxisSpacing: 8.0,
+            //               crossAxisSpacing: 8.0,
+            //               childAspectRatio: 1.25,
+            //             ),
+            //             delegate: SliverChildBuilderDelegate(
+            //               (BuildContext context, int index) {
+            //                 return _buildSearchGridItem(search, index);
+            //               },
+            //               childCount: search["results"][0]["content"]
+            //                       ["data"]
+            //                   .length,
+            //             ),
+            //           ))),
+            //   const SliverToBoxAdapter(
+            //       child: SizedBox(
+            //     height: 25.0,
+            //   )),
+            // ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: MacroAssessmentWidget(
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  brokerageUser: widget.brokerageUser,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: MarketSentimentCardWidget(
+                widget.brokerageUser,
+                widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                      appBar: AppBar(
+                                          title: const Text('Whale Watch')),
+                                      body: WhaleWatchDashboardWidget(
+                                        brokerageUser: widget.brokerageUser!,
+                                        service: widget.service!,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                      ),
+                                    )));
+                      },
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: TextField(
-                          controller: searchCtl,
-                          decoration: InputDecoration(
-                            hintText: 'Search stocks by name or symbol',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: searchCtl!.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      searchCtl!.clear();
-                                      setState(() {
-                                        futureSearch = Future.value(null);
-                                      });
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(
-                                  color: Colors.blue, width: 2),
-                            ),
-                            filled: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 16.0),
-                          ),
-                          onChanged: (text) {
-                            widget.analytics.logSearch(searchTerm: text);
-                            debugPrint(
-                                "SearchWidget: onChanged '$text'. Service: ${widget.service}");
-                            _searchDebounce?.cancel();
-                            if (text.isEmpty) {
-                              setState(() {
-                                futureSearch = Future.value(null);
-                              });
-                              return;
-                            }
-                            _searchDebounce =
-                                Timer(const Duration(milliseconds: 400), () {
-                              if (mounted) _performSearch(text);
-                            });
-                          },
-                          onSubmitted: (value) {
-                            FocusScope.of(context).unfocus();
-                          },
-                        ),
-                      ),
-                    ),
-                    sliver: search == null
-                        ? null
-                        : SliverPadding(
-                            padding: const EdgeInsets.all(
-                                12), // .symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 150.0,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 0.925,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildSearchGridItem(search, index);
-                                },
-                                childCount: search != null
-                                    ? (search is List
-                                        ? search.length
-                                        : (search["results"] != null &&
-                                                search["results"].isNotEmpty &&
-                                                search["results"][0]
-                                                        ["content"] !=
-                                                    null &&
-                                                search["results"][0]["content"]
-                                                        ["data"] !=
-                                                    null
-                                            ? search["results"][0]["content"]
-                                                    ["data"]
-                                                .length
-                                            : 0))
-                                    : 0,
-                              ),
-                            )),
-                  ),
-                  if (welcomeWidget != null) ...[
-                    SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 80.0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Align(
-                            alignment: Alignment.center, child: welcomeWidget),
-                      ),
-                    ))
-                  ],
-                  // if (search != null) ...[
-                  //   SliverStickyHeader(
-                  //       header: Material(
-                  //           //elevation: 2,
-                  //           child: Container(
-                  //               alignment: Alignment.centerLeft,
-                  //               child: const ListTile(
-                  //                 title: Text(
-                  //                   "Search Results",
-                  //                   style: TextStyle(fontSize: 19.0),
-                  //                 ),
-                  //                 //subtitle: Text(
-                  //                 //    "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                  //               ))),
-                  //       sliver: SliverPadding(
-                  //           padding: const EdgeInsets.symmetric(horizontal: 2),
-                  //           sliver: SliverGrid(
-                  //             gridDelegate:
-                  //                 const SliverGridDelegateWithMaxCrossAxisExtent(
-                  //               maxCrossAxisExtent: 125.0,
-                  //               mainAxisSpacing: 8.0,
-                  //               crossAxisSpacing: 8.0,
-                  //               childAspectRatio: 1.25,
-                  //             ),
-                  //             delegate: SliverChildBuilderDelegate(
-                  //               (BuildContext context, int index) {
-                  //                 return _buildSearchGridItem(search, index);
-                  //               },
-                  //               childCount: search["results"][0]["content"]
-                  //                       ["data"]
-                  //                   .length,
-                  //             ),
-                  //           ))),
-                  //   const SliverToBoxAdapter(
-                  //       child: SizedBox(
-                  //     height: 25.0,
-                  //   )),
-                  // ],
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
-                      child: MacroAssessmentWidget(
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                        brokerageUser: widget.brokerageUser,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: MarketSentimentCardWidget(
-                      widget.brokerageUser,
-                      widget.service,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
-                    ),
-                  ),
-                  if (widget.brokerageUser != null && widget.service != null)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        child: Card(
-                          elevation: 0,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
+                              child: const Icon(Icons.visibility_outlined,
+                                  size: 24, color: Colors.blue),
                             ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => Scaffold(
-                                            appBar: AppBar(
-                                                title:
-                                                    const Text('Whale Watch')),
-                                            body: WhaleWatchDashboardWidget(
-                                              brokerageUser:
-                                                  widget.brokerageUser!,
-                                              service: widget.service!,
-                                              user: widget.user,
-                                              userDocRef: widget.userDocRef,
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              generativeService:
-                                                  widget.generativeService,
-                                            ),
-                                          )));
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(Icons.visibility_outlined,
-                                        size: 24, color: Colors.blue),
+                                  Text(
+                                    "Whale Watch",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Whale Watch",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Track insider filings & institutional moves",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant),
-                                        ),
-                                      ],
-                                    ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Track insider filings & institutional moves",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
                                   ),
-                                  Icon(Icons.chevron_right,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
                                 ],
                               ),
                             ),
-                          ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
                         ),
                       ),
-                    ),
-                  if (widget.brokerageUser != null && widget.service != null)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        child: Card(
-                          elevation: 0,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      GammaExposureDashboardWidget(
-                                    brokerageUser: widget.brokerageUser,
-                                    service: widget.service,
-                                    user: widget.user,
-                                    userDocRef: widget.userDocRef,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                    generativeService: widget.generativeService,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(Icons.adjust_outlined,
-                                        size: 24, color: Colors.green),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Gamma Exposure (GEX)",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Analyze dealer positioning & volatility regimes",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (widget.brokerageUser != null && widget.service != null)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        child: Card(
-                          elevation: 0,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest
-                              .withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                              width: 1,
-                            ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const AlphaFactorDiscoveryWidget(),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.purple.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(Icons.analytics_outlined,
-                                        size: 24, color: Colors.purple),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Alpha Factor Discovery",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                  fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "Backtest predictive factors & correlations",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(Icons.chevron_right,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  SliverToBoxAdapter(
-                    child: OptionsFlowCardWidget(
-                      brokerageUser: widget.brokerageUser,
-                      service: widget.service,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
                     ),
                   ),
-                  // Moved to its own page
-                  // TradeSignalsWidget(
-                  //   key: _tradeSignalsKey,
-                  //   user: widget.user,
-                  //   brokerageUser: widget.brokerageUser,
-                  //   userDocRef: widget.userDocRef,
-                  //   service: widget.service,
-                  //   analytics: widget.analytics,
-                  //   observer: widget.observer,
-                  //   generativeService: widget.generativeService,
-                  // ),
-                  if (watchlistStream != null) ...[
-                    SliverToBoxAdapter(
-                      child: StreamBuilder<List<Watchlist>>(
-                        stream: watchlistStream,
-                        builder: (context, snapshot) {
-                          final visible = search == null ||
-                              (search is List && search.isEmpty);
-                          if (visible && snapshot.hasData) {
-                            var lists = snapshot.data!;
-                            return SizedBox(
-                              height: 50,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16.0, 12.0, 16.0, 0.0),
-                                scrollDirection: Axis.horizontal,
-                                itemCount: lists.length + 1,
-                                itemBuilder: (context, index) {
-                                  if (index == 0) {
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: ActionChip(
-                                        avatar: const Icon(Icons.list),
-                                        label: const Text('All Lists'),
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => ListsWidget(
-                                                widget.brokerageUser!,
-                                                widget.service!,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                generativeService:
-                                                    widget.generativeService,
-                                                user: widget.user,
-                                                userDocRef: widget.userDocRef,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GammaExposureDashboardWidget(
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.adjust_outlined,
+                                  size: 24, color: Colors.green),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Gamma Exposure (GEX)",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Analyze dealer positioning & volatility regimes",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const AlphaFactorDiscoveryWidget(),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.analytics_outlined,
+                                  size: 24, color: Colors.purple),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Alpha Factor Discovery",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Backtest predictive factors & correlations",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+            // Moved to its own page
+            // TradeSignalsWidget(
+            //   key: _tradeSignalsKey,
+            //   user: widget.user,
+            //   brokerageUser: widget.brokerageUser,
+            //   userDocRef: widget.userDocRef,
+            //   service: widget.service,
+            //   analytics: widget.analytics,
+            //   observer: widget.observer,
+            //   generativeService: widget.generativeService,
+            // ),
+            if (watchlistStream != null) ...[
+              SliverToBoxAdapter(
+                child: StreamBuilder<List<Watchlist>>(
+                  stream: watchlistStream,
+                  builder: (context, snapshot) {
+                    final visible =
+                        search == null || (search is List && search.isEmpty);
+                    if (visible && snapshot.hasData) {
+                      var lists = snapshot.data!;
+                      return SizedBox(
+                        height: 50,
+                        child: ListView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 0.0),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: lists.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ActionChip(
+                                  avatar: const Icon(Icons.list),
+                                  label: const Text('All Lists'),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ListsWidget(
+                                          widget.brokerageUser!,
+                                          widget.service!,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                        ),
                                       ),
                                     );
-                                  }
-                                  var list = lists[index - 1];
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: ActionChip(
-                                      label: Text(list.displayName),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ListWidget(
-                                              widget.brokerageUser!,
-                                              widget.service!,
-                                              list.id,
-                                              ownerType: "custom",
-                                              analytics: widget.analytics,
-                                              observer: widget.observer,
-                                              generativeService:
-                                                  widget.generativeService,
-                                              user: widget.user,
-                                              userDocRef: widget.userDocRef,
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                  },
+                                ),
+                              );
+                            }
+                            var list = lists[index - 1];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ActionChip(
+                                label: Text(list.displayName),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ListWidget(
+                                        widget.brokerageUser!,
+                                        widget.service!,
+                                        list.id,
+                                        ownerType: "custom",
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                      ),
                                     ),
                                   );
                                 },
                               ),
                             );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                  ],
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 12.0,
-                  )),
-                  if (movers != null && movers.isNotEmpty) ...[
-                    // const SliverToBoxAdapter(
-                    //     child: SizedBox(
-                    //   height: 25.0,
-                    // )),
-                    SliverStickyHeader(
-                        header: Material(
-                            elevation: 1,
-                            child: Container(
-                                color: Theme.of(context).colorScheme.surface,
-                                alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.trending_up,
-                                        color: Colors.green, size: 22),
-                                  ),
-                                  title: Text(
-                                    "S&P Gainers",
-                                    style: TextStyle(
-                                      fontSize: 20.0,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.all(
-                                12), // .symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 1.25,
+                          },
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 12.0,
+            )),
+            if (movers != null && movers.isNotEmpty) ...[
+              // const SliverToBoxAdapter(
+              //     child: SizedBox(
+              //   height: 25.0,
+              // )),
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildMoversGridItem(movers, index);
-                                },
-                                childCount: movers.length,
+                              child: const Icon(Icons.trending_up,
+                                  color: Colors.green, size: 22),
+                            ),
+                            title: Text(
+                              "S&P Gainers",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                  ],
-                  if (losers != null && losers.isNotEmpty) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                    SliverStickyHeader(
-                        header: Material(
-                            elevation: 1,
-                            child: Container(
-                                color: Theme.of(context).colorScheme.surface,
-                                alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.trending_down,
-                                        color: Colors.red, size: 22),
-                                  ),
-                                  title: Text(
-                                    "S&P Decliners",
-                                    style: TextStyle(
-                                      fontSize: 20.0,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.all(
-                                12), // .symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 1.25,
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 1.25,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildMoversGridItem(movers, index);
+                          },
+                          childCount: movers.length,
+                        ),
+                      ))),
+            ],
+            if (losers != null && losers.isNotEmpty) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildMoversGridItem(losers, index);
-                                },
-                                childCount: losers.length,
+                              child: const Icon(Icons.trending_down,
+                                  color: Colors.red, size: 22),
+                            ),
+                            title: Text(
+                              "S&P Decliners",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  if (listMovers != null && listMovers.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            elevation: 1,
-                            child: Container(
-                                color: Theme.of(context).colorScheme.surface,
-                                alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer
-                                          .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.show_chart,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        size: 22),
-                                  ),
-                                  title: Text(
-                                    "Top Movers",
-                                    style: TextStyle(
-                                      fontSize: 20.0,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.all(
-                                12), // .symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 1.37,
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 1.25,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildMoversGridItem(losers, index);
+                          },
+                          childCount: losers.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+            if (listMovers != null && listMovers.isNotEmpty) ...[
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildListGridItem(
-                                      listMovers, index, widget.brokerageUser!);
-                                },
-                                childCount: listMovers.length,
+                              child: Icon(Icons.show_chart,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 22),
+                            ),
+                            title: Text(
+                              "Top Movers",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  if (listMostPopular != null &&
-                      listMostPopular.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            elevation: 1,
-                            child: Container(
-                                color: Theme.of(context).colorScheme.surface,
-                                alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer
-                                          .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.star,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        size: 22),
-                                  ),
-                                  title: Text(
-                                    "100 Most Popular",
-                                    style: TextStyle(
-                                      fontSize: 20.0,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.all(
-                                12), // .symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 150.0,
-                                mainAxisSpacing: 6.0,
-                                crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.25,
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 1.37,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildListGridItem(
+                                listMovers, index, widget.brokerageUser!);
+                          },
+                          childCount: listMovers.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+            if (listMostPopular != null && listMostPopular.isNotEmpty) ...[
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildListGridItem(listMostPopular,
-                                      index, widget.brokerageUser!);
-                                },
-                                childCount: listMostPopular.length,
+                              child: Icon(Icons.star,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 22),
+                            ),
+                            title: Text(
+                              "100 Most Popular",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-
-                  // TODO: Introduce web banner
-                  if (!kIsWeb) ...[
-                    SliverToBoxAdapter(
-                        child: AdBannerWidget(
-                      size: AdSize.mediumRectangle,
-                      searchBanner: true,
-                    )),
-                  ],
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
-                  const SliverToBoxAdapter(child: DisclaimerWidget()),
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
-                ])));
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 150.0,
+                          mainAxisSpacing: 6.0,
+                          crossAxisSpacing: 2.0,
+                          childAspectRatio: 1.25,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildListGridItem(
+                                listMostPopular, index, widget.brokerageUser!);
+                          },
+                          childCount: listMostPopular.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              // TODO: Introduce web banner
+              if (!kIsWeb) ...[
+                SliverToBoxAdapter(
+                    child: AdBannerWidget(
+                  size: AdSize.mediumRectangle,
+                  searchBanner: true,
+                )),
+              ],
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              const SliverToBoxAdapter(child: DisclaimerWidget()),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pullRefresh() async {

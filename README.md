@@ -1,6 +1,6 @@
 # RealizeAlpha
 
-This repository implements brokerage APIs like Robinhood to provide an options focused Android and iOS mobile app using the Flutter SDK.
+RealizeAlpha is a professional-grade Flutter mobile app for multi-account brokerage management (Robinhood, Schwab, Fidelity), featuring AI-powered trade signals, automated agentic trading, and institutional-grade options analytics including Gamma Exposure (GEX) and institutional flow tracking.
 
 ## Getting Started
 

@@ -64,7 +64,14 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
       var auth = firebase_auth.FirebaseAuth.instance;
       return Scaffold(
           appBar: AppBar(
-            title: const Text(Constants.appTitle), // Search
+            flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              child: const SizedBox.expand(),
+            ),
+            title: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              child: const Text(Constants.appTitle),
+            ), // Search
             centerTitle: false,
             actions: [
               IconButton(
@@ -131,77 +138,84 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
     }
 
     return StreamBuilder<DocumentSnapshot<User>>(
-        stream: widget.userDocRef!.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Scaffold(
-                appBar: AppBar(
-                  title: const Text(Constants.appTitle),
-                  centerTitle: false,
-                ),
-                body: Center(child: Text('Error: ${snapshot.error}')));
-          }
-
-          // Use the latest user data if available, otherwise fallback to widget.user
-          User currentUser = widget.user!;
-          if (snapshot.hasData &&
-              snapshot.data != null &&
-              snapshot.data!.data() != null) {
-            currentUser = snapshot.data!.data()!;
-          }
-
-          bool isSubscribed =
-              _subscriptionService.isSubscriptionActive(currentUser);
-
-          if (!isSubscribed) {
-            return PaywallWidget(
-              user: currentUser,
-              userDocRef: widget.userDocRef!,
-              onSuccess: () {
-                // The stream will naturally update if Firestore is updated.
-              },
-            );
-          }
-
+      stream: widget.userDocRef!.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
           return Scaffold(
-            body: RefreshIndicator(
-              onRefresh: () async {
-                _tradeSignalsKey.currentState?.refresh();
-              },
-              child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                slivers: [
-                  SliverAppBar(
-                    title: Text(widget.strategyTemplate != null
-                        ? widget.strategyTemplate!
-                            .name // 'Signals: ${widget.strategyTemplate!.name}'
-                        : Constants.appTitle),
-                    centerTitle: false,
-                    floating: false,
-                    pinned: true,
-                    snap: false,
-                    actions: _buildActions(context),
-                  ),
-                  TradeSignalsWidget(
-                    key: _tradeSignalsKey,
-                    user: currentUser,
-                    brokerageUser: widget.brokerageUser,
-                    userDocRef: widget.userDocRef,
-                    service: widget.service,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    showHeader: false,
-                    useSlivers: true,
-                    initialIndicators: widget.initialIndicators,
-                    strategyTemplate: widget.strategyTemplate,
-                  ),
-                ],
+              appBar: AppBar(
+                title: const Text(Constants.appTitle),
+                centerTitle: false,
               ),
-            ),
+              body: Center(child: Text('Error: ${snapshot.error}')));
+        }
+
+        // Use the latest user data if available, otherwise fallback to widget.user
+        User currentUser = widget.user!;
+        if (snapshot.hasData &&
+            snapshot.data != null &&
+            snapshot.data!.data() != null) {
+          currentUser = snapshot.data!.data()!;
+        }
+
+        bool isSubscribed =
+            _subscriptionService.isSubscriptionActive(currentUser);
+
+        if (!isSubscribed) {
+          return PaywallWidget(
+            user: currentUser,
+            userDocRef: widget.userDocRef!,
+            onSuccess: () {
+              // The stream will naturally update if Firestore is updated.
+            },
           );
-        });
+        }
+
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () async {
+              _tradeSignalsKey.currentState?.refresh();
+            },
+            child: CustomScrollView(
+              primary: true,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                SliverAppBar(
+                  flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+                    context: context,
+                    child: Container(color: Colors.transparent),
+                  ),
+                  title: AppBarUtils.buildScrollToTopGestureDetector(
+                    context: context,
+                    child: Text(widget.strategyTemplate != null
+                        ? widget.strategyTemplate!.name
+                        : Constants.appTitle),
+                  ),
+                  centerTitle: false,
+                  floating: false,
+                  pinned: true,
+                  snap: false,
+                  actions: _buildActions(context),
+                ),
+                TradeSignalsWidget(
+                  key: _tradeSignalsKey,
+                  user: currentUser,
+                  brokerageUser: widget.brokerageUser,
+                  userDocRef: widget.userDocRef,
+                  service: widget.service,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  showHeader: false,
+                  useSlivers: true,
+                  initialIndicators: widget.initialIndicators,
+                  strategyTemplate: widget.strategyTemplate,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   List<Widget> _buildActions(BuildContext context) {

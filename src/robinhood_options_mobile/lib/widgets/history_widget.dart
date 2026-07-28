@@ -534,6 +534,7 @@ class _HistoryPageState extends State<HistoryPage>
           }
         },
         child: CustomScrollView(
+          primary: true,
           slivers: [
             ExpandedSliverAppBar(
               title: const Text(Constants.appTitle), // History

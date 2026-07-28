@@ -27,6 +27,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -51,7 +52,6 @@ import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
@@ -175,6 +175,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Timer? refreshTriggerTime;
   final GlobalKey tradeSignalKey = GlobalKey();
   final GlobalKey _shareButtonKey = GlobalKey();
+
+  final ScrollController _scrollController = ScrollController();
 
   _InstrumentWidgetState();
 
@@ -537,6 +539,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _stopRefreshTimer();
     _showAIReasoningNotifier.dispose();
     _showAllSimilarNotifier.dispose();
@@ -1054,7 +1057,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
     return Scaffold(
-      body: buildScrollView(instrument, done: instrument.quoteObj != null),
+      primary: false,
+      body: PrimaryScrollController(
+        controller: _scrollController,
+        child: buildScrollView(instrument, done: instrument.quoteObj != null),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openAIChat(context, instrument),
         child: const Icon(Icons.auto_awesome),
@@ -1138,720 +1145,750 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       {List<OptionInstrument>? optionInstruments, bool done = false}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
-        child: CustomScrollView(slivers: [
-          SliverLayoutBuilder(
-            builder: (BuildContext context, constraints) {
-              const expandedHeight = 160.0; // 1800
-              final scrolled =
-                  math.min(expandedHeight, constraints.scrollOffset) /
-                      expandedHeight;
-              final t = (1 - scrolled).clamp(0.0, 1.0);
-              final opacity = 1.0 - Interval(0, 1).transform(t);
-              // debugPrint("transform: $t scrolled: $scrolled");
-              return SliverAppBar(
-                centerTitle: false,
-                title:
-                    Consumer<QuoteStore>(builder: (context, quoteStore, child) {
-                  return Opacity(
-                      opacity: opacity,
-                      child: headerTitle(instrument, quoteStore));
-                }),
-                expandedHeight: 160, // 240 // 280.0,
-                floating: false,
-                snap: false,
-                pinned: true,
-                flexibleSpace: LayoutBuilder(builder:
-                    (BuildContext context, BoxConstraints constraints) {
-                  //var top = constraints.biggest.height;
-                  //debugPrint(top.toString());
-                  //debugPrint(kToolbarHeight.toString());
+        child: PrimaryScrollController(
+            controller: _scrollController,
+            child: CustomScrollView(primary: true, slivers: [
+              SliverLayoutBuilder(
+                builder: (BuildContext context, constraints) {
+                  const expandedHeight = 160.0; // 1800
+                  final scrolled =
+                      math.min(expandedHeight, constraints.scrollOffset) /
+                          expandedHeight;
+                  final t = (1 - scrolled).clamp(0.0, 1.0);
+                  final opacity = 1.0 - Interval(0, 1).transform(t);
+                  // debugPrint("transform: $t scrolled: $scrolled");
+                  return SliverAppBar(
+                    centerTitle: false,
+                    title: AppBarUtils.buildScrollToTopGestureDetector(
+                      context: context,
+                      scrollController: _scrollController,
+                      child: Consumer<QuoteStore>(
+                          builder: (context, quoteStore, child) {
+                        return Opacity(
+                            opacity: opacity,
+                            child: headerTitle(instrument, quoteStore));
+                      }),
+                    ),
+                    expandedHeight: 160, // 240 // 280.0,
+                    floating: false,
+                    snap: false,
+                    pinned: true,
+                    flexibleSpace: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        LayoutBuilder(builder:
+                            (BuildContext context, BoxConstraints constraints) {
+                          //var top = constraints.biggest.height;
+                          //debugPrint(top.toString());
+                          //debugPrint(kToolbarHeight.toString());
 
-                  final settings = context.dependOnInheritedWidgetOfExactType<
-                      FlexibleSpaceBarSettings>();
-                  final deltaExtent = settings!.maxExtent - settings.minExtent;
-                  final t = (1.0 -
-                          (settings.currentExtent - settings.minExtent) /
-                              deltaExtent)
-                      .clamp(0.0, 1.0);
-                  final fadeStart =
-                      math.max(0.0, 1.0 - kToolbarHeight * 2 / deltaExtent);
-                  const fadeEnd = 1.0;
-                  final opacity =
-                      1.0 - Interval(fadeStart, fadeEnd).transform(t);
-                  return FlexibleSpaceBar(
-                      //titlePadding:
-                      //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-                      //background: const FlutterLogo(),
-                      background: Hero(
-                          tag: widget.heroTag != null
-                              ? '${widget.heroTag}'
-                              : 'logo_${instrument.symbol}',
-                          child: SizedBox(
-                              //width: double.infinity,
-                              child: instrument.logoUrl != null
-                                  ? Image.network(
-                                      instrument.logoUrl!,
-                                      fit: BoxFit.none,
-                                      errorBuilder: (BuildContext context,
-                                          Object exception,
-                                          StackTrace? stackTrace) {
-                                        debugPrint(
-                                            'Error with ${instrument.symbol} ${instrument.logoUrl}');
-                                        RobinhoodService.removeLogo(instrument);
-                                        return Container(); // Text(instrument.symbol);
-                                      },
-                                    )
-                                  : Container() //const FlutterLogo()
-                              /*Image.network(
+                          final settings =
+                              context.dependOnInheritedWidgetOfExactType<
+                                  FlexibleSpaceBarSettings>();
+                          final deltaExtent =
+                              settings!.maxExtent - settings.minExtent;
+                          final t = (1.0 -
+                                  (settings.currentExtent -
+                                          settings.minExtent) /
+                                      deltaExtent)
+                              .clamp(0.0, 1.0);
+                          final fadeStart = math.max(
+                              0.0, 1.0 - kToolbarHeight * 2 / deltaExtent);
+                          const fadeEnd = 1.0;
+                          final opacity =
+                              1.0 - Interval(fadeStart, fadeEnd).transform(t);
+                          return FlexibleSpaceBar(
+                              //titlePadding:
+                              //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+                              //background: const FlutterLogo(),
+                              background: Hero(
+                                  tag: widget.heroTag != null
+                                      ? '${widget.heroTag}'
+                                      : 'logo_${instrument.symbol}',
+                                  child: SizedBox(
+                                      //width: double.infinity,
+                                      child: instrument.logoUrl != null
+                                          ? Image.network(
+                                              instrument.logoUrl!,
+                                              fit: BoxFit.none,
+                                              errorBuilder:
+                                                  (BuildContext context,
+                                                      Object exception,
+                                                      StackTrace? stackTrace) {
+                                                debugPrint(
+                                                    'Error with ${instrument.symbol} ${instrument.logoUrl}');
+                                                RobinhoodService.removeLogo(
+                                                    instrument);
+                                                return Container(); // Text(instrument.symbol);
+                                              },
+                                            )
+                                          : Container() //const FlutterLogo()
+                                      /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
-                              )),
-                      title: Opacity(
-                        //duration: Duration(milliseconds: 300),
-                        opacity:
-                            opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                        child: Consumer<QuoteStore>(
-                            builder: (context, quoteStore, child) {
-                          return SingleChildScrollView(
-                              child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children:
-                                      getHeaderWidgets(quoteStore).toList()));
-                        }),
-                        /*
+                                      )),
+                              title: Opacity(
+                                //duration: Duration(milliseconds: 300),
+                                opacity:
+                                    opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                                child: Consumer<QuoteStore>(
+                                    builder: (context, quoteStore, child) {
+                                  return SingleChildScrollView(
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: getHeaderWidgets(quoteStore)
+                                              .toList()));
+                                }),
+                                /*
           ListTile(
             title: Text('${instrument.simpleName}'),
             subtitle: Text(instrument.name),
           )*/
-                      ));
-                }),
-                actions: [
-                  IconButton(
-                    key: _shareButtonKey,
-                    icon: const Icon(Icons.share),
-                    tooltip: 'Share Instrument',
-                    onPressed: () {
-                      final symbol = widget.instrument.symbol;
-                      final url =
-                          'https://realizealpha.web.app/instrument/$symbol';
-                      final shareText =
-                          'Check out $symbol on RealizeAlpha: $url';
-
-                      final RenderBox? renderBox =
-                          _shareButtonKey.currentContext?.findRenderObject()
-                              as RenderBox?;
-                      Rect? sharePositionOrigin;
-                      if (renderBox != null &&
-                          renderBox.size.width > 0 &&
-                          renderBox.size.height > 0) {
-                        final size = renderBox.size;
-                        final offset = renderBox.localToGlobal(Offset.zero);
-                        sharePositionOrigin = Rect.fromLTWH(
-                          offset.dx,
-                          offset.dy,
-                          size.width,
-                          size.height,
-                        );
-                      }
-
-                      Share.share(
-                        shareText,
-                        sharePositionOrigin: sharePositionOrigin,
-                      );
-                    },
-                  ),
-                  if (auth.currentUser != null)
-                    AutoTradeStatusBadgeWidget(
-                      user: widget.user,
-                      userDocRef: widget.userDocRef,
-                      service: widget.service,
+                              ));
+                        }),
+                        AppBarUtils.buildScrollToTopGestureDetector(
+                          context: context,
+                          scrollController: _scrollController,
+                          child: Container(color: Colors.transparent),
+                        ),
+                      ],
                     ),
-                  IconButton(
-                      icon: auth.currentUser != null
-                          ? (auth.currentUser!.photoURL == null
-                              ? const Icon(Icons.account_circle)
-                              : CircleAvatar(
-                                  maxRadius: 12,
-                                  backgroundImage: CachedNetworkImageProvider(
-                                      auth.currentUser!.photoURL!
-                                      //  ?? Constants .placeholderImage, // No longer used
-                                      )))
-                          : const Icon(Icons.account_circle_outlined),
-                      onPressed: () async {
-                        var response = await showProfile(
-                            context,
-                            auth,
-                            _firestoreService,
-                            widget.analytics,
-                            widget.observer,
-                            widget.brokerageUser,
-                            widget.service);
-                        if (response != null) {
-                          setState(() {});
-                        }
-                      }),
-                ],
-                // actions: <Widget>[
-                //   IconButton(
-                //     icon: const Icon(Icons.more_vert),
-                //     // icon: const Icon(Icons.settings),
-                //     onPressed: () {
-                //       showModalBottomSheet<void>(
-                //         context: context,
-                //        showDragHandle: true,
-                //         //isScrollControlled: true,
-                //         //useRootNavigator: true,
-                //         //constraints: const BoxConstraints(maxHeight: 200),
-                //         builder: (_) => MoreMenuBottomSheet(
-                //           widget.user,
-                //           onSettingsChanged: _handleSettingsChanged,
-                //           analytics: widget.analytics,
-                //           observer: widget.observer,
-                //         ),
-                //       );
-                //     },
-                //   ),
-                // ],
-              );
-            },
-          ),
-          if (auth.currentUser != null) _buildAIInsights(context),
-          SliverToBoxAdapter(
-              child: Stack(children: [
-            if (done == false) ...[
-              SizedBox(
-                height: 3, //150.0,
-                child: Center(
-                    child: LinearProgressIndicator(
-                        //value: controller.value,
-                        //semanticsLabel: 'Linear progress indicator',
-                        ) //CircularProgressIndicator(),
-                    ),
-              ),
-            ],
-            buildOverview(instrument)
-          ])),
-          SliverToBoxAdapter(
-            child: InstrumentChartWidget(
-              instrument: instrument,
-              chartDateSpanFilter: chartDateSpanFilter,
-              chartBoundsFilter: chartBoundsFilter,
-              onFilterChanged: (span, bounds) {
-                resetChart(span, bounds);
-              },
-            ),
-          ),
-          if (instrument.quoteObj != null) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            Consumer<InstrumentPositionStore>(
-                builder: (context, stockPositionStore, child) {
-              return quoteWidget(instrument);
-            })
-          ],
-          Consumer<InstrumentPositionStore>(
-              builder: (context, stockPositionStore, child) {
-            InstrumentPosition? position;
-            if (widget.brokerageUser.source == BrokerageSource.paper) {
-              final paperStore =
-                  Provider.of<PaperTradingStore>(context, listen: false);
-              position = paperStore.positions.firstWhereOrNull(
-                  (e) => e.instrument == widget.instrument.url);
-            } else {
-              position = stockPositionStore.items
-                  .firstWhereOrNull((e) => e.instrument == instrument.url);
-            }
-            if (position == null) {
-              return SliverToBoxAdapter(child: Container());
-            }
-            return SliverToBoxAdapter(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              ListTile(
-                  title: Text("Position", style: TextStyle(fontSize: 20)),
-                  subtitle:
-                      Text('${formatNumber.format(position.quantity!)} shares'),
-                  trailing: Text(formatCurrency.format(position.marketValue),
-                      style: const TextStyle(fontSize: 21))),
-              _buildDetailScrollRow(
-                  position, badgeValueFontSize, badgeLabelFontSize,
-                  iconSize: 27.0),
-              // ListTile(
-              //   minTileHeight: 10,
-              //   title: const Text("Cost"),
-              //   trailing: Text(formatCurrency.format(position.totalCost),
-              //       style: const TextStyle(fontSize: 18)),
-              // ),
-              // ListTile(
-              //   minTileHeight: 10,
-              //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
-              //   // title: const Text("Average Cost"),
-              //   trailing: Text(
-              //       formatCurrency.format(position.averageBuyPrice),
-              //       style: const TextStyle(fontSize: 18)),
-              // ),
-              // ListTile(
-              //   minTileHeight: 10,
-              //   title: const Text("Created"),
-              //   trailing: Text(formatDate.format(position.createdAt!),
-              //       style: const TextStyle(fontSize: 15)),
-              // ),
-              // ListTile(
-              //   minTileHeight: 10,
-              //   title: const Text("Updated"),
-              //   trailing: Text(formatDate.format(position.updatedAt!),
-              //       style: const TextStyle(fontSize: 15)),
-              // ),
-            ]));
-          }),
-          Consumer<OptionPositionStore>(
-              builder: (context, optionPositionStore, child) {
-            List<OptionAggregatePosition> optionPositions = [];
-            if (widget.brokerageUser.source == BrokerageSource.paper) {
-              final paperStore =
-                  Provider.of<PaperTradingStore>(context, listen: false);
-              optionPositions = paperStore.optionPositions
-                  .where((e) => e.symbol == widget.instrument.symbol)
-                  .toList();
-            } else {
-              optionPositions = optionPositionStore.items
-                  .where((e) => e.symbol == widget.instrument.symbol)
-                  .toList();
-            }
-            optionPositions.sort((a, b) {
-              int comp = a.legs.first.expirationDate!
-                  .compareTo(b.legs.first.expirationDate!);
-              if (comp != 0) return comp;
-              return a.legs.first.strikePrice!
-                  .compareTo(b.legs.first.strikePrice!);
-            });
+                    actions: [
+                      IconButton(
+                        key: _shareButtonKey,
+                        icon: const Icon(Icons.share),
+                        tooltip: 'Share Instrument',
+                        onPressed: () {
+                          final symbol = widget.instrument.symbol;
+                          final url =
+                              'https://realizealpha.web.app/instrument/$symbol';
+                          final shareText =
+                              'Check out $symbol on RealizeAlpha: $url';
 
-            var filteredOptionPositions = optionPositions
-                .where((e) =>
-                    (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                    (!hasQuantityFilters[0] || e.quantity! > 0) &&
-                        (!hasQuantityFilters[1] || e.quantity! <= 0))
-                .toList();
-            filteredOptionPositions.sort((a, b) {
-              int comp = a.legs.first.expirationDate!
-                  .compareTo(b.legs.first.expirationDate!);
-              if (comp != 0) return comp;
-              return a.legs.first.strikePrice!
-                  .compareTo(b.legs.first.strikePrice!);
-            });
+                          final RenderBox? renderBox =
+                              _shareButtonKey.currentContext?.findRenderObject()
+                                  as RenderBox?;
+                          Rect? sharePositionOrigin;
+                          if (renderBox != null &&
+                              renderBox.size.width > 0 &&
+                              renderBox.size.height > 0) {
+                            final size = renderBox.size;
+                            final offset = renderBox.localToGlobal(Offset.zero);
+                            sharePositionOrigin = Rect.fromLTWH(
+                              offset.dx,
+                              offset.dy,
+                              size.width,
+                              size.height,
+                            );
+                          }
 
-            return SliverToBoxAdapter(
-                child: ShrinkWrappingViewport(
-                    offset: ViewportOffset.zero(),
-                    slivers: [
-                  if (filteredOptionPositions.isNotEmpty) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 8.0,
-                    )),
-                    OptionPositionsWidget(widget.brokerageUser, widget.service,
-                        filteredOptionPositions,
-                        showFooter: false,
-                        showGroupHeader: false,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService,
-                        user: widget.user,
-                        userDocRef: widget.userDocRef)
-                  ]
-                ]));
-          }),
-          // Instrument Notes
-          if (auth.currentUser != null) ...[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: InstrumentNoteWidget(
-                  instrument: instrument,
-                  userId: auth.currentUser?.uid,
-                  firestoreService: _firestoreService,
-                  generativeService: widget.generativeService,
-                ),
-              ),
-            ),
-          ],
-          if (instrument.tradeable) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            SliverToBoxAdapter(
-              child: Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.5),
-                  ),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => OptionsFlowWidget(
-                          initialSymbol: instrument.symbol,
-                          brokerageUser: widget.brokerageUser,
-                          service: widget.service,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
+                          Share.share(
+                            shareText,
+                            sharePositionOrigin: sharePositionOrigin,
+                          );
+                        },
+                      ),
+                      if (auth.currentUser != null)
+                        AutoTradeStatusBadgeWidget(
                           user: widget.user,
                           userDocRef: widget.userDocRef,
+                          service: widget.service,
                         ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: const Icon(Icons.water, color: Colors.blue),
-                        ),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Options Flow',
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4.0),
-                              Text(
-                                'View real-time institutional activity for ${instrument.symbol}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-          ],
-          if (instrument.tradeable) ...[
-            SliverToBoxAdapter(
-              child: Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.5),
-                  ),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GammaExposurePage(
-                          symbol: instrument.symbol,
-                          spotPrice: instrument.quoteObj?.lastTradePrice,
-                          generativeService: widget.generativeService,
-                        ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10.0),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: const Icon(Icons.adjust, color: Colors.purple),
-                        ),
-                        const SizedBox(width: 16.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Gamma Exposure (GEX)',
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4.0),
-                              Text(
-                                'Dealer gamma positioning & key levels for ${instrument.symbol}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-          ],
-          _buildAgenticTradeSignals(instrument),
-          if (instrument.dividendsObj != null &&
-              instrument.dividendsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildDividendsWidget(instrument)
-          ],
-          if (instrument.fundamentalsObj != null) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            fundamentalsWidget(instrument)
-          ],
-          SliverToBoxAdapter(child: _buildESGCard()),
-          SliverToBoxAdapter(
-              child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: PriceTargetsWidget(
-              symbol: instrument.symbol,
-              generativeService: widget.generativeService,
-            ),
-          )),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: FutureBuilder<InstitutionalOwnership?>(
-                future: _institutionalOwnershipFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 100,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (snapshot.hasError || !snapshot.hasData) {
-                    return const SizedBox.shrink();
-                  }
-                  return InstitutionalOwnershipWidget(
-                    ownership: snapshot.data,
-                    currentPrice: instrument.quoteObj?.lastTradePrice,
+                      IconButton(
+                          icon: auth.currentUser != null
+                              ? (auth.currentUser!.photoURL == null
+                                  ? const Icon(Icons.account_circle)
+                                  : CircleAvatar(
+                                      maxRadius: 12,
+                                      backgroundImage: CachedNetworkImageProvider(
+                                          auth.currentUser!.photoURL!
+                                          //  ?? Constants .placeholderImage, // No longer used
+                                          )))
+                              : const Icon(Icons.account_circle_outlined),
+                          onPressed: () async {
+                            var response = await showProfile(
+                                context,
+                                auth,
+                                _firestoreService,
+                                widget.analytics,
+                                widget.observer,
+                                widget.brokerageUser,
+                                widget.service);
+                            if (response != null) {
+                              setState(() {});
+                            }
+                          }),
+                    ],
+                    // actions: <Widget>[
+                    //   IconButton(
+                    //     icon: const Icon(Icons.more_vert),
+                    //     // icon: const Icon(Icons.settings),
+                    //     onPressed: () {
+                    //       showModalBottomSheet<void>(
+                    //         context: context,
+                    //        showDragHandle: true,
+                    //         //isScrollControlled: true,
+                    //         //useRootNavigator: true,
+                    //         //constraints: const BoxConstraints(maxHeight: 200),
+                    //         builder: (_) => MoreMenuBottomSheet(
+                    //           widget.user,
+                    //           onSettingsChanged: _handleSettingsChanged,
+                    //           analytics: widget.analytics,
+                    //           observer: widget.observer,
+                    //         ),
+                    //       );
+                    //     },
+                    //   ),
+                    // ],
                   );
                 },
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-              child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: InsiderActivityWidget(symbol: instrument.symbol),
-          )),
-          if (instrument.ratingsObj != null &&
-              instrument.ratingsObj["summary"] != null) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildRatingsWidget(instrument)
-          ],
-          if (instrument.ratingsOverviewObj != null) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildRatingsOverviewWidget(instrument)
-          ],
-          if (instrument.earningsObj != null &&
-              instrument.earningsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildEarningsWidget(instrument)
-          ],
-          if (instrument.splitsObj != null &&
-              instrument.splitsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildSplitsWidget(instrument)
-          ],
-          if (instrument.newsObj != null
-              // && instrument.earningsObj!.isNotEmpty
-              ) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildNewsWidget(instrument)
-          ],
-          if (instrument.listsObj != null &&
-              instrument.listsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildListsWidget(instrument)
-          ],
-          if (instrument.similarObj != null &&
-              instrument.similarObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildSimilarWidget(instrument)
-          ],
-          Consumer<InstrumentOrderStore>(
-              builder: (context, stockOrderStore, child) {
-            List<InstrumentOrder>? positionOrders;
-            if (widget.brokerageUser.source == BrokerageSource.paper) {
-              final paperStore =
-                  Provider.of<PaperTradingStore>(context, listen: false);
-              var history = paperStore.history
-                  .where((h) =>
-                      h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-                  .toList();
-              positionOrders =
-                  history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
-            } else {
-              positionOrders = instrument.positionOrders;
-            }
+              if (auth.currentUser != null) _buildAIInsights(context),
+              SliverToBoxAdapter(
+                  child: Stack(children: [
+                if (done == false) ...[
+                  SizedBox(
+                    height: 3, //150.0,
+                    child: Center(
+                        child: LinearProgressIndicator(
+                            //value: controller.value,
+                            //semanticsLabel: 'Linear progress indicator',
+                            ) //CircularProgressIndicator(),
+                        ),
+                  ),
+                ],
+                buildOverview(instrument)
+              ])),
+              SliverToBoxAdapter(
+                child: InstrumentChartWidget(
+                  instrument: instrument,
+                  chartDateSpanFilter: chartDateSpanFilter,
+                  chartBoundsFilter: chartBoundsFilter,
+                  onFilterChanged: (span, bounds) {
+                    resetChart(span, bounds);
+                  },
+                ),
+              ),
+              if (instrument.quoteObj != null) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                Consumer<InstrumentPositionStore>(
+                    builder: (context, stockPositionStore, child) {
+                  return quoteWidget(instrument);
+                })
+              ],
+              Consumer<InstrumentPositionStore>(
+                  builder: (context, stockPositionStore, child) {
+                InstrumentPosition? position;
+                if (widget.brokerageUser.source == BrokerageSource.paper) {
+                  final paperStore =
+                      Provider.of<PaperTradingStore>(context, listen: false);
+                  position = paperStore.positions.firstWhereOrNull(
+                      (e) => e.instrument == widget.instrument.url);
+                } else {
+                  position = stockPositionStore.items
+                      .firstWhereOrNull((e) => e.instrument == instrument.url);
+                }
+                if (position == null) {
+                  return SliverToBoxAdapter(child: Container());
+                }
+                return SliverToBoxAdapter(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                      ListTile(
+                          title:
+                              Text("Position", style: TextStyle(fontSize: 20)),
+                          subtitle: Text(
+                              '${formatNumber.format(position.quantity!)} shares'),
+                          trailing: Text(
+                              formatCurrency.format(position.marketValue),
+                              style: const TextStyle(fontSize: 21))),
+                      _buildDetailScrollRow(
+                          position, badgeValueFontSize, badgeLabelFontSize,
+                          iconSize: 27.0),
+                      // ListTile(
+                      //   minTileHeight: 10,
+                      //   title: const Text("Cost"),
+                      //   trailing: Text(formatCurrency.format(position.totalCost),
+                      //       style: const TextStyle(fontSize: 18)),
+                      // ),
+                      // ListTile(
+                      //   minTileHeight: 10,
+                      //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
+                      //   // title: const Text("Average Cost"),
+                      //   trailing: Text(
+                      //       formatCurrency.format(position.averageBuyPrice),
+                      //       style: const TextStyle(fontSize: 18)),
+                      // ),
+                      // ListTile(
+                      //   minTileHeight: 10,
+                      //   title: const Text("Created"),
+                      //   trailing: Text(formatDate.format(position.createdAt!),
+                      //       style: const TextStyle(fontSize: 15)),
+                      // ),
+                      // ListTile(
+                      //   minTileHeight: 10,
+                      //   title: const Text("Updated"),
+                      //   trailing: Text(formatDate.format(position.updatedAt!),
+                      //       style: const TextStyle(fontSize: 15)),
+                      // ),
+                    ]));
+              }),
+              Consumer<OptionPositionStore>(
+                  builder: (context, optionPositionStore, child) {
+                List<OptionAggregatePosition> optionPositions = [];
+                if (widget.brokerageUser.source == BrokerageSource.paper) {
+                  final paperStore =
+                      Provider.of<PaperTradingStore>(context, listen: false);
+                  optionPositions = paperStore.optionPositions
+                      .where((e) => e.symbol == widget.instrument.symbol)
+                      .toList();
+                } else {
+                  optionPositions = optionPositionStore.items
+                      .where((e) => e.symbol == widget.instrument.symbol)
+                      .toList();
+                }
+                optionPositions.sort((a, b) {
+                  int comp = a.legs.first.expirationDate!
+                      .compareTo(b.legs.first.expirationDate!);
+                  if (comp != 0) return comp;
+                  return a.legs.first.strikePrice!
+                      .compareTo(b.legs.first.strikePrice!);
+                });
 
-            if (positionOrders != null && positionOrders.isNotEmpty) {
-              return positionOrdersWidget(positionOrders);
-            }
-            return const SliverToBoxAdapter(child: SizedBox.shrink());
-          }),
-          Consumer<OptionOrderStore>(
-              builder: (context, optionOrderStore, child) {
-            List<OptionOrder>? optionOrders;
-            if (widget.brokerageUser.source == BrokerageSource.paper) {
-              final paperStore =
-                  Provider.of<PaperTradingStore>(context, listen: false);
-              var history = paperStore.history
-                  .where((h) =>
-                      h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
-                  .toList();
-              optionOrders = history.map((h) {
-                return OptionOrder(
-                  "paper_${h['timestamp']}",
-                  "",
-                  h['symbol'],
-                  null,
-                  0,
-                  h['action'] == 'BUY' ? 'debit' : 'credit',
-                  [],
-                  0,
-                  h['price'],
-                  h['price'],
-                  h['price'],
-                  h['quantity'],
-                  h['quantity'],
-                  "paper_${h['timestamp']}",
-                  "filled",
-                  "gtc",
-                  "immediate",
-                  "limit",
-                  null,
-                  null,
-                  null,
-                  null,
-                  DateTime.tryParse(h['timestamp']),
-                  DateTime.tryParse(h['timestamp']),
-                );
-              }).toList();
-            } else {
-              optionOrders = instrument.optionOrders;
-            }
+                var filteredOptionPositions = optionPositions
+                    .where((e) =>
+                        (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                        (!hasQuantityFilters[0] || e.quantity! > 0) &&
+                            (!hasQuantityFilters[1] || e.quantity! <= 0))
+                    .toList();
+                filteredOptionPositions.sort((a, b) {
+                  int comp = a.legs.first.expirationDate!
+                      .compareTo(b.legs.first.expirationDate!);
+                  if (comp != 0) return comp;
+                  return a.legs.first.strikePrice!
+                      .compareTo(b.legs.first.strikePrice!);
+                });
 
-            if (optionOrders != null && optionOrders.isNotEmpty) {
-              return _buildOptionOrdersWidget(optionOrders);
-            }
-            return const SliverToBoxAdapter(child: SizedBox.shrink());
-          }),
-          // TODO: Introduce web banner
-          if (!kIsWeb) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            )),
-            SliverToBoxAdapter(
-                child: AdBannerWidget(
-              size: AdSize.mediumRectangle,
-              // searchBanner: true,
-            )),
-          ],
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-          const SliverToBoxAdapter(child: DisclaimerWidget()),
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-        ]));
+                return SliverToBoxAdapter(
+                    child: ShrinkWrappingViewport(
+                        offset: ViewportOffset.zero(),
+                        slivers: [
+                      if (filteredOptionPositions.isNotEmpty) ...[
+                        const SliverToBoxAdapter(
+                            child: SizedBox(
+                          height: 8.0,
+                        )),
+                        OptionPositionsWidget(widget.brokerageUser,
+                            widget.service, filteredOptionPositions,
+                            showFooter: false,
+                            showGroupHeader: false,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef)
+                      ]
+                    ]));
+              }),
+              // Instrument Notes
+              if (auth.currentUser != null) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: InstrumentNoteWidget(
+                      instrument: instrument,
+                      userId: auth.currentUser?.uid,
+                      firestoreService: _firestoreService,
+                      generativeService: widget.generativeService,
+                    ),
+                  ),
+                ),
+              ],
+              if (instrument.tradeable) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                SliverToBoxAdapter(
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => OptionsFlowWidget(
+                              initialSymbol: instrument.symbol,
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            ),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10.0),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child:
+                                  const Icon(Icons.water, color: Colors.blue),
+                            ),
+                            const SizedBox(width: 16.0),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Options Flow',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4.0),
+                                  Text(
+                                    'View real-time institutional activity for ${instrument.symbol}',
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+              ],
+              if (instrument.tradeable) ...[
+                SliverToBoxAdapter(
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GammaExposurePage(
+                              symbol: instrument.symbol,
+                              spotPrice: instrument.quoteObj?.lastTradePrice,
+                              generativeService: widget.generativeService,
+                            ),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10.0),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: const Icon(Icons.adjust,
+                                  color: Colors.purple),
+                            ),
+                            const SizedBox(width: 16.0),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Gamma Exposure (GEX)',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4.0),
+                                  Text(
+                                    'Dealer gamma positioning & key levels for ${instrument.symbol}',
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+              ],
+              _buildAgenticTradeSignals(instrument),
+              if (instrument.dividendsObj != null &&
+                  instrument.dividendsObj!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildDividendsWidget(instrument)
+              ],
+              if (instrument.fundamentalsObj != null) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                fundamentalsWidget(instrument)
+              ],
+              SliverToBoxAdapter(child: _buildESGCard()),
+              SliverToBoxAdapter(
+                  child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: PriceTargetsWidget(
+                  symbol: instrument.symbol,
+                  generativeService: widget.generativeService,
+                ),
+              )),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: FutureBuilder<InstitutionalOwnership?>(
+                    future: _institutionalOwnershipFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(
+                          height: 100,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (snapshot.hasError || !snapshot.hasData) {
+                        return const SizedBox.shrink();
+                      }
+                      return InstitutionalOwnershipWidget(
+                        ownership: snapshot.data,
+                        currentPrice: instrument.quoteObj?.lastTradePrice,
+                      );
+                    },
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                  child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: InsiderActivityWidget(symbol: instrument.symbol),
+              )),
+              if (instrument.ratingsObj != null &&
+                  instrument.ratingsObj["summary"] != null) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildRatingsWidget(instrument)
+              ],
+              if (instrument.ratingsOverviewObj != null) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildRatingsOverviewWidget(instrument)
+              ],
+              if (instrument.earningsObj != null &&
+                  instrument.earningsObj!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildEarningsWidget(instrument)
+              ],
+              if (instrument.splitsObj != null &&
+                  instrument.splitsObj!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildSplitsWidget(instrument)
+              ],
+              if (instrument.newsObj != null
+                  // && instrument.earningsObj!.isNotEmpty
+                  ) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildNewsWidget(instrument)
+              ],
+              if (instrument.listsObj != null &&
+                  instrument.listsObj!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildListsWidget(instrument)
+              ],
+              if (instrument.similarObj != null &&
+                  instrument.similarObj!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 8.0,
+                )),
+                _buildSimilarWidget(instrument)
+              ],
+              Consumer<InstrumentOrderStore>(
+                  builder: (context, stockOrderStore, child) {
+                List<InstrumentOrder>? positionOrders;
+                if (widget.brokerageUser.source == BrokerageSource.paper) {
+                  final paperStore =
+                      Provider.of<PaperTradingStore>(context, listen: false);
+                  var history = paperStore.history
+                      .where((h) =>
+                          h['symbol'] == instrument.symbol &&
+                          h['type'] == 'STOCK')
+                      .toList();
+                  positionOrders = history
+                      .map((h) => InstrumentOrder.fromPaperJson(h))
+                      .toList();
+                } else {
+                  positionOrders = instrument.positionOrders;
+                }
+
+                if (positionOrders != null && positionOrders.isNotEmpty) {
+                  return positionOrdersWidget(positionOrders);
+                }
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              }),
+              Consumer<OptionOrderStore>(
+                  builder: (context, optionOrderStore, child) {
+                List<OptionOrder>? optionOrders;
+                if (widget.brokerageUser.source == BrokerageSource.paper) {
+                  final paperStore =
+                      Provider.of<PaperTradingStore>(context, listen: false);
+                  var history = paperStore.history
+                      .where((h) =>
+                          h['symbol'] == instrument.symbol &&
+                          h['type'] == 'OPTION')
+                      .toList();
+                  optionOrders = history.map((h) {
+                    return OptionOrder(
+                      "paper_${h['timestamp']}",
+                      "",
+                      h['symbol'],
+                      null,
+                      0,
+                      h['action'] == 'BUY' ? 'debit' : 'credit',
+                      [],
+                      0,
+                      h['price'],
+                      h['price'],
+                      h['price'],
+                      h['quantity'],
+                      h['quantity'],
+                      "paper_${h['timestamp']}",
+                      "filled",
+                      "gtc",
+                      "immediate",
+                      "limit",
+                      null,
+                      null,
+                      null,
+                      null,
+                      DateTime.tryParse(h['timestamp']),
+                      DateTime.tryParse(h['timestamp']),
+                    );
+                  }).toList();
+                } else {
+                  optionOrders = instrument.optionOrders;
+                }
+
+                if (optionOrders != null && optionOrders.isNotEmpty) {
+                  return _buildOptionOrdersWidget(optionOrders);
+                }
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              }),
+              // TODO: Introduce web banner
+              if (!kIsWeb) ...[
+                const SliverToBoxAdapter(
+                    child: SizedBox(
+                  height: 25.0,
+                )),
+                SliverToBoxAdapter(
+                    child: AdBannerWidget(
+                  size: AdSize.mediumRectangle,
+                  // searchBanner: true,
+                )),
+              ],
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              const SliverToBoxAdapter(child: DisclaimerWidget()),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ])));
   }
 
   Future<void> _pullRefresh() async {

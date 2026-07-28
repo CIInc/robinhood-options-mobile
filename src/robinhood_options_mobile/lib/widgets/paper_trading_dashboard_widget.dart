@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.d
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
@@ -203,7 +204,14 @@ class _PaperTradingDashboardWidgetState
         label: const Text('Trade'),
       ),
       appBar: AppBar(
-        title: const Text('Paper Trading'),
+        flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+          context: context,
+          child: Container(color: Colors.transparent),
+        ),
+        title: AppBarUtils.buildScrollToTopGestureDetector(
+          context: context,
+          child: const Text('Paper Trading'),
+        ),
         elevation: 0,
         actions: [
           IconButton(
@@ -228,6 +236,7 @@ class _PaperTradingDashboardWidgetState
           : RefreshIndicator(
               onRefresh: _refreshQuotes,
               child: ListView(
+                primary: true,
                 padding: const EdgeInsets.all(16.0),
                 children: [
                   _buildPortfolioSummary(

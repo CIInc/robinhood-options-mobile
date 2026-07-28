@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -12,7 +13,6 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class InvestorGroupsWidget extends StatefulWidget {
   final FirestoreService firestoreService;
@@ -93,7 +93,14 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
             snap: true,
             pinned: true,
             centerTitle: false,
-            title: const Text(Constants.appTitle),
+            flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              child: Container(color: Colors.transparent),
+            ),
+            title: AppBarUtils.buildScrollToTopGestureDetector(
+              context: context,
+              child: const Text(Constants.appTitle),
+            ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.copy_rounded),
