@@ -179,21 +179,22 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
               primary: true,
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: [
-                SliverAppBar(
-                  flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
-                    context: context,
-                    child: Container(color: Colors.transparent),
-                  ),
-                  title: AppBarUtils.buildScrollToTopGestureDetector(
-                    context: context,
-                    child: Text(widget.strategyTemplate != null
-                        ? widget.strategyTemplate!.name
-                        : Constants.appTitle),
-                  ),
-                  centerTitle: false,
-                  floating: false,
-                  pinned: true,
-                  snap: false,
+                ExpandedSliverAppBar(
+                  auth: firebase_auth.FirebaseAuth.instance,
+                  firestoreService: FirestoreService(),
+                  automaticallyImplyLeading: true,
+                  title: Text(widget.strategyTemplate != null
+                      ? widget.strategyTemplate!.name
+                      : Constants.appTitle),
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  user: widget.brokerageUser,
+                  firestoreUser: widget.user,
+                  userDocRef: widget.userDocRef,
+                  service: widget.service,
+                  onChange: () {
+                    _tradeSignalsKey.currentState?.refresh();
+                  },
                   actions: _buildActions(context),
                 ),
                 TradeSignalsWidget(

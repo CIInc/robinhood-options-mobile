@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -88,19 +87,24 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
       length: 3,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverAppBar(
+          ExpandedSliverAppBar(
+            auth: auth,
+            firestoreService: widget.firestoreService,
+            automaticallyImplyLeading: true,
+            title: const Text(Constants.appTitle),
+            analytics: widget.analytics,
+            observer: widget.observer,
+            user: widget.brokerageUser,
+            firestoreUser: widget.user,
+            userDocRef: widget.userDocRef,
+            service: widget.service,
             floating: true,
             snap: true,
-            pinned: true,
-            centerTitle: false,
-            flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
-              context: context,
-              child: Container(color: Colors.transparent),
-            ),
-            title: AppBarUtils.buildScrollToTopGestureDetector(
-              context: context,
-              child: const Text(Constants.appTitle),
-            ),
+            onChange: () {
+              setState(() {
+                _refreshStreams();
+              });
+            },
             actions: [
               IconButton(
                 icon: const Icon(Icons.copy_rounded),
@@ -113,29 +117,6 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget> {
                       builder: (context) => const CopyTradingDashboardWidget(),
                     ),
                   );
-                },
-              ),
-              IconButton(
-                icon: auth.currentUser != null
-                    ? (auth.currentUser!.photoURL == null
-                        ? const Icon(Icons.account_circle)
-                        : CircleAvatar(
-                            maxRadius: 12,
-                            backgroundImage: CachedNetworkImageProvider(
-                                auth.currentUser!.photoURL!)))
-                    : const Icon(Icons.account_circle_outlined),
-                onPressed: () async {
-                  await showProfile(
-                      context,
-                      auth,
-                      widget.firestoreService,
-                      widget.analytics,
-                      widget.observer,
-                      widget.brokerageUser,
-                      widget.service);
-                  setState(() {
-                    _refreshStreams();
-                  });
                 },
               ),
             ],

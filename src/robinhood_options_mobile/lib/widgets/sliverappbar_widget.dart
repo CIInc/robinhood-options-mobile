@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart';
@@ -36,6 +37,11 @@ class ExpandedSliverAppBar extends StatelessWidget {
   final DocumentReference<app_user.User>? userDocRef;
   final IBrokerageService? service;
   final ScrollController? scrollController;
+  final List<Widget>? actions;
+  final PreferredSizeWidget? bottom;
+  final bool floating;
+  final bool snap;
+  final bool pinned;
 
   const ExpandedSliverAppBar({
     super.key,
@@ -51,126 +57,318 @@ class ExpandedSliverAppBar extends StatelessWidget {
     this.userDocRef,
     this.service,
     this.scrollController,
+    this.actions,
+    this.bottom,
+    this.floating = false,
+    this.snap = false,
+    this.pinned = true,
   });
 
-  Future<void> showAccountSwitcher(
-      BuildContext context, BrokerageUserStore brokerageUserStore) async {
+  Future<void> showAccountSwitcher(BuildContext context,
+      BrokerageUserStore brokerageUserStore, AccountStore accountStore) async {
+    final formatCurrency = NumberFormat.simpleCurrency();
+
     await showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,
+        isScrollControlled: true,
         builder: (BuildContext context) {
           return SafeArea(
-            child: Wrap(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text('Switch Account',
-                      style: Theme.of(context).textTheme.titleLarge),
-                ),
-                if (brokerageUserStore.items.length > 1)
-                  ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.all_inbox),
-                    ),
-                    title: const Text('All Accounts'),
-                    subtitle: const Text('Aggregate view'),
-                    trailing: brokerageUserStore.aggregateAllAccounts
-                        ? const Icon(Icons.check)
-                        : null,
-                    onTap: () async {
-                      Navigator.pop(context);
-                      if (!brokerageUserStore.aggregateAllAccounts) {
-                        Provider.of<AccountStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<PortfolioStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<PortfolioHistoricalsStore>(context,
-                                listen: false)
-                            .removeAll();
-                        Provider.of<ForexHoldingStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<OptionPositionStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<InstrumentPositionStore>(context,
-                                listen: false)
-                            .removeAll();
+            child: DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.6,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              builder: (context, scrollController) {
+                return SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        child: Text('Switch Account',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                      ),
+                      if (brokerageUserStore.items.length > 1) ...[
+                        _buildSectionHeader(context, 'Views',
+                            icon: Icons.splitscreen_outlined),
+                        ListTile(
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.all_inbox),
+                          ),
+                          title: const Text('All Brokerages',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('Aggregate view'),
+                          trailing: brokerageUserStore.aggregateAllAccounts
+                              ? Icon(Icons.check_circle,
+                                  color: Theme.of(context).colorScheme.primary)
+                              : null,
+                          onTap: () async {
+                            Navigator.pop(context);
+                            if (!brokerageUserStore.aggregateAllAccounts) {
+                              accountStore.clearSelection();
+                              accountStore.removeAll();
+                              Provider.of<PortfolioStore>(context,
+                                      listen: false)
+                                  .removeAll();
+                              Provider.of<PortfolioHistoricalsStore>(context,
+                                      listen: false)
+                                  .removeAll();
+                              Provider.of<ForexHoldingStore>(context,
+                                      listen: false)
+                                  .removeAll();
+                              Provider.of<OptionPositionStore>(context,
+                                      listen: false)
+                                  .removeAll();
+                              Provider.of<InstrumentPositionStore>(context,
+                                      listen: false)
+                                  .removeAll();
 
-                        brokerageUserStore.setAggregateAllAccounts(true);
-                        await brokerageUserStore.save();
-                      }
-                    },
+                              brokerageUserStore.setAggregateAllAccounts(true);
+                              await brokerageUserStore.save();
+                              if (onChange != null) {
+                                onChange!();
+                              }
+                            }
+                          },
+                        ),
+                        const Divider(),
+                      ],
+                      _buildSectionHeader(context, 'Brokerage Accounts',
+                          icon: Icons.business_outlined),
+                      ...brokerageUserStore.items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final user = entry.value;
+                        final isUserSelected =
+                            !brokerageUserStore.aggregateAllAccounts &&
+                                index == brokerageUserStore.currentUserIndex;
+                        final isExpired =
+                            user.oauth2Client?.credentials.isExpired ?? false;
+
+                        return Column(
+                          children: [
+                            ListTile(
+                              leading: Badge(
+                                alignment: Alignment.bottomRight,
+                                smallSize: 10,
+                                backgroundColor:
+                                    isExpired ? Colors.red : Colors.green,
+                                child: CircleAvatar(
+                                  child: Text(user.source
+                                      .enumValue()
+                                      .substring(0, 1)
+                                      .toUpperCase()),
+                                ),
+                              ),
+                              title: Text(user.userName ?? 'Unknown',
+                                  style: TextStyle(
+                                      fontWeight: isUserSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal)),
+                              subtitle: Row(
+                                children: [
+                                  Text(user.source.enumValue().capitalize()),
+                                  if (isExpired) ...[
+                                    const SizedBox(width: 8),
+                                    const Text('Session Expired',
+                                        style: TextStyle(
+                                            color: Colors.red, fontSize: 10)),
+                                  ],
+                                ],
+                              ),
+                              trailing: isUserSelected &&
+                                      accountStore.items.length <= 1
+                                  ? Icon(Icons.check_circle,
+                                      color:
+                                          Theme.of(context).colorScheme.primary)
+                                  : null,
+                              onTap: () async {
+                                Navigator.pop(context);
+                                if (!isUserSelected ||
+                                    brokerageUserStore.aggregateAllAccounts) {
+                                  accountStore.clearSelection();
+                                  accountStore.removeAll();
+                                  Provider.of<PortfolioStore>(context,
+                                          listen: false)
+                                      .removeAll();
+                                  Provider.of<PortfolioHistoricalsStore>(
+                                          context,
+                                          listen: false)
+                                      .removeAll();
+                                  Provider.of<ForexHoldingStore>(context,
+                                          listen: false)
+                                      .removeAll();
+                                  Provider.of<OptionPositionStore>(context,
+                                          listen: false)
+                                      .removeAll();
+                                  Provider.of<InstrumentPositionStore>(context,
+                                          listen: false)
+                                      .removeAll();
+
+                                  brokerageUserStore
+                                      .setAggregateAllAccounts(false);
+                                  brokerageUserStore.setCurrentUserIndex(index);
+                                  await brokerageUserStore.save();
+                                  if (onChange != null) {
+                                    onChange!();
+                                  }
+                                }
+                              },
+                            ),
+                            if (isUserSelected && accountStore.items.length > 1)
+                              ...accountStore.items.map((account) {
+                                final isSelectedAccount =
+                                    accountStore.selectedAccountNumber ==
+                                        account.accountNumber;
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 32.0),
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      account.isAgentic
+                                          ? Icons.auto_awesome
+                                          : Icons
+                                              .account_balance_wallet_outlined,
+                                      size: 20,
+                                      color: account.isAgentic
+                                          ? Colors.amber
+                                          : (isSelectedAccount
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                              : null),
+                                    ),
+                                    title: Text(
+                                      'Account ${account.accountNumber}',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSelectedAccount
+                                              ? FontWeight.bold
+                                              : FontWeight.normal),
+                                    ),
+                                    subtitle: Text(
+                                      "${account.type.capitalize()}${account.portfolioCash != null ? " • ${formatCurrency.format(account.portfolioCash)}" : ""}",
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    trailing: isSelectedAccount
+                                        ? Icon(Icons.check_circle,
+                                            size: 20,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary)
+                                        : null,
+                                    onTap: () async {
+                                      Navigator.pop(context);
+                                      if (!isSelectedAccount) {
+                                        accountStore.setSelectedAccountNumber(
+                                            account.accountNumber);
+                                        final activeUser =
+                                            brokerageUserStore.currentUser;
+                                        if (activeUser != null) {
+                                          final storageKey =
+                                              AccountStore.selectionStorageKey(
+                                                  source: activeUser.source
+                                                      .enumValue(),
+                                                  userName:
+                                                      activeUser.userName);
+                                          await accountStore
+                                              .saveSelectedAccountNumber(
+                                                  storageKey);
+                                        }
+                                        if (onChange != null) {
+                                          onChange!();
+                                        }
+                                      }
+                                    },
+                                  ),
+                                );
+                              }),
+                          ],
+                        );
+                      }),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Divider(),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.add_circle_outline),
+                        title: const Text('Add Brokerage Account'),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final authUtil = AuthUtil(auth);
+                          authUtil.openLogin(
+                              context, firestoreService, analytics, observer);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                ...brokerageUserStore.items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final user = entry.value;
-                  final isSelected = !brokerageUserStore.aggregateAllAccounts &&
-                      index == brokerageUserStore.currentUserIndex;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(user.source
-                          .enumValue()
-                          .substring(0, 1)
-                          .toUpperCase()),
-                    ),
-                    title: Text(user.userName ?? 'Unknown'),
-                    subtitle: Text(user.source.enumValue().capitalize()),
-                    trailing: isSelected ? const Icon(Icons.check) : null,
-                    onTap: () async {
-                      Navigator.pop(context);
-                      if (!isSelected ||
-                          brokerageUserStore.aggregateAllAccounts) {
-                        Provider.of<AccountStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<PortfolioStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<PortfolioHistoricalsStore>(context,
-                                listen: false)
-                            .removeAll();
-                        Provider.of<ForexHoldingStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<OptionPositionStore>(context, listen: false)
-                            .removeAll();
-                        Provider.of<InstrumentPositionStore>(context,
-                                listen: false)
-                            .removeAll();
-
-                        brokerageUserStore.setAggregateAllAccounts(false);
-                        brokerageUserStore.setCurrentUserIndex(index);
-                        await brokerageUserStore.save();
-                      }
-                    },
-                  );
-                }),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.add),
-                  title: const Text('Add Account'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final authUtil = AuthUtil(auth);
-                    authUtil.openLogin(
-                        context, firestoreService, analytics, observer);
-                  },
-                )
-              ],
+                );
+              },
             ),
           );
         });
-    if (onChange != null) {
-      onChange!();
-    }
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title,
+      {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon,
+                size: 18, color: Theme.of(context).colorScheme.secondary),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.secondary,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     var brokerageUserStore = Provider.of<BrokerageUserStore>(context);
-    var hasMultipleAccounts = brokerageUserStore.items.length > 1;
+    var accountStore = Provider.of<AccountStore>(context);
+    var canSwitch =
+        brokerageUserStore.items.length > 1 || accountStore.items.length > 1;
+
+    String? subtitle;
+    if (brokerageUserStore.items.isNotEmpty) {
+      if (brokerageUserStore.aggregateAllAccounts &&
+          brokerageUserStore.items.length > 1) {
+        subtitle = 'All Accounts';
+      } else {
+        final activeUser = user ?? brokerageUserStore.currentUser;
+        if (activeUser != null) {
+          final selectedAccount = accountStore.selectedAccount;
+          subtitle = activeUser.source.enumValue().capitalize();
+          if (selectedAccount != null) {
+            subtitle = '$subtitle • ${selectedAccount.accountNumber}';
+          }
+        }
+      }
+    }
+
     return StreamBuilder<User?>(
         stream: auth.authStateChanges(),
         builder: (context, snapshot) {
           return SliverAppBar(
-            pinned: true,
+            pinned: pinned,
+            floating: floating,
+            snap: snap,
             centerTitle: false,
+            bottom: bottom,
             flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
               context: context,
               scrollController: scrollController,
@@ -188,7 +386,43 @@ class ExpandedSliverAppBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
-                      child: title,
+                      child: subtitle == null
+                          ? title
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                title,
+                                GestureDetector(
+                                  onTap: canSwitch
+                                      ? () => showAccountSwitcher(context,
+                                          brokerageUserStore, accountStore)
+                                      : null,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        subtitle,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall,
+                                      ),
+                                      if (canSwitch) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.arrow_drop_down,
+                                          size: 14,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.color,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                     if (user?.source == BrokerageSource.paper) ...[
                       const SizedBox(width: 8),
@@ -215,19 +449,13 @@ class ExpandedSliverAppBar extends StatelessWidget {
             ),
             automaticallyImplyLeading: automaticallyImplyLeading,
             actions: [
+              ...?actions,
               if (auth.currentUser != null)
                 AutoTradeStatusBadgeWidget(
                   user: firestoreUser,
                   userDocRef: userDocRef,
                   service: service,
                 ),
-              if (hasMultipleAccounts)
-                IconButton(
-                    icon: const Icon(Icons.account_balance),
-                    tooltip: 'Switch Account',
-                    onPressed: () {
-                      showAccountSwitcher(context, brokerageUserStore);
-                    }),
               IconButton(
                   icon: auth.currentUser != null
                       ? (auth.currentUser!.photoURL == null

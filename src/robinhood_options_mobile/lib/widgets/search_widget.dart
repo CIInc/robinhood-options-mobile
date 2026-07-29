@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -28,7 +27,6 @@ import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
 import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
@@ -342,62 +340,21 @@ class _SearchWidgetState extends State<SearchWidget>
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             if (!widget.embedded)
-              SliverAppBar(
-                  floating: false,
-                  snap: false,
-                  pinned: true,
-                  centerTitle: false,
-                  flexibleSpace: AppBarUtils.buildScrollToTopGestureDetector(
-                    context: context,
-                    child: Container(color: Colors.transparent),
-                  ),
-                  title: AppBarUtils.buildScrollToTopGestureDetector(
-                    context: context,
-                    child: const Text(Constants.appTitle),
-                  ), // Search
-                  actions: [
-                    if (auth.currentUser != null)
-                      AutoTradeStatusBadgeWidget(
-                        user: widget.user,
-                        userDocRef: widget.userDocRef,
-                        service: widget.service,
-                      ),
-                    // IconButton(
-                    //   icon: const Icon(Icons.sentiment_satisfied_alt),
-                    //   tooltip: 'Sentiment Analysis',
-                    //   onPressed: () {
-                    //     Navigator.push(
-                    //         context,
-                    //         MaterialPageRoute(
-                    //             builder: (context) =>
-                    //                 const SentimentAnalysisDashboardWidget()));
-                    //   },
-                    // ),
-                    IconButton(
-                        icon: auth.currentUser != null
-                            ? (auth.currentUser!.photoURL == null
-                                ? const Icon(Icons.account_circle)
-                                : CircleAvatar(
-                                    maxRadius: 12,
-                                    backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
-                            : const Icon(Icons.account_circle_outlined),
-                        onPressed: () async {
-                          var response = await showProfile(
-                              context,
-                              auth,
-                              _firestoreService,
-                              widget.analytics,
-                              widget.observer,
-                              widget.brokerageUser,
-                              widget.service);
-                          if (response != null) {
-                            setState(() {});
-                          }
-                        })
-                  ]),
+              ExpandedSliverAppBar(
+                auth: auth,
+                firestoreService: _firestoreService,
+                automaticallyImplyLeading: true,
+                title: const Text(Constants.appTitle),
+                analytics: widget.analytics,
+                observer: widget.observer,
+                user: widget.brokerageUser,
+                firestoreUser: widget.user,
+                userDocRef: widget.userDocRef,
+                service: widget.service,
+                onChange: () {
+                  setState(() {});
+                },
+              ),
             /*
                   if (done == false) ...[
                     const SliverToBoxAdapter(

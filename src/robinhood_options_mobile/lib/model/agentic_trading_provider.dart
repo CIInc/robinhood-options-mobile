@@ -403,13 +403,6 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      // Fetch recent signals based on strategy
-      final enabledIndicators = _config.strategyConfig.enabledIndicators;
-      final activeIndicators = enabledIndicators.entries
-          .where((entry) => entry.value == true)
-          .map((entry) => entry.key)
-          .toList();
-
       final minSignalStrength =
           _config.strategyConfig.minSignalStrength.toInt();
 

@@ -12,6 +12,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 // import 'dart:math' as math;
 
@@ -255,7 +256,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   String _selectionStorageKey() {
     final user = widget.brokerageUser;
     return AccountStore.selectionStorageKey(
-      source: user?.source.toString() ?? 'unknown',
+      source: user?.source.enumValue() ?? 'unknown',
       userName: user?.userName,
     );
   }
@@ -1094,8 +1095,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       futureStockPositions = null;
       futureAccounts!.then((accounts) {
         if (mounted && accounts.isNotEmpty) {
+          final accountStore =
+              Provider.of<AccountStore>(context, listen: false);
           setState(() {
-            account = accounts[0];
+            final selectedNo = accountStore.selectedAccountNumber;
+            account = (selectedNo != null)
+                ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                    orElse: () => accounts[0])
+                : accounts[0];
             _loadPortfolioHistoricals();
           });
         }
@@ -1128,7 +1135,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             Provider.of<BrokerageUserStore>(context, listen: false);
         final accountStore = Provider.of<AccountStore>(context, listen: false);
 
-        await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
+        if (accountStore.selectedAccountNumber == null) {
+          await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
+        }
         await userStore.save();
 
         setState(() {
@@ -1140,7 +1149,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           _loadPortfolioHistoricals();
         });
 
-        accountStore.setSelectedAccountNumber(account!.accountNumber);
+        if (accountStore.selectedAccountNumber == null) {
+          accountStore.setSelectedAccountNumber(account!.accountNumber);
+        }
         await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
       }
     }).catchError((error) {
@@ -1294,26 +1305,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     super.didChangeDependencies();
     final aggregateMode =
         Provider.of<BrokerageUserStore>(context).aggregateAllAccounts;
+    final accountStore = Provider.of<AccountStore>(context);
+    final selectedNo = accountStore.selectedAccountNumber;
+
+    bool needsReload = false;
+
     if (_lastAggregateMode != aggregateMode) {
       _lastAggregateMode = aggregateMode;
-      _loadData();
+      needsReload = true;
     }
 
-    final selectedNo = Provider.of<AccountStore>(context).selectedAccountNumber;
     if (_lastSelectedAccountNumber != selectedNo) {
       _lastSelectedAccountNumber = selectedNo;
+      needsReload = true;
+    }
 
-      if (!_isAggregateMode() && mounted && futureAccounts != null) {
-        setState(() {
-          final accountStore =
-              Provider.of<AccountStore>(context, listen: false);
-          final selected = accountStore.selectedAccount;
-          if (selected != null) {
-            account = selected;
-            _loadPortfolioHistoricals();
-          }
-        });
-      }
+    if (needsReload && mounted) {
+      setState(() {
+        // Immediately update the account object to reflect the new selection
+        account = _isAggregateMode() ? null : accountStore.selectedAccount;
+
+        // Clear account-specific stores to ensure stale data isn't displayed while loading
+        Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+            .removeAll();
+        Provider.of<PortfolioStore>(context, listen: false).removeAll();
+        Provider.of<DividendStore>(context, listen: false).removeAll();
+        Provider.of<InterestStore>(context, listen: false).removeAll();
+        Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+        Provider.of<InstrumentPositionStore>(context, listen: false)
+            .removeAll();
+        Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+
+        _loadData();
+      });
     }
   }
 
@@ -1586,7 +1610,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             SliverToBoxAdapter(
               child: PortfolioChartWidget(
                 key: ValueKey(
-                    'portfolio-chart-${_isAggregateMode() ? 'all' : (widget.brokerageUser?.userName ?? "")}'),
+                    'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context).selectedAccountNumber ?? ""}"}'),
                 brokerageUser: widget.brokerageUser!,
                 chartDateSpanFilter: chartDateSpanFilter,
                 chartBoundsFilter: chartBoundsFilter,
@@ -1718,6 +1742,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //if (optionPositions != null) {
             var filteredOptionAggregatePositions = optionPositionStore.items
                 .where((element) =>
+                    (isAggregateMode ||
+                        account == null ||
+                        element.account == account.url) &&
                     ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
                         (!hasQuantityFilters[0] || element.quantity! > 0) &&
                             (!hasQuantityFilters[1] ||
@@ -1750,6 +1777,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //if (positions != null) {
             var filteredPositions = stockPositionStore.items
                 .where((element) =>
+                    (isAggregateMode ||
+                        account == null ||
+                        element.account == account.url) &&
                     element.instrumentObj != null &&
                     ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
                         //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||

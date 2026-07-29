@@ -71,8 +71,12 @@ class AccountStore extends ChangeNotifier {
 
   void removeAll() {
     _items.clear();
-    _selectedAccountNumber = null;
     // This call tells the widgets that are listening to this model to rebuild.
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedAccountNumber = null;
     notifyListeners();
   }
 

@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -62,14 +63,33 @@ class _AllocationWidgetState extends State<AllocationWidget> {
             OptionPositionStore, ForexHoldingStore>(
         builder: (context, portfolioStore, stockPositionStore,
             optionPositionStore, forexHoldingStore, child) {
+      final isAggregate = widget.account?.url == 'aggregate';
+      final filteredStockItems = stockPositionStore.items
+          .where((e) =>
+              isAggregate ||
+              widget.account == null ||
+              e.account == widget.account!.url)
+          .toList();
+      final stockEquity = filteredStockItems.isEmpty
+          ? 0.0
+          : filteredStockItems.map((e) => e.marketValue).reduce((a, b) => a + b);
+
+      final filteredOptionItems = optionPositionStore.items
+          .where((e) =>
+              isAggregate ||
+              widget.account == null ||
+              e.account == widget.account!.url)
+          .toList();
+      final optionEquity = filteredOptionItems.isEmpty
+          ? 0.0
+          : filteredOptionItems
+              .map((e) => e.direction == 'debit' ? e.marketValue : -e.marketValue)
+              .reduce((a, b) => a + b);
+
       final portfolioCash = widget.account?.portfolioCash ?? 0.0;
 
       final totalAssets = _calculateTotalAssets(
-          portfolioStore,
-          stockPositionStore,
-          optionPositionStore,
-          forexHoldingStore,
-          portfolioCash);
+          stockEquity, optionEquity, forexHoldingStore.equity, portfolioCash);
 
       // Only show charts when all stores have finished loading
       if (stockPositionStore.isLoading ||
@@ -103,11 +123,17 @@ class _AllocationWidgetState extends State<AllocationWidget> {
         return const SizedBox.shrink();
       }
 
-      final assetData = _buildAssetData(stockPositionStore, optionPositionStore,
-          forexHoldingStore, portfolioCash, totalAssets);
+      final assetData = _buildAssetData(
+          filteredStockItems,
+          stockEquity,
+          filteredOptionItems,
+          optionEquity,
+          forexHoldingStore,
+          portfolioCash,
+          totalAssets);
 
       final positionData = _buildGroupedData(
-          stockPositionStore,
+          filteredStockItems,
           (item) => item.instrumentObj != null
               ? item.instrumentObj!.symbol
               : 'Unknown',
@@ -115,7 +141,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           totalAssets);
 
       final sectorData = _buildGroupedData(
-          stockPositionStore,
+          filteredStockItems,
           (item) => item.instrumentObj != null &&
                   item.instrumentObj!.fundamentalsObj != null
               ? item.instrumentObj!.fundamentalsObj!.sector
@@ -124,7 +150,7 @@ class _AllocationWidgetState extends State<AllocationWidget> {
           totalAssets);
 
       final industryData = _buildGroupedData(
-          stockPositionStore,
+          filteredStockItems,
           (item) => item.instrumentObj != null &&
                   item.instrumentObj!.fundamentalsObj != null
               ? item.instrumentObj!.fundamentalsObj!.industry
@@ -344,21 +370,22 @@ class _AllocationWidgetState extends State<AllocationWidget> {
   }
 
   double _calculateTotalAssets(
-    PortfolioStore portfolioStore,
-    InstrumentPositionStore stockPositionStore,
-    OptionPositionStore optionPositionStore,
-    ForexHoldingStore forexHoldingStore,
+    double stockEquity,
+    double optionEquity,
+    double forexEquity,
     double portfolioCash,
   ) {
-    return (optionPositionStore.equity > 0 ? optionPositionStore.equity : 0) +
-        (stockPositionStore.equity > 0 ? stockPositionStore.equity : 0) +
-        (forexHoldingStore.equity > 0 ? forexHoldingStore.equity : 0) +
+    return (optionEquity > 0 ? optionEquity : 0) +
+        (stockEquity > 0 ? stockEquity : 0) +
+        (forexEquity > 0 ? forexEquity : 0) +
         (portfolioCash > 0 ? portfolioCash : 0);
   }
 
   List<PieChartData> _buildAssetData(
-    InstrumentPositionStore stockPositionStore,
-    OptionPositionStore optionPositionStore,
+    List<InstrumentPosition> stockPositions,
+    double stockEquity,
+    List<OptionAggregatePosition> optionPositions,
+    double optionEquity,
     ForexHoldingStore forexHoldingStore,
     double portfolioCash,
     double totalAssets,
@@ -369,29 +396,29 @@ class _AllocationWidgetState extends State<AllocationWidget> {
     // Fixed income ETFs (treasury, money market, bonds)
     double fixedIncomeValue = 0.0;
     final fixedIncomeSymbols = [
-      'SGOV',  // iShares 0-3 Month Treasury
-      'BIL',   // SPDR 1-3 Month T-Bill
-      'SHV',   // iShares Short Treasury
-      'USFR',  // WisdomTree Floating Rate Treasury
-      'TFLO',  // iShares Treasury Floating Rate
-      'TBIL',  // US Treasury 3 Month Bill
-      'BILS',  // SPDR 1-12 Month T-Bill
-      'SHT',   // iShares 1-3 Year Treasury
-      'GBIL',  // Goldman Sachs 3 Month Treasury
-      'CLTL',  // Invesco Treasury Collateral
-      'VGSH',  // Vanguard Short-Term Treasury
-      'SCHO',  // Schwab Short-Term Treasury
-      'AGG',   // iShares Core U.S. Aggregate Bond
-      'BND',   // Vanguard Total Bond Market
-      'TLT',   // iShares 20+ Year Treasury
-      'IEF',   // iShares 7-10 Year Treasury
-      'SHY',   // iShares 1-3 Year Treasury
-      'LQD',   // iShares Investment Grade Corporate
-      'TIP',   // iShares TIPS Bond
-      'MUB',   // iShares National Muni Bond
+      'SGOV', // iShares 0-3 Month Treasury
+      'BIL', // SPDR 1-3 Month T-Bill
+      'SHV', // iShares Short Treasury
+      'USFR', // WisdomTree Floating Rate Treasury
+      'TFLO', // iShares Treasury Floating Rate
+      'TBIL', // US Treasury 3 Month Bill
+      'BILS', // SPDR 1-12 Month T-Bill
+      'SHT', // iShares 1-3 Year Treasury
+      'GBIL', // Goldman Sachs 3 Month Treasury
+      'CLTL', // Invesco Treasury Collateral
+      'VGSH', // Vanguard Short-Term Treasury
+      'SCHO', // Schwab Short-Term Treasury
+      'AGG', // iShares Core U.S. Aggregate Bond
+      'BND', // Vanguard Total Bond Market
+      'TLT', // iShares 20+ Year Treasury
+      'IEF', // iShares 7-10 Year Treasury
+      'SHY', // iShares 1-3 Year Treasury
+      'LQD', // iShares Investment Grade Corporate
+      'TIP', // iShares TIPS Bond
+      'MUB', // iShares National Muni Bond
     ];
     double cashPositionsValue = 0.0;
-    for (var position in stockPositionStore.items) {
+    for (var position in stockPositions) {
       if (position.instrumentObj?.symbol != null) {
         if (fixedIncomeSymbols.contains(position.instrumentObj!.symbol)) {
           fixedIncomeValue += position.marketValue;
@@ -401,17 +428,15 @@ class _AllocationWidgetState extends State<AllocationWidget> {
       }
     }
 
-    if (optionPositionStore.equity > 0) {
+    if (optionEquity > 0) {
       // final percent = optionPositionStore.equity / totalAssets;
       data.add(PieChartData(
-          'Options',
-          optionPositionStore
-              .equity)); //  ${formatPercentageInteger.format(percent)}
+          'Options', optionEquity)); //  ${formatPercentageInteger.format(percent)}
     }
-    if (stockPositionStore.equity > 0) {
+    if (stockEquity > 0) {
       // final percent = stockPositionStore.equity / totalAssets;
       double adjustedStockEquity =
-          stockPositionStore.equity - fixedIncomeValue - cashPositionsValue;
+          stockEquity - fixedIncomeValue - cashPositionsValue;
       if (adjustedStockEquity > 0) {
         data.add(PieChartData('Stocks',
             adjustedStockEquity)); //  ${formatPercentageInteger.format(percent)}
@@ -437,12 +462,12 @@ class _AllocationWidgetState extends State<AllocationWidget> {
   }
 
   List<PieChartData> _buildGroupedData(
-      InstrumentPositionStore stockPositionStore,
+      List<InstrumentPosition> stockPositions,
       String Function(InstrumentPosition) keySelector,
       int maxItems,
       double totalAssets) {
     List<PieChartData> data = [];
-    var grouped = stockPositionStore.items.groupListsBy(keySelector);
+    var grouped = stockPositions.groupListsBy(keySelector);
 
     final groupedEntries = grouped
         .map((k, v) =>
