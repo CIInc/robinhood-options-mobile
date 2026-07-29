@@ -6,10 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountStore extends ChangeNotifier {
   static const _selectedAccountPrefPrefix = 'selected_account_number';
+  static const _showBalancesPref = 'show_balances';
 
   /// Internal, private state of the store.
   final List<Account> _items = [];
   String? _selectedAccountNumber;
+  bool _showBalances = true;
 
   static String selectionStorageKey(
       {required String source, String? userName}) {
@@ -22,6 +24,7 @@ class AccountStore extends ChangeNotifier {
   UnmodifiableListView<Account> get items => UnmodifiableListView(_items);
 
   String? get selectedAccountNumber => _selectedAccountNumber;
+  bool get showBalances => _showBalances;
 
   Account? get selectedAccount {
     if (_items.isEmpty) return null;
@@ -42,6 +45,13 @@ class AccountStore extends ChangeNotifier {
     }
   }
 
+  void toggleShowBalances() async {
+    _showBalances = !_showBalances;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showBalancesPref, _showBalances);
+    notifyListeners();
+  }
+
   Future<void> saveSelectedAccountNumber(String storageKey) async {
     final prefs = await SharedPreferences.getInstance();
     if (_selectedAccountNumber == null || _selectedAccountNumber!.isEmpty) {
@@ -56,8 +66,9 @@ class AccountStore extends ChangeNotifier {
     final stored = prefs.getString(storageKey);
     if (_selectedAccountNumber != stored) {
       _selectedAccountNumber = stored;
-      notifyListeners();
     }
+    _showBalances = prefs.getBool(_showBalancesPref) ?? true;
+    notifyListeners();
   }
 
   /// The current total price of all items (assuming all items cost $42).

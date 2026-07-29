@@ -806,6 +806,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
     final color = _indicatorColor(indicator, context);
     return GestureDetector(
       onLongPress: () {
+        HapticFeedback.mediumImpact();
         // Long press: toggle only this indicator
         setState(() {
           _activeIndicators.clear();
@@ -847,6 +848,7 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
           selected: selected,
           showCheckmark: false,
           onSelected: (_) {
+            HapticFeedback.lightImpact();
             setState(() {
               if (selected) {
                 _activeIndicators.remove(indicator);
@@ -1236,7 +1238,10 @@ class _InstrumentChartWidgetState extends State<InstrumentChartWidget> {
   Widget _buildDateSpanChip(ChartDateSpan span, String label) {
     final bool isSelected = widget.chartDateSpanFilter == span;
     return GestureDetector(
-      onTap: () => widget.onFilterChanged(span, widget.chartBoundsFilter),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onFilterChanged(span, widget.chartBoundsFilter);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.symmetric(horizontal: 2.0),

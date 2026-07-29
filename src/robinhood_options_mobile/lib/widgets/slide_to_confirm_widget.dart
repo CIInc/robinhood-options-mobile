@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SlideToConfirm extends StatefulWidget {
   final String text;
@@ -66,10 +67,14 @@ class _SlideToConfirmState extends State<SlideToConfirm> {
                       if (_position < 0) _position = 0;
                       if (_position > maxSlide) _position = maxSlide;
                     });
+                    if (_position >= maxSlide) {
+                      HapticFeedback.selectionClick();
+                    }
                   },
                   onHorizontalDragEnd: (details) {
                     if (_confirmed) return;
                     if (_position >= maxSlide * 0.9) {
+                      HapticFeedback.heavyImpact();
                       setState(() {
                         _position = maxSlide;
                         _confirmed = true;

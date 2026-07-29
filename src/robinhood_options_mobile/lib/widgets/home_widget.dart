@@ -5,6 +5,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -2152,32 +2153,103 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildAggregateBanner(BuildContext context) {
+    if (_brokerBreakdownRows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final totalValue = _brokerBreakdownRows.fold<double>(
+        0.0, (sum, row) => sum + row.totalValue);
+    final accountStore = Provider.of<AccountStore>(context);
+    final showBalances = accountStore.showBalances;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Card(
-        elevation: 0,
-        color: Theme.of(context)
-            .colorScheme
-            .primaryContainer
-            .withValues(alpha: 0.35),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            width: 1,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            width: 1.5,
           ),
         ),
-        child: ListTile(
-          leading: Icon(
-            Icons.layers_outlined,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          title: const Text(
-            'Aggregate View',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          subtitle: const Text(
-              'Data is combined across accounts. Trading actions are disabled.'),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOTAL AGGREGATE VALUE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      showBalances
+                          ? formatCurrency.format(totalValue)
+                          : '\$••••••',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    showBalances
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 22,
+                  ),
+                  onPressed: () => accountStore.toggleShowBalances(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Colors.amber,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Combined view. Trading disabled.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -2252,6 +2324,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Widget _buildBrokerRow(
       BuildContext context, _BrokerBreakdownRow row, double totalValue) {
+    final accountStore = Provider.of<AccountStore>(context);
+    final showBalances = accountStore.showBalances;
     final details = <String>[];
     if (row.accountCount > 0) {
       details.add(
@@ -2294,7 +2368,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
             Text(
-              formatCurrency.format(row.totalValue),
+              showBalances ? formatCurrency.format(row.totalValue) : '\$••••••',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -2468,6 +2542,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Future<void> _pullRefresh() async {
+    HapticFeedback.mediumImpact();
     Provider.of<AccountStore>(context, listen: false).removeAll();
     Provider.of<PortfolioStore>(context, listen: false).removeAll();
     Provider.of<PortfolioHistoricalsStore>(context, listen: false).removeAll();

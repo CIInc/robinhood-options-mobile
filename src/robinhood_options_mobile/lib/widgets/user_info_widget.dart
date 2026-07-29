@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
@@ -197,6 +198,7 @@ class UserInfoWidget extends StatelessWidget {
               ],
             ),
             onTap: () async {
+              HapticFeedback.mediumImpact();
               accountStore.setSelectedAccountNumber(account.accountNumber);
               await accountStore.saveSelectedAccountNumber(
                 _selectionStorageKey(),

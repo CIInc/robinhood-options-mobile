@@ -66,6 +66,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
 
   Future<void> showAccountSwitcher(BuildContext context,
       BrokerageUserStore brokerageUserStore, AccountStore accountStore) async {
+    final accountStore = Provider.of<AccountStore>(context);
+    final showBalances = accountStore.showBalances;
     final formatCurrency = NumberFormat.simpleCurrency();
 
     await showModalBottomSheet<void>(
@@ -248,7 +250,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                               : FontWeight.normal),
                                     ),
                                     subtitle: Text(
-                                      "${account.type.capitalize()}${account.portfolioCash != null ? " • ${formatCurrency.format(account.portfolioCash)}" : ""}",
+                                      "${account.type.capitalize()}${account.portfolioCash != null ? " • ${showBalances ? formatCurrency.format(account.portfolioCash) : '\$••••••'}" : ""}",
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     trailing: isSelectedAccount

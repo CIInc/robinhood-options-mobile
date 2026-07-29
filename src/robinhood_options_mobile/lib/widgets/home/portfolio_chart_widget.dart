@@ -1,12 +1,15 @@
 import 'dart:math' as math;
+import 'package:intl/intl.dart';
 import 'package:candlesticks/candlesticks.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
@@ -119,15 +122,21 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
+                  const SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  const SizedBox(height: 20),
                   Text(
-                    'Loading portfolio data...',
+                    'Loading performance data...',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withValues(alpha: 0.7),
+                              .withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.2,
                         ),
                   ),
                 ],
@@ -261,6 +270,9 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                 )
               : null,
           onSelected: (charts.SelectionModel<dynamic>? model) {
+            if (model?.hasAnySelection ?? false) {
+              HapticFeedback.selectionClick();
+            }
             provider.selectionChanged(model?.selectedDatum.first.datum);
           },
           symbolRenderer: TextSymbolRenderer(() {
@@ -284,6 +296,8 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         return Column(children: [
           Consumer<PortfolioHistoricalsSelectionStore>(
               builder: (context, value, child) {
+            final accountStore = Provider.of<AccountStore>(context);
+            final showBalances = accountStore.showBalances;
             var selection = value.selection;
             if (selection != null) {
               changeInPeriod = selection.adjustedCloseEquity! - open;
@@ -552,7 +566,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                 child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: LayoutBuilder(builder: (context, constraints) {
                     final primary = Theme.of(context).colorScheme.primary;
                     final positive = Colors.green;
@@ -563,74 +577,175 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                     final changeColor = changeInPeriod > 0
                         ? positive
                         : (changeInPeriod < 0 ? negative : neutralColor);
-                    final changePercentColor = changePercentInPeriod > 0
-                        ? positive
-                        : (changePercentInPeriod < 0 ? negative : neutralColor);
 
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _buildMetricBadge(
-                          context: context,
-                          label: 'Portfolio value',
-                          icon: Icons.account_balance_wallet_rounded,
-                          accent: primary,
-                          minWidth: math.min(constraints.maxWidth, 360),
-                          value: AnimatedPriceText(
-                            price: selection != null
-                                ? selection.adjustedCloseEquity!
-                                : close,
-                            format: formatCurrency,
-                            style: TextStyle(
-                              fontSize: portfolioValueFontSize,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          footnote: formatMediumDateTime.format(
-                            selection != null
-                                ? selection.beginsAt!.toLocal()
-                                : lastHistorical!.beginsAt!.toLocal(),
-                          ),
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            primary.withValues(alpha: 0.12),
+                            Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.4),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        _buildMetricBadge(
-                          context: context,
-                          label: 'Change',
-                          icon: changeInPeriod >= 0
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          accent: changeColor,
-                          minWidth: 180,
-                          value: Text(
-                            returnText,
-                            style: TextStyle(
-                              fontSize: portfolioValueFontSize,
-                              fontWeight: FontWeight.w700,
-                              color: changeColor,
-                            ),
-                          ),
-                          footnote: 'Since period start',
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: primary.withValues(alpha: 0.2),
+                          width: 1,
                         ),
-                        _buildMetricBadge(
-                          context: context,
-                          label: 'Change %',
-                          icon: changePercentInPeriod >= 0
-                              ? Icons.percent_rounded
-                              : Icons.percent_outlined,
-                          accent: changePercentColor,
-                          minWidth: 170,
-                          value: Text(
-                            returnPercentText,
-                            style: TextStyle(
-                              fontSize: portfolioValueFontSize,
-                              fontWeight: FontWeight.w700,
-                              color: changePercentColor,
-                            ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PORTFOLIO VALUE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.1,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: constraints.maxWidth - 100,
+                                    child: FittedBox(
+                                      alignment: Alignment.centerLeft,
+                                      fit: BoxFit.scaleDown,
+                                      child: showBalances
+                                          ? AnimatedPriceText(
+                                              price: selection != null
+                                                  ? selection
+                                                      .adjustedCloseEquity!
+                                                  : close,
+                                              format: formatCurrency,
+                                              style: TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w900,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                                letterSpacing: -1.0,
+                                              ),
+                                            )
+                                          : Text(
+                                              '\$••••••',
+                                              style: TextStyle(
+                                                fontSize: 32,
+                                                fontWeight: FontWeight.w900,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                                letterSpacing: -1.0,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  showBalances
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: primary,
+                                  size: 22,
+                                ),
+                                onPressed: () {
+                                  HapticFeedback.mediumImpact();
+                                  accountStore.toggleShowBalances();
+                                },
+                              ),
+                            ],
                           ),
-                          footnote: 'Performance',
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: changeColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: changeColor.withValues(alpha: 0.15),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      changeInPeriod >= 0
+                                          ? Icons.trending_up_rounded
+                                          : Icons.trending_down_rounded,
+                                      size: 16,
+                                      color: changeColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      showBalances
+                                          ? '$returnText ($returnPercentText)'
+                                          : '•••••• ($returnPercentText)',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: changeColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    formatCompactDate.format(
+                                      selection != null
+                                          ? selection.beginsAt!.toLocal()
+                                          : lastHistorical!.beginsAt!.toLocal(),
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormat.jm().format(
+                                      selection != null
+                                          ? selection.beginsAt!.toLocal()
+                                          : lastHistorical!.beginsAt!.toLocal(),
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     );
                   }),
                 )
@@ -668,7 +783,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
               : Stack(
                   children: [
                     SizedBox(
-                        height: 460,
+                        height: 300,
                         child: Padding(
                           padding:
                               const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
@@ -725,91 +840,6 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
     );
   }
 
-  Widget _buildMetricBadge({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required Color accent,
-    required Widget value,
-    double? minWidth,
-    String? footnote,
-  }) {
-    final background = [
-      accent.withValues(alpha: 0.22),
-      Theme.of(context).colorScheme.surfaceContainerHighest,
-    ];
-
-    return Container(
-      constraints: BoxConstraints(
-        minWidth: minWidth ?? 160,
-        maxWidth: math.max(minWidth ?? 160, 260),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: background,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.12),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: accent.withValues(alpha: 0.4)),
-            ),
-            child: Icon(icon, color: accent, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 6),
-              value,
-              if (footnote != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  footnote,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: 0.85),
-                  ),
-                ),
-              ]
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _buildChip(String label, ChartDateSpan span) {
     return Padding(
       padding: const EdgeInsets.all(4.0),
@@ -818,6 +848,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         selected: _chartDateSpanFilter == span,
         onSelected: (bool value) {
           if (value) {
+            HapticFeedback.lightImpact();
             setState(() {
               _chartDateSpanFilter = span;
             });
@@ -836,6 +867,7 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         selected: _chartBoundsFilter == bounds,
         onSelected: (bool value) {
           if (value) {
+            HapticFeedback.lightImpact();
             setState(() {
               _chartBoundsFilter = bounds;
             });
