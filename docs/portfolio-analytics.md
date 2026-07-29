@@ -63,6 +63,16 @@ Throughout the interface:
 - Visual indicators (green/red) show good vs. concerning values
 - Smart insights provide actionable recommendations
 
+## Privacy Controls
+
+### Balance Visibility Toggle
+Starting in **v0.37.0**, RealizeAlpha includes a global **Balance Visibility Toggle**. This feature allows you to mask sensitive financial information throughout the Analytics dashboard, including:
+- Total Equity and P&L charts.
+- Portfolio Health Score details when showing absolute values.
+- Individual position sizes and valuations.
+
+The toggle can be found in the **User Settings** menu and is reflected immediately across all views.
+
 ## Key Features
 
 ### 1. Benchmark Comparison

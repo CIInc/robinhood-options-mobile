@@ -43,14 +43,18 @@ export interface GammaExposureData {
   totalPutGEX: number;
   totalNetGEX: number; // sum of all strikes
   gammaFlip: number | null; // strike where net GEX crosses zero
+  callWall: number | null; // strike with highest positive GEX
+  putWall: number | null; // strike with highest negative GEX
+  pTrans: number | null; // Positive transition
+  nTrans: number | null; // Negative transition
+  cotmp: number | null; // Center of Put Mass
+  plusGex: number | null; // T1 Target (+GEX strike)
   maxGammaStrike: number | null; // strike with highest absolute net GEX
   gexByStrike: GexStrikeLevel[];
   dealerPositioning: "long_gamma" | "short_gamma" | "neutral";
   signalStrength: number; // 0–100 expressing conviction
   updatedAt: number;
   expirationFilter?: string;
-  callWall: number | null;
-  putWall: number | null;
   gexRatio: number;
   riskFreeRate: number; // The interest rate used for calculations
   gexSensitivity?: {
@@ -281,6 +285,31 @@ export function computeGammaFlipLevel(
 }
 
 /**
+ * Find all strike levels where GEX transitions between positive and negative.
+ * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
+ * @return {number[]} Array of transition strikes.
+ */
+function findFlipStrikes(gexByStrike: GexStrikeLevel[]): number[] {
+  if (gexByStrike.length < 2) return [];
+  const sorted = [...gexByStrike].sort((a, b) => a.strike - b.strike);
+  const flips: number[] = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+
+    if (prev.netGEX !== 0 && curr.netGEX !== 0 &&
+        Math.sign(prev.netGEX) !== Math.sign(curr.netGEX)) {
+      const crossingStrike = prev.strike +
+          (curr.strike - prev.strike) * Math.abs(prev.netGEX) /
+          (Math.abs(prev.netGEX) + Math.abs(curr.netGEX));
+      flips.push(Math.round(crossingStrike * 100) / 100);
+    }
+  }
+  return flips.sort((a, b) => a - b);
+}
+
+/**
  * Find the strike with the highest absolute net GEX (strongest gravity well).
  * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
  * @return {number | null} Strike with highest absolute net GEX.
@@ -422,7 +451,7 @@ export function computeGammaExposure(
   const gexMagnitude = Math.min(Math.abs(totalNetGEX) / 1e9, 1.0);
   const signalStrength = Math.round(gexMagnitude * 100);
 
-  // What-if Spot-Shifting Analysis (Stress Testing GEX Profile Curves)
+  // Stress Testing Spot-Shifting sensitivity
   const gexSensitivity = {
     spotMinus2Pct: computeTotalNetGexAtSpot(
       optionsChain, spotPrice * 0.98, riskFreeRate),
@@ -435,6 +464,40 @@ export function computeGammaExposure(
       optionsChain, spotPrice * 1.02, riskFreeRate),
   };
 
+  // 11 Rules Terminology Mapping
+  // pTrans: Positive transition (regime flip above/at spot)
+  // nTrans: Negative transition (regime flip below spot)
+  let pTrans: number | null = gammaFlip;
+  let nTrans: number | null = gammaFlip;
+
+  // Refined transition detection: Look for flips specifically above/below spot
+  const sortedFlips = findFlipStrikes(gexByStrike);
+  if (sortedFlips.length > 0) {
+    const flipsAbove = sortedFlips.filter((s) => s >= spotPrice);
+    const flipsBelow = sortedFlips.filter((s) => s < spotPrice);
+
+    if (flipsAbove.length > 0) {
+      pTrans = flipsAbove[0]; // Nearest flip above/at spot
+    }
+    if (flipsBelow.length > 0) {
+      nTrans = flipsBelow[flipsBelow.length - 1]; // Nearest flip below spot
+    }
+
+    // Ensure Rule 4 compatibility: pTrans sits above nTrans
+    if (pTrans !== null && nTrans !== null && pTrans <= nTrans) {
+      // If we only have one flip or they are inverted,
+      // check if we have other flips
+      if (flipsAbove.length > 1) {
+        pTrans = flipsAbove[1];
+      } else if (flipsBelow.length > 1) {
+        nTrans = flipsBelow[flipsBelow.length - 2];
+      }
+    }
+  }
+
+  const plusGex = callWall;
+  const cotmp = putWall;
+
   return {
     symbol,
     spotPrice,
@@ -442,13 +505,17 @@ export function computeGammaExposure(
     totalPutGEX,
     totalNetGEX,
     gammaFlip,
+    callWall,
+    putWall,
+    pTrans,
+    nTrans,
+    cotmp,
+    plusGex,
     maxGammaStrike,
     gexByStrike,
     dealerPositioning,
     signalStrength,
     updatedAt: Date.now(),
-    callWall,
-    putWall,
     gexRatio,
     riskFreeRate,
     gexSensitivity,
@@ -486,6 +553,10 @@ export function evaluateGammaExposure(
         maxGammaStrike,
         callWall,
         putWall,
+        pTrans: gexData.pTrans,
+        nTrans: gexData.nTrans,
+        cotmp: gexData.cotmp,
+        plusGex: gexData.plusGex,
         gexRatio,
       },
     };
@@ -549,6 +620,10 @@ export function evaluateGammaExposure(
       totalNetGEX,
       callWall,
       putWall,
+      pTrans: gexData.pTrans,
+      nTrans: gexData.nTrans,
+      cotmp: gexData.cotmp,
+      plusGex: gexData.plusGex,
       gexRatio,
     },
   };

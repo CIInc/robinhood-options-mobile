@@ -1404,11 +1404,22 @@ class AgenticTradingProvider with ChangeNotifier {
                 final strength = signal['signalStrength'];
                 final interval = signal['interval'];
                 var reason = 'Auto-trade signal';
-                if (strength != null) {
-                  reason += ' (${strength.toString()}%)';
-                }
-                if (interval != null) {
-                  reason += ' • $interval';
+
+                // Use the reasoning from the agent if available
+                final agentReason = proposal != null ? proposal['reason'] : null;
+                final agentConfidence = proposalResult['analysis'] != null
+                    ? proposalResult['analysis']['score']
+                    : null;
+
+                if (agentReason != null && agentReason.toString().isNotEmpty) {
+                  reason = agentReason.toString();
+                } else {
+                  if (strength != null) {
+                    reason += ' (${strength.toString()}%)';
+                  }
+                  if (interval != null) {
+                    reason += ' • $interval';
+                  }
                 }
 
                 final pendingOrder = {
@@ -1421,7 +1432,10 @@ class AgenticTradingProvider with ChangeNotifier {
                   'instrument': instrument,
                   'status': 'pending',
                   'reason': reason,
+                  'confidence': agentConfidence,
                   'signal': signal,
+                  'proposal': proposal,
+                  'assessment': assessment,
                 };
                 _pendingOrders.add(pendingOrder);
                 if (userDocRef != null) {

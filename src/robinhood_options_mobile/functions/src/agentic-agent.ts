@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { VertexAI, type Tool } from "@google-cloud/vertexai";
+import { VertexAI } from "@google-cloud/vertexai";
 
 /**
  * Handle Agentic decision making using a full prompt derived from wip repo.
@@ -34,20 +34,20 @@ export async function handleAgenticDecision(
     location: "us-central1",
   });
 
-  const googleSearchTool = {
-    googleSearch: {},
-  } as Tool;
-
   const model = vertexAI.getGenerativeModel({
     model: "gemini-2.5-flash-lite",
-    tools: [googleSearchTool],
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
   });
 
   const lastPrice = marketData.closes[marketData.closes.length - 1];
   const indicators = multiIndicatorResult.indicators;
-  const smaFast = indicators.smaFast?.value.toFixed(2);
-  const smaSlow = indicators.smaSlow?.value.toFixed(2);
-  const rsi = indicators.rsi?.value.toFixed(2);
+  const smaFast = indicators.marketDirection?.metadata?.fastMA?.toFixed(2) ||
+    "N/A";
+  const smaSlow = indicators.marketDirection?.metadata?.slowMA?.toFixed(2) ||
+    "N/A";
+  const rsi = indicators.momentum?.value?.toFixed(2) || "N/A";
   const lastVol = marketData.volumes[marketData.volumes.length - 1];
   const vol = lastVol.toLocaleString();
 
@@ -75,6 +75,8 @@ export async function handleAgenticDecision(
   ` : "N/A";
 
   const gexSummary = gexData ? `
+    Total Net GEX: $${(gexData.totalNetGEX / 1e6).toFixed(2)}M
+    Dealer Positioning: ${gexData.dealerPositioning}
     pTrans: $${gexData.pTrans?.toFixed(2) || "N/A"}
     nTrans: $${gexData.nTrans?.toFixed(2) || "N/A"}
     +GEX (T1): $${gexData.plusGex?.toFixed(2) || "N/A"}
@@ -143,22 +145,48 @@ Ensure the "status" is "approved" only if you want to execute a
 trade (BUY/SELL).
 Otherwise, set status to "rejected" and signal to "HOLD".
 
+If quantitative data like pTrans is missing ("N/A"), default to "HOLD" 
+and explain that data is insufficient.
+
 Output ONLY the JSON.
 `;
 
   try {
     const { response } = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
     });
 
     const text = response.candidates?.[0].content.parts[0].text;
-    if (!text) throw new Error("Empty response from Gemini");
+    if (!text) {
+      logger.error(`Empty response from Gemini for ${symbol}`, {
+        response: JSON.stringify(response),
+      });
+      throw new Error("Empty response from Gemini");
+    }
 
     // Extract JSON from response (handle markdown blocks if any)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found in response");
+    if (!jsonMatch) {
+      logger.error(`No JSON found in response for ${symbol}`, {
+        rawText: text,
+      });
+      throw new Error("No JSON found in response");
+    }
 
-    const decision = JSON.parse(jsonMatch[0]);
+    let decision;
+    try {
+      decision = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+      logger.error(`Failed to parse JSON for ${symbol}`, {
+        jsonText: jsonMatch[0],
+        error: e,
+      });
+      throw new Error(`Invalid JSON format in response: ${e}`);
+    }
+
     logger.info(`🤖 Agentic Decision for ${symbol}: ` +
       `${decision.signal} - ${decision.reason}`);
 

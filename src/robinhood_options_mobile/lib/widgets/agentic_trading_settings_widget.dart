@@ -445,6 +445,85 @@ class _AgenticTradingSettingsWidgetState
     }
   }
 
+  Color _getMacroColor(String? status) {
+    switch (status?.toUpperCase()) {
+      case 'BULLISH':
+        return Colors.green;
+      case 'BEARISH':
+        return Colors.red;
+      case 'NEUTRAL':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getMacroIcon(String? status) {
+    switch (status?.toUpperCase()) {
+      case 'BULLISH':
+        return Icons.trending_up;
+      case 'BEARISH':
+        return Icons.trending_down;
+      default:
+        return Icons.trending_flat;
+    }
+  }
+
+  Widget _buildGexMetric(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 9,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricBadge(BuildContext context, String label, bool passed) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color:
+            passed ? Colors.green.withValues(alpha: 0.1) : colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: passed
+              ? Colors.green.withValues(alpha: 0.5)
+              : colorScheme.error.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: passed ? Colors.green : colorScheme.error,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 80) return Colors.green;
+    if (confidence >= 60) return Colors.blue;
+    if (confidence >= 40) return Colors.orange;
+    return Colors.red;
+  }
+
   AgenticTradingConfig _createFullConfigFromSettings(
       AgenticTradingProvider provider,
       {AgenticTradingConfig? baseConfig}) {
@@ -2544,6 +2623,9 @@ class _AgenticTradingSettingsWidgetState
           final price = order['price'] as double;
           final timestamp = DateTime.parse(order['timestamp']);
           final reason = order['reason'] as String?;
+          final confidence = order['confidence'] as num?;
+          final assessment = order['assessment'] as Map<String, dynamic>?;
+          final proposal = order['proposal'] as Map<String, dynamic>?;
 
           return Card(
             elevation: 0,
@@ -2604,10 +2686,49 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$quantity shares @ \$${price.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '$quantity shares @ \$${price.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      if (confidence != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getConfidenceColor(confidence.toDouble())
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: _getConfidenceColor(confidence.toDouble())
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bolt,
+                                size: 12,
+                                color:
+                                    _getConfidenceColor(confidence.toDouble()),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${confidence.toString()}%',
+                                style: TextStyle(
+                                  color: _getConfidenceColor(
+                                      confidence.toDouble()),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                   if (reason != null && reason.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -2636,6 +2757,145 @@ class _AgenticTradingSettingsWidgetState
                                 color: colorScheme.onSurfaceVariant,
                                 fontStyle: FontStyle.italic,
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (assessment != null &&
+                      assessment['metrics'] != null) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        if (assessment['metrics']['volatilityFilter'] != null)
+                          _buildMetricBadge(
+                            context,
+                            'VOL',
+                            assessment['metrics']['volatilityFilter'] == 'pass',
+                          ),
+                        if (assessment['metrics']['correlationFilter'] != null)
+                          _buildMetricBadge(
+                            context,
+                            'CORR',
+                            assessment['metrics']['correlationFilter'] ==
+                                'pass',
+                          ),
+                        if (assessment['metrics']['sectorLimitFilter'] != null)
+                          _buildMetricBadge(
+                            context,
+                            'SECTOR',
+                            assessment['metrics']['sectorLimitFilter'] ==
+                                'pass',
+                          ),
+                        if (proposal != null && proposal['interval'] != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceVariant
+                                  .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              proposal['interval'].toString().toUpperCase(),
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (proposal != null && proposal['gexData'] != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.analytics_outlined,
+                                  size: 14, color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Text(
+                                'GEX Analysis',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildGexMetric(
+                                  'pTrans',
+                                  proposal['gexData']['pTrans'] != null
+                                      ? '\$${proposal['gexData']['pTrans'].toStringAsFixed(2)}'
+                                      : 'N/A'),
+                              _buildGexMetric(
+                                  'nTrans',
+                                  proposal['gexData']['nTrans'] != null
+                                      ? '\$${proposal['gexData']['nTrans'].toStringAsFixed(2)}'
+                                      : 'N/A'),
+                              _buildGexMetric(
+                                  'Flip',
+                                  proposal['gexData']['gammaFlip'] != null
+                                      ? '\$${proposal['gexData']['gammaFlip'].toStringAsFixed(2)}'
+                                      : 'N/A'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (proposal != null && proposal['macroAssessment'] != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getMacroColor(
+                                proposal['macroAssessment']['status'])
+                            .withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getMacroIcon(
+                                proposal['macroAssessment']['status']),
+                            size: 14,
+                            color: _getMacroColor(
+                                proposal['macroAssessment']['status']),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Macro: ${proposal['macroAssessment']['reason']}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _getMacroColor(
+                                    proposal['macroAssessment']['status']),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

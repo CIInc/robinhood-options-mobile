@@ -72,7 +72,8 @@ To provide extreme architectural resilience against server-side platform rate li
 
 ## 4. GEX-Based Trading Strategies & Automated Exits
 RealizeAlpha integrates GEX data directly into its **Auto-Trading** engine, allowing for regime-aware execution and risk management.
-
+#### GEX Orchestrator & Agentic Reasoning
+The **GEX Orchestrator** acts as a bridge between raw positional data and the AI reasoning engine. It feeds real-time Call/Put wall proximity and Gamma Flip context into the **Agentic Reasoning Mode**, allowing the Alpha Agent to adjust its conviction based on dealer hedging gravity. If a BUY signal is generated near a major Call Wall, the orchestrator may flag it as a "high resistance" entry, prompting the agent to wait for a breakout.
 ### Automated Technical Exits
 Traders can now configure automated sell orders based on dealer gamma thresholds:
 *   **GEX Exit Threshold**: Set a specific dollar-weighted threshold (e.g., \$0M) that triggers an automatic position exit. 

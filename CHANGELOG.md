@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.37.0] - 2026-07-29
+**Agentic Reasoning Mode, Balance Privacy, and Advanced Account Orchestration**
+
+### Added
+- **Agentic Reasoning Mode:** Introduced a new "Reasoning Mode" for the AI Alpha Agent that enables deep, multi-step analysis before generating trade signals. This mode uses enhanced prompts and a GEX-aware orchestrator to evaluate market regime, sentiment, and technicals in a coherent sequence.
+- **Balance Visibility Toggle:** Added a global "Show Balances" toggle in the Home and Portfolio views. Users can now mask sensitive financial data (total equity, P&L, account balances) with a single tap for improved privacy in public settings.
+- **Scroll-to-Top Navigation:** Implemented "Scroll to Top" functionality across all major list views (Search, History, Instrument Details, Trade Signals). Tapping the active tab or a dedicated button quickly returns the user to the start of long lists.
+- **Advanced GEX Orchestrator:** Integrated institutional-grade Gamma Exposure (GEX) data into the Agentic Trading lifecycle, allowing the AI to adjust signal confidence based on Call/Put walls and Gamma Flips.
+
+### Changed
+- **Enhanced Account Management:** Refactored the account selection logic to support more seamless transitions between multiple brokerage accounts. The primary navigation bar now reflects the active account's state more accurately.
+- **Improved SliverAppBar Architecture:** Redesigned the main app bar and search headers to provide a smoother, more responsive experience when scrolling through instrument data and watchlists.
+- **Agentic Trading Config:** Updated the configuration model to include per-account reasoning mode toggles and advanced GEX sensitivity settings.
+
+### Fixed
+- **iOS Build Modernization:** Fully migrated the iOS build process to use CocoaPods standard integration, resolving issues with dynamic linking and improving CI/CD reliability.
+- **Generative Service Resilience:** Added dynamic casting and safer JSON parsing to the MCP client to handle unexpected model responses without crashing the trading interface.
 
 ## [0.36.1] - 2026-07-24
 **GEX Strategy Suite, Technical Exits, and Backtesting Simulation Upgrades**

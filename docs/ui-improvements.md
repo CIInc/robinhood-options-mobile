@@ -2,6 +2,12 @@
 
 ## Completed Improvements
 
+### Balance Privacy & Navigation (v0.37.0)
+- **Features**:
+  - **Balance Visibility Toggle**: Global privacy control that allows users to mask sensitive account data (Total Equity, P&L, Balances) across Home, Portfolio, and Instrument views with a single tap.
+  - **Scroll-to-Top**: Enhanced navigation across all major list views (Search, History, Trade Signals). Tapping the active tab or a dedicated button quickly returns the user to the start of long lists.
+  - **Enhanced Account Selection**: Refactored account management logic with improved selection visuals and persistent workspace-wide synchronization.
+
 ### Trade Signals & Futures Auto-Trading UI (v0.34.0)
 - **Components**: `TradeSignalsWidget`, `InstrumentWidget`, `AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`, `FuturesTradingSettingsWidget`.
 - **Features**:

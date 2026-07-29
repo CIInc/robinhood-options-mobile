@@ -870,16 +870,6 @@ class _AuthGateState extends State<AuthGate> {
   // }
 }
 
-Future<void> _signInWithTwitter() async {
-  TwitterAuthProvider twitterProvider = TwitterAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(twitterProvider);
-  } else {
-    await auth.signInWithProvider(twitterProvider);
-  }
-}
-
 Future<void> _signInWithApple() async {
   final appleProvider = AppleAuthProvider();
   appleProvider.addScope('email');
@@ -891,37 +881,6 @@ Future<void> _signInWithApple() async {
     final userCred = await auth.signInWithProvider(appleProvider);
     AuthGate.appleAuthorizationCode =
         userCred.additionalUserInfo?.authorizationCode;
-  }
-}
-
-Future<void> _signInWithYahoo() async {
-  final yahooProvider = YahooAuthProvider();
-
-  if (kIsWeb) {
-    // Once signed in, return the UserCredential
-    await auth.signInWithPopup(yahooProvider);
-  } else {
-    await auth.signInWithProvider(yahooProvider);
-  }
-}
-
-Future<void> _signInWithGitHub() async {
-  final githubProvider = GithubAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(githubProvider);
-  } else {
-    await auth.signInWithProvider(githubProvider);
-  }
-}
-
-Future<void> _signInWithMicrosoft() async {
-  final microsoftProvider = MicrosoftAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(microsoftProvider);
-  } else {
-    await auth.signInWithProvider(microsoftProvider);
   }
 }
 

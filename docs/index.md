@@ -14,9 +14,11 @@
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
 - Enhanced security and privacy for user data.
+  - **Balance Visibility Toggle:** Global privacy mask to hide sensitive P&L and equity data in public settings.
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - Advanced charting tools for technical analysis.
 - **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
+- **Agentic Reasoning Mode:** Deep multi-step analysis workflow with institutional-grade GEX orchestration for signal generation.
 - **[Instrument Charting](index.md#instrument-charting):** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges and **interactive technical overlays** (SMA, EMA, VWAP, Bollinger Bands).
 - **[Instrument Notes](instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
 - Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick), weighted signal strength visualization, and sparkline previews.

@@ -16,11 +16,12 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Persisted in Firestore User documents
 
 2. **AgenticTradingProvider** (`lib/model/agentic_trading_provider.dart`)
-   - Core state management and trading execution logic
-   - Implements `ChangeNotifier` for reactive UI updates
-   - Manages trade execution, TP/SL monitoring, and safety checks
-   - Handles automated buy trades tracking and Firebase persistence
-   - Loads auto-trade history from Firestore ensuring persistence across app restarts
+   - Core state management and trading execution logic.
+   - **Agentic Reasoning Orchestrator:** Manages the multi-step reasoning flow, integrating technical indicators, macro regime, and institutional GEX data.
+   - Implements `ChangeNotifier` for reactive UI updates.
+   - Manages trade execution, TP/SL monitoring, and safety checks.
+   - Handles automated buy trades tracking and Firebase persistence.
+   - Loads auto-trade history from Firestore ensuring persistence across app restarts.
 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
@@ -68,6 +69,25 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - **SearchWidget**: Main entry point for trade signal discovery. Features advanced filtering for signal strength and individual indicators.
    - **ScreenerWidget**: Dedicated stock screener interface for fundamental analysis (Market Cap, P/E, Dividend, etc.).
    - **PresetsWidget**: Quick access to pre-defined Yahoo Finance screeners (e.g., "Undervalued Growth", "Day Gainers").
+
+## Agentic Reasoning Mode
+
+RealizeAlpha v0.37.0 introduces **Agentic Reasoning Mode**, a sophisticated operational state for the AI Alpha Agent that mimics professional institutional analysis.
+
+### How it Works
+When Reasoning Mode is enabled, the agent does not immediately generate a BUY or SELL signal. Instead, it follows a structured sequence:
+1. **Regime Identification:** Analyzes broad market conditions (VIX, Trend, Breadth) to set the context.
+2. **GEX Analysis:** Evaluates dealer positioning, Call/Put walls, and potential Gamma Squeeze thresholds.
+3. **Indicator Synthesis:** Cross-correlates the 19 technical indicators to find high-probability convergence.
+4. **Step-by-Step Reasoning:** Generates a textual "train of thought" that explains the logic behind the final decision.
+
+### GEX Orchestrator
+The reasoning engine is powered by a **GEX Orchestrator** on the backend. This component adjusts signal confidence based on Gamma levels:
+- **Positive GEX (Pinning):** Tightens SL/TP levels to account for lower volatility.
+- **Negative GEX (Acceleration):** Widens buffers to capture explosive moves while increasing risk monitoring.
+
+### Configuration
+Users can enable Reasoning Mode globally or per-account in the **Agentic Trading Settings**. Note that reasoning mode may increase the time required for a market analysis cycle due to the depth of the LLM processing.
 
 ## Stock Universe & Seeding
 
