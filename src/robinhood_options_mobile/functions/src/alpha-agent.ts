@@ -6,6 +6,7 @@ import { optimizeSignal } from "./signal-optimizer";
 import { getMacroAssessment } from "./macro-agent";
 import { getMarketData } from "./market-data";
 import { fetchGammaExposure, evaluateGammaExposure } from "./gamma-exposure";
+import { handleAgenticDecision } from "./agentic-agent";
 import { getFirestore } from "firebase-admin/firestore";
 
 const db = getFirestore();
@@ -105,6 +106,92 @@ export async function handleAlphaTask(marketData: any,
     indicatorConfig,
     gammaExposureResult
   );
+
+  const lastPrice = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice || 0;
+
+  // --- AGENTIC REASONING MODE BRANCH ---
+  if (config?.tradingMode === "reasoning") {
+    try {
+      const agenticResult = await handleAgenticDecision(
+        symbol,
+        interval,
+        marketData,
+        multiIndicatorResult,
+        macroAssessment,
+        gexData,
+        portfolioState,
+        config
+      );
+
+      const quantity = agenticResult.quantity || config?.tradeQuantity || 1;
+      const proposal = {
+        symbol,
+        action: agenticResult.signal,
+        reason: agenticResult.reason,
+        quantity,
+        price: lastPrice,
+        interval,
+        multiIndicatorResult,
+        agentic: true,
+      };
+
+      // Run RiskGuard even for Agentic mode to ensure safety
+      let assessment;
+      if (config?.skipRiskGuard) {
+        assessment = {
+          approved: agenticResult.signal !== "HOLD",
+          skipped: true,
+          reason: "RiskGuard skipped by configuration",
+          metrics: {},
+        };
+      } else {
+        assessment = await riskguard.assessTrade(
+          proposal, portfolioState, config,
+          {
+            ...marketData,
+            marketIndexCloses: marketIndexData.closes,
+          });
+      }
+
+      // If agentic decision is to HOLD, follow standard rejection flow
+      if (agenticResult.signal === "HOLD" || !assessment.approved) {
+        return {
+          status: "rejected",
+          message: `Agentic: ${agenticResult.reason}. ` +
+            `RiskGuard Approved: ${assessment.approved}`,
+          reason: agenticResult.reason,
+          signal: "HOLD",
+          interval,
+          multiIndicatorResult,
+          agentic: true,
+          assessment,
+          analysis: {
+            score: agenticResult.confidence,
+            reason: agenticResult.reason,
+          },
+        };
+      }
+
+      // If approved, proceed with the proposed quantity from agent
+      return {
+        status: "approved",
+        message: `Agentic approved ${agenticResult.signal} for ${symbol}`,
+        proposal,
+        assessment,
+        agentic: true,
+        analysis: {
+          score: agenticResult.confidence,
+          reason: agenticResult.reason,
+        },
+      };
+    } catch (err) {
+      logger.error(`Error in Agentic decision for ${symbol}`, err);
+      throw err;
+    }
+  }
+
+  // --- SYSTEMATIC RULES (ALGO) MODE CONTINUES ---
 
   // Integrate Macro Assessment
   if (macroAssessment) {
@@ -230,9 +317,6 @@ export async function handleAlphaTask(marketData: any,
     indicators: indicatorResults,
   });
 
-
-  const lastPrice = closes.length > 0 ?
-    closes[closes.length - 1] : marketData?.currentPrice || 0;
 
   // Calculate indicator statistics for reporting
   const indicatorValues = [

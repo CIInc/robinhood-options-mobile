@@ -697,6 +697,10 @@ class TradeSignalsProvider with ChangeNotifier {
       query = query.orderBy('symbol');
       query = query.orderBy('timestamp', descending: true);
     } else if (sortBy == 'signalStrength') {
+      // If we have an inequality on timestamp, it MUST be the first orderBy field
+      if (startDate != null || endDate != null) {
+        query = query.orderBy('timestamp', descending: true);
+      }
       query = query.orderBy('date', descending: true);
       query = query.orderBy('multiIndicatorResult.signalStrength',
           descending: true);
@@ -747,16 +751,24 @@ class TradeSignalsProvider with ChangeNotifier {
 
       final snapshot = await query.get();
 
-      return snapshot.docs
-          // .where((doc) {
-          //   final data = doc.data();
-          //   final docInterval = data['interval'] as String?;
-          //   return effectiveInterval == '1d'
-          //       ? (docInterval == null || docInterval == '1d')
-          //       : (docInterval == effectiveInterval);
-          // })
-          .map((doc) => doc.data())
-          .toList();
+      final signals = snapshot.docs.map((doc) => doc.data()).toList();
+
+      // Apply client-side sort if DB sort was compromised by inequality constraints
+      if (sortBy == 'signalStrength' && (startDate != null || endDate != null)) {
+        signals.sort((a, b) {
+          final aStrength =
+              (a['multiIndicatorResult']?['signalStrength'] as num?)
+                      ?.toDouble() ??
+                  0.0;
+          final bStrength =
+              (b['multiIndicatorResult']?['signalStrength'] as num?)
+                      ?.toDouble() ??
+                  0.0;
+          return bStrength.compareTo(aStrength);
+        });
+      }
+
+      return signals;
     } catch (e) {
       debugPrint('Error fetching signals: $e');
       return [];
@@ -1014,6 +1026,8 @@ class TradeSignalsProvider with ChangeNotifier {
           config.strategyConfig.enableDrawdownProtection,
       'maxDrawdown': config.strategyConfig.maxDrawdown,
       'skipSignalUpdate': skipSignalUpdate,
+      'tradingMode': config.tradingMode.name,
+      'enabledIndicators': config.strategyConfig.enabledIndicators,
     };
 
     try {

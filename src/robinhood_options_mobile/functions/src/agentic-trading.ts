@@ -41,6 +41,7 @@ export async function performTradeProposal(request: any) {
     riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
     skipRiskGuard: request.data.skipRiskGuard || false,
+    tradingMode: request.data.tradingMode || "systematic",
     enabledIndicators: request.data.enabledIndicators,
   };
 
@@ -68,7 +69,7 @@ export async function performTradeProposal(request: any) {
 }
 
 export const initiateTradeProposal = onCall({
-  secrets: ["TWELVE_DATA_API_KEY"],
+  secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
 }, async (request) => {
   return performTradeProposal(request);
 });
@@ -79,7 +80,7 @@ export const initiateTradeProposal = onCall({
  * monitored.
  */
 export const seedAgenticTrading = onCall({
-  secrets: ["TWELVE_DATA_API_KEY"],
+  secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
 }, async (request) => {
   const inputSymbols = request.data.symbols;
   const useFullList = request.data.full === true;

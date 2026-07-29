@@ -525,6 +525,7 @@ class _AgenticTradingSettingsWidgetState
     return AgenticTradingConfig(
       strategyConfig: strategyConfig,
       autoTradeEnabled: configSource.autoTradeEnabled,
+      tradingMode: configSource.tradingMode,
       autoTradeCooldownMinutes:
           int.tryParse(_autoTradeCooldownController.text) ?? 60,
       checkIntervalMinutes: int.tryParse(_checkIntervalController.text) ?? 5,
@@ -1043,20 +1044,6 @@ class _AgenticTradingSettingsWidgetState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Automated Trading'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.analytics_outlined),
-            tooltip: 'View Performance',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AgenticTradingPerformanceWidget(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: GestureDetector(
         onTap: () {
@@ -1914,7 +1901,140 @@ class _AgenticTradingSettingsWidgetState
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-
+              // Trading Mode Selector
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trading Mode',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<TradingMode>(
+                      segments: const [
+                        ButtonSegment<TradingMode>(
+                          value: TradingMode.systematic,
+                          label: Text('Systematic Rules'),
+                          icon: Icon(Icons.functions),
+                        ),
+                        ButtonSegment<TradingMode>(
+                          value: TradingMode.reasoning,
+                          label: Text('Agentic Reasoning'),
+                          icon: Icon(Icons.psychology),
+                        ),
+                      ],
+                      selected: {agenticTradingProvider.config.tradingMode},
+                      onSelectionChanged: (Set<TradingMode> newSelection) {
+                        final newConfig = _createFullConfigFromSettings(
+                            agenticTradingProvider,
+                            baseConfig: agenticTradingProvider.config
+                                .copyWith(tradingMode: newSelection.first));
+                        agenticTradingProvider.updateConfig(
+                            newConfig, widget.userDocRef);
+                      },
+                    ),
+                    if (agenticTradingProvider.config.tradingMode ==
+                        TradingMode.reasoning)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.auto_awesome,
+                                      size: 16, color: colorScheme.primary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Cognitive Synthesis Engine',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              _buildModeDetailItem(
+                                  Icons.psychology_outlined,
+                                  'Contextual Reasoning',
+                                  'Synthesizes indicators, macro regime, and GEX structural levels.'),
+                              _buildModeDetailItem(
+                                  Icons.rule,
+                                  '11-Rule Discipline',
+                                  'Strictly enforces GEX mechanical checklists to eliminate bias.'),
+                              _buildModeDetailItem(
+                                  Icons.security,
+                                  'RiskGuard Overlay',
+                                  'All decisions filtered through portfolio concentration limits.'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (agenticTradingProvider.config.tradingMode ==
+                        TradingMode.systematic)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.functions,
+                                      size: 16,
+                                      color: colorScheme.onSurfaceVariant),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Deterministic Execution',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Fixed-formula approach using direct indicator correlations and hard-coded thresholds for high-speed, repeatable execution.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
               // Status Content
               if (agenticTradingProvider.emergencyStopActivated)
                 Container(
@@ -4153,6 +4273,39 @@ class _AgenticTradingSettingsWidgetState
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildModeDetailItem(IconData icon, String title, String description) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon,
+              size: 14, color: colorScheme.primary.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                  fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$title: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: description),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

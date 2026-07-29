@@ -2,11 +2,17 @@ import 'trade_strategy_config.dart';
 export 'exit_stage.dart';
 export 'trade_strategy_config.dart';
 
+enum TradingMode {
+  systematic,
+  reasoning,
+}
+
 /// Agentic Trading Configuration Model
 ///
 /// Stores per-user configuration for agentic trading system.
 class AgenticTradingConfig {
   bool autoTradeEnabled;
+  TradingMode tradingMode;
   String? tradeStrategyTemplateId;
   TradeStrategyConfig strategyConfig;
 
@@ -29,6 +35,7 @@ class AgenticTradingConfig {
   AgenticTradingConfig({
     required this.strategyConfig,
     this.autoTradeEnabled = false,
+    this.tradingMode = TradingMode.systematic,
     this.autoTradeCooldownMinutes = 60,
     this.checkIntervalMinutes = 5,
     this.allowPreMarketTrading = false,
@@ -45,6 +52,10 @@ class AgenticTradingConfig {
 
   AgenticTradingConfig.fromJson(Map<String, dynamic> json)
       : autoTradeEnabled = json['autoTradeEnabled'] as bool? ?? false,
+        tradingMode = TradingMode.values.firstWhere(
+          (e) => e.name == (json['tradingMode'] as String? ?? 'systematic'),
+          orElse: () => TradingMode.systematic,
+        ),
         autoTradeCooldownMinutes =
             json['autoTradeCooldownMinutes'] as int? ?? 60,
         checkIntervalMinutes = json['checkIntervalMinutes'] as int? ?? 5,
@@ -68,6 +79,7 @@ class AgenticTradingConfig {
     return {
       'strategyConfig': strategyConfig.toJson(),
       'autoTradeEnabled': autoTradeEnabled,
+      'tradingMode': tradingMode.name,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,
       'checkIntervalMinutes': checkIntervalMinutes,
       'allowPreMarketTrading': allowPreMarketTrading,
@@ -86,6 +98,7 @@ class AgenticTradingConfig {
   AgenticTradingConfig copyWith({
     TradeStrategyConfig? strategyConfig,
     bool? autoTradeEnabled,
+    TradingMode? tradingMode,
     int? autoTradeCooldownMinutes,
     int? checkIntervalMinutes,
     bool? allowPreMarketTrading,
@@ -102,6 +115,7 @@ class AgenticTradingConfig {
     return AgenticTradingConfig(
       strategyConfig: strategyConfig ?? this.strategyConfig,
       autoTradeEnabled: autoTradeEnabled ?? this.autoTradeEnabled,
+      tradingMode: tradingMode ?? this.tradingMode,
       autoTradeCooldownMinutes:
           autoTradeCooldownMinutes ?? this.autoTradeCooldownMinutes,
       checkIntervalMinutes: checkIntervalMinutes ?? this.checkIntervalMinutes,

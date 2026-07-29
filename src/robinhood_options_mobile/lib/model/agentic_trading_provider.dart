@@ -413,12 +413,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final minSignalStrength =
           _config.strategyConfig.minSignalStrength.toInt();
 
-      Map<String, String>? indicatorFilters;
       int minStrengthFilter = minSignalStrength;
-
-      if (activeIndicators.isNotEmpty) {
-        indicatorFilters = {for (var i in activeIndicators) i: 'BUY'};
-      }
 
       // Determine start date for signal fetch (since last run or recent window)
       // Default to 60 minutes lookback on first run to avoid processing ancient signals
@@ -440,32 +435,28 @@ class AgenticTradingProvider with ChangeNotifier {
 
       List<Map<String, dynamic>> tradeSignals;
 
+      // In Reasoning mode, we're more lenient with initial signal fetching
+      // to allow the AI to "discover" opportunities the deterministic algo might have missed
+      // or marked as HOLD but with high confidence.
+      final isReasoningMode = _config.tradingMode == TradingMode.reasoning;
+
       if (symbols != null && symbols.isNotEmpty) {
         tradeSignals = await tradeSignalsProvider.fetchSignals(
-          sortBy: 'timestamp',
+          // Used to sort by timestamp, consider the implications of such a decision, the latest signals may not get picked up
+          // sortBy: 'timestamp',
+          sortBy: 'signalStrength',
           startDate: startDate,
           symbols: symbols,
           interval: _config.strategyConfig.interval,
         );
-
-        // Apply strength of selected indicators
-        if (activeIndicators.isNotEmpty) {
-          tradeSignals = tradeSignals.where((s) {
-            final indicators = s['multiIndicatorResult']?['indicators'];
-            if (indicators is! Map) return false;
-            int buys = 0;
-            for (var ind in activeIndicators) {
-              if (indicators[ind]?['signal'] == 'BUY') buys++;
-            }
-            return (buys / activeIndicators.length) * 100 >= minStrengthFilter;
-          }).toList();
-        }
       } else {
         tradeSignals = await tradeSignalsProvider.fetchSignals(
-          indicatorFilters: indicatorFilters,
-          minSignalStrength: minStrengthFilter,
-          sortBy: 'timestamp',
-          // startDate: startDate,
+          signalType: isReasoningMode ? null : 'BUY',
+          minSignalStrength: isReasoningMode ? 40 : minStrengthFilter,
+          // Used to sort by timestamp, consider the implications of such a decision, the latest signals may not get picked up
+          // sortBy: 'timestamp',
+          sortBy: 'signalStrength',
+          startDate: startDate,
           interval: _config.strategyConfig.interval,
         );
       }
@@ -516,7 +507,9 @@ class AgenticTradingProvider with ChangeNotifier {
             .map((t) => t['symbol'])
             .toSet()
             .join(', ');
-        _log('✅ Executed $count auto-trades: $symbols');
+        final msg =
+            result['message'] ?? 'Executed $count auto-trades: $symbols';
+        _log('✅ $msg');
       } else if (tradeSignals.isNotEmpty) {
         _log('ℹ️ No trades executed from ${tradeSignals.length} signals');
       }
@@ -1119,6 +1112,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final requireAllIndicatorsGreen =
           _config.strategyConfig.requireAllIndicatorsGreen;
       final minSignalStrength = _config.strategyConfig.minSignalStrength;
+      final isReasoningMode = _config.tradingMode == TradingMode.reasoning;
 
       // _log('📊 Active indicators for auto-trade filtering: $activeIndicators');
       // _log(
@@ -1136,71 +1130,57 @@ class AgenticTradingProvider with ChangeNotifier {
         String? rejectionReason;
         bool isAccepted = false;
 
-        // Check if all enabled indicators agree with BUY signal
-        final multiIndicatorResult =
-            signal['multiIndicatorResult'] as Map<String, dynamic>?;
-
-        if (multiIndicatorResult == null) {
-          rejectionReason = 'Missing multi-indicator result';
+        // In Reasoning mode, we bypass systematic filtering and let the AI decide,
+        // as long as the signal has basic technical merit (already filtered by fetchSignals)
+        if (isReasoningMode) {
+          isAccepted = true;
         } else {
-          final indicators =
-              multiIndicatorResult['indicators'] as Map<String, dynamic>?;
+          // Check if all enabled indicators agree with BUY signal
+          final multiIndicatorResult =
+              signal['multiIndicatorResult'] as Map<String, dynamic>?;
 
-          if (indicators == null || indicators.isEmpty) {
-            rejectionReason = 'No indicators data';
-          } else if (activeIndicators.isEmpty) {
-            rejectionReason = 'No active indicators configured';
+          if (multiIndicatorResult == null) {
+            rejectionReason = 'Missing multi-indicator result';
           } else {
-            if (requireAllIndicatorsGreen) {
-              // Verify that all enabled indicators have BUY signals
-              for (final indicator in activeIndicators) {
-                final indicatorData =
-                    indicators[indicator] as Map<String, dynamic>?;
-                if (indicatorData == null) {
-                  rejectionReason = 'Indicator $indicator missing';
-                  break;
-                }
-                final indicatorSignal = indicatorData['signal'] as String?;
-                if (indicatorSignal != 'BUY') {
-                  rejectionReason =
-                      '$indicator is ${indicatorSignal ?? "Neutral"}';
-                  break;
-                }
-              }
-              if (rejectionReason == null) {
-                isAccepted = true;
-              }
-            } else {
-              // Calculate signal strength based on enabled indicators
-              int buyCount = 0;
-              int sellCount = 0;
-              int totalEnabled = 0;
+            final indicators =
+                multiIndicatorResult['indicators'] as Map<String, dynamic>?;
 
-              // Standard indicators
-              for (final indicator in activeIndicators) {
-                final indicatorData =
-                    indicators[indicator] as Map<String, dynamic>?;
-                if (indicatorData != null) {
-                  totalEnabled++;
-                  final signal = indicatorData['signal'] as String?;
-                  if (signal == 'BUY') {
-                    buyCount++;
-                  } else if (signal == 'SELL') {
-                    sellCount++;
+            if (indicators == null || indicators.isEmpty) {
+              rejectionReason = 'No indicators data';
+            } else if (activeIndicators.isEmpty) {
+              rejectionReason = 'No active indicators configured';
+            } else {
+              if (requireAllIndicatorsGreen) {
+                // Verify that all enabled indicators have BUY signals
+                for (final indicator in activeIndicators) {
+                  final indicatorData =
+                      indicators[indicator] as Map<String, dynamic>?;
+                  if (indicatorData == null) {
+                    rejectionReason = 'Indicator $indicator missing';
+                    break;
+                  }
+                  final indicatorSignal = indicatorData['signal'] as String?;
+                  if (indicatorSignal != 'BUY') {
+                    rejectionReason =
+                        '$indicator is ${indicatorSignal ?? "Neutral"}';
+                    break;
                   }
                 }
-              }
+                if (rejectionReason == null) {
+                  isAccepted = true;
+                }
+              } else {
+                // Calculate signal strength based on enabled indicators
+                int buyCount = 0;
+                int sellCount = 0;
+                int totalEnabled = 0;
 
-              // Custom indicators
-              final customIndicatorsResult =
-                  multiIndicatorResult['customIndicators']
-                      as Map<String, dynamic>?;
-              if (customIndicatorsResult != null) {
-                for (final key in customIndicatorsResult.keys) {
-                  totalEnabled++;
+                // Standard indicators
+                for (final indicator in activeIndicators) {
                   final indicatorData =
-                      customIndicatorsResult[key] as Map<String, dynamic>?;
+                      indicators[indicator] as Map<String, dynamic>?;
                   if (indicatorData != null) {
+                    totalEnabled++;
                     final signal = indicatorData['signal'] as String?;
                     if (signal == 'BUY') {
                       buyCount++;
@@ -1209,21 +1189,41 @@ class AgenticTradingProvider with ChangeNotifier {
                     }
                   }
                 }
-              }
 
-              if (totalEnabled == 0) {
-                rejectionReason = 'No enabled indicators found in signal';
-              } else {
-                final calculatedStrength =
-                    ((buyCount - sellCount + totalEnabled) /
-                            (2 * totalEnabled)) *
-                        100;
+                // Custom indicators
+                final customIndicatorsResult =
+                    multiIndicatorResult['customIndicators']
+                        as Map<String, dynamic>?;
+                if (customIndicatorsResult != null) {
+                  for (final key in customIndicatorsResult.keys) {
+                    totalEnabled++;
+                    final indicatorData =
+                        customIndicatorsResult[key] as Map<String, dynamic>?;
+                    if (indicatorData != null) {
+                      final signal = indicatorData['signal'] as String?;
+                      if (signal == 'BUY') {
+                        buyCount++;
+                      } else if (signal == 'SELL') {
+                        sellCount++;
+                      }
+                    }
+                  }
+                }
 
-                if (calculatedStrength < minSignalStrength) {
-                  rejectionReason =
-                      'Strength ${calculatedStrength.toStringAsFixed(1)}% < $minSignalStrength%';
+                if (totalEnabled == 0) {
+                  rejectionReason = 'No enabled indicators found in signal';
                 } else {
-                  isAccepted = true;
+                  final calculatedStrength =
+                      ((buyCount - sellCount + totalEnabled) /
+                              (2 * totalEnabled)) *
+                          100;
+
+                  if (calculatedStrength < minSignalStrength) {
+                    rejectionReason =
+                        'Strength ${calculatedStrength.toStringAsFixed(1)}% < $minSignalStrength%';
+                  } else {
+                    isAccepted = true;
+                  }
                 }
               }
             }
@@ -1263,6 +1263,14 @@ class AgenticTradingProvider with ChangeNotifier {
           'trades': [],
           'processedSignals': processedSignals,
         };
+      }
+
+      // Cap the number of signals to process in Reasoning Mode to avoid
+      // excessive Cloud Function calls and costs.
+      if (isReasoningMode && buySignals.length > 15) {
+        _log(
+            '🤖 Capping analysis to top 15 highest-strength signals (out of ${buySignals.length})');
+        buySignals.removeRange(15, buySignals.length);
       }
 
       // _log(
@@ -1343,6 +1351,11 @@ class AgenticTradingProvider with ChangeNotifier {
           final assessment = proposalResult['assessment'] != null
               ? Map<String, dynamic>.from(proposalResult['assessment'] as Map)
               : null;
+
+          if (proposalStatus == 'rejected') {
+            final message = proposalResult['message'] ?? 'Rejected by agent';
+            _log('❌ Trade proposal for $symbol rejected: $message');
+          }
 
           // If proposal was approved, execute the order
           if (proposal != null && proposalStatus == 'approved') {
@@ -2060,7 +2073,8 @@ class AgenticTradingProvider with ChangeNotifier {
                         as Map<String, dynamic>?;
                     final gexIndicator =
                         indicators?['gammaExposure'] as Map<String, dynamic>?;
-                    final gexValue = (gexIndicator?['value'] as num?)?.toDouble();
+                    final gexValue =
+                        (gexIndicator?['value'] as num?)?.toDouble();
 
                     if (gexValue != null && gexValue < gexThreshold) {
                       shouldExit = true;

@@ -49,6 +49,7 @@ void main() {
       final config = AgenticTradingConfig(
         strategyConfig: strategyConfig,
         autoTradeEnabled: true,
+        tradingMode: TradingMode.reasoning,
         autoTradeCooldownMinutes: 30,
       );
 
@@ -56,6 +57,7 @@ void main() {
       final json = config.toJson();
 
       // Verify JSON contains all fields (nested strategy config)
+      expect(json['tradingMode'], equals('reasoning'));
       expect(json['strategyConfig']['smaPeriodFast'], equals(12));
       expect(json['strategyConfig']['smaPeriodSlow'], equals(26));
       expect(json['strategyConfig']['tradeQuantity'], equals(10));
@@ -95,6 +97,7 @@ void main() {
       final deserializedConfig = AgenticTradingConfig.fromJson(json);
 
       // Verify all fields are correctly deserialized
+      expect(deserializedConfig.tradingMode, equals(TradingMode.reasoning));
       expect(deserializedConfig.strategyConfig.smaPeriodFast, equals(12));
       expect(deserializedConfig.strategyConfig.smaPeriodSlow, equals(26));
       expect(deserializedConfig.strategyConfig.tradeQuantity, equals(10));

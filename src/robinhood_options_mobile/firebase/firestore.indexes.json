@@ -9,6 +9,64 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "signals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "multiIndicatorResult.signalStrength",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "signals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "symbol",
           "order": "ASCENDING"
         },
