@@ -89,6 +89,52 @@ class PaperService implements IBrokerageService {
 
   PaperService();
 
+  /// Maps the app's chart spans to range/interval combinations supported by
+  /// Yahoo Finance, which is the market-data source for paper trading.
+  static ({String range, String interval, String appInterval})
+      chartDataParameters(ChartDateSpan chartDateSpanFilter,
+          {String? chartInterval}) {
+    final appInterval = chartInterval ??
+        switch (chartDateSpanFilter) {
+          ChartDateSpan.month_3 ||
+          ChartDateSpan.ytd ||
+          ChartDateSpan.year =>
+            'day',
+          ChartDateSpan.year_2 ||
+          ChartDateSpan.year_3 ||
+          ChartDateSpan.year_5 ||
+          ChartDateSpan.all =>
+            'week',
+          _ => '5minute',
+        };
+
+    final range = switch (chartDateSpanFilter) {
+      ChartDateSpan.hour => '1d',
+      ChartDateSpan.day => '1d',
+      ChartDateSpan.week => '5d',
+      ChartDateSpan.month => '1mo',
+      ChartDateSpan.month_3 => '3mo',
+      ChartDateSpan.ytd => 'ytd',
+      ChartDateSpan.year => '1y',
+      ChartDateSpan.year_2 => '2y',
+      ChartDateSpan.year_3 => '5y',
+      ChartDateSpan.year_5 => '5y',
+      ChartDateSpan.all => 'max',
+    };
+
+    final interval = switch (appInterval) {
+      '15second' => '1m',
+      '5minute' => '5m',
+      '10minute' => '15m',
+      'hour' => '1h',
+      'day' => '1d',
+      'week' => '1wk',
+      _ => '5m',
+    };
+
+    return (range: range, interval: interval, appInterval: appInterval);
+  }
+
   @override
   String name = 'Paper Trading - Integrated';
   @override
@@ -811,60 +857,18 @@ class PaperService implements IBrokerageService {
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
       String? chartInterval}) async {
-    final interval = chartInterval ?? '5minute';
     final span = convertChartSpanFilter(chartDateSpanFilter);
     final bounds = convertChartBoundsFilter(chartBoundsFilter);
-
-    // Map Robinhood span to Yahoo range
-    String range = '1d';
-    switch (span) {
-      case 'day':
-        range = '1d';
-        break;
-      case 'week':
-        range = '5d';
-        break;
-      case 'month':
-        range = '1mo';
-        break;
-      case '3month':
-        range = '3mo';
-        break;
-      case 'year':
-        range = '1y';
-        break;
-      case '5year':
-        range = '5y';
-        break;
-      case 'all':
-        range = 'max';
-        break;
-    }
-
-    // Map Robinhood interval to Yahoo interval
-    String yInterval = '5m';
-    switch (interval) {
-      case '5minute':
-        yInterval = '5m';
-        break;
-      case '10minute':
-        yInterval = '15m'; // Yahoo doesn't have 10m
-        break;
-      case 'hour':
-        yInterval = '1h';
-        break;
-      case 'day':
-        yInterval = '1d';
-        break;
-    }
+    final parameters =
+        chartDataParameters(chartDateSpanFilter, chartInterval: chartInterval);
 
     try {
       final data = await yahooService.getHistoricals(
-          symbolOrInstrumentId, range, yInterval);
+          symbolOrInstrumentId, parameters.range, parameters.interval);
       final historicals = InstrumentHistoricals(
           '',
           symbolOrInstrumentId,
-          interval,
+          parameters.appInterval,
           span,
           bounds,
           null,
@@ -879,8 +883,18 @@ class PaperService implements IBrokerageService {
     } catch (e) {
       debugPrint('Error fetching historicals from Yahoo: $e');
       // Fallback to empty historicals if Yahoo fails
-      final historicals = InstrumentHistoricals('', symbolOrInstrumentId,
-          interval, span, bounds, null, null, null, null, '', null, []);
+      final historicals = InstrumentHistoricals(
+          '',
+          symbolOrInstrumentId,
+          parameters.appInterval,
+          span,
+          bounds,
+          null,
+          null,
+          null,
+          null,
+          '',
+          null, []);
       store.addOrUpdate(historicals);
       return historicals;
     }
