@@ -153,12 +153,34 @@ perl -0pi -e \
   "s/^version:[ \\t]*\\Q${version_line}\\E[ \\t]*$/version: ${next_version}+${next_build}/m" \
   "$PUBSPEC"
 
-# flutter test/analyze leave debug-flavored ephemeral SwiftPM state that the
-# release build then rewrites while xcodebuild is already resolving packages,
-# failing with "Package.swift was modified during the build" or "the package
-# at .../.packages/<plugin> cannot be accessed". Removing the ephemeral
-# directory makes the build regenerate it once, before resolution starts.
-rm -rf "$PROJECT_DIR/ios/Flutter/ephemeral"
+# Commit the new local version only after a complete build (for --skip-upload)
+# or a successful upload. Failed attempts restore the previous version so a
+# retry does not unnecessarily consume another build number.
+release_succeeded=false
+restore_version_on_failure() {
+  exit_status=$?
+  if ((exit_status != 0)) && ! "$release_succeeded"; then
+    perl -0pi -e \
+      "s/^version:[ \\t]*\\Q${next_version}+${next_build}\\E[ \\t]*$/version: ${version_line}/m" \
+      "$PUBSPEC"
+    printf '\nDeployment failed; restored pubspec.yaml to version %s.\n' "$version_line" >&2
+  fi
+  exit "$exit_status"
+}
+trap restore_version_on_failure EXIT
+
+# Flutter's iOS config command asks Xcode for build settings before its later
+# dependency-generation phase. The generated local Swift package must therefore
+# exist before `flutter build ios --config-only` starts. Never delete the whole
+# ephemeral directory here: doing so makes Xcode resolve a package path that is
+# temporarily absent. `flutter pub get` is the supported way to regenerate it.
+generated_package="$PROJECT_DIR/ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift"
+if [[ ! -s "$generated_package" ]]; then
+  printf '\nGenerated iOS Swift package is missing; regenerating it...\n'
+  flutter pub get
+fi
+[[ -s "$generated_package" ]] || \
+  die "Flutter did not generate the iOS plugin Swift package"
 
 # Generate the release-flavored plugin package before xcodebuild begins. This
 # avoids resolving a partially generated package graph and prevents misleading
@@ -166,11 +188,11 @@ rm -rf "$PROJECT_DIR/ios/Flutter/ephemeral"
 printf '\nGenerating iOS release configuration...\n'
 flutter build ios \
   --config-only \
+  --no-pub \
   --release \
   --build-name "$next_version" \
   --build-number "$next_build"
 
-generated_package="$PROJECT_DIR/ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage/Package.swift"
 [[ -s "$generated_package" ]] || \
   die "Flutter did not generate the iOS plugin Swift package"
 
@@ -199,18 +221,49 @@ for resolve_attempt in 1 2 3; do
 done
 "$swiftpm_resolved" || die "Xcode could not resolve Swift package dependencies after 3 attempts"
 
+build_ipa() {
+  flutter build ipa \
+    --no-pub \
+    --release \
+    --build-name "$next_version" \
+    --build-number "$next_build" \
+    --export-options-plist="$EXPORT_OPTIONS"
+}
+
 printf '\nBuilding signed App Store IPA...\n'
-flutter build ipa \
-  --release \
-  --build-name "$next_version" \
-  --build-number "$next_build" \
-  --export-options-plist="$EXPORT_OPTIONS"
+ipa_build_log="$(mktemp "${TMPDIR:-/tmp}/testflight-ipa-build.XXXXXX")"
+if ! build_ipa 2>&1 | tee "$ipa_build_log"; then
+  if grep -Fq 'Package.swift' "$ipa_build_log" && \
+      grep -Fq 'was modified during the build' "$ipa_build_log"; then
+    printf '\nXcode encountered the transient SwiftPM package-generation race; regenerating and retrying once...\n' >&2
+
+    # Wait for the failed xcodebuild process to release its package inputs,
+    # then regenerate a complete release package graph before retrying.
+    sleep 2
+    flutter build ios \
+      --config-only \
+      --no-pub \
+      --release \
+      --build-name "$next_version" \
+      --build-number "$next_build"
+    xcodebuild -resolvePackageDependencies \
+      -workspace "$IOS_WORKSPACE" \
+      -scheme Runner
+
+    build_ipa
+  else
+    printf 'IPA build failed. Full output: %s\n' "$ipa_build_log" >&2
+    exit 1
+  fi
+fi
+rm -f "$ipa_build_log"
 
 ipa_path="$(find "$PROJECT_DIR/build/ios/ipa" -maxdepth 1 -type f -name '*.ipa' -print -quit)"
 [[ -n "$ipa_path" && -f "$ipa_path" ]] || die "Flutter completed but no IPA was found"
 
 printf '\nValidating IPA with App Store Connect...\n'
 if "$skip_upload"; then
+  release_succeeded=true
   printf 'Upload skipped. IPA: %s\n' "$ipa_path"
   exit 0
 fi
@@ -228,5 +281,6 @@ xcrun altool --upload-app \
   --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
   --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID"
 
+release_succeeded=true
 printf '\nUploaded RealizeAlpha %s (%s). App Store Connect will now process the build.\n' \
   "$next_version" "$next_build"

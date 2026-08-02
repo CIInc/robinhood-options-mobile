@@ -33,6 +33,17 @@ scripts/deploy_testflight.sh --version 0.37.0
 Use `--dry-run` to preview the version change or `--skip-upload` to build
 without uploading. Run `scripts/deploy_testflight.sh --help` for all options.
 
+The script ensures Flutter's ephemeral Swift package exists, then pre-generates
+and resolves its release configuration before archiving. It deliberately does
+not delete `ios/Flutter/ephemeral`: Xcode needs the local package to exist when
+configuration begins. If Xcode still encounters its transient `Package.swift
+was modified during the build` race, the archive step regenerates the package
+and retries once. Other build failures are not retried or hidden.
+
+If a build, validation, or upload fails, the script restores the previous
+`pubspec.yaml` version. This lets you rerun the deployment without accidentally
+consuming another build number.
+
 The upload makes the build available in App Store Connect after Apple's
 processing finishes. Internal TestFlight groups can receive it automatically
 if automatic distribution is enabled. External testing still requires the
