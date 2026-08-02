@@ -210,6 +210,8 @@ export async function getMarketData(symbol: string,
   let timestamps: any[] = [];
   let currentPrice: number | null = null;
   let staleFallback: any = null;
+  let dataSource: "internal" | "external" | "unknown" = "unknown";
+  let usedStaleCache = false;
 
   /**
    * Checks if the cached chart data is stale based on the end of the current
@@ -319,6 +321,7 @@ export async function getMarketData(symbol: string,
         }
 
         if (isCached) {
+          dataSource = "internal";
           const lastFew = closes.slice(-5);
           logger.info(`✅ CACHE HIT: Loaded cached ${interval} data ` +
             `for ${symbol}`, {
@@ -358,6 +361,7 @@ export async function getMarketData(symbol: string,
     try {
       const cboeRes = await fetchFromCBOE(decodedSymbol);
       if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
+        dataSource = "external";
         const resQuote = cboeRes.indicators.quote[0];
         opens = resQuote.open;
         highs = resQuote.high;
@@ -393,6 +397,7 @@ export async function getMarketData(symbol: string,
 
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
+        dataSource = "external";
         const resQuote = result.indicators.quote[0];
         opens = resQuote.open;
         highs = resQuote.high;
@@ -439,6 +444,7 @@ export async function getMarketData(symbol: string,
 
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
+        dataSource = "external";
         const opes = result.indicators.quote[0].open;
         const higs = result.indicators.quote[0].high;
         const los = result.indicators.quote[0].low;
@@ -521,6 +527,7 @@ export async function getMarketData(symbol: string,
       }
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
+        dataSource = "external";
         const opes = result.indicators.quote[0].open;
         const higs = result.indicators.quote[0].high;
         const los = result.indicators.quote[0].low;
@@ -579,7 +586,16 @@ export async function getMarketData(symbol: string,
     volumes = staleFallback.volumes;
     timestamps = staleFallback.timestamps;
     currentPrice = staleFallback.currentPrice;
+    dataSource = "internal";
+    usedStaleCache = true;
   }
+
+  const latestTimestamp = timestamps.length > 0 ?
+    Number(timestamps[timestamps.length - 1]) : null;
+  const marketDataAsOf = latestTimestamp && Number.isFinite(latestTimestamp) ?
+    (latestTimestamp > 1000000000000 ?
+      latestTimestamp : latestTimestamp * 1000) :
+    null;
 
   return {
     symbol,
@@ -590,6 +606,11 @@ export async function getMarketData(symbol: string,
     volumes,
     timestamps,
     currentPrice,
+    metadata: {
+      dataSource,
+      usedStaleCache,
+      marketDataAsOf,
+    },
   };
 }
 

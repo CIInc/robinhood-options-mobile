@@ -5675,6 +5675,274 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
+  DateTime? _parseSignalDiagnosticDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is num) {
+      final milliseconds =
+          value > 1000000000000 ? value.toInt() : (value * 1000).toInt();
+      return DateTime.fromMillisecondsSinceEpoch(milliseconds);
+    }
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  String _formatSignalDiagnosticDate(dynamic value) {
+    final date = _parseSignalDiagnosticDate(value);
+    if (date == null) return 'Unavailable';
+    final localDate = date.toLocal();
+    return '${formatCompactDateTimeWithHour.format(localDate)} '
+        '(${_getTimeAgo(localDate)})';
+  }
+
+  String _signalDataSourceLabel(dynamic value) {
+    final source = value?.toString().toLowerCase();
+    if (source == null || source.isEmpty || source == 'unknown') {
+      return 'Unavailable';
+    }
+    return source == 'internal' ? 'Internal' : 'External';
+  }
+
+  String _signalCalculationStatusLabel(dynamic value) {
+    switch (value?.toString().toLowerCase()) {
+      case 'success':
+        return 'Successful';
+      case 'stale_data':
+        return 'Completed with stale data';
+      case 'failed':
+        return 'Latest calculation failed';
+      case 'running':
+        return 'Calculation in progress';
+      default:
+        return 'Unavailable';
+    }
+  }
+
+  String? _signalDiagnosticsWarning(
+    Map<String, dynamic> signal,
+    Map<String, dynamic> diagnostics,
+    String interval,
+  ) {
+    final storedWarning = diagnostics['warning'];
+    if (storedWarning is String && storedWarning.trim().isNotEmpty) {
+      return storedWarning;
+    }
+
+    final status = diagnostics['calculationStatus']?.toString();
+    if (status == 'failed') {
+      return 'The latest calculation could not be completed. The displayed '
+          'signal may be outdated; confirm current market conditions before '
+          'making a trading decision.';
+    }
+    if (status == 'running') {
+      final lastAttempt = _parseSignalDiagnosticDate(
+        diagnostics['lastAttemptAt'],
+      );
+      if (lastAttempt != null &&
+          DateTime.now().difference(lastAttempt) >
+              const Duration(minutes: 10)) {
+        return 'The latest calculation attempt has not completed. The '
+            'displayed signal may be outdated; confirm current market '
+            'conditions before making a trading decision.';
+      }
+    }
+    if (diagnostics['usedStaleCache'] == true || status == 'stale_data') {
+      return 'This signal was calculated using cached market data that may '
+          'be outdated. Confirm current market conditions before making a '
+          'trading decision.';
+    }
+
+    final hasCalculationMetadata = diagnostics.containsKey('lastAttemptAt') ||
+        diagnostics.containsKey('lastSuccessfulCalculationAt') ||
+        diagnostics.containsKey('calculationStatus') ||
+        diagnostics.containsKey('marketDataAsOf');
+    if (!hasCalculationMetadata) {
+      return 'Calculation diagnostics were not recorded for this signal. '
+          'The signal timestamp does not confirm the freshness of its '
+          'underlying market data.';
+    }
+
+    final lastSuccess = _parseSignalDiagnosticDate(
+      diagnostics['lastSuccessfulCalculationAt'] ?? signal['timestamp'],
+    );
+    if (lastSuccess == null) {
+      return 'Calculation freshness details are unavailable for this signal. '
+          'Confirm current market conditions before making a trading decision.';
+    }
+
+    final age = DateTime.now().difference(lastSuccess);
+    final isStale = interval == '15m'
+        ? age >
+            (MarketHours.isMarketOpen()
+                ? const Duration(minutes: 45)
+                : const Duration(hours: 24))
+        : interval == '1h'
+            ? age >
+                (MarketHours.isMarketOpen()
+                    ? const Duration(hours: 2)
+                    : const Duration(hours: 24))
+            : age > const Duration(hours: 96);
+    if (isStale) {
+      return 'This signal may be stale for the selected interval. Confirm '
+          'current prices and market conditions before making a trading '
+          'decision.';
+    }
+    return null;
+  }
+
+  Widget _buildSignalDiagnosticRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSignalDiagnostics(
+    Map<String, dynamic> signal,
+    String interval,
+  ) {
+    final diagnostics = signal['diagnostics'] is Map
+        ? Map<String, dynamic>.from(signal['diagnostics'] as Map)
+        : <String, dynamic>{};
+    final multiIndicator = signal['multiIndicatorResult'] is Map
+        ? Map<String, dynamic>.from(signal['multiIndicatorResult'] as Map)
+        : <String, dynamic>{};
+    final warning = _signalDiagnosticsWarning(signal, diagnostics, interval);
+    final usedStaleCache = diagnostics['usedStaleCache'];
+    final staleCacheLabel = usedStaleCache is bool
+        ? (usedStaleCache ? 'Yes' : 'No')
+        : 'Unavailable';
+    final bars = diagnostics['barCount'] ?? multiIndicator['bars'];
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline),
+            SizedBox(width: 8),
+            Expanded(child: Text('Signal Calculation Details')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSignalDiagnosticRow(
+                'Last Attempt At',
+                _formatSignalDiagnosticDate(diagnostics['lastAttemptAt']),
+              ),
+              _buildSignalDiagnosticRow(
+                'Last Successful Calculation At',
+                _formatSignalDiagnosticDate(
+                  diagnostics['lastSuccessfulCalculationAt'],
+                ),
+              ),
+              _buildSignalDiagnosticRow(
+                'Signal Changed At',
+                _formatSignalDiagnosticDate(
+                  diagnostics['signalChangedAt'] ?? signal['timestamp'],
+                ),
+              ),
+              _buildSignalDiagnosticRow(
+                'Market Data As Of',
+                _formatSignalDiagnosticDate(diagnostics['marketDataAsOf']),
+              ),
+              _buildSignalDiagnosticRow('Used Stale Cache', staleCacheLabel),
+              _buildSignalDiagnosticRow(
+                'Data Source',
+                _signalDataSourceLabel(diagnostics['dataSource']),
+              ),
+              _buildSignalDiagnosticRow(
+                'Calculation Status',
+                _signalCalculationStatusLabel(
+                  diagnostics['calculationStatus'],
+                ),
+              ),
+              _buildSignalDiagnosticRow('Interval', interval),
+              _buildSignalDiagnosticRow(
+                'Bars Evaluated',
+                bars?.toString() ?? 'Unavailable',
+              ),
+              if (warning == null)
+                _buildSignalDiagnosticRow('Warning', 'None reported'),
+              if (warning != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.amber.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 20,
+                        color: Colors.amber.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Warning',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(warning, style: const TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Returns color based on signal strength value (0-100).
   /// Matches filter categories:
   /// Strong (75-100): Green
@@ -5697,6 +5965,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         children: [
           Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
+              final selectorSignal = provider.tradeSignal;
+              final selectorMultiIndicator =
+                  selectorSignal?['multiIndicatorResult'];
+              final hasBarDetails = selectorMultiIndicator is Map &&
+                  selectorMultiIndicator['bars'] != null;
               return Column(
                 children: [
                   ListTile(
@@ -5919,36 +6192,63 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ],
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment<String>(
-                          value: '15m',
-                          label: Text('15m'),
-                          icon: Icon(Icons.timer_outlined, size: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment<String>(
+                                value: '15m',
+                                label: Text('15m'),
+                                icon: Icon(Icons.timer_outlined, size: 16),
+                              ),
+                              ButtonSegment<String>(
+                                value: '1h',
+                                label: Text('Hourly'),
+                                icon: Icon(Icons.schedule, size: 16),
+                              ),
+                              ButtonSegment<String>(
+                                value: '1d',
+                                label: Text('Daily'),
+                                icon: Icon(Icons.calendar_today, size: 16),
+                              ),
+                            ],
+                            selected: {provider.selectedInterval},
+                            onSelectionChanged: (Set<String> newSelection) {
+                              provider.setSelectedInterval(newSelection.first);
+                              provider.fetchTradeSignal(
+                                widget.instrument.symbol,
+                                interval: newSelection.first,
+                              );
+                            },
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: WidgetStateProperty.all(EdgeInsets.zero),
+                            ),
+                            showSelectedIcon: false,
+                          ),
                         ),
-                        ButtonSegment<String>(
-                          value: '1h',
-                          label: Text('Hourly'),
-                          icon: Icon(Icons.schedule, size: 16),
-                        ),
-                        ButtonSegment<String>(
-                          value: '1d',
-                          label: Text('Daily'),
-                          icon: Icon(Icons.calendar_today, size: 16),
-                        ),
+                        if (hasBarDetails && selectorSignal != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () => _showSignalDiagnostics(
+                              selectorSignal,
+                              selectorSignal['interval']?.toString() ??
+                                  provider.selectedInterval,
+                            ),
+                            icon: const Icon(Icons.info_outline),
+                            iconSize: 20,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            tooltip: 'Signal calculation details',
+                          ),
+                        ],
                       ],
-                      selected: {provider.selectedInterval},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        provider.setSelectedInterval(newSelection.first);
-                        provider.fetchTradeSignal(widget.instrument.symbol,
-                            interval: newSelection.first);
-                      },
-                      style: ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: WidgetStateProperty.all(EdgeInsets.zero),
-                      ),
-                      showSelectedIcon: false,
                     ),
                   ),
                 ],
@@ -6102,17 +6402,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "${formatCompactDateTimeWithHour.format(timestamp)} · ${_getTimeAgo(timestamp)}${multiIndicator?['bars'] != null ? ' · ${multiIndicator?['bars']} bars' : ''}",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade300
-                                    : Colors.grey.shade700,
+                        Expanded(
+                          child: Text(
+                            '${formatCompactDateTimeWithHour.format(timestamp)} '
+                            '· ${_getTimeAgo(timestamp)}'
+                            '${multiIndicator?['bars'] != null ? ' · ${multiIndicator?['bars']} bars' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade700,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),

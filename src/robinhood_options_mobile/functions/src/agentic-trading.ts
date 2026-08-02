@@ -8,6 +8,49 @@ import { getMarketData } from "./market-data";
 
 const db = getFirestore();
 
+const STALE_DATA_DISCLAIMER =
+  "This signal was calculated using cached market data that may be " +
+  "outdated. Confirm current market conditions before making a trading " +
+  "decision.";
+const CALCULATION_ERROR_DISCLAIMER =
+  "The latest signal calculation could not be completed. The displayed " +
+  "signal may be outdated; confirm current market conditions before making " +
+  "a trading decision.";
+
+/**
+ * Merges user-facing calculation diagnostics into an existing signal.
+ * Avoids creating an incomplete signal document before the first success.
+ * @param {string} symbol Instrument symbol.
+ * @param {string} interval Signal interval.
+ * @param {Record<string, unknown>} values Diagnostic values to merge.
+ * @return {Promise<void>}
+ */
+async function updateExistingSignalDiagnostics(
+  symbol: string,
+  interval: string,
+  values: Record<string, unknown>
+) {
+  const signalDocId = interval === "1d" ? symbol : `${symbol}_${interval}`;
+  const docRef = db.doc(`signals/${signalDocId}`);
+
+  try {
+    const updates = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [
+        `diagnostics.${key}`,
+        value,
+      ])
+    );
+    await docRef.update(updates);
+  } catch (error) {
+    const errorCode = (error as { code?: string | number })?.code;
+    if (errorCode === 5 || errorCode === "not-found") return;
+    logger.warn(`Failed to update calculation diagnostics for ${symbol}`, {
+      interval,
+      error,
+    });
+  }
+}
+
 // getMarketData moved to market-data.ts
 
 /**
@@ -51,19 +94,55 @@ export async function performTradeProposal(request: any) {
   const symbol = request.data.symbol || "SPY";
   const interval = request.data.interval || "1d";
   const range = request.data.range;
-
-  const marketData = await getMarketData(symbol,
-    config.smaPeriodFast, config.smaPeriodSlow, interval, range);
-
   const portfolioState = request.data.portfolioState || {};
+  const lastAttemptAt = Date.now();
+
+  await updateExistingSignalDiagnostics(symbol, interval, {
+    lastAttemptAt,
+    calculationStatus: "running",
+    warning: null,
+  });
 
   // Delegate to Alpha agent implementation which will call RiskGuard internally
   try {
+    const marketData = await getMarketData(symbol,
+      config.smaPeriodFast, config.smaPeriodSlow, interval, range);
     const result = await alphaagent.handleAlphaTask(marketData,
       portfolioState, config, interval);
+
+    const completedAt = Date.now();
+    const metadata = marketData?.metadata || {};
+    const hasUsableMarketData = Array.isArray(marketData?.closes) &&
+      marketData.closes.length > 0;
+    const calculationFailed = result?.status === "error" ||
+      !hasUsableMarketData;
+    const usedStaleCache = metadata.usedStaleCache === true;
+
+    await updateExistingSignalDiagnostics(symbol, interval, {
+      lastAttemptAt,
+      ...(calculationFailed ? {} : {
+        lastSuccessfulCalculationAt: completedAt,
+      }),
+      marketDataAsOf: metadata.marketDataAsOf || null,
+      usedStaleCache,
+      dataSource: metadata.dataSource || "unknown",
+      calculationStatus: calculationFailed ? "failed" :
+        (usedStaleCache ? "stale_data" : "success"),
+      warning: calculationFailed ? CALCULATION_ERROR_DISCLAIMER :
+        (usedStaleCache ? STALE_DATA_DISCLAIMER : null),
+      interval,
+      barCount: marketData?.closes?.length || 0,
+    });
+
     return result;
   } catch (err) {
     logger.error("Error in initiateTradeProposal", err);
+    await updateExistingSignalDiagnostics(symbol, interval, {
+      lastAttemptAt,
+      calculationStatus: "failed",
+      warning: CALCULATION_ERROR_DISCLAIMER,
+      interval,
+    });
     return { status: "error", message: (err as Error).message || String(err) };
   }
 }

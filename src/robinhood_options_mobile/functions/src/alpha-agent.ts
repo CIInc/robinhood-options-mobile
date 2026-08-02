@@ -396,6 +396,9 @@ export async function handleAlphaTask(marketData: any,
             currentPrice: marketData.currentPrice,
             config,
             portfolioState,
+            diagnostics: {
+              signalChangedAt: now.getTime(),
+            },
           };
           await db.doc(`signals/${signalDocId}`).set(signalDoc);
           logger.info(
@@ -603,6 +606,9 @@ export async function handleAlphaTask(marketData: any,
           portfolioState,
           proposal,
           assessment,
+          diagnostics: {
+            signalChangedAt: now.getTime(),
+          },
         };
         await db.doc(`signals/${signalDocId}`).set(signalDoc);
         logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
