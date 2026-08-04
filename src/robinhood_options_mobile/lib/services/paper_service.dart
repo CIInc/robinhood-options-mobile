@@ -166,7 +166,7 @@ class PaperService implements IBrokerageService {
     final snapshot = await _equitySnapshot(user, userId);
 
     final account = Account(
-      'paper_account_url', // url
+      'paper_account', // url; must match the account stored on paper positions
       snapshot.cashBalance, // portfolioCash
       'paper_account', // accountNumber
       'Paper Account', // type
@@ -249,12 +249,8 @@ class PaperService implements IBrokerageService {
       QuoteStore quoteStore,
       {bool nonzero = true,
       DocumentReference? userDoc}) async {
-    final userId = userDoc?.id ??
-        auth.currentUser?.uid ??
-        user.userInfo?.id ??
-        user.userName ??
-        'default_paper_user';
-    final positions = await _firestoreService.listPaperPositions(userId);
+    final engine = await _engine();
+    final positions = engine.positions.toList();
 
     if (positions.isNotEmpty) {
       // Collect symbols from positions that already have instrumentObj
@@ -291,6 +287,7 @@ class PaperService implements IBrokerageService {
 
       if (symbols.isNotEmpty) {
         final fetchedInstruments = await yahooService.getInstruments(symbols);
+        final fetchedFundamentals = await yahooService.getFundamentals(symbols);
 
         for (var pos in positions) {
           if (pos.instrumentObj != null) {
@@ -301,6 +298,11 @@ class PaperService implements IBrokerageService {
             pos.instrumentObj = fetchedInstruments.firstWhereOrNull((i) =>
                 pos.instrument.contains(i.symbol) ||
                 pos.instrument.contains(i.id));
+          }
+          if (pos.instrumentObj != null) {
+            pos.instrumentObj!.fundamentalsObj = fetchedFundamentals
+                .firstWhereOrNull((fundamentals) => fundamentals.instrument
+                    .contains('/${pos.instrumentObj!.symbol}/'));
           }
         }
         await getQuoteByIds(user, quoteStore, symbols);

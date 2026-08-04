@@ -82,9 +82,11 @@ class OptionAggregatePosition {
                 ? DateTime.tryParse(json['updated_at'])
                 : null),
         strategyCode = json['strategy_code'],
-        optionInstrument = json['option_instrument'] != null
-            ? OptionInstrument.fromJson(json['option_instrument'])
-            : null,
+        optionInstrument =
+            (json['option_instrument'] ?? json['optionInstrument']) != null
+                ? OptionInstrument.fromJson(
+                    json['option_instrument'] ?? json['optionInstrument'])
+                : null,
         instrumentObj = json['instrument_obj'] != null
             ? Instrument.fromJson(json['instrument_obj'])
             : null;

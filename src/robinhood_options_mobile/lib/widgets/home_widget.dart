@@ -44,6 +44,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -251,6 +252,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   List<_BrokerBreakdownRow> _brokerBreakdownRows = [];
 
   final ScrollController _scrollController = ScrollController();
+  PaperTradingStore? _paperStore;
 
   _HomePageState();
 
@@ -1296,6 +1298,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void didUpdateWidget(HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.brokerageUser != oldWidget.brokerageUser) {
+      _updatePaperStoreBinding();
       _lastSelectedAccountNumber = null;
       _loadData();
     }
@@ -1304,6 +1307,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _updatePaperStoreBinding();
     final aggregateMode =
         Provider.of<BrokerageUserStore>(context).aggregateAllAccounts;
     final accountStore = Provider.of<AccountStore>(context);
@@ -1342,6 +1346,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
   }
 
+  void _updatePaperStoreBinding() {
+    final nextStore = widget.brokerageUser?.source == BrokerageSource.paper
+        ? Provider.of<PaperTradingStore>(context, listen: false)
+        : null;
+    if (identical(nextStore, _paperStore)) return;
+
+    _paperStore?.removeListener(_syncPaperPositions);
+    _paperStore = nextStore;
+    _paperStore?.addListener(_syncPaperPositions);
+    if (_paperStore != null) {
+      Future.microtask(_syncPaperPositions);
+    }
+  }
+
+  void _syncPaperPositions() {
+    if (!mounted ||
+        widget.brokerageUser?.source != BrokerageSource.paper ||
+        _paperStore == null) {
+      return;
+    }
+
+    final stockStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+    stockStore.removeAll();
+    for (final position in _paperStore!.positions) {
+      stockStore.add(position);
+    }
+
+    final optionStore =
+        Provider.of<OptionPositionStore>(context, listen: false);
+    optionStore.removeAll();
+    for (final position in _paperStore!.optionPositions) {
+      optionStore.add(position);
+    }
+  }
+
   /*
   @override
   bool get wantKeepAlive => true;
@@ -1374,6 +1414,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    _paperStore?.removeListener(_syncPaperPositions);
     _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     /*
@@ -1388,25 +1429,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     //super.build(context);
-
-    // Paper accounts get the focused simulator dashboard as their Portfolio
-    // tab instead of the dense multi-tool home. Data loading in initState
-    // still runs, so shared stores stay populated. Live accounts are
-    // untouched.
-    if (widget.brokerageUser?.source == BrokerageSource.paper &&
-        widget.service != null) {
-      return PrimaryScrollController(
-        controller: _scrollController,
-        child: PaperTradingDashboardWidget(
-          analytics: widget.analytics,
-          observer: widget.observer,
-          brokerageUser: widget.brokerageUser,
-          service: widget.service!,
-          user: widget.user,
-          userDocRef: widget.userDoc,
-        ),
-      );
-    }
 
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.

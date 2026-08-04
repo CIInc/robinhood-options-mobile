@@ -432,6 +432,16 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   @override
+  void didUpdateWidget(HistoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.brokerageUser != oldWidget.brokerageUser ||
+        widget.service.runtimeType != oldWidget.service.runtimeType ||
+        widget.userDoc?.id != oldWidget.userDoc?.id) {
+      _resetStreams();
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final isAggregate = _isAggregateMode();

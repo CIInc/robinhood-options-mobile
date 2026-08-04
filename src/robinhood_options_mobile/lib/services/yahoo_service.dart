@@ -1340,8 +1340,31 @@ class YahooService {
     if (json['quoteResponse'] != null &&
         json['quoteResponse']['result'] != null) {
       final results = json['quoteResponse']['result'] as List;
+      final assetProfiles = <String, Map<String, dynamic>>{};
+      await Future.wait(results.map((result) async {
+        final symbol = result['symbol']?.toString();
+        if (symbol == null || symbol.isEmpty) return;
+        try {
+          final response = await getAssetProfile(symbol);
+          final profileResults = response['quoteSummary']?['result'] as List?;
+          final profile = profileResults?.isNotEmpty == true
+              ? profileResults!.first['assetProfile']
+              : null;
+          if (profile is Map) {
+            assetProfiles[symbol] = Map<String, dynamic>.from(profile);
+          }
+        } catch (e) {
+          debugPrint('Could not load Yahoo asset profile for $symbol: $e');
+        }
+      }));
+
       return results.map((result) {
         final symbol = result['symbol'];
+        final profile = assetProfiles[symbol];
+        final quoteType = result['quoteType']?.toString().toUpperCase();
+        final isFund = quoteType == 'ETF' || quoteType == 'MUTUALFUND';
+        final sector = profile?['sector']?.toString().trim();
+        final industry = profile?['industry']?.toString().trim();
         return Fundamentals(
           open: (result['regularMarketOpen'] as num?)?.toDouble(),
           high: (result['regularMarketDayHigh'] as num?)?.toDouble(),
@@ -1356,10 +1379,26 @@ class YahooService {
               (result['trailingAnnualDividendYield'] as num?)?.toDouble(),
           peRatio: (result['trailingPE'] as num?)?.toDouble(),
           sharesOutstanding: (result['sharesOutstanding'] as num?)?.toDouble(),
-          description: result['longName'] ?? '',
+          description: profile?['longBusinessSummary']?.toString() ??
+              result['longName'] ??
+              '',
           instrument: 'https://api.robinhood.com/instruments/$symbol/',
-          sector: '', // not in quote
-          industry: '', // not in quote
+          ceo: (profile?['companyOfficers'] as List?)?.isNotEmpty == true
+              ? profile!['companyOfficers'][0]['name']?.toString() ?? ''
+              : '',
+          headquartersCity: profile?['city']?.toString() ?? '',
+          headquartersState: profile?['state']?.toString() ?? '',
+          sector: sector?.isNotEmpty == true
+              ? sector!
+              : isFund
+                  ? 'Fund / ETF'
+                  : 'Unclassified',
+          industry: industry?.isNotEmpty == true
+              ? industry!
+              : isFund
+                  ? result['longName']?.toString() ?? 'Exchange-Traded Fund'
+                  : 'Unclassified',
+          numEmployees: (profile?['fullTimeEmployees'] as num?)?.toInt(),
         );
       }).toList();
     }
