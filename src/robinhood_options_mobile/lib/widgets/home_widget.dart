@@ -20,7 +20,6 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
-import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
@@ -28,7 +27,6 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 // import 'package:robinhood_options_mobile/model/generative_provider.dart';
-import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
@@ -46,7 +44,6 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
-import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -59,24 +56,25 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 // import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
-import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
-import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-import 'package:robinhood_options_mobile/widgets/portfolio_analytics_widget.dart';
-import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
+import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
+import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
+import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
+import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_grid_widget.dart';
+import 'package:robinhood_options_mobile/services/portfolio_benchmark_service.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_hero_stats_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_movers_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_navigator.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 
 class _AggregateUserData {
   final BrokerageUser user;
@@ -207,6 +205,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<List<dynamic>>? futureInterests;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
+  Future<BenchmarkComparison?>? futureBenchmarkComparison;
+
+  /// Shared by the Performance, Risk, Insights, and Taxes sections so the
+  /// metrics are computed once per period rather than once per screen.
+  PortfolioAnalyticsController? _analyticsController;
   Future<dynamic>? futureMarketIndexHistoricalsSp500;
   Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   Future<dynamic>? futureMarketIndexHistoricalsDow;
@@ -1263,6 +1266,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       futureDividends = null;
       futureInterests = null;
     }
+
+    // Historicals load only once an account is selected, which happens after
+    // the first frame. Without this the analytics controller keeps the null
+    // future it was built with and the sections stay stuck on "no data".
+    _refreshAnalyticsController();
   }
 
   void _loadMarketIndices() {
@@ -1292,6 +1300,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         yahooService.getMarketIndexHistoricals(symbol: '^DJI', range: range);
     futureMarketIndexHistoricalsRussell2000 =
         yahooService.getMarketIndexHistoricals(symbol: 'IWM', range: range);
+
+    // The overview hero shows "vs SPY" before the full analytics suite has been
+    // computed, so derive just that comparison here.
+    futureBenchmarkComparison = PortfolioBenchmarkService.compare(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      benchmarkHistoricalsFuture: futureMarketIndexHistoricalsSp500,
+    );
+
+    _refreshAnalyticsController();
+  }
+
+  /// Points the analytics controller at the newly-loaded historicals.
+  ///
+  /// The instance is kept for the life of the page and only its inputs change.
+  /// The section pages are pushed routes holding the context they were opened
+  /// with, so replacing the controller here would strand a visible Performance
+  /// or Risk page on a disposed notifier — which is exactly what changing the
+  /// period from those pages would trigger.
+  void _refreshAnalyticsController() {
+    (_analyticsController ??= PortfolioAnalyticsController()).updateInputs(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      benchmarkHistoricals: {
+        'SPY': futureMarketIndexHistoricalsSp500,
+        'QQQ': futureMarketIndexHistoricalsNasdaq,
+        'DIA': futureMarketIndexHistoricalsDow,
+        'IWM': futureMarketIndexHistoricalsRussell2000,
+      },
+      fallbackHistoricals:
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false).items,
+      span: benchmarkChartDateSpanFilter,
+    );
   }
 
   @override
@@ -1415,6 +1454,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void dispose() {
     _paperStore?.removeListener(_syncPaperPositions);
+    _analyticsController?.dispose();
     _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     /*
@@ -1643,475 +1683,98 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
           ],
+          // "What happened?" — benchmark delta, dry powder, and cash weight
+          // sit directly under the value and chart so the first screen answers
+          // the question on its own.
           SliverToBoxAdapter(
-              child: AllocationWidget(
-                  account: account,
-                  user: widget.user,
-                  userDocRef: widget.userDoc)),
+            child: FutureBuilder<BenchmarkComparison?>(
+              future: futureBenchmarkComparison,
+              builder: (context, snapshot) => PortfolioHeroStatsWidget(
+                account: account,
+                totalEquity: _totalEquity(context),
+                benchmark: snapshot.data,
+                onBenchmarkTap: () => PortfolioNavigator.openSection(
+                  context,
+                  PortfolioSection.performance,
+                  _sectionContext(account),
+                ),
+              ),
+            ),
+          ),
           if (isAggregateMode)
             SliverToBoxAdapter(child: _buildBrokerBreakdownCard(context)),
 
+          // "What should I do?" — ranked alerts, above everything explanatory.
           SliverToBoxAdapter(
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Card(
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1,
-                  ),
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.psychology,
-                        size: 24,
-                        color:
-                            Theme.of(context).colorScheme.onTertiaryContainer),
-                  ),
-                  title: const Text('AI Trading Coach',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Padding(
-                    padding: EdgeInsets.only(top: 4.0),
-                    child: Text(
-                        'Analyze habits, biases & get personalized coaching'),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    if (widget.service != null &&
-                        widget.brokerageUser != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PersonalizedCoachingWidget(
-                            service: widget.service!,
-                            user: widget.brokerageUser!,
-                            userDoc: widget.userDoc,
-                            firebaseUser: widget.user,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                          ),
-                        ),
+              child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
+                builder: (context, stockStore, optionStore, child) {
+                  return FutureBuilder<BenchmarkComparison?>(
+                    future: futureBenchmarkComparison,
+                    builder: (context, snapshot) {
+                      final comparison = snapshot.data;
+                      final alerts = PortfolioAlertService.buildAlerts(
+                        instrumentPositions: stockStore.items,
+                        optionPositions: optionStore.items,
+                        account: account,
+                        totalEquity: _totalEquity(context),
+                        // The full metrics suite only runs once the user opens
+                        // Performance, so feed the alert rules the one figure
+                        // the overview computes for itself.
+                        analytics: comparison == null
+                            ? null
+                            : {'excessReturn': comparison.excessReturn},
+                        benchmarkSymbol: comparison?.symbol ?? 'SPY',
                       );
-                    }
-                  },
-                ),
+                      return ActionCenterWidget(
+                        alerts: alerts,
+                        onAlertTap: (alert) => PortfolioNavigator.openAlert(
+                            context, alert, _sectionContext(account)),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: AgenticTradingCardWidget(
-              user: widget.user,
-              userDocRef: widget.userDoc,
-              brokerageUser: widget.brokerageUser,
-              service: widget.service,
-              analytics: widget.analytics,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: FuturesAutoTradingCardWidget(
-              user: widget.user,
-              userDocRef: widget.userDoc,
-              service: widget.service,
-              analytics: widget.analytics,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: OptionsFlowCardWidget(
-              brokerageUser: widget.brokerageUser,
-              service: widget.service,
-              analytics: widget.analytics,
-              observer: widget.observer,
-              generativeService: widget.generativeService,
-              user: widget.user,
-              userDocRef: widget.userDoc,
-              includePortfolioSymbols: true,
-            ),
-          ),
-          // FUTURES: If we have futures accounts, stream aggregated positions
-          if (widget.brokerageUser?.source == BrokerageSource.robinhood) ...[
-            Consumer<FuturesPositionStore>(
-                builder: (context, futuresPositionStore, child) {
-              return FuturesPositionsWidget(
-                widget.brokerageUser!,
-                widget.service!,
-                futuresPositionStore.items,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDoc,
-                showList: false,
-                disableNavigation: isAggregateMode,
-              );
-            }),
-          ],
-          Consumer<OptionPositionStore>(
-              builder: (context, optionPositionStore, child) {
-            //if (optionPositions != null) {
-            var filteredOptionAggregatePositions = optionPositionStore.items
-                .where((element) =>
-                    (isAggregateMode ||
-                        account == null ||
-                        element.account == account.url) &&
-                    ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                        (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                            (!hasQuantityFilters[1] ||
-                                element.quantity! <= 0)) &&
-                    (positionFilters.isEmpty ||
-                        positionFilters
-                            .contains(element.legs.first.positionType)) &&
-                    (optionFilters.isEmpty ||
-                        optionFilters
-                            .contains(element.legs.first.positionType)) &&
-                    (optionSymbolFilters.isEmpty ||
-                        optionSymbolFilters.contains(element.symbol)))
-                .toList();
 
-            return OptionPositionsWidget(
-              widget.brokerageUser!,
-              widget.service!,
-              filteredOptionAggregatePositions,
-              showList: false,
-              analytics: widget.analytics,
-              observer: widget.observer,
-              generativeService: widget.generativeService,
-              user: widget.user,
-              userDocRef: widget.userDoc,
-              disableNavigation: isAggregateMode,
-            );
-          }),
-          Consumer<InstrumentPositionStore>(
-              builder: (context, stockPositionStore, child) {
-            //if (positions != null) {
-            var filteredPositions = stockPositionStore.items
-                .where((element) =>
-                    (isAggregateMode ||
-                        account == null ||
-                        element.account == account.url) &&
-                    element.instrumentObj != null &&
-                    ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                        //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                        (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                            (!hasQuantityFilters[1] ||
-                                element.quantity! <= 0)) &&
-                    /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                    (stockSymbolFilters.isEmpty ||
-                        stockSymbolFilters
-                            .contains(element.instrumentObj!.symbol)))
-                // widget.user.displayValue == DisplayValue.totalReturnPercent ? : i.marketValue
-                .toList();
-
-            /*
-              double? value = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions);
-              String? trailingText;
-              Icon? icon;
-              if (value != null) {
-                trailingText = widget.user.getDisplayText(value);
-                icon = widget.user.getDisplayIcon(value);
-              }
-              */
-            return InstrumentPositionsWidget(
-              widget.brokerageUser!,
-              widget.service!,
-              filteredPositions,
-              showList: false,
-              analytics: widget.analytics,
-              observer: widget.observer,
-              generativeService: widget.generativeService,
-              user: widget.user,
-              userDocRef: widget.userDoc,
-              disableNavigation: isAggregateMode,
-            );
-          }),
-          Consumer<ForexHoldingStore>(
-            builder: (context, forexHoldingStore, child) {
-              var nummusHoldings = forexHoldingStore.items;
-              cryptoSymbols =
-                  nummusHoldings.map((e) => e.currencyCode).toSet().toList();
-              cryptoSymbols.sort((a, b) => (a.compareTo(b)));
-              var filteredHoldings = nummusHoldings
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                      (cryptoFilters.isEmpty ||
-                          cryptoFilters.contains(element.currencyCode)))
-                  // .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
-                  // .reversed
-                  .toList();
-
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    //if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                    /*
-                      const SliverToBoxAdapter(
-                          child: SizedBox(
-                        height: 25.0,
-                      )),
-                      */
-                    ForexPositionsWidget(
-                      widget.brokerageUser!,
-                      widget.service!,
-                      filteredHoldings,
-                      showList: false,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                    ),
-                    //],
-                    // const SliverToBoxAdapter(
-                    //     child: SizedBox(
-                    //   height: 25.0,
-                    // ))
-                  ]));
-            },
-          ),
-          if (_supportsRobinhoodFeatures()) ...[
-            Consumer2<DividendStore, InterestStore>(
-                //, ChartSelectionStore
-                builder: (context, dividendStore, interestStore, child) {
-              //, chartSelectionStore
-              // var dividendStore =
-              //     Provider.of<DividendStore>(context, listen: false);
-              // var interestStore =
-              //     Provider.of<InterestStore>(context, listen: false);
-              var instrumentPositionStore =
-                  Provider.of<InstrumentPositionStore>(context, listen: false);
-              var instrumentOrderStore =
-                  Provider.of<InstrumentOrderStore>(context, listen: false);
-              var chartSelectionStore =
-                  Provider.of<ChartSelectionStore>(context, listen: false);
-              return IncomeTransactionsWidget(
-                  widget.brokerageUser!,
-                  widget.service!,
-                  dividendStore,
-                  instrumentPositionStore,
-                  instrumentOrderStore,
-                  chartSelectionStore,
-                  interestStore: interestStore,
-                  showChips: false,
-                  showList: false,
-                  showFooter: false,
-                  analytics: widget.analytics,
-                  observer: widget.observer);
-            }),
-          ],
-          if (_supportsRobinhoodFeatures())
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: PortfolioAnalyticsWidget(
-                  user: widget.brokerageUser!,
-                  service: widget.service!,
-                  accountNumber:
-                      _isAggregateMode() ? null : account?.accountNumber,
-                  analytics: widget.analytics,
-                  observer: widget.observer,
-                  generativeService: widget.generativeService,
-                  appUser: widget.user,
-                  userDocRef: widget.userDoc,
-                  portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
-                  futureMarketIndexHistoricalsSp500:
-                      futureMarketIndexHistoricalsSp500,
-                  futureMarketIndexHistoricalsNasdaq:
-                      futureMarketIndexHistoricalsNasdaq,
-                  futureMarketIndexHistoricalsDow:
-                      futureMarketIndexHistoricalsDow,
-                  futureMarketIndexHistoricalsRussell2000:
-                      futureMarketIndexHistoricalsRussell2000,
-                  benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
-                  onBenchmarkFilterChanged: (span) {
-                    setState(() {
-                      benchmarkChartDateSpanFilter = span;
-                      _loadPortfolioHistoricals();
-                      _loadMarketIndices();
-                    });
-                  },
-                ),
-              ),
-            ),
+          // "Why did it happen?" — the shortest useful answer, with the full
+          // breakdown one tap away in the Positions section.
           SliverToBoxAdapter(
             child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Card(
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1,
+              child: Consumer<InstrumentPositionStore>(
+                builder: (context, stockStore, child) => PortfolioMoversWidget(
+                  positions: stockStore.items
+                      .where((position) =>
+                          isAggregateMode ||
+                          account == null ||
+                          position.account == account.url)
+                      .toList(),
+                  onTap: () => PortfolioNavigator.openSection(
+                    context,
+                    PortfolioSection.positions,
+                    _sectionContext(account),
                   ),
-                ),
-                clipBehavior: Clip.hardEdge,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.school_outlined,
-                        size: 24,
-                        color:
-                            Theme.of(context).colorScheme.onSecondaryContainer),
-                  ),
-                  title: const Text('Paper Trading Simulator',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Padding(
-                    padding: EdgeInsets.only(top: 4.0),
-                    child: Text('Practice trading with virtual money'),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  enabled: widget.service != null && !isAggregateMode,
-                  onTap: widget.service == null || isAggregateMode
-                      ? null
-                      : () async {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PaperTradingDashboardWidget(
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                brokerageUser: widget.brokerageUser,
-                                service: widget.service!,
-                                user: widget.user,
-                                userDocRef: widget.userDoc,
-                              ),
-                            ),
-                          );
-                        },
                 ),
               ),
             ),
           ),
 
+          // Everything else now lives behind a section rather than below the
+          // fold of a single scroll.
           SliverToBoxAdapter(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Card(
-                clipBehavior: Clip.antiAlias,
-                elevation: 0,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withValues(alpha: 0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant),
-                ),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatWidget(
-                          generativeService: widget.generativeService,
-                          user: widget.user,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.auto_awesome,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Ask Market Assistant',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimaryContainer,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Get instant insights on your portfolio & markets',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimaryContainer
-                                          .withValues(alpha: 0.8),
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimaryContainer
-                              .withValues(alpha: 0.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
+              builder: (context, stockStore, optionStore, child) =>
+                  PortfolioSectionGridWidget(
+                summaries: _sectionSummaries(context, stockStore, optionStore),
+                flagged: _flaggedSections(
+                    context, stockStore, optionStore, account),
+                onSectionTap: (section) => PortfolioNavigator.openSection(
+                    context, section, _sectionContext(account)),
               ),
             ),
           ),
@@ -2139,6 +1802,124 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         ],
       ),
     );
+  }
+
+  /// Bundles everything the drill-down sections need into one object.
+  ///
+  /// Rebuilt per frame rather than cached because the selected account and the
+  /// historicals futures both change as the user switches brokerages.
+  PortfolioSectionContext _sectionContext(Account? account) {
+    final isAggregateMode = _isAggregateMode();
+    // Created lazily so a context built before the first historicals load still
+    // hands the sections a usable controller.
+    _analyticsController ??= PortfolioAnalyticsController(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      span: benchmarkChartDateSpanFilter,
+    );
+    return PortfolioSectionContext(
+      analyticsController: _analyticsController!,
+      brokerageUser: widget.brokerageUser!,
+      service: widget.service!,
+      analytics: widget.analytics,
+      observer: widget.observer,
+      generativeService: widget.generativeService,
+      appUser: widget.user,
+      userDocRef: widget.userDoc,
+      account: account,
+      accountNumber: isAggregateMode ? null : account?.accountNumber,
+      isAggregateMode: isAggregateMode,
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      futureMarketIndexHistoricalsSp500: futureMarketIndexHistoricalsSp500,
+      futureMarketIndexHistoricalsNasdaq: futureMarketIndexHistoricalsNasdaq,
+      futureMarketIndexHistoricalsDow: futureMarketIndexHistoricalsDow,
+      futureMarketIndexHistoricalsRussell2000:
+          futureMarketIndexHistoricalsRussell2000,
+      benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
+      onBenchmarkFilterChanged: (span) {
+        setState(() {
+          benchmarkChartDateSpanFilter = span;
+          _loadPortfolioHistoricals();
+          _loadMarketIndices();
+        });
+      },
+    );
+  }
+
+  /// Total account equity, used to express cash and position weights.
+  double? _totalEquity(BuildContext context) {
+    final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
+    if (portfolioStore.items.isEmpty) return null;
+    final equity = portfolioStore.items
+        .fold<double>(0, (sum, portfolio) => sum + (portfolio.equity ?? 0));
+    return equity > 0 ? equity : null;
+  }
+
+  /// Live summary text for each Browse tile, so the grid still carries state.
+  Map<PortfolioSection, String> _sectionSummaries(
+    BuildContext context,
+    InstrumentPositionStore stockStore,
+    OptionPositionStore optionStore,
+  ) {
+    final summaries = <PortfolioSection, String>{};
+
+    final holdings = stockStore.items.length + optionStore.items.length;
+    if (holdings > 0) {
+      summaries[PortfolioSection.positions] =
+          '$holdings ${holdings == 1 ? 'holding' : 'holdings'}';
+    }
+
+    final suggestions =
+        TaxOptimizationService.calculateTaxHarvestingOpportunities(
+      instrumentPositions: stockStore.items,
+      optionPositions: optionStore.items,
+    );
+    if (suggestions.isNotEmpty) {
+      final total = suggestions.fold<double>(
+          0, (sum, suggestion) => sum + suggestion.estimatedLoss);
+      summaries[PortfolioSection.taxes] =
+          '${NumberFormat.simpleCurrency(decimalDigits: 0).format(total.abs())} '
+          'harvestable';
+    }
+
+    return summaries;
+  }
+
+  /// Sections carrying an unresolved alert, marked with a dot on their tile.
+  Set<PortfolioSection> _flaggedSections(
+    BuildContext context,
+    InstrumentPositionStore stockStore,
+    OptionPositionStore optionStore,
+    Account? account,
+  ) {
+    final alerts = PortfolioAlertService.buildAlerts(
+      instrumentPositions: stockStore.items,
+      optionPositions: optionStore.items,
+      account: account,
+      totalEquity: _totalEquity(context),
+    );
+
+    final flagged = <PortfolioSection>{};
+    for (final alert in alerts) {
+      if (alert.severity == PortfolioAlertSeverity.positive) continue;
+      switch (alert.target) {
+        case PortfolioAlertTarget.positions:
+          flagged.add(PortfolioSection.positions);
+        case PortfolioAlertTarget.performance:
+          flagged.add(PortfolioSection.performance);
+        case PortfolioAlertTarget.risk:
+          flagged.add(PortfolioSection.risk);
+        case PortfolioAlertTarget.insights:
+          flagged.add(PortfolioSection.insights);
+        case PortfolioAlertTarget.taxes:
+          flagged.add(PortfolioSection.taxes);
+        case PortfolioAlertTarget.strategies:
+        case PortfolioAlertTarget.rebalance:
+          flagged.add(PortfolioSection.strategies);
+        case PortfolioAlertTarget.none:
+          break;
+      }
+    }
+    return flagged;
   }
 
   void _updateFuturesPositions([List<dynamic>? accounts]) async {

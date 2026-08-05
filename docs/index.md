@@ -57,6 +57,7 @@
 - **[Twelve Data Migration](twelve-data-migration.md):** Migration plan and phased rollout strategy for market data ingestion.
 - **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
 - **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Export analytics data to CSV.
+- **[Portfolio Redesign](portfolio-redesign.md):** Progressive-disclosure information architecture for the Portfolio tab — an Overview answering "what happened / what should I do", an Action Center alert feed, and six drill-down sections.
 - **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals.
 - **[Premium Features](index.md#subscriptions):** Subscription management for accessing advanced tools like Trade Signals.
 - **[Tax Loss Harvesting](tax-loss-harvesting.md):** Intelligent tool to identify and realize losses for tax optimization, featuring seasonality awareness and smart visibility rules.
