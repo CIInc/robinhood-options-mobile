@@ -57,6 +57,10 @@ import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 // import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
@@ -1750,9 +1754,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 builder: (context, stockStore, child) => PortfolioMoversWidget(
                   positions: stockStore.items
                       .where((position) =>
-                          isAggregateMode ||
-                          account == null ||
-                          position.account == account.url)
+                          _matchesAccount(position.account, account))
                       .toList(),
                   onTap: () => PortfolioNavigator.openSection(
                     context,
@@ -1763,6 +1765,76 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ),
             ),
           ),
+
+          // "What do I own?" — one summary per asset class: totals, a capped
+          // bar chart, and a chevron to that class's full ledger.
+          //
+          // Summaries rather than ledgers, so the overview's length is bounded
+          // by the number of asset classes instead of the number of positions.
+          if (widget.brokerageUser != null && widget.service != null) ...[
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood)
+              Consumer<FuturesPositionStore>(
+                builder: (context, store, child) => FuturesPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  showList: false,
+                  disableNavigation: isAggregateMode,
+                ),
+              ),
+            Consumer<OptionPositionStore>(
+              builder: (context, store, child) => OptionPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                store.items
+                    .where((position) =>
+                        _matchesAccount(position.account, account))
+                    .toList(),
+                showList: false,
+                chartRowLimit: _overviewChartRowLimit,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                disableNavigation: isAggregateMode,
+              ),
+            ),
+            Consumer<InstrumentPositionStore>(
+              builder: (context, store, child) => InstrumentPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                store.items
+                    .where((position) =>
+                        position.instrumentObj != null &&
+                        _matchesAccount(position.account, account))
+                    .toList(),
+                showList: false,
+                chartRowLimit: _overviewChartRowLimit,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+                disableNavigation: isAggregateMode,
+              ),
+            ),
+            Consumer<ForexHoldingStore>(
+              builder: (context, store, child) => ForexPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                store.items,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+              ),
+            ),
+          ],
 
           // Everything else now lives behind a section rather than below the
           // fold of a single scroll.
@@ -1802,6 +1874,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         ],
       ),
     );
+  }
+
+  /// Bars each asset-class summary draws before deferring to its full page.
+  ///
+  /// Chosen so the tallest summary stays inside one screen: the charts size
+  /// themselves at 26px a row, so eight rows plus chrome is roughly 290px.
+  static const int _overviewChartRowLimit = 8;
+
+  /// In aggregate mode every linked account contributes; otherwise only the
+  /// selected one does.
+  bool _matchesAccount(String? positionAccountUrl, Account? account) {
+    if (_isAggregateMode() || account == null) return true;
+    return positionAccountUrl == account.url;
   }
 
   /// Bundles everything the drill-down sections need into one object.

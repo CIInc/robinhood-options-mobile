@@ -10,7 +10,7 @@ import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_ch
 import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_csv_export.dart';
-import 'package:robinhood_options_mobile/widgets/portfolio/analytics/benchmark_selector.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_filter_bar.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/daily_stats_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/monthly_returns_card.dart';
@@ -57,7 +57,14 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
         return PortfolioSectionScaffold(
           title: 'Performance',
           subtitle: 'Returns, benchmarks & monthly history',
+          // Shared with Risk, which reads the same controller.
+          bottom: AnalyticsPeriodBar(
+            controller: controller,
+            initialSpan: ctx.benchmarkChartDateSpanFilter,
+            onSpanChanged: ctx.onBenchmarkFilterChanged,
+          ),
           actions: [
+            BenchmarkMenuButton(controller: controller),
             IconButton(
               icon: const Icon(Icons.upload_file),
               tooltip: 'Import from Fidelity CSV',
@@ -123,11 +130,6 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
             ),
           ],
           cards: [
-            BenchmarkSelector(
-              controller: controller,
-              initialSpan: ctx.benchmarkChartDateSpanFilter,
-              onSpanChanged: ctx.onBenchmarkFilterChanged,
-            ),
             _chartCard(context),
             // "No data" is only honest once a computation has actually run.
             // Before that the Portfolio page may still be resolving the account

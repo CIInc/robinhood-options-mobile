@@ -34,7 +34,7 @@ extension PortfolioSectionDisplay on PortfolioSection {
   String get description {
     switch (this) {
       case PortfolioSection.positions:
-        return 'Holdings, allocation, sectors & heatmap';
+        return 'Allocation, sectors & heatmap';
       case PortfolioSection.performance:
         return 'Returns, benchmarks & monthly history';
       case PortfolioSection.risk:

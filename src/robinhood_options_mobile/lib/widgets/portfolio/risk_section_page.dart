@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_filter_bar.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/portfolio_health_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/risk_analytics_card.dart';
@@ -52,7 +53,16 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
             return PortfolioSectionScaffold(
               title: 'Risk',
               subtitle: 'Score, drawdown, concentration & correlation',
+              // Every score below is computed over this period against this
+              // benchmark, so both belong on this page and not only on
+              // Performance — they drive the same controller either way.
+              bottom: AnalyticsPeriodBar(
+                controller: controller,
+                initialSpan: ctx.benchmarkChartDateSpanFilter,
+                onSpanChanged: ctx.onBenchmarkFilterChanged,
+              ),
               actions: [
+                BenchmarkMenuButton(controller: controller),
                 IconButton(
                   icon: const Icon(Icons.help_outline),
                   tooltip: 'All Definitions',

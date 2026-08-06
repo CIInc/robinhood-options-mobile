@@ -35,6 +35,7 @@ class InstrumentPositionsWidget extends StatefulWidget {
     this.filteredPositions, {
     this.showList = true,
     this.disableNavigation = false,
+    this.chartRowLimit,
     super.key,
     required this.analytics,
     required this.observer,
@@ -50,6 +51,13 @@ class InstrumentPositionsWidget extends StatefulWidget {
   final GenerativeService generativeService;
   final bool showList;
   final bool disableNavigation;
+
+  /// Caps how many bars the chart draws, so a summary card's height is bounded
+  /// by the limit rather than by the position count. Null draws every position.
+  ///
+  /// The cap keeps the user's own sort — it takes the first rows of the list
+  /// they asked for, not the largest ones — and the full page shows the rest.
+  final int? chartRowLimit;
   final User? user;
   final DocumentReference<User>? userDocRef;
   //final Account account;
@@ -91,10 +99,13 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedFilteredPositions = sortedFilteredPositions.reversed.toList();
     }
+    final chartPositions = _capForChart(sortedFilteredPositions);
+    final isChartCapped =
+        chartPositions.length < sortedFilteredPositions.length;
 
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
-    for (var position in sortedFilteredPositions) {
+    for (var position in chartPositions) {
       if (position.instrumentObj != null) {
         double? value =
             widget.brokerageUser.getDisplayValueInstrumentPosition(position);
@@ -216,7 +227,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     //     }
     //   }
     // }
-    var extents = charts.NumericExtents.fromValues(sortedFilteredPositions
+    var extents = charts.NumericExtents.fromValues(chartPositions
         .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e)));
     extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
         extents.max + (extents.width * 0.1));
@@ -243,7 +254,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           );
     if (widget.brokerageUser.displayValue == DisplayValue.todayReturn ||
         widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
-      var positionDisplayValues = sortedFilteredPositions.map((e) =>
+      var positionDisplayValues = chartPositions.map((e) =>
           widget.brokerageUser.getDisplayValueInstrumentPosition(e,
               displayValue:
                   widget.brokerageUser.displayValue == DisplayValue.todayReturn
@@ -268,7 +279,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       }
     }
     var secondaryExtents = charts.NumericExtents.fromValues(
-        sortedFilteredPositions.map((e) => widget.brokerageUser
+        chartPositions.map((e) => widget.brokerageUser
             .getDisplayValueInstrumentPosition(e,
                 displayValue: widget.brokerageUser.displayValue ==
                         DisplayValue.todayReturn
@@ -415,7 +426,10 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             ]
           ]),
           subtitle: Text(
-              "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+              "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"
+              // Say so rather than letting the missing bars read as missing
+              // positions; the full page below the chevron has all of them.
+              "${isChartCapped ? ", charting top ${chartPositions.length}" : ""}"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
           trailing: InkWell(
             onTap: () {
               setState(() {
@@ -762,22 +776,35 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     ]));
   }
 
+  /// Trims chart rows to [InstrumentPositionsWidget.chartRowLimit].
+  List<InstrumentPosition> _capForChart(List<InstrumentPosition> rows) {
+    final limit = widget.chartRowLimit;
+    if (limit == null || rows.length <= limit) return rows;
+    return rows.take(limit).toList();
+  }
+
+  /// Opens the full ledger.
+  ///
+  /// Deliberately not routed through [_handleNavigation]: reading the position
+  /// list is not a trade action, and blocking it would leave aggregate users
+  /// with no way to see holdings the summary chart caps off. The page carries
+  /// [InstrumentPositionsWidget.disableNavigation] forward instead, so the
+  /// trade-bearing rows inside it stay disabled.
   void navigateToFullPage(BuildContext context) {
-    _handleNavigation(context, () {
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => InstrumentPositionsPageWidget(
-                    widget.brokerageUser,
-                    widget.service,
-                    widget.filteredPositions,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                  )));
-    });
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => InstrumentPositionsPageWidget(
+                  widget.brokerageUser,
+                  widget.service,
+                  widget.filteredPositions,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  disableNavigation: widget.disableNavigation,
+                )));
   }
 
   Widget _buildPositionRow(

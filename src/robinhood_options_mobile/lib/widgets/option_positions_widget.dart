@@ -46,6 +46,7 @@ class OptionPositionsWidget extends StatefulWidget {
     this.showGroupHeader = true,
     this.showFooter = true,
     this.disableNavigation = false,
+    this.chartRowLimit,
     super.key,
     required this.analytics,
     required this.observer,
@@ -63,6 +64,13 @@ class OptionPositionsWidget extends StatefulWidget {
   final bool showGroupHeader;
   final bool showFooter;
   final bool disableNavigation;
+
+  /// Caps how many bars the chart draws, so a summary card's height is bounded
+  /// by the limit rather than by the position count. Null draws every row.
+  ///
+  /// Applies to whichever rows the chart is showing: contracts when a single
+  /// underlying is held, underlyings otherwise.
+  final int? chartRowLimit;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
   final User? user;
@@ -128,8 +136,15 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
     double minimum = 0, maximum = 0;
+    // Set by whichever branch builds the chart, so the header can admit that
+    // the bars are a subset rather than the whole book.
+    var chartRowsOmitted = 0;
     if (groupedOptionAggregatePositions.length == 1) {
-      for (var op in groupedOptionAggregatePositions.values.first) {
+      final List<OptionAggregatePosition> legs =
+          groupedOptionAggregatePositions.values.first;
+      final chartLegs = _capForChart(legs);
+      chartRowsOmitted = legs.length - chartLegs.length;
+      for (var op in chartLegs) {
         double? value = widget.brokerageUser.getDisplayValue(op);
         String? trailingText = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
@@ -209,10 +224,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           seriesData.data[0]['secondaryMeasure'] != null) {
         barChartSeriesList.add(seriesData);
       }
-      List<OptionAggregatePosition> oaps =
-          groupedOptionAggregatePositions.values.first;
       Iterable<double> positionDisplayValues =
-          oaps.map((e) => widget.brokerageUser.getDisplayValue(e));
+          chartLegs.map((e) => widget.brokerageUser.getDisplayValue(e));
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -226,7 +239,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         maximum = 0;
       }
     } else if (groupedOptionAggregatePositions.length > 1) {
-      for (var position in sortedGroupedOptionAggregatePositions) {
+      final chartGroups = _capForChart(sortedGroupedOptionAggregatePositions);
+      chartRowsOmitted =
+          sortedGroupedOptionAggregatePositions.length - chartGroups.length;
+      for (var position in chartGroups) {
         double? value = widget.brokerageUser
             .getDisplayValueOptionAggregatePosition(position);
         String? trailingText;
@@ -317,10 +333,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         barChartSeriesList.add(seriesData);
       }
 
-      var positionDisplayValues = groupedOptionAggregatePositions.values.map(
-          (e) =>
-              widget.brokerageUser.getDisplayValueOptionAggregatePosition(e) ??
-              0);
+      var positionDisplayValues = chartGroups.map((e) =>
+          widget.brokerageUser.getDisplayValueOptionAggregatePosition(e) ?? 0);
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -482,7 +496,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   ]
                 ]),
                 subtitle: Text(
-                    "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"),
+                    "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"
+                    // Say so rather than letting the missing bars read as
+                    // missing positions; the full page has all of them.
+                    "${chartRowsOmitted > 0 ? ", charting top ${widget.chartRowLimit}" : ""}"),
                 trailing: InkWell(
                   onTap:
                       // widget.user.displayValue == DisplayValue.marketValue ? null :
@@ -597,22 +614,35 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     ));
   }
 
+  /// Trims chart rows to [OptionPositionsWidget.chartRowLimit].
+  List<T> _capForChart<T>(List<T> rows) {
+    final limit = widget.chartRowLimit;
+    if (limit == null || rows.length <= limit) return rows;
+    return rows.take(limit).toList();
+  }
+
+  /// Opens the full ledger.
+  ///
+  /// Deliberately not routed through [_handleNavigation]: reading the position
+  /// list is not a trade action, and blocking it would leave aggregate users
+  /// with no way to see holdings the summary chart caps off. The page carries
+  /// [OptionPositionsWidget.disableNavigation] forward instead, so the
+  /// trade-bearing rows inside it stay disabled.
   void navigateToFullPage(BuildContext pageContext) {
-    _handleNavigation(pageContext, () {
-      Navigator.push(
-          pageContext,
-          MaterialPageRoute(
-              builder: (context) => OptionPositionsPageWidget(
-                    widget.brokerageUser,
-                    widget.service,
-                    widget.filteredOptionPositions,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    generativeService: widget.generativeService,
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                  )));
-    });
+    Navigator.push(
+        pageContext,
+        MaterialPageRoute(
+            builder: (context) => OptionPositionsPageWidget(
+                  widget.brokerageUser,
+                  widget.service,
+                  widget.filteredOptionPositions,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  disableNavigation: widget.disableNavigation,
+                )));
   }
 
   GreekAggregates _calculateGreekAggregates(

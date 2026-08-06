@@ -25,6 +25,7 @@ class InstrumentPositionsPageWidget extends StatefulWidget {
     required this.generativeService,
     required this.user,
     required this.userDocRef,
+    this.disableNavigation = false,
   });
 
   final FirebaseAnalytics analytics;
@@ -32,6 +33,10 @@ class InstrumentPositionsPageWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
+
+  /// Carried through from the summary card so aggregate mode still reaches this
+  /// page to read the list, while the trade-bearing rows on it stay disabled.
+  final bool disableNavigation;
   //final Account account;
   final List<InstrumentPosition> filteredPositions;
   final User? user;
@@ -119,6 +124,7 @@ class _InstrumentPositionsPageWidgetState
         generativeService: widget.generativeService,
         user: widget.user,
         userDocRef: widget.userDocRef,
+        disableNavigation: widget.disableNavigation,
       )
     ]));
   }

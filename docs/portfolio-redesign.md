@@ -21,8 +21,9 @@ Portfolio (nav tab)
 │   ├── Hero          portfolio value, chart, vs SPY / buying power / cash %
 │   ├── Action Center ranked alerts — "what should I do today?"
 │   ├── Movers        today's largest contributors and detractors
+│   ├── Holdings      one summary card per asset class → its own full ledger
 │   └── Browse grid   six tiles, each with a live summary value
-├── Positions         movers · heatmap · allocation · stock/option/futures/forex
+├── Positions         movers · heatmap · allocation
 ├── Performance       analytics suite · benchmarks · monthly returns · income
 ├── Risk              concentration score · heatmap · correlation matrix
 ├── Insights          market assistant · AI trading coach
@@ -46,6 +47,31 @@ tap without a second code path.
 `PortfolioRiskSummaryWidget` is the reference implementation: it leads with a
 0-100 concentration score derived from HHI and hides the top-N weights and the
 index itself behind the disclosure.
+
+## Holdings on the overview
+
+The first cut pushed every position list into the Positions section, which put
+that section back to the long scroll the redesign existed to remove — the
+ledgers are the one part of the app whose height grows with the account.
+
+The overview now carries a *summary* per asset class instead: title, total
+market value, the return strip, and a bar chart, via `showList: false` on the
+existing `InstrumentPositionsWidget` / `OptionPositionsWidget` /
+`FuturesPositionsWidget` / `ForexPositionsWidget`. The chevron each grows in
+that mode opens `*PositionsPageWidget`, the per-asset-class full ledger those
+widgets have always had. The overview's length is therefore bounded by the
+number of asset classes, not the number of positions.
+
+The charts size themselves at 26px a row, so a large account could still make
+one summary taller than the screen. `chartRowLimit` caps the bars — 8 from the
+overview — and the header says `charting top 8` so the missing bars do not read
+as missing positions. The cap keeps the user's own sort rather than imposing
+"largest first": it takes the first rows of the list they asked for.
+
+`navigateToFullPage` deliberately skips `_handleNavigation`. Reading a position
+list is not a trade action, and gating it would leave aggregate-mode users with
+no way to see the holdings the cap hides. `disableNavigation` is forwarded to
+the page instead, so the trade-bearing rows inside it stay disabled.
 
 ## Action Center
 
@@ -117,6 +143,26 @@ moment the user taps a different period.
 export needs, on top of everything `AnalyticsUtils.calculatePortfolioMetrics`
 produces.
 
+## One period, both pages
+
+Performance and Risk share the controller, and `controller.span` is already the
+single source of truth — but the period chips only rendered on Performance. Risk
+therefore showed volatility, max drawdown, beta and Sharpe computed over a window
+its reader could neither see nor change. Beta and correlation depend on the
+benchmark the same way, and that picker was also Performance-only.
+
+Both controls now live in the section scaffold's `bottom` slot and app-bar
+`actions` on *both* pages: `AnalyticsPeriodBar` for the period, and
+`BenchmarkMenuButton` — a menu rather than a second chip row, since the
+benchmark changes far less often. Changing either from Risk runs the same path
+as changing it from Performance: `onBenchmarkFilterChanged` reloads the
+historicals, `_refreshAnalyticsController` calls `updateInputs`, and every
+listening section rebuilds on the one recomputation.
+
+`AnalyticsPeriodBar.preferredSize` collapses to zero height when no period is
+known yet, so a section opened before the historicals resolve does not reserve a
+strip the chips never fill.
+
 ## Risk consolidation
 
 Four sibling cards — Risk Metrics, Risk-Adjusted Return, Market Comparison, and
@@ -164,7 +210,7 @@ low-risk by omission.
 | `widgets/portfolio/analytics/ai_insights_card.dart` | Prioritized observations + AI handoff |
 | `widgets/portfolio/analytics/portfolio_health_card.dart` | Health-score breakdown dialog |
 | `widgets/portfolio/analytics/esg_card.dart` | ESG roll-up |
-| `widgets/portfolio/analytics/benchmark_selector.dart` | Period and benchmark chips |
+| `widgets/portfolio/analytics/analytics_filter_bar.dart` | Shared period chips + benchmark menu |
 | `widgets/portfolio/analytics/analytics_csv_export.dart` | CSV export |
 
 ## Gotcha: date alignment
