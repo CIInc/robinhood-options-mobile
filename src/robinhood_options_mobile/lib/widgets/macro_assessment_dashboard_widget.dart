@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -25,8 +26,19 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AgenticTradingProvider>(context);
-    final assessment = provider.macroAssessment;
+    final macroData = context.select<
+        AgenticTradingProvider,
+        ({
+          MacroAssessment? assessment,
+          MacroAssessment? previousAssessment,
+          List<MacroAssessment> history
+        })>((provider) => (
+          assessment: provider.macroAssessment,
+          previousAssessment: provider.previousMacroAssessment,
+          history: provider.macroHistory,
+        ));
+    final assessment = macroData.assessment;
+    final indicatorDetailActions = <MacroIndicator, VoidCallback>{};
 
     if (assessment == null) {
       return Scaffold(
@@ -39,142 +51,147 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.public, size: 24),
-            SizedBox(width: 12),
-            Text("Macro Assessment"),
+    return TooltipTheme(
+      data: TooltipTheme.of(context).copyWith(
+        showDuration: const Duration(seconds: 5),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Row(
+            children: [
+              Icon(Icons.public, size: 24),
+              SizedBox(width: 12),
+              Text("Macro Assessment"),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Force Refresh',
+              onPressed: () {
+                // Trigger a force refresh
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Refreshing macro data from sources...')),
+                );
+                Provider.of<AgenticTradingProvider>(context, listen: false)
+                    .fetchMacroAssessment(forceRefresh: true);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () => _showAboutDialog(context),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Force Refresh',
-            onPressed: () {
-              // Trigger a force refresh
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Refreshing macro data from sources...')),
-              );
-              Provider.of<AgenticTradingProvider>(context, listen: false)
-                  .fetchMacroAssessment(forceRefresh: true);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () => _showAboutDialog(context),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
-          // Summary Card
-          _buildSummarySection(context, assessment),
-          const SizedBox(height: 16),
+        body: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: [
+            // Summary Card
+            _buildSummarySection(context, assessment),
+            const SizedBox(height: 16),
 
-          // Recent Changes (if any)
-          if (provider.previousMacroAssessment != null) ...[
-            _buildRecentChangesSection(
-                context, assessment, provider.previousMacroAssessment!),
+            // Recent Changes (if any)
+            if (macroData.previousAssessment != null) ...[
+              _buildRecentChangesSection(
+                  context, assessment, macroData.previousAssessment!),
+              const SizedBox(height: 24),
+            ],
+
+            // Indicators Heatmap
+            Row(
+              children: [
+                Text(
+                  "Indicators Pulse",
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message:
+                      "Real-time snapshot of 19 critical indicators. Signals update daily to quantify market health. Tap individual pillars below for more details.",
+                  child: Icon(Icons.info_outline,
+                      size: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.4)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildIndicatorHeatmap(context, assessment, indicatorDetailActions),
+            const SizedBox(height: 12),
+            _buildDivergenceSection(context, assessment),
             const SizedBox(height: 24),
-          ],
 
-          // Indicators Heatmap
-          Row(
-            children: [
+            // Score History Chart
+            if (macroData.history.isNotEmpty) ...[
               Text(
-                "Indicators Pulse",
+                "Score Trend",
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 8),
-              Tooltip(
-                triggerMode: TooltipTriggerMode.tap,
-                message:
-                    "Real-time snapshot of 19 critical indicators. Signals update daily to quantify market health. Tap individual pillars below for more details.",
-                child: Icon(Icons.info_outline,
-                    size: 16,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.4)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildIndicatorHeatmap(context, assessment),
-          const SizedBox(height: 12),
-          _buildDivergenceSection(context, assessment),
-          const SizedBox(height: 24),
-
-          // Score History Chart
-          if (provider.macroHistory.isNotEmpty) ...[
-            Text(
-              "Score Trend",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildMacroHistoryChart(context, provider.macroHistory),
-            const SizedBox(height: 24),
-          ],
-
-          // Indicators Grid
-          Text(
-            "Pillar Indicators",
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildIndicatorGrid(context, assessment),
-          const SizedBox(height: 24),
-
-          // Sector & Allocation
-          if (assessment.sectorRotation != null ||
-              assessment.assetAllocation != null) ...[
-            Text(
-              "Regime Guidance",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            if (assessment.sectorRotation != null) ...[
-              _buildSectorSection(context, assessment.sectorRotation!),
               const SizedBox(height: 12),
-            ],
-            if (assessment.assetAllocation != null) ...[
-              _buildAllocationCard(context, assessment.assetAllocation!),
+              _buildMacroHistoryChart(context, macroData.history),
               const SizedBox(height: 24),
             ],
+
+            // Indicators Grid
+            Text(
+              "Pillar Indicators",
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildIndicatorGrid(context, assessment, indicatorDetailActions),
+            const SizedBox(height: 24),
+
+            // Sector & Allocation
+            if (assessment.sectorRotation != null ||
+                assessment.assetAllocation != null) ...[
+              Text(
+                "Regime Guidance",
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              if (assessment.sectorRotation != null) ...[
+                _buildSectorSection(context, assessment.sectorRotation!),
+                const SizedBox(height: 12),
+              ],
+              if (assessment.assetAllocation != null) ...[
+                _buildAllocationCard(context, assessment.assetAllocation!),
+                const SizedBox(height: 24),
+              ],
+            ],
+
+            // Options Strategy Guidance
+            _buildStrategyGuidanceSection(context, assessment),
+            const SizedBox(height: 24),
+
+            // Analysis
+            Text(
+              "AI Analysis",
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            _buildAnalysisSection(context, assessment),
+            const SizedBox(height: 40),
           ],
-
-          // Options Strategy Guidance
-          _buildStrategyGuidanceSection(context, assessment),
-          const SizedBox(height: 24),
-
-          // Analysis
-          Text(
-            "AI Analysis",
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _buildAnalysisSection(context, assessment),
-          const SizedBox(height: 40),
-        ],
+        ),
       ),
     );
   }
@@ -601,10 +618,25 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorGrid(BuildContext context, MacroAssessment assessment) {
+  Widget _buildIndicatorGrid(BuildContext context, MacroAssessment assessment,
+      Map<MacroIndicator, VoidCallback> indicatorDetailActions) {
+    Widget buildIndicatorCard(BuildContext context, String symbol, String name,
+            MacroIndicator indicator, String description, IconData icon,
+            {String? unit}) =>
+        _buildDetailedIndicatorCard(
+          context,
+          symbol,
+          name,
+          indicator,
+          description,
+          icon,
+          unit: unit,
+          indicatorDetailActions: indicatorDetailActions,
+        );
+
     return Column(
       children: [
-        _buildDetailedIndicatorCard(
+        buildIndicatorCard(
           context,
           "VIX",
           "Volatility Index",
@@ -613,7 +645,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           Icons.warning_amber_rounded,
         ),
         const SizedBox(height: 12),
-        _buildDetailedIndicatorCard(
+        buildIndicatorCard(
           context,
           "TNX",
           "10-Year Yield",
@@ -623,7 +655,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           unit: '%',
         ),
         const SizedBox(height: 12),
-        _buildDetailedIndicatorCard(
+        buildIndicatorCard(
           context,
           "SPY",
           "Market Trend",
@@ -634,7 +666,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ),
         if (assessment.indicators.yieldCurve != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "CURV",
             "Yield Curve",
@@ -646,7 +678,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.putCallRatio != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "PCCR",
             "Put/Call Ratio",
@@ -657,7 +689,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.btc != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "BTC",
             "Risk Appetite",
@@ -669,7 +701,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.hyg != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "HYG",
             "Credit Health",
@@ -681,7 +713,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.dxy != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "DXY",
             "U.S. Dollar Index",
@@ -692,7 +724,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.gold != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "GOLD",
             "Safe Haven",
@@ -704,7 +736,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.oil != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "OIL",
             "Energy & Inflation",
@@ -716,7 +748,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.advDecline != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "NYA",
             "Market Breadth",
@@ -728,7 +760,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.riskAppetite != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "IWM",
             "Small Caps",
@@ -739,7 +771,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.creditSpreads != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "LQD",
             "Credit Spreads",
@@ -751,7 +783,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.globalRisk != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "EEM",
             "Global Risk",
@@ -763,7 +795,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.copper != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "HG=F",
             "Copper (Dr. Copper)",
@@ -775,7 +807,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.interestRateVol != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "^MOVE",
             "Interest Rate Vol",
@@ -786,7 +818,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.bankingHealth != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "KRE",
             "Banking Health",
@@ -798,7 +830,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.breadthQuality != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "RSP/SPY",
             "Breadth Quality",
@@ -809,7 +841,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ],
         if (assessment.indicators.globalLeadership != null) ...[
           const SizedBox(height: 12),
-          _buildDetailedIndicatorCard(
+          buildIndicatorCard(
             context,
             "FXI",
             "Global Leadership",
@@ -1276,157 +1308,161 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
 
   Widget _buildDetailedIndicatorCard(BuildContext context, String symbol,
       String name, MacroIndicator indicator, String description, IconData icon,
-      {String? unit}) {
+      {String? unit,
+      required Map<MacroIndicator, VoidCallback> indicatorDetailActions}) {
     final color = _getStatusColor(context, indicator.signal);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+    void showDetails() {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(icon, color: color, size: 32),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.outline
-                                      .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  symbol,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                    color: colorScheme.onSurface
-                                        .withValues(alpha: 0.8),
-                                  ),
+                    child: Icon(icon, color: color, size: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color:
+                                    colorScheme.outline.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                symbol,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  color: colorScheme.onSurface
+                                      .withValues(alpha: 0.8),
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Analysis & Impact",
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Analysis & Impact",
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  _buildWeightBadge(context, symbol),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
+                      height: 1.5,
                     ),
-                    _buildWeightBadge(context, symbol),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  description,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.8),
-                        height: 1.5,
-                      ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildStatTile(
+                    context,
+                    "Current Value",
+                    unit == '\$'
+                        ? '\$${indicator.value?.toStringAsFixed(2) ?? '--'}'
+                        : "${indicator.value?.toStringAsFixed(2) ?? '--'}${unit ?? ''}",
+                    colorScheme.onSurface,
+                  ),
+                  _buildStatTile(
+                    context,
+                    "Current Signal",
+                    indicator.signal,
+                    color,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildStatTile(
+                    context,
+                    "Market Trend",
+                    indicator.trend,
+                    colorScheme.onSurface.withValues(alpha: 0.8),
+                  ),
+                  if (indicator.momentum != null)
                     _buildStatTile(
                       context,
-                      "Current Value",
-                      unit == '\$'
-                          ? '\$${indicator.value?.toStringAsFixed(2) ?? '--'}'
-                          : "${indicator.value?.toStringAsFixed(2) ?? '--'}${unit ?? ''}",
-                      colorScheme.onSurface,
-                    ),
-                    _buildStatTile(
-                      context,
-                      "Current Signal",
-                      indicator.signal,
+                      "Momentum",
+                      indicator.momentum!,
                       color,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatTile(
-                      context,
-                      "Market Trend",
-                      indicator.trend,
-                      colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                    if (indicator.momentum != null)
-                      _buildStatTile(
-                        context,
-                        "Momentum",
-                        indicator.momentum!,
-                        color,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    indicatorDetailActions[indicator] = showDetails;
+
+    return GestureDetector(
+      onTap: showDetails,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -2050,8 +2086,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorHeatmap(
-      BuildContext context, MacroAssessment assessment) {
+  Widget _buildIndicatorHeatmap(BuildContext context,
+      MacroAssessment assessment, Map<MacroIndicator, VoidCallback> actions) {
     final Map<String, MacroIndicator?> indicatorsMap = {
       'VIX': assessment.indicators.vix,
       'TNX': assessment.indicators.tnx,
@@ -2086,64 +2122,68 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         children.add(
           Tooltip(
             message: '${value.signal}: ${value.trend}',
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color.withValues(
-                        alpha: isBullish || isBearish ? 0.25 : 0.1),
-                    color.withValues(alpha: 0.05),
-                  ],
-                ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: color.withValues(
-                      alpha: isBullish || isBearish ? 0.5 : 0.2),
-                  width: isBullish || isBearish ? 1.2 : 0.8,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        key,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 1),
-                  if (value.value != null)
-                    Text(
-                      key == 'SPY' ||
-                              key == 'BTC' ||
-                              key == 'DXY' ||
-                              key == 'NYA' ||
-                              key == 'VIX' ||
-                              key == 'OIL' ||
-                              key == 'GOLD'
-                          ? (value.value! > 1000
-                              ? '${(value.value! / 1000).toStringAsFixed(1)}k'
-                              : value.value!
-                                  .toStringAsFixed(value.value! < 10 ? 1 : 0))
-                          : value.value!.toStringAsFixed(1),
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
+                onTap: () => actions[value]?.call(),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(
+                            alpha: isBullish || isBearish ? 0.25 : 0.1),
+                        color.withValues(alpha: 0.05),
+                      ],
                     ),
-                ],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: color.withValues(
+                          alpha: isBullish || isBearish ? 0.5 : 0.2),
+                      width: isBullish || isBearish ? 1.2 : 0.8,
+                    ),
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          key,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        if (value.value != null)
+                          Text(
+                            key == 'SPY' ||
+                                    key == 'BTC' ||
+                                    key == 'DXY' ||
+                                    key == 'NYA' ||
+                                    key == 'VIX' ||
+                                    key == 'OIL' ||
+                                    key == 'GOLD'
+                                ? (value.value! > 1000
+                                    ? '${(value.value! / 1000).toStringAsFixed(1)}k'
+                                    : value.value!.toStringAsFixed(
+                                        value.value! < 10 ? 1 : 0))
+                                : value.value!.toStringAsFixed(1),
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -2164,82 +2204,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
 
   Widget _buildMacroHistoryChart(
       BuildContext context, List<MacroAssessment> history) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     if (history.isEmpty) return const SizedBox.shrink();
-
-    final seriesList = [
-      charts.Series<MacroAssessment, DateTime>(
-        id: 'Macro Score',
-        colorFn: (MacroAssessment assessment, _) {
-          final color = _getStatusColor(context, assessment.status);
-          return charts.ColorUtil.fromDartColor(color);
-        },
-        domainFn: (MacroAssessment assessment, _) => assessment.timestamp,
-        measureFn: (MacroAssessment assessment, _) => assessment.score,
-        data: history,
-      )
-    ];
-
-    return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
-      ),
-      child: Stack(
-        children: [
-          // Background zones
-          Column(
-            children: [
-              Expanded(
-                flex: 40, // 60-100
-                child: Container(
-                  color: Colors.green.withValues(alpha: 0.05),
-                ),
-              ),
-              Expanded(
-                flex: 20, // 40-60
-                child: Container(
-                  color: Colors.amber.withValues(alpha: 0.05),
-                ),
-              ),
-              Expanded(
-                flex: 40, // 0-40
-                child: Container(
-                  color: Colors.red.withValues(alpha: 0.05),
-                ),
-              ),
-            ],
-          ),
-          charts.TimeSeriesChart(
-            seriesList,
-            animate: true,
-            primaryMeasureAxis: charts.NumericAxisSpec(
-                tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-                    desiredTickCount: 5),
-                viewport: const charts.NumericExtents(0.0, 100.0),
-                renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                        color: charts.ColorUtil.fromDartColor(
-                            colorScheme.onSurface.withValues(alpha: 0.5))),
-                    lineStyle: charts.LineStyleSpec(
-                        color: charts.ColorUtil.fromDartColor(
-                            colorScheme.outline.withValues(alpha: 0.1))))),
-            domainAxis: charts.DateTimeAxisSpec(
-                renderSpec: charts.SmallTickRendererSpec(
-                    labelStyle: charts.TextStyleSpec(
-                        color: charts.ColorUtil.fromDartColor(
-                            colorScheme.onSurface.withValues(alpha: 0.5))),
-                    lineStyle: charts.LineStyleSpec(
-                        color: charts.ColorUtil.fromDartColor(
-                            colorScheme.outline.withValues(alpha: 0.1))))),
-          ),
-        ],
-      ),
-    );
+    return _MacroScoreTimeline(history: history);
   }
 
   Widget _buildSectorCard(BuildContext context, String title,
@@ -2666,6 +2632,867 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 }
 
+enum _ScoreTimelineRange { sevenDays, fourteenDays, thirtyDays, all }
+
+class _MacroScoreTimeline extends StatefulWidget {
+  const _MacroScoreTimeline({required this.history});
+
+  final List<MacroAssessment> history;
+
+  @override
+  State<_MacroScoreTimeline> createState() => _MacroScoreTimelineState();
+}
+
+class _MacroScoreTimelineState extends State<_MacroScoreTimeline> {
+  static const _eventChipWidth = 96.0;
+  static const _eventChipSpacing = 6.0;
+
+  final ScrollController _eventScrollController = ScrollController();
+  _ScoreTimelineRange _range = _ScoreTimelineRange.thirtyDays;
+  MacroAssessment? _selectedAssessment;
+  _MacroTimelineEvent? _selectedEvent;
+
+  @override
+  void initState() {
+    super.initState();
+    final events = _buildEvents(_historyForRange(_range));
+    if (events.isNotEmpty) {
+      _selectedEvent = events.last;
+      _selectedAssessment = events.last.assessment;
+      _scrollToEvent(events.last, events);
+    }
+  }
+
+  @override
+  void dispose() {
+    _eventScrollController.dispose();
+    super.dispose();
+  }
+
+  List<MacroAssessment> get _sortedHistory {
+    final sorted = List<MacroAssessment>.from(widget.history);
+    sorted.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return sorted;
+  }
+
+  List<MacroAssessment> _historyForRange(_ScoreTimelineRange range) {
+    final sorted = _sortedHistory;
+    if (sorted.isEmpty || range == _ScoreTimelineRange.all) return sorted;
+
+    final days = switch (range) {
+      _ScoreTimelineRange.sevenDays => 7,
+      _ScoreTimelineRange.fourteenDays => 14,
+      _ScoreTimelineRange.thirtyDays => 30,
+      _ScoreTimelineRange.all => 0,
+    };
+    final cutoff = sorted.last.timestamp.subtract(Duration(days: days));
+    return sorted
+        .where((assessment) => !assessment.timestamp.isBefore(cutoff))
+        .toList();
+  }
+
+  void _selectRange(_ScoreTimelineRange range) {
+    final filtered = _historyForRange(range);
+    setState(() {
+      _range = range;
+      _selectedAssessment = filtered.isEmpty ? null : filtered.last;
+      _selectedEvent = null;
+    });
+  }
+
+  void _onSelectionChanged(charts.SelectionModel<DateTime> model) {
+    if (!model.hasDatumSelection) return;
+    final assessmentSelection = model.selectedDatum
+        .map((selection) => selection.datum)
+        .whereType<MacroAssessment>()
+        .firstOrNull;
+    if (assessmentSelection != null) {
+      final history = _historyForRange(_range);
+      final eventSelection = _eventNearAssessment(
+        assessmentSelection,
+        history,
+        _buildEvents(history),
+      );
+      final resolvedAssessment =
+          eventSelection?.assessment ?? assessmentSelection;
+      if (resolvedAssessment == _selectedAssessment &&
+          eventSelection?.assessment.timestamp ==
+              _selectedEvent?.assessment.timestamp) {
+        return;
+      }
+      setState(() {
+        _selectedAssessment = resolvedAssessment;
+        _selectedEvent = eventSelection;
+      });
+      if (eventSelection != null) {
+        _scrollToEvent(eventSelection, _buildEvents(history));
+      }
+    }
+  }
+
+  void _scrollToEvent(
+    _MacroTimelineEvent event,
+    List<_MacroTimelineEvent> events,
+  ) {
+    final eventIndex = events.indexWhere(
+      (item) => item.assessment.timestamp == event.assessment.timestamp,
+    );
+    if (eventIndex == -1) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_eventScrollController.hasClients) return;
+      final position = _eventScrollController.position;
+      final itemOffset = eventIndex * (_eventChipWidth + _eventChipSpacing);
+      final centeredOffset =
+          itemOffset - (position.viewportDimension - _eventChipWidth) / 2;
+      final targetOffset = centeredOffset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      _eventScrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  _MacroTimelineEvent? _eventNearAssessment(
+    MacroAssessment assessment,
+    List<MacroAssessment> history,
+    List<_MacroTimelineEvent> events,
+  ) {
+    final selectedIndex = history.indexWhere(
+      (item) => item.timestamp == assessment.timestamp,
+    );
+    if (selectedIndex == -1) return null;
+
+    _MacroTimelineEvent? nearestEvent;
+    var nearestDistance = 2;
+    for (final event in events) {
+      final eventIndex = history.indexWhere(
+        (item) => item.timestamp == event.assessment.timestamp,
+      );
+      if (eventIndex == -1) continue;
+      final distance = (eventIndex - selectedIndex).abs();
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestEvent = event;
+      }
+    }
+    return nearestEvent;
+  }
+
+  void _selectEvent(_MacroTimelineEvent event) {
+    setState(() {
+      _selectedAssessment = event.assessment;
+      _selectedEvent = event;
+    });
+  }
+
+  List<_MacroTimelineEvent> _buildEvents(List<MacroAssessment> history) {
+    final events = <_MacroTimelineEvent>[];
+    for (var index = 1; index < history.length; index++) {
+      final previous = history[index - 1];
+      final current = history[index];
+      final scoreChange = current.score - previous.score;
+      final statusChanged = current.status != previous.status;
+      final previousIndicators = _indicatorMap(previous.indicators);
+      final currentIndicators = _indicatorMap(current.indicators);
+      final indicatorChanges = <String>[];
+
+      for (final entry in currentIndicators.entries) {
+        final previousIndicator = previousIndicators[entry.key];
+        final currentIndicator = entry.value;
+        if (previousIndicator == null || currentIndicator == null) continue;
+        if (previousIndicator.signal == currentIndicator.signal) continue;
+
+        final previousValue = previousIndicator.value;
+        final currentValue = currentIndicator.value;
+        final valueChange = previousValue != null && currentValue != null
+            ? ' (${_formatIndicatorValue(previousValue)} to ${_formatIndicatorValue(currentValue)})'
+            : '';
+        indicatorChanges.add(
+          '${entry.key}: ${previousIndicator.signal.replaceAll('_', ' ')} to ${currentIndicator.signal.replaceAll('_', ' ')}$valueChange',
+        );
+      }
+
+      if (!statusChanged &&
+          scoreChange.abs() < 10 &&
+          indicatorChanges.isEmpty) {
+        continue;
+      }
+
+      events.add(_MacroTimelineEvent(
+        previousAssessment: previous,
+        assessment: current,
+        title: statusChanged
+            ? '${previous.status.replaceAll('_', ' ')} to ${current.status.replaceAll('_', ' ')}'
+            : indicatorChanges.length == 1
+                ? '${indicatorChanges.first.split(':').first} signal changed'
+                : indicatorChanges.isNotEmpty
+                    ? '${indicatorChanges.length} indicator signals changed'
+                    : scoreChange > 0
+                        ? 'Score increased sharply'
+                        : 'Score decreased sharply',
+        summary:
+            'Score ${previous.score} to ${current.score} (${scoreChange >= 0 ? '+' : ''}$scoreChange)',
+        indicatorChanges: indicatorChanges,
+      ));
+    }
+    return events;
+  }
+
+  Map<String, MacroIndicator?> _indicatorMap(MacroIndicators indicators) => {
+        'VIX': indicators.vix,
+        'TNX': indicators.tnx,
+        'SPY': indicators.marketTrend,
+        'CURV': indicators.yieldCurve,
+        'PCR': indicators.putCallRatio,
+        'BTC': indicators.btc,
+        'HYG': indicators.hyg,
+        'DXY': indicators.dxy,
+        'GOLD': indicators.gold,
+        'OIL': indicators.oil,
+        'NYA': indicators.advDecline,
+        'IWM': indicators.riskAppetite,
+        'LQD': indicators.creditSpreads,
+        'EEM': indicators.globalRisk,
+        'COP': indicators.copper,
+        'MOVE': indicators.interestRateVol,
+        'KRE': indicators.bankingHealth,
+        'RSP': indicators.breadthQuality,
+        'FXI': indicators.globalLeadership,
+      };
+
+  String _formatIndicatorValue(double value) {
+    final magnitude = value.abs();
+    if (magnitude >= 1000) return value.toStringAsFixed(0);
+    if (magnitude >= 10) return value.toStringAsFixed(1);
+    return value.toStringAsFixed(2);
+  }
+
+  void _showEventDetails(BuildContext context, _MacroTimelineEvent event) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final assessment = event.assessment;
+    final divergence = assessment.signalDivergence;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.event_note, color: colorScheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat.yMMMd()
+                              .add_jm()
+                              .format(assessment.timestamp),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(event.summary,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildEventMetric(
+                    context,
+                    'Regime',
+                    assessment.status.replaceAll('_', ' '),
+                  ),
+                  _buildEventMetric(
+                      context, 'Score', '${assessment.score}/100'),
+                  _buildEventMetric(
+                      context, 'Confidence', '${assessment.confidence}%'),
+                  _buildEventMetric(
+                    context,
+                    'Breadth',
+                    '${divergence.bullishCount}B / ${divergence.neutralCount}N / ${divergence.bearishCount}S',
+                  ),
+                ],
+              ),
+              if (event.previousAssessment.status != assessment.status) ...[
+                const SizedBox(height: 20),
+                Text('Regime Transition',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(
+                  '${event.previousAssessment.status.replaceAll('_', ' ')}  →  ${assessment.status.replaceAll('_', ' ')}',
+                  style: TextStyle(
+                    color: _statusColor(context, assessment.status),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+              if (event.indicatorChanges.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text('Indicator Changes (${event.indicatorChanges.length})',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...event.indicatorChanges.map(
+                  (change) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.change_circle_outlined,
+                            size: 18, color: colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(change)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (assessment.reason.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text('Assessment Reason',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                MarkdownBody(data: assessment.reason),
+              ],
+              if (assessment.aiAnalysis?.isNotEmpty == true) ...[
+                const SizedBox(height: 20),
+                Text('AI Analysis',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                MarkdownBody(data: assessment.aiAnalysis!),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventMetric(BuildContext context, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(BuildContext context, String status) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    switch (status.toUpperCase()) {
+      case 'RISK_ON':
+      case 'BULLISH':
+        return isLight ? Colors.green.shade700 : Colors.green;
+      case 'RISK_OFF':
+      case 'BEARISH':
+        return isLight ? Colors.red.shade700 : Colors.red;
+      default:
+        return isLight ? Colors.orange.shade800 : Colors.amber;
+    }
+  }
+
+  DateFormat _axisDateFormat(List<MacroAssessment> history) {
+    if (history.length < 2) return DateFormat.MMMd();
+    final span = history.last.timestamp.difference(history.first.timestamp);
+    if (span.inDays > 365) return DateFormat('MMM yy');
+    if (span.inDays <= 2) return DateFormat('MMM d, ha');
+    return DateFormat.MMMd();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final history = _historyForRange(_range);
+    if (history.isEmpty) return const SizedBox.shrink();
+    final events = _buildEvents(history);
+
+    final selected = history.contains(_selectedAssessment)
+        ? _selectedAssessment!
+        : history.last;
+    final selectedIndex = history.indexOf(selected);
+    final previous = selectedIndex > 0 ? history[selectedIndex - 1] : null;
+    final scoreChange =
+        previous == null ? null : selected.score - previous.score;
+    final selectedColor = _statusColor(context, selected.status);
+    final axisColor = charts.ColorUtil.fromDartColor(
+        colorScheme.onSurface.withValues(alpha: 0.55));
+    final gridColor = charts.ColorUtil.fromDartColor(
+        colorScheme.outline.withValues(alpha: 0.12));
+
+    final series = <charts.Series<MacroAssessment, DateTime>>[
+      charts.Series<MacroAssessment, DateTime>(
+        id: 'Macro Score',
+        data: history,
+        domainFn: (assessment, _) => assessment.timestamp,
+        measureFn: (assessment, _) => assessment.score,
+        colorFn: (assessment, _) => charts.ColorUtil.fromDartColor(
+          _statusColor(context, assessment.status),
+        ),
+      ),
+      charts.Series<MacroAssessment, DateTime>(
+        id: 'Events',
+        data: events.map((event) => event.assessment).toList(),
+        domainFn: (assessment, _) => assessment.timestamp,
+        measureFn: (_, __) => 3,
+        colorFn: (assessment, _) => charts.ColorUtil.fromDartColor(
+          _statusColor(context, assessment.status),
+        ),
+      )..setAttribute(charts.rendererIdKey, 'eventPoints'),
+      if (_selectedEvent != null)
+        charts.Series<MacroAssessment, DateTime>(
+          id: 'Selected Event',
+          data: [_selectedEvent!.assessment],
+          domainFn: (assessment, _) => assessment.timestamp,
+          measureFn: (_, __) => 3,
+          colorFn: (assessment, _) => charts.ColorUtil.fromDartColor(
+            _statusColor(context, assessment.status),
+          ),
+          overlaySeries: true,
+        )..setAttribute(charts.rendererIdKey, 'selectedEventPoint'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_ScoreTimelineRange>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                    value: _ScoreTimelineRange.sevenDays, label: Text('7D')),
+                ButtonSegment(
+                    value: _ScoreTimelineRange.fourteenDays,
+                    label: Text('14D')),
+                ButtonSegment(
+                    value: _ScoreTimelineRange.thirtyDays, label: Text('30D')),
+                ButtonSegment(
+                    value: _ScoreTimelineRange.all, label: Text('All')),
+              ],
+              selected: {_range},
+              onSelectionChanged: (selection) => _selectRange(selection.first),
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _buildLegendDot(Colors.green, 'Risk On'),
+              const SizedBox(width: 12),
+              _buildLegendDot(Colors.amber, 'Neutral'),
+              const SizedBox(width: 12),
+              _buildLegendDot(Colors.red, 'Risk Off'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 220,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Column(
+                    children: [
+                      Expanded(
+                          flex: 40,
+                          child: ColoredBox(
+                              color: Colors.green.withValues(alpha: 0.04))),
+                      Expanded(
+                          flex: 20,
+                          child: ColoredBox(
+                              color: Colors.amber.withValues(alpha: 0.04))),
+                      Expanded(
+                          flex: 40,
+                          child: ColoredBox(
+                              color: Colors.red.withValues(alpha: 0.04))),
+                    ],
+                  ),
+                ),
+                charts.TimeSeriesChart(
+                  series,
+                  animate: false,
+                  defaultRenderer: charts.LineRendererConfig(
+                    includePoints: false,
+                    strokeWidthPx: 2,
+                  ),
+                  customSeriesRenderers: [
+                    charts.PointRendererConfig<DateTime>(
+                      customRendererId: 'eventPoints',
+                      radiusPx: 4,
+                    ),
+                    charts.PointRendererConfig<DateTime>(
+                      customRendererId: 'selectedEventPoint',
+                      radiusPx: 6,
+                      strokeWidthPx: 2,
+                    ),
+                  ],
+                  primaryMeasureAxis: charts.NumericAxisSpec(
+                    viewport: const charts.NumericExtents(0, 100),
+                    tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+                        desiredTickCount: 5),
+                    renderSpec: charts.GridlineRendererSpec(
+                      labelStyle: charts.TextStyleSpec(color: axisColor),
+                      lineStyle: charts.LineStyleSpec(color: gridColor),
+                    ),
+                  ),
+                  domainAxis: charts.DateTimeAxisSpec(
+                    tickFormatterSpec:
+                        charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
+                            _axisDateFormat(history)),
+                    renderSpec: charts.SmallTickRendererSpec(
+                      labelStyle: charts.TextStyleSpec(color: axisColor),
+                      lineStyle: charts.LineStyleSpec(color: gridColor),
+                    ),
+                  ),
+                  selectionModels: [
+                    charts.SelectionModelConfig<DateTime>(
+                      type: charts.SelectionModelType.info,
+                      changedListener: _onSelectionChanged,
+                    ),
+                    charts.SelectionModelConfig<DateTime>(
+                      type: charts.SelectionModelType.action,
+                      changedListener: _onSelectionChanged,
+                    ),
+                  ],
+                  behaviors: [
+                    charts.SelectNearest(
+                      selectionModelType: charts.SelectionModelType.action,
+                      eventTrigger: charts.SelectionTrigger.tap,
+                    ),
+                    charts.SelectNearest(
+                      eventTrigger: charts.SelectionTrigger.tapAndDrag,
+                    ),
+                    charts.LinePointHighlighter(
+                      selectionModelType: charts.SelectionModelType.action,
+                      showHorizontalFollowLine:
+                          charts.LinePointHighlighterFollowLineType.none,
+                      showVerticalFollowLine:
+                          charts.LinePointHighlighterFollowLineType.none,
+                    ),
+                    charts.LinePointHighlighter(
+                      showHorizontalFollowLine:
+                          charts.LinePointHighlighterFollowLineType.none,
+                      showVerticalFollowLine:
+                          charts.LinePointHighlighterFollowLineType.none,
+                    ),
+                    for (final selectionModelType in [
+                      charts.SelectionModelType.info,
+                      charts.SelectionModelType.action,
+                    ])
+                      charts.InitialSelection<DateTime>(
+                        selectionModelType: selectionModelType,
+                        selectedDataConfig: [
+                          charts.SeriesDatumConfig<DateTime>(
+                            'Macro Score',
+                            selected.timestamp,
+                          ),
+                          if (_selectedEvent?.assessment.timestamp ==
+                              selected.timestamp)
+                            charts.SeriesDatumConfig<DateTime>(
+                              'Events',
+                              selected.timestamp,
+                            ),
+                        ],
+                        shouldPreserveSelectionOnDraw: true,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (events.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.event, size: 16, color: colorScheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  'Events',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 42,
+              child: ListView.separated(
+                controller: _eventScrollController,
+                scrollDirection: Axis.horizontal,
+                itemCount: events.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: _eventChipSpacing),
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  return SizedBox(
+                    width: _eventChipWidth,
+                    child: Tooltip(
+                      message: event.title,
+                      child: ChoiceChip(
+                        selected: event.assessment.timestamp ==
+                            _selectedEvent?.assessment.timestamp,
+                        avatar: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: _statusColor(
+                              context,
+                              event.assessment.status,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        label: Text(
+                          DateFormat.MMMd().format(event.assessment.timestamp),
+                        ),
+                        onSelected: (_) => _selectEvent(event),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: selectedColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: selectedColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selectedColor.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${selected.score}',
+                    style: TextStyle(
+                      color: selectedColor,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.status.replaceAll('_', ' '),
+                        style: TextStyle(
+                          color: selectedColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        DateFormat.yMMMd().add_jm().format(selected.timestamp),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                if (scoreChange != null)
+                  Text(
+                    '${scoreChange >= 0 ? '+' : ''}$scoreChange',
+                    style: TextStyle(
+                      color: scoreChange > 0
+                          ? Colors.green
+                          : scoreChange < 0
+                              ? Colors.red
+                              : colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_selectedEvent != null) ...[
+            const SizedBox(height: 8),
+            Material(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(
+                    color: colorScheme.primary.withValues(alpha: 0.25)),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => _showEventDetails(context, _selectedEvent!),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.event, size: 20, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedEvent!.title,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(_selectedEvent!.summary),
+                            if (_selectedEvent!
+                                .indicatorChanges.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              ..._selectedEvent!.indicatorChanges
+                                  .take(3)
+                                  .map((change) => Text(
+                                        change,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall,
+                                      )),
+                              if (_selectedEvent!.indicatorChanges.length > 3)
+                                Text(
+                                  '+${_selectedEvent!.indicatorChanges.length - 3} more changes',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                            ],
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap for full event details',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: colorScheme.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Tap or drag across the timeline to inspect a score.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    );
+  }
+}
+
+class _MacroTimelineEvent {
+  const _MacroTimelineEvent({
+    required this.previousAssessment,
+    required this.assessment,
+    required this.title,
+    required this.summary,
+    required this.indicatorChanges,
+  });
+
+  final MacroAssessment previousAssessment;
+  final MacroAssessment assessment;
+  final String title;
+  final String summary;
+  final List<String> indicatorChanges;
+}
+
 class _MacroScoreGaugePainter extends CustomPainter {
   final double score;
   final Color color;
@@ -2703,21 +3530,9 @@ class _MacroScoreGaugePainter extends CustomPainter {
       bgPaint,
     );
 
-    // Dynamic Color Gradient for Progress
+    // Match the progress arc to the current regime color.
     final progressPaint = Paint()
-      ..shader = SweepGradient(
-        colors: [
-          Colors.red.withValues(alpha: 0.8),
-          Colors.orange.withValues(alpha: 0.8),
-          Colors.yellow.withValues(alpha: 0.8),
-          Colors.green.withValues(alpha: 0.8),
-          Colors.blue.withValues(alpha: 0.8),
-        ],
-        stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-        startAngle: startAngle,
-        endAngle: startAngle + totalSweep,
-        transform: GradientRotation(startAngle),
-      ).createShader(rect)
+      ..color = color.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
@@ -2733,14 +3548,14 @@ class _MacroScoreGaugePainter extends CustomPainter {
       progressPaint,
     );
 
-    // Indicators for 0, 50, 100
+    // Mark the same Risk-Off/Neutral/Risk-On thresholds used by the backend.
     final labelPaint = Paint()
       ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    for (var i = 0; i <= 4; i++) {
-      final angle = startAngle + (i / 4) * totalSweep;
+    for (final threshold in const [0.0, 0.35, 0.65, 1.0]) {
+      final angle = startAngle + threshold * totalSweep;
       final offset1 = Offset(
         center.dx + (radius - strokeWidth) * math.cos(angle),
         center.dy + (radius - strokeWidth) * math.sin(angle),

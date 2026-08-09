@@ -821,11 +821,12 @@ class _HistoryPageState extends State<HistoryPage>
           .toList();
 
       optionOrdersPremiumBalance = filteredOptionOrders!.isNotEmpty
-          ? filteredOptionOrders!
-              .map((e) =>
-                  (e.processedPremium != null ? e.processedPremium! : 0) *
-                  (e.direction == "credit" ? 1 : -1))
-              .reduce((a, b) => a + b) as double
+          ? filteredOptionOrders!.fold<double>(
+              0.0,
+                (total, order) =>
+                  total +
+                  (order.processedPremium ?? 0.0) *
+                      (order.direction == "credit" ? 1.0 : -1.0))
           : 0;
     }
 
@@ -852,11 +853,14 @@ class _HistoryPageState extends State<HistoryPage>
           .toList();
 
       positionOrdersBalance = filteredPositionOrders!.isNotEmpty
-          ? filteredPositionOrders!
-              .map((e) =>
-                  (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
-                  (e.side == "buy" ? -1 : 1))
-              .reduce((a, b) => a + b) as double
+          ? filteredPositionOrders!.fold<double>(
+              0.0,
+                (total, order) =>
+                  total +
+                  (order.averagePrice != null
+                          ? order.averagePrice! * order.quantity!
+                          : 0.0) *
+                      (order.side == "buy" ? -1.0 : 1.0))
           : 0;
     }
 

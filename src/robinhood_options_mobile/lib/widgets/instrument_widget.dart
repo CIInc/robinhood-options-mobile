@@ -5028,57 +5028,60 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               Theme(
                                 data: Theme.of(context)
                                     .copyWith(dividerColor: Colors.transparent),
-                                child: ExpansionTile(
-                                  tilePadding: EdgeInsets.zero,
-                                  title: Row(
-                                    children: [
-                                      Text(
-                                        'Disabled Indicators (${disabledList.length})',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      if (enabledCount > 0 &&
-                                          overallSignalStrength != null &&
-                                          overallSignalStrength !=
-                                              enabledSignalStrength) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: _getSignalStrengthColor(
-                                                    overallSignalStrength)
-                                                .withValues(alpha: 0.15),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    title: Row(
+                                      children: [
+                                        Text(
+                                          'Disabled Indicators (${disabledList.length})',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.grey,
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.speed,
-                                                  size: 10,
-                                                  color: _getSignalStrengthColor(
-                                                      overallSignalStrength)),
-                                              const SizedBox(width: 3),
-                                              Text(
-                                                '$overallSignalStrength% Overall',
-                                                style: TextStyle(
-                                                  fontSize: 10.0,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _getSignalStrengthColor(
-                                                      overallSignalStrength),
+                                        ),
+                                        if (enabledCount > 0 &&
+                                            overallSignalStrength != null &&
+                                            overallSignalStrength !=
+                                                enabledSignalStrength) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: _getSignalStrengthColor(
+                                                      overallSignalStrength)
+                                                  .withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.speed,
+                                                    size: 10,
+                                                    color: _getSignalStrengthColor(
+                                                        overallSignalStrength)),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  '$overallSignalStrength% Overall',
+                                                  style: TextStyle(
+                                                    fontSize: 10.0,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: _getSignalStrengthColor(
+                                                        overallSignalStrength),
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
+                                    children: disabledList,
                                   ),
-                                  children: disabledList,
                                 ),
                               ),
                           ],

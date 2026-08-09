@@ -1118,18 +1118,62 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }
     }
 
+    // Calculate the weighted score before deriving the regime so the returned
+    // score, status, and guidance all use the same thresholds.
+    const bullishSignals = [
+      { signal: vixSignal, weight: MACRO_WEIGHTS.vix },
+      { signal: spySignal, weight: MACRO_WEIGHTS.marketTrend },
+      { signal: tnxSignal, weight: MACRO_WEIGHTS.tnx },
+      { signal: yieldCurveSignal, weight: MACRO_WEIGHTS.yieldCurve },
+      { signal: hygSignal, weight: MACRO_WEIGHTS.hyg },
+      { signal: pccrSignal, weight: MACRO_WEIGHTS.pcr },
+      { signal: nyaSignal, weight: MACRO_WEIGHTS.nya },
+      { signal: riskSignal, weight: MACRO_WEIGHTS.riskAppetite },
+      { signal: creditSignal, weight: MACRO_WEIGHTS.creditSpreads },
+      { signal: btcSignal, weight: MACRO_WEIGHTS.btc },
+      { signal: copperSignal, weight: MACRO_WEIGHTS.copper },
+      { signal: globalSignal, weight: MACRO_WEIGHTS.globalRisk },
+      { signal: goldSignal, weight: MACRO_WEIGHTS.gold },
+      { signal: oilSignal, weight: MACRO_WEIGHTS.oil },
+      { signal: dxySignal, weight: MACRO_WEIGHTS.dxy },
+      { signal: moveSignal, weight: MACRO_WEIGHTS.move },
+      { signal: kreSignal, weight: MACRO_WEIGHTS.kre },
+      { signal: breadthSignal, weight: MACRO_WEIGHTS.breadth },
+    ];
+
+    let weightedScore = 0;
+    let totalWeight = 0;
+    bullishSignals.forEach((item) => {
+      const weight = item.weight;
+      totalWeight += weight;
+      if (item.signal === "BULLISH") {
+        weightedScore += weight;
+      } else if (item.signal === "NEUTRAL") {
+        weightedScore += weight * 0.5;
+      }
+      // BEARISH adds 0 to score
+    });
+
+    const finalScore = Math.round(
+      totalWeight > 0 ? (weightedScore / totalWeight) * 100 : 50,
+    );
+    logger.debug("Macro score comparison", {
+      additiveScore: score,
+      weightedScore: finalScore,
+    });
+
     // Determine Status with more nuanced thresholds
     let status: "RISK_ON" | "RISK_OFF" | "NEUTRAL" = "NEUTRAL";
-    if (score >= 65) {
+    if (finalScore >= 65) {
       status = "RISK_ON";
-    } else if (score <= 35) {
+    } else if (finalScore <= 35) {
       status = "RISK_OFF";
     } else {
       // In neutral zone (35-65), check if we're leaning one way
-      if (score >= 55) {
+      if (finalScore >= 55) {
         // Mildly bullish but not quite risk-on
         status = "NEUTRAL";
-      } else if (score <= 45) {
+      } else if (finalScore <= 45) {
         // Mildly bearish but not quite risk-off
         status = "NEUTRAL";
       }
@@ -1300,48 +1344,9 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       ];
     }
 
-    // Weighted Scoring Implementation
-    const bullishSignals = [
-      { signal: vixSignal, weight: MACRO_WEIGHTS.vix },
-      { signal: spySignal, weight: MACRO_WEIGHTS.marketTrend },
-      { signal: tnxSignal, weight: MACRO_WEIGHTS.tnx },
-      { signal: yieldCurveSignal, weight: MACRO_WEIGHTS.yieldCurve },
-      { signal: hygSignal, weight: MACRO_WEIGHTS.hyg },
-      { signal: pccrSignal, weight: MACRO_WEIGHTS.pcr },
-      { signal: nyaSignal, weight: MACRO_WEIGHTS.nya },
-      { signal: riskSignal, weight: MACRO_WEIGHTS.riskAppetite },
-      { signal: creditSignal, weight: MACRO_WEIGHTS.creditSpreads },
-      { signal: btcSignal, weight: MACRO_WEIGHTS.btc },
-      { signal: copperSignal, weight: MACRO_WEIGHTS.copper },
-      { signal: globalSignal, weight: MACRO_WEIGHTS.globalRisk },
-      { signal: goldSignal, weight: MACRO_WEIGHTS.gold },
-      { signal: oilSignal, weight: MACRO_WEIGHTS.oil },
-      { signal: dxySignal, weight: MACRO_WEIGHTS.dxy },
-      { signal: moveSignal, weight: MACRO_WEIGHTS.move },
-      { signal: kreSignal, weight: MACRO_WEIGHTS.kre },
-      { signal: breadthSignal, weight: MACRO_WEIGHTS.breadth },
-    ];
-
-    let weightedScore = 0;
-    let totalWeight = 0;
-    bullishSignals.forEach((item) => {
-      const weight = item.weight;
-      totalWeight += weight;
-      if (item.signal === "BULLISH") {
-        weightedScore += weight;
-      } else if (item.signal === "NEUTRAL") {
-        weightedScore += weight * 0.5;
-      }
-      // BEARISH adds 0 to score
-    });
-
-    // Normalize score to 0-100
-    const finalScore =
-      totalWeight > 0 ? (weightedScore / totalWeight) * 100 : 50;
-
     return {
       status,
-      score: Math.round(finalScore),
+      score: finalScore,
       confidence: Math.round(confidence),
       signalDivergence: {
         bullishCount,

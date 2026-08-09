@@ -220,7 +220,6 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
   }
 
   List<Widget> _buildActions(BuildContext context) {
-    var auth = firebase_auth.FirebaseAuth.instance;
     return [
       Consumer<TradeSignalNotificationsStore>(
         builder: (context, store, child) {
@@ -267,25 +266,6 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
           }
         },
       ),
-      IconButton(
-          icon: auth.currentUser != null
-              ? (auth.currentUser!.photoURL == null
-                  ? const Icon(Icons.account_circle)
-                  : CircleAvatar(
-                      maxRadius: 12,
-                      backgroundImage: CachedNetworkImageProvider(
-                          auth.currentUser!.photoURL!)))
-              : const Icon(Icons.account_circle_outlined),
-          onPressed: () async {
-            await showProfile(
-                context,
-                auth,
-                FirestoreService(),
-                widget.analytics,
-                widget.observer,
-                widget.brokerageUser,
-                widget.service);
-          }),
       // PopupMenuButton<String>(
       //   icon: const Icon(Icons.more_vert),
       //   tooltip: 'Options',
