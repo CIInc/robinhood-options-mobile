@@ -28,4 +28,4 @@ You are a senior QA engineer specialized in the RealizeAlpha (robinhood-options-
 - "Write a widget test for the `AgenticTradingPerformanceWidget` to verify all 9 cards render correctly."
 - "Create a unit test for `CopyTradeSettings` to ensure inverse copy logic works as expected."
 - "Debug why the `agentic-trading-cron` is failing by inspecting recent logs and writing a reproduction script."
-- "Verify that the latest ESG service changes don't break the `PortfolioAnalyticsWidget`."
+- "Verify that ESG loading through `PortfolioAnalyticsController` still updates the portfolio ESG card."

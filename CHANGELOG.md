@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.1] - 2026-08-09
+**Progressive Portfolio, Signal Diagnostics, and Trading Reliability**
+
+### Added
+- **AI Portfolio Architect:** Added natural-language portfolio construction with risk-profile-aware allocation guidance.
+- **Progressive Portfolio Experience:** Reorganized Portfolio into a decision-focused overview with hero statistics, movers, risk summaries, an Action Center, and dedicated Performance, Positions, Risk, Insights, Strategies, and Taxes sections.
+- **Focused Analytics Workflows:** Added shared portfolio analytics state, benchmark services, CSV export, AI insights, daily and monthly performance views, ESG analysis, health scoring, and contextual metric explanations.
+- **Trade Signal Diagnostics:** Added instrument-level calculation details covering attempt and success times, data freshness, source, cache fallback, calculation status, interval, and evaluated bar count.
+- **Portfolio Alert Coverage:** Added account-aware portfolio alerts with service and controller test coverage.
+
+### Changed
+- **Overview Holdings:** Restored capped stock and option position summaries to the Portfolio overview while keeping full position management in its dedicated section.
+- **Macro Assessment Experience:** Expanded regime history and indicator detail presentation, and aligned the score gauge with the Risk-Off, Neutral, and Risk-On thresholds.
+- **Portfolio Navigation:** Replaced the monolithic analytics screen with progressive disclosure and reusable section scaffolds optimized for faster scanning.
+
+### Fixed
+- **Macro Regime Consistency:** Derive the macro regime, allocation guidance, and displayed score from the same weighted score, preventing values such as 55 from appearing as `RISK_ON`.
+- **Paper Portfolio Data:** Corrected paper-account aggregation, option position data, and historical chart intervals.
+- **TestFlight Deployment:** Improved deployment script validation, archive handling, and upload reliability.
+- **Signals App Bar:** Removed the duplicate profile action from the Trade Signals page.
+
 ## [0.37.0] - 2026-07-29
 **Agentic Reasoning Mode, Balance Privacy, and Advanced Account Orchestration**
 

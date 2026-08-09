@@ -44,10 +44,12 @@ The engine computes a **Weighted Macro Score (0-100)** using specific importance
 | **Breadth (NYA/RSP)** | 7% | Internals |
 | **Others (BTC, Commodities, DXY)** | 30% | Macro Context |
 
-### Status Thresholds:
-*   **65-100 (RISK ON):** Constructive environment. Standard or aggressive sizing favored.
-*   **36-64 (NEUTRAL):** Mixed signals. Caution and selective rotation advised.
-*   **0-35 (RISK OFF):** Defensive posture. Focus on capital preservation and hedging.
+### Status Thresholds
+*   **65-100 (`RISK_ON`):** Constructive environment. Standard or aggressive sizing favored.
+*   **36-64 (`NEUTRAL`):** Mixed signals. Caution and selective rotation advised.
+*   **0-35 (`RISK_OFF`):** Defensive posture. Focus on capital preservation and hedging.
+
+The regime is derived from the same rounded weighted score returned to the app. The score, regime label, allocation guidance, and gauge color therefore always use these inclusive boundaries.
 
 ## Integration
 
@@ -59,7 +61,7 @@ A dedicated dashboard view (`MacroAssessmentDashboardWidget`) expands the assess
 - **Indicators Pulse:** A 19-pillar heatmap providing a real-time snapshot of every indicator's signal and trend.
 - **Detailed Indicator Sheets:** Tap any pillar to see its current value, momentum tracking, weighted impact, and descriptive analysis.
 - **Regime Transition Matrices:** Visualization of "Signal Breadth" to see if the majority of indicators confirm the current status.
-- **Dynamic Charting:** Interactive gauge with a multi-color progress gradient representing the current Macro Score.
+- **Dynamic Charting:** Regime-colored score gauge with markers at the 35/65 boundaries, plus score history and regime-transition inspection.
 
 ## Automated Trading Integration
 

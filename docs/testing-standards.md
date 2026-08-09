@@ -10,7 +10,7 @@ This document outlines the required testing patterns and development standards f
     - User journey transitions (e.g., Guest to Authenticated).
     - Data persistence and state synchronization across views (Search, Portfolio, Settings).
     - Multi-account aggregation and switching states.
-- **Reference**: See existing integration tests in [integration_test/](integration_test/) for implementation patterns.
+- **Reference**: See existing integration tests in [integration_test/](../src/robinhood_options_mobile/integration_test/) for implementation patterns.
 
 ## 2. Handling State & Race Conditions
 - **Persistence & Identity**: Features requiring persistent storage (Firestore) must ensure a valid identity exists. When bootstrapping new sessions, use mechanisms like `ensureFirebaseUserSession` to avoid silent data loss for guests.
@@ -33,4 +33,3 @@ This document outlines the required testing patterns and development standards f
 ## 4. Documentation & Lessons Learned
 - **Rule**: When resolving a significant logic flaw or race condition, document the "Error Pattern" and "Lesson Learned" here or in relevant feature docs to prevent regressions.
 - **Verification**: New features must include a corresponding test file in `integration_test/` or `test/` that exercises the fix under simulated constraints (e.g., guest state, network delays).
-

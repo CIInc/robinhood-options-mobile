@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - **Focus Areas**: Advanced trading strategies, brokerage integrations, security, social features, AI coaching, quantitative research, behavioral finance, frontier tech
 
 ### Key Highlights
-- ✅ **Recently Completed**: Agentic Reasoning Mode, Balance Privacy, Advanced GEX Orchestrator, MCP Client Integration, Multi-Account Selector.
-- 🔥 **In Progress**: **AI Portfolio Architect** & Schwab Options Trading (Phases 2-3).
-- 🚀 **Next Milestone**: **News Intelligence & Smart Alerts** (v0.37.2) for enhanced AI reasoning context.
+- ✅ **Recently Completed**: Progressive Portfolio, Portfolio Action Center, Trade Signal Diagnostics, Paper Portfolio Reliability, and Macro Regime Consistency.
+- 🔥 **In Progress**: Schwab Options Trading (Phases 2-3).
+- 🚀 **Next Milestone**: **Quantitative Research Workbench & Schwab API Phase 2** (v0.37.2).
 - **Focus Areas**: Institutional-grade options analytics (GEX), AI-powered trade orchestration, and multi-brokerage expansion.
 - 🎯 **2026 Priorities**: 
   - **Q3**: AI Portfolio Architect, Smart Alerts & Market Intelligence, News & Sentiment Intelligence, Social Platform Evolution, Tax Optimization Suite
@@ -231,88 +231,98 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **iOS Build Modernization**: Migration to CocoaPods and CI/CD hardening for reliability.
 - ✅ **Generative Service Resilience**: Enhanced MCP client with dynamic casting and safer parsing.
 
-### v0.37.1 (Q3 2026 - Early August)
-**Quantitative Research Workbench & Schwab API Phase 2**
-- ✅ **AI Portfolio Architect (Alpha):** Natural language portfolio construction and risk-optimized asset allocation.
-- [ ] **Options order placement on Schwab** ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
-- [ ] **Event study analyzer**: Analyze stock performance around specific event types (earnings, FDA, etc.)
-- [ ] **Rolling statistics dashboard**: Dynamic volatility, beta, and correlation tracking.
-- [ ] **Custom screener builder**: UI for building complex multi-factor screens.
+### v0.37.1 ✅ (Released August 9, 2026)
+**Progressive Portfolio, Signal Diagnostics, and Trading Reliability**
+- ✅ **AI Portfolio Architect:** Natural-language portfolio construction with risk-optimized asset allocation.
+- ✅ **Progressive Portfolio:** Decision-focused overview with hero statistics, movers, capped holdings summaries, and six dedicated drill-down sections.
+- ✅ **Portfolio Action Center:** Ranked, account-aware alerts for concentration, cash, drawdown, volatility, benchmark performance, movers, and tax opportunities.
+- ✅ **Shared Analytics Controller:** Cached metrics, benchmark selection, CSV export, AI insights, ESG analysis, and consistent Performance/Risk periods.
+- ✅ **Trade Signal Diagnostics:** Instrument details expose calculation timing, data freshness, source, stale-cache use, status, interval, and evaluated bar count.
+- ✅ **Paper Portfolio Reliability:** Corrected account aggregation, option data, and historical chart intervals.
+- ✅ **Macro Regime Consistency:** Unified weighted scores, regime thresholds, guidance, history, and gauge colors.
+- ✅ **TestFlight Reliability:** Hardened validation, archive preparation, retry behavior, and version rollback.
 
 ### v0.37.2 (Q3 2026 - August)
+**Quantitative Research Workbench & Schwab API Phase 2**
+- [ ] **Options order placement on Schwab** ([Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138))
+- [ ] **Event Study Analyzer:** Analyze stock performance around earnings, FDA decisions, and other event windows.
+- [ ] **Rolling Statistics Dashboard:** Track dynamic volatility, beta, and correlation.
+- [ ] **Custom Screener Builder:** Build complex multi-factor screens through a dedicated UI.
+
+### v0.38.0 (Q3 2026 - August)
 **News Intelligence & Smart Alerts**
 - [ ] **Real-Time News Integration:** AI-powered summarization of breaking news for watchlist instruments.
 - [ ] **Smart Alerts:** Multi-condition alerts correlated with technical indicators (e.g., "Alert if price > SMA200 AND GEX > $0").
 - [ ] **Sentiment Scoring:** News/Social sentiment impact analysis for Agentic Reasoning.
 - [ ] **Dynamic Alert Thresholds:** AI-calculated alert levels based on historical volatility.
 
-### v0.38.0 (Q3 2026 - August)
+### v0.39.0 (Q3 2026 - August)
 **Forex Trading & Advanced Crypto**
 - Forex trading (currency pairs) ([Tracking: #116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 - Forex charting & analysis
 - Multi-asset portfolio allocation
 - Carry trade optimizer
 
-### v0.39.0 (Q3 2026 - September)
+### v0.40.0 (Q3 2026 - September)
 **Risk Management Suite 2.0 & Futures Ordering**
 - Futures manual order placement and contract management.
 - Portfolio stress testing ([Tracking: #135](https://github.com/CIInc/robinhood-options-mobile/issues/135))
 - Greeks aggregation (Delta/Gamma/Theta/Vega) across entire multi-account portfolio.
 - Tail risk hedging recommendations and liquidity assessment.
 
-### v0.40.0 (Q4 2026 - October)
+### v0.41.0 (Q4 2026 - October)
 **AI Trading Coach & Behavioral Finance**
 - Personalized trading pattern analysis ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - Behavioral coaching (detect biases)
 - Emotion tracking & journaling
 - Trading psychology score
 
-### v0.41.0 (Q4 2026 - November)
+### v0.42.0 (Q4 2026 - November)
 **Investor Groups 2.0 & Collaborative Analytics**
 - Group chat (real-time messaging) ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
 - Performance leaderboards & shared analysis boards.
 - Verified track records for public group leaders.
 
-### v0.42.0 (Q4 2026 - December)
+### v0.43.0 (Q4 2026 - December)
 **Social Platform & Performance Following**
 - Follow portfolios ([Tracking: #27](https://github.com/CIInc/robinhood-options-mobile/issues/27))
 - Top portfolios leaderboard and user reputation system.
 - Social feed for shared trade ideas and strategy cloning.
 
-### v0.43.0 (Q4 2026 - Late Dec)
+### v0.44.0 (Q4 2026 - Late Dec)
 **Security, Compliance & Tax Reporting**
 - Two-factor authentication (2FA) and biometric hardening.
 - Capital gains optimizer and wash sale detector ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114)).
 - IRS Form 8949 reporting support.
 
-### v0.44.0 (2027 Q1 - Jan)
+### v0.45.0 (2027 Q1 - Jan)
 **Mobile Excellence & Platform Polish**
 - Offline mode with intelligent data caching.
 - Landscape mode support for advanced charting.
 - Apple Watch & Wear OS companion app.
 
-### v0.46.0 (2027 Q1 - Jan)
+### v0.47.0 (2027 Q1 - Jan)
 **Advanced Social & Community**
 - Group analytics & insights
 - Community trade ideas voting
 - NFT-based portfolio achievements
 - Decentralized portfolio verification
 
-### v0.47.0 (2027 Q1 - Feb)
+### v0.48.0 (2027 Q1 - Feb)
 **Options Analytics Pro**
 - Implied volatility surface 3D visualizer
 - Options flow anomaly detector
 - Earnings volatility analyzer
 - Delta-neutral portfolio builder
 
-### v0.48.0 (2027 Q1 - March)
+### v0.49.0 (2027 Q1 - March)
 **Algorithmic Strategy Marketplace ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141))**
 - Community strategy sharing with performance proofs
 - Strategy rental/subscription model
 - Algorithmic strategy backtesting as a service
 - Automated royalty distribution
 
-### v0.49.0+ (2027 Q2+)
+### v0.50.0+ (2027 Q2+)
 **Future Vision**
 - Retirement Planning ([Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139))
 - Credit & Lending Integration
@@ -647,9 +657,9 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 
 #### Research & Quantitative ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] **Alpha Factor Discovery**: Research engine for signal correlation - **Medium** (3-4 weeks)
-- [ ] **Event Study Analyzer**: Stock performance around specific event windows - **Medium** (3-4 weeks)
-- [ ] **Rolling Statistics Dashboard**: Dynamic volatility and correlation tracking - **Small** (2 weeks)
-- [ ] **Custom Screener Builder**: Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
+- [ ] **Event Study Analyzer** (v0.37.2): Stock performance around specific event windows - **Medium** (3-4 weeks)
+- [ ] **Rolling Statistics Dashboard** (v0.37.2): Dynamic volatility and correlation tracking - **Small** (2 weeks)
+- [ ] **Custom Screener Builder** (v0.37.2): Advanced multi-factor filtering UI - **Medium** (3-4 weeks)
 - [x] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking - **Small** (1 week)
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
@@ -661,7 +671,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
     - [x] **Agentic Reasoning Mode** (v0.37.0): Deep multi-step analysis for trade generation
     - [x] **Personalized AI Coach**: Analyze user's manual trading history to identify biases and suggest improvements (v0.28.0) - **Large** (5-7 weeks)
     - [ ] **Natural Language Interface**: "Chat with your Portfolio" feature to ask questions about performance and risk - **Large** (6-8 weeks)
-- [ ] **News Intelligence & Summarization** (v0.37.2):
+- [ ] **News Intelligence & Summarization** (v0.38.0):
     - [ ] **AI News Summarizer**: Breaking news impact analysis for watchlists
     - [ ] **Real-time Sentiment Scoring**: Quantifying news/social impact on specific tickers
     - [ ] **Event Impact Prediction**: Modeling price responses to news events
@@ -684,7 +694,7 @@ Q3 2026 shifts focus from basic execution to **Advanced Intelligence** and **Reg
 - [ ] **News Alerts**: News notifications for holdings
 - [ ] **Unusual Activity Alerts**: Unusual volume/price movement detection
 - [ ] **Group Activity Notifications**: Investor group trade updates
-- [ ] **Multi-Condition Alert Builder** (v0.37.2): Combine multiple conditions (price + volume + RSI + GEX) - **Medium** (3-4 weeks)
+- [ ] **Multi-Condition Alert Builder** (v0.38.0): Combine multiple conditions (price + volume + RSI + GEX) - **Medium** (3-4 weeks)
 - [ ] **Dynamic Alert Thresholds**: AI-calculated levels based on trailing volatility - **Small** (1-2 weeks)
 - [ ] **Earnings Surprise Predictor**: Machine learning model to predict earnings beats/misses - **Large** (5-6 weeks)
 - [ ] **Dark Pool Activity Alerts**: Monitor off-exchange trading anomalies - **Medium** (3-4 weeks)
@@ -784,7 +794,7 @@ Technical debt accumulation slows velocity. Investing in testing, CI/CD, and sec
 #### Data & Integration
 - [x] **Schwab Integration**: Full portfolio and trading support ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
-    - [ ] Schwab Options Order Placement (Phase 2) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
+    - [ ] Schwab Options Order Placement (Phase 2, v0.37.2) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [ ] Schwab Multi-Account Support (Phase 3)
 - [x] **Yahoo Finance**: Real-time news and charting
 - [ ] **Plaid Integration**: Full account linking and options support ([#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#92](https://github.com/CIInc/robinhood-options-mobile/issues/92))

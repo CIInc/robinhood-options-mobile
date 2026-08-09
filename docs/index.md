@@ -46,6 +46,8 @@
 - **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
 - **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views. Read complete information in [docs/mcp-integration.md](docs/mcp-integration.md).
 - **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
+- **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
+- **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Schwab Integration](schwab-integration.md):** Seamless integration with Schwab brokerage accounts for enhanced trading capabilities.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.

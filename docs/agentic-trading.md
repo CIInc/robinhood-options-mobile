@@ -173,6 +173,10 @@ To ensure reliability and prevent duplicate trades, the system implements robust
   - Specific rejection reasons (if applicable).
   - Timestamp of processing.
 
+### Signal Calculation Diagnostics
+
+Instrument signal details expose backend calculation metadata for a recommendation: last attempt, last successful calculation, signal-change time, market-data timestamp, stale-cache use, data source, status, interval, and bars evaluated. Warnings distinguish stale or failed calculations from a current successful result without changing the persisted signal.
+
 ### Paper Trading Mode
 
 The system includes a fully functional **Paper Trading Mode** for risk-free strategy testing and validation.
